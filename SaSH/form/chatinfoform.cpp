@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-static const QHash<qint64, QColor> combo_colorhash = {
+static const QHash<long long, QColor> combo_colorhash = {
 	{ 0, QColor(255, 255, 255) },
 	{ 1, QColor(0, 255, 255) },
 	{ 2, QColor(255, 0, 255) },
@@ -59,7 +59,7 @@ public:
 	}
 };
 
-ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
+ChatInfoForm::ChatInfoForm(long long index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -112,10 +112,10 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 		//QKeyEvent* keyEvent = reinterpret_cast<QKeyEvent*>(e);
 		//if (keyEvent->key() == Qt::Key_Delete)
 		//{
-		//	qint64 currentIndex = getIndex();
+		//	long long currentIndex = getIndex();
 		//	Injector& injector = Injector::getInstance(currentIndex);
-		//	if (!injector.server.isNull())
-		//		injector.server->cleanChatHistory();
+		//	if (!injector.worker.isNull())
+		//		injector.worker->cleanChatHistory();
 		//	return true;
 		//}
 	}
@@ -127,17 +127,17 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 			QComboBox* comboBox = qobject_cast<QComboBox*>(watched);
 			if (comboBox)
 			{
-				qint64 currentIndex = getIndex();
+				long long currentIndex = getIndex();
 				QString text = comboBox->currentText();
 				Injector& injector = Injector::getInstance(currentIndex);
-				if (!injector.server.isNull())
+				if (!injector.worker.isNull())
 				{
-					qint64 nMode = ui.comboBox_channel->currentIndex();
+					long long nMode = ui.comboBox_channel->currentIndex();
 					TalkMode mode = static_cast<TalkMode>(nMode != -1 ? nMode : kTalkNormal);
-					if (nMode != (static_cast<qint64>(channelList_.size()) - 1))
-						injector.server->talk(text, ui.comboBox_color->currentIndex(), mode);
+					if (nMode != (static_cast<long long>(channelList_.size()) - 1))
+						injector.worker->talk(text, ui.comboBox_color->currentIndex(), mode);
 					else
-						injector.server->inputtext(text);
+						injector.worker->inputtext(text);
 
 					comboBox->insertItem(0, text);
 
@@ -152,7 +152,7 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 
 void ChatInfoForm::onApplyHashSettingsToUI()
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	ui.listView_log->setModel(&injector.chatLogModel);
 }
@@ -176,7 +176,7 @@ void ChatInfoForm::onResetControlTextLanguage()
 	channelList_ = QStringList{
 		tr("normal"), tr("team"), tr("family"), tr("world"), tr("global"), tr("dialog")
 	};
-	qint64 index = ui.comboBox_channel->currentIndex();
+	long long index = ui.comboBox_channel->currentIndex();
 	ui.comboBox_channel->clear();
 	ui.comboBox_channel->addItems(channelList_);
 	ui.comboBox_channel->setCurrentIndex(index);

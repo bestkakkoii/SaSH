@@ -183,12 +183,42 @@ ComboBox::ComboBox(QWidget* parent) :QComboBox(parent)
 	)");
 #endif
 	setStyleSheet(R"(
+QComboBox {
+    border: 1px solid black;
+    padding: 1px 18px 1px 3px;
+}
+
 QComboBox QAbstractItemView { 
     min-width: 200px;
     /*border-radius: 3px;
     border: 0px solid #ccc;*/
 }
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 15px;
+
+    border-left-width: 1px;
+    border-left-color: darkgray;
+    border-left-style: solid; /* just a single line */
+    border-top-right-radius: 3px; /* same radius as the QComboBox */
+    border-bottom-right-radius: 3px;
+}
+
+QComboBox::down-arrow {
+    image: url(:/image/icon_downarrow.svg);
+	width:12px;
+	height:12px;
+}
+
+
+QComboBox::down-arrow:on { /* shift the arrow when popup is open */
+    top: 1px;
+    left: 1px;
+}
 )");
+	setAttribute(Qt::WA_StyledBackground);
 	setView(q_check_ptr(q_check_ptr(new QListView())));
 	view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 	//setFixedHeight(20);

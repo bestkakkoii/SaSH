@@ -34,62 +34,63 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "model/treewidget.h"
 #include "model/treewidgetitem.h"
 
-constexpr qint64 SASH_VERSION_MAJOR = 1;
-constexpr qint64 SASH_VERSION_MINOR = 0;
-constexpr qint64 SASH_VERSION_PATCH = 0;
-constexpr qint64 SASH_MAX_THREAD = 65535;
+constexpr long long SASH_VERSION_MAJOR = 1;
+constexpr long long SASH_VERSION_MINOR = 0;
+constexpr long long SASH_VERSION_PATCH = 0;
+constexpr long long SASH_MAX_THREAD = 65535;
+constexpr long long SASH_MAX_SHARED_MEM = 655350;
 constexpr const char* SASH_INJECT_DLLNAME = "sadll";
 constexpr const char* SASH_SUPPORT_GAMENAME = "sa_8001.exe";
 
 typedef struct break_marker_s
 {
-	qint64 line = 0;
-	qint64 count = 0;
-	qint64 maker = 0;
+	long long line = 0;
+	long long count = 0;
+	long long maker = 0;
 	QString content = "\0";
 } break_marker_t;
 
 namespace mem
 {
-	bool read(HANDLE hProcess, quint64 desiredAccess, quint64 size, PVOID buffer);
+	bool read(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, PVOID buffer);
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
-	Q_REQUIRED_RESULT T read(HANDLE hProcess, quint64 desiredAccess);
+	Q_REQUIRED_RESULT T read(HANDLE hProcess, unsigned long long desiredAccess);
 
-	template char read<char>(HANDLE hProcess, quint64 desiredAccess);
-	template short read<short>(HANDLE hProcess, quint64 desiredAccess);
-	template int read<int>(HANDLE hProcess, quint64 desiredAccess);
-	template float read<float>(HANDLE hProcess, quint64 desiredAccess);
-	template long read<long>(HANDLE hProcess, quint64 desiredAccess);
-	template long long read<long long>(HANDLE hProcess, quint64 desiredAccess);
-	template unsigned char read<unsigned char>(HANDLE hProcess, quint64 desiredAccess);
-	template unsigned short read<unsigned short>(HANDLE hProcess, quint64 desiredAccess);
-	template unsigned int read<unsigned int>(HANDLE hProcess, quint64 desiredAccess);
-	template unsigned long read<unsigned long>(HANDLE hProcess, quint64 desiredAccess);
-	template unsigned long long read<unsigned long long>(HANDLE hProcess, quint64 desiredAccess);
+	template char read<char>(HANDLE hProcess, unsigned long long desiredAccess);
+	template short read<short>(HANDLE hProcess, unsigned long long desiredAccess);
+	template int read<int>(HANDLE hProcess, unsigned long long desiredAccess);
+	template float read<float>(HANDLE hProcess, unsigned long long desiredAccess);
+	template long read<long>(HANDLE hProcess, unsigned long long desiredAccess);
+	template long long read<long long>(HANDLE hProcess, unsigned long long desiredAccess);
+	template unsigned char read<unsigned char>(HANDLE hProcess, unsigned long long desiredAccess);
+	template unsigned short read<unsigned short>(HANDLE hProcess, unsigned long long desiredAccess);
+	template unsigned int read<unsigned int>(HANDLE hProcess, unsigned long long desiredAccess);
+	template unsigned long read<unsigned long>(HANDLE hProcess, unsigned long long desiredAccess);
+	template unsigned long long read<unsigned long long>(HANDLE hProcess, unsigned long long desiredAccess);
 
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
-	bool write(HANDLE hProcess, quint64 baseAddress, T data);
-	template bool write<char>(HANDLE hProcess, quint64 baseAddress, char data);
-	template bool write<short>(HANDLE hProcess, quint64 baseAddress, short data);
-	template bool write<int>(HANDLE hProcess, quint64 baseAddress, int data);
-	template bool write<float>(HANDLE hProcess, quint64 baseAddress, float data);
-	template bool write<long>(HANDLE hProcess, quint64 baseAddress, long data);
-	template bool write<long long>(HANDLE hProcess, quint64 baseAddress, long long data);
-	template bool write<unsigned char>(HANDLE hProcess, quint64 baseAddress, unsigned char data);
-	template bool write<unsigned short>(HANDLE hProcess, quint64 baseAddress, unsigned short data);
-	template bool write<unsigned int>(HANDLE hProcess, quint64 baseAddress, unsigned int data);
-	template bool write<unsigned long>(HANDLE hProcess, quint64 baseAddress, unsigned long data);
-	template bool write<unsigned long long>(HANDLE hProcess, quint64 baseAddress, unsigned long long data);
+	bool write(HANDLE hProcess, unsigned long long baseAddress, T data);
+	template bool write<char>(HANDLE hProcess, unsigned long long baseAddress, char data);
+	template bool write<short>(HANDLE hProcess, unsigned long long baseAddress, short data);
+	template bool write<int>(HANDLE hProcess, unsigned long long baseAddress, int data);
+	template bool write<float>(HANDLE hProcess, unsigned long long baseAddress, float data);
+	template bool write<long>(HANDLE hProcess, unsigned long long baseAddress, long data);
+	template bool write<long long>(HANDLE hProcess, unsigned long long baseAddress, long long data);
+	template bool write<unsigned char>(HANDLE hProcess, unsigned long long baseAddress, unsigned char data);
+	template bool write<unsigned short>(HANDLE hProcess, unsigned long long baseAddress, unsigned short data);
+	template bool write<unsigned int>(HANDLE hProcess, unsigned long long baseAddress, unsigned int data);
+	template bool write<unsigned long>(HANDLE hProcess, unsigned long long baseAddress, unsigned long data);
+	template bool write<unsigned long long>(HANDLE hProcess, unsigned long long baseAddress, unsigned long long data);
 
-	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, quint64 desiredAccess);
-	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, quint64 desiredAccess);
-	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, quint64 desiredAccess, quint64 size, bool enableTrim = true, bool keepOriginal = false);
-	bool write(HANDLE hProcess, quint64 baseAddress, PVOID buffer, quint64 dwSize);
-	bool writeString(HANDLE hProcess, quint64 baseAddress, const QString& str);
-	bool virtualFree(HANDLE hProcess, quint64 baseAddress);
-	Q_REQUIRED_RESULT quint64 virtualAlloc(HANDLE hProcess, quint64 size);
-	Q_REQUIRED_RESULT quint64 virtualAllocW(HANDLE hProcess, const QString& str);
-	Q_REQUIRED_RESULT quint64 virtualAllocA(HANDLE hProcess, const QString& str);
+	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, unsigned long long desiredAccess);
+	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, unsigned long long desiredAccess);
+	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, bool enableTrim = true, bool keepOriginal = false);
+	bool write(HANDLE hProcess, unsigned long long baseAddress, PVOID buffer, unsigned long long dwSize);
+	bool writeString(HANDLE hProcess, unsigned long long baseAddress, const QString& str);
+	bool virtualFree(HANDLE hProcess, unsigned long long baseAddress);
+	Q_REQUIRED_RESULT unsigned long long virtualAlloc(HANDLE hProcess, unsigned long long size);
+	Q_REQUIRED_RESULT unsigned long long virtualAllocW(HANDLE hProcess, const QString& str);
+	Q_REQUIRED_RESULT unsigned long long virtualAllocA(HANDLE hProcess, const QString& str);
 #ifndef _WIN64
 	Q_REQUIRED_RESULT DWORD getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
 #endif
@@ -135,13 +136,13 @@ namespace mem
 	long getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max);
 	ULONG64 getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName);
 #ifndef _WIN64
-	bool injectByWin7(qint64 index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);
+	bool injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);
 #endif
-	bool injectBy64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//兼容64位注入32位
+	bool injectBy64(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//兼容64位注入32位
 #if 0
-	bool inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//32注入32
+	bool inject(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//32注入32
 #endif
-	bool enumProcess(QVector<qint64>* pprocesses, const QString& moduleName);
+	bool enumProcess(QVector<long long>* pprocesses, const QString& moduleName);
 }
 
 namespace util
@@ -533,6 +534,8 @@ namespace util
 		kBattleItemHealMpItemString,
 		kBattleItemReviveItemString,
 
+		kNormalMagicHealItemString,
+
 		kNormalItemHealItemString,
 		kNormalItemHealMpItemString,
 
@@ -556,6 +559,13 @@ namespace util
 		kMailWhiteListString,
 
 		kEOCommandString,
+
+		kTitleFormatString,
+		kBattleAllieFormatString,
+		kBattleEnemyFormatString,
+		kBattleSelfMarkString,
+		kBattleActMarkString,
+		kBattleSpaceMarkString,
 
 		kBattleLogicsString,
 
@@ -816,11 +826,13 @@ namespace util
 		{ kLockEscapeString, "LockEscapeString" },
 
 		//afk->heal
+		{ kNormalMagicHealItemString, "NormalMagicHealItemString" },
 		{ kBattleItemHealItemString, "BattleItemHealItemString" },
 		{ kBattleItemHealMpItemString, "BattleItemHealMpIteamString" },
 		{ kBattleItemReviveItemString, "BattleItemReviveItemString" },
 		{ kNormalItemHealItemString, "NormalItemHealItemString" },
 		{ kNormalItemHealMpItemString, "NormalItemHealMpItemString" },
+
 
 		//afk->catch
 		{ kBattleCatchPetNameString, "BattleCatchPetNameString" },
@@ -841,6 +853,13 @@ namespace util
 		{ kMailWhiteListString , "MailWhiteListString" },
 
 		{ kEOCommandString , "EOCommandString" },
+
+		{ kTitleFormatString , "kTitleFormatString" },
+		{ kBattleAllieFormatString, "BattleAllieFormatString" },
+		{ kBattleEnemyFormatString, "BattleEnemyFormatString" },
+		{ kBattleSelfMarkString, "BattleSelfMarkString" },
+		{ kBattleActMarkString, "BattleActMarkString" },
+		{ kBattleSpaceMarkString, "BattleSpaceMarkString" },
 
 		{ kBattleLogicsString , "BattleLogicsString" },
 
@@ -869,10 +888,10 @@ namespace util
 
 	Q_REQUIRED_RESULT QString applicationName();
 
-	Q_REQUIRED_RESULT qint64 percent(qint64 value, qint64 total);
+	Q_REQUIRED_RESULT long long percent(long long value, long long total);
 
 	template<typename T>
-	inline Q_REQUIRED_RESULT QString toQString(T d, qint64 base = 10)
+	inline Q_REQUIRED_RESULT QString toQString(T d, long long base = 10)
 	{
 		if constexpr (std::is_same_v<T, double>)
 		{
@@ -906,11 +925,11 @@ namespace util
 		{
 			return QString::fromUtf8(d.c_str());
 		}
-		else if constexpr (std::is_same_v<T, qint64>)
+		else if constexpr (std::is_same_v<T, long long>)
 		{
 			return QString::number(d, base);
 		}
-		else if constexpr (std::is_same_v<T, quint64>)
+		else if constexpr (std::is_same_v<T, unsigned long long>)
 		{
 			return QString::number(d, base);
 		}
@@ -953,7 +972,7 @@ namespace util
 #ifndef _DEBUG
 			// 繁體系統要轉繁體否則遊戲視窗標題會亂碼(一堆問號字)
 			std::wstring wstr = qstr.toStdWString();
-			qint64 size = lstrlenW(wstr.c_str());
+			long long size = lstrlenW(wstr.c_str());
 			QScopedArrayPointer <wchar_t> wbuf(q_check_ptr(new wchar_t[size + 1]()));
 			//繁體字碼表映射
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
@@ -974,7 +993,7 @@ namespace util
 		if (950 == ACP && !keppOrigin)
 		{
 			// 繁體系統要轉回簡體體否則遊戲視窗會亂碼
-			qint64 size = lstrlenW(wstr.c_str());
+			long long size = lstrlenW(wstr.c_str());
 			QScopedArrayPointer <wchar_t> wbuf(q_check_ptr(new wchar_t[size + 1]()));
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
 			qstr = util::toQString(wbuf.data());
@@ -985,6 +1004,31 @@ namespace util
 		std::string s = bytes.data();
 
 		return s;
+	}
+
+	inline void setLineEdit(QLineEdit* pEdit)
+	{
+		QString styleSheet = R"(
+QLineEdit {
+    border: 0px solid black;
+    border-radius: 0px;
+    padding: 0 8px;
+    background: none;
+    selection-background-color: #3A79B8;
+}
+
+QLineEdit:focus { 
+border: 2px solid #3282F6;
+background-color:#FFFFFF;
+}
+
+QLineEdit:hover{
+border: 2px solid #3282F6;
+}
+		)";
+
+		pEdit->setStyleSheet(styleSheet);
+		pEdit->setAttribute(Qt::WA_StyledBackground);
 	}
 
 	inline void setTab(QTabWidget* pTab)
@@ -998,7 +1042,7 @@ namespace util
 
 			QTabWidget::pane{
 				top:0px;
-				border-top:2px solid #7160E8;
+				border-top:2px solid #000000;
 				border-bottom:1px solid rgb(61,61,61);
 				border-right:1px solid rgb(61,61,61);
 				border-left:1px solid rgb(61,61,61);
@@ -1013,13 +1057,12 @@ namespace util
 			}
 
 			QTabBar::tab:first{
-				/*color:rgb(178,178,178);*/
 				background:rgb(249, 249, 249);
 
 				padding-left:0px;
 				padding-right:0px;
 				/*width:100px;*/
-				height:24px;
+				height:18px;
 				margin-left:0px;
 				margin-right:0px;
 
@@ -1027,12 +1070,10 @@ namespace util
 			}
 
 			QTabBar::tab:middle{
-				/*color:rgb(178,178,178);*/
 				background:rgb(249, 249, 249);
 				padding-left:0px;
 				padding-right:0px;
-				/*width:100px;*/
-				height:24px;
+				height:18px;
 				margin-left:0px;
 				margin-right:0px;
 
@@ -1041,13 +1082,11 @@ namespace util
 			}
 
 			QTabBar::tab:last{
-				/*color:rgb(178,178,178);*/
 				background:rgb(249, 249, 249);
 
 				padding-left:0px;
 				padding-right:0px;
-				/*width:100px;*/
-				height:24px;
+				height:18px;
 				margin-left:0px;
 				margin-right:0px;
 
@@ -1055,23 +1094,25 @@ namespace util
 			}
 
 			QTabBar::tab:selected{
-				background:rgb(50, 130, 246);
-				border-top:2px solid rgb(50, 130, 246);
+				color:FFFFFF;
+				background:#3282F6;
+				border-top:2px solid #3282F6;
 
 			}
 
 			QTabBar::tab:hover{
-				background:rgb(50, 130, 246);
-				border-top:2px solid rgb(50, 130, 246);
+				coloe:FFFFFF;
+				background:#3282F6;
+				border-top:2px solid #3282F6;
 				padding-left:0px;
 				padding-right:0px;
-				/*width:100px;*/
-				height:24px;
+				height:18px;
 				margin-left:0px;
 				margin-right:0px;
 			}
 		)";
-		//pTab->setStyleSheet(styleSheet);
+
+		pTab->setStyleSheet(styleSheet);
 		pTab->setAttribute(Qt::WA_StyledBackground);
 		QTabBar* pTabBar = pTab->tabBar();
 
@@ -1110,7 +1151,7 @@ namespace util
 		{
 			// 檢查 widget 是否為指定類型的控件，如果是，則添加到結果列表中
 			T* typedWidget = qobject_cast<T*>(widget);
-			if (typedWidget)
+			if (typedWidget != nullptr)
 			{
 				widgets.append(typedWidget);
 			}
@@ -1128,13 +1169,13 @@ namespace util
 		return widgets;
 	}
 
-	QString formatMilliseconds(qint64 milliseconds, bool noSpace = false);
+	QString formatMilliseconds(long long milliseconds, bool noSpace = false);
 
-	QString formatSeconds(qint64 seconds);
+	QString formatSeconds(long long seconds);
 
 	bool writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist);
 
-	bool monitorThreadResourceUsage(quint64 threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage);
+	bool monitorThreadResourceUsage(unsigned long long threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage);
 
 	QFont getFont();
 
@@ -1148,7 +1189,7 @@ namespace util
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
-	bool fileDialogShow(const QString& name, qint64 acceptType, QString* retstring, QWidget* pparent = nullptr);
+	bool fileDialogShow(const QString& name, long long acceptType, QString* retstring, QWidget* pparent = nullptr);
 
 	// 將二進制數據轉換為16進制字符串
 	QString byteArrayToHexString(const QByteArray& data);
@@ -1157,14 +1198,14 @@ namespace util
 	QByteArray hexStringToByteArray(const QString& hexString);
 
 #pragma region swap_row
-	inline void SwapRow(QTableWidget* p, QListWidget* p2, qint64 selectRow, qint64 targetRow)
+	inline void SwapRow(QTableWidget* p, QListWidget* p2, long long selectRow, long long targetRow)
 	{
 
 		if (p)
 		{
 			QStringList selectRowLine, targetRowLine;
-			qint64 count = p->columnCount();
-			for (qint64 i = 0; i < count; ++i)
+			long long count = p->columnCount();
+			for (long long i = 0; i < count; ++i)
 			{
 				selectRowLine.append(p->item(selectRow, i)->text());
 				targetRowLine.append(p->item(targetRow, i)->text());
@@ -1209,12 +1250,12 @@ namespace util
 		const QList<QTableWidgetItem*> list = p->selectedItems();
 		if (list.size() <= 0)
 			return; //有選中
-		qint64 t = list.value(0)->row();
+		long long t = list.value(0)->row();
 		if (t - 1 < 0)
 			return; //不是第一行
 
-		qint64 selectRow = t;	 //當前行
-		qint64 targetRow = t - 1; //目標行
+		long long selectRow = t;	 //當前行
+		long long targetRow = t - 1; //目標行
 
 		SwapRow(p, nullptr, selectRow, targetRow);
 
@@ -1229,12 +1270,12 @@ namespace util
 		const QList<QTableWidgetItem*> list = p->selectedItems();
 		if (list.size() <= 0)
 			return; //有選中
-		qint64 t = list.value(0)->row();
-		if (t + 1 > static_cast<qint64>(p->rowCount()) - 1)
+		long long t = list.value(0)->row();
+		if (t + 1 > static_cast<long long>(p->rowCount()) - 1)
 			return; //不是最後一行
 
-		qint64 selectRow = t;	 //當前行
-		qint64 targetRow = t + 1; //目標行
+		long long selectRow = t;	 //當前行
+		long long targetRow = t + 1; //目標行
 
 		SwapRow(p, nullptr, selectRow, targetRow);
 
@@ -1246,14 +1287,14 @@ namespace util
 	{
 		if (p->count() <= 0)
 			return;
-		qint64 t = p->currentIndex().row(); // ui->tableWidget->rowCount();
+		long long t = p->currentIndex().row(); // ui->tableWidget->rowCount();
 		if (t < 0)
 			return;
 		if (t - 1 < 0)
 			return;
 
-		qint64 selectRow = t;
-		qint64 targetRow = t - 1;
+		long long selectRow = t;
+		long long targetRow = t - 1;
 
 		SwapRow(nullptr, p, selectRow, targetRow);
 
@@ -1265,14 +1306,14 @@ namespace util
 	{
 		if (p->count() <= 0)
 			return;
-		qint64 t = p->currentIndex().row();
+		long long t = p->currentIndex().row();
 		if (t < 0)
 			return;
 		if (t + 1 > p->count() - 1)
 			return;
 
-		qint64 selectRow = t;
-		qint64 targetRow = t + 1;
+		long long selectRow = t;
+		long long targetRow = t + 1;
 
 		SwapRow(nullptr, p, selectRow, targetRow);
 
@@ -1369,7 +1410,7 @@ namespace util
 			return hash.value(key, defaultValue);
 		}
 
-		inline qint64 size() const
+		inline long long size() const
 		{
 			QReadLocker locker(&lock);
 			return hash.size();
@@ -1492,7 +1533,7 @@ namespace util
 	class SafeQueue
 	{
 	public:
-		explicit SafeQueue(qint64 maxSize)
+		explicit SafeQueue(long long maxSize)
 			: maxSize_(maxSize)
 		{
 		}
@@ -1511,7 +1552,7 @@ namespace util
 
 		}
 
-		qint64 size() const
+		long long size() const
 		{
 			QReadLocker locker(&lock_);
 			return queue_.size();
@@ -1551,7 +1592,7 @@ namespace util
 			return queue_.head();
 		}
 
-		void setMaxSize(qint64 maxSize)
+		void setMaxSize(long long maxSize)
 		{
 			QWriteLocker locker(&lock_);
 			queue_.setMaxSize(maxSize);
@@ -1570,7 +1611,7 @@ namespace util
 
 	private:
 		QQueue<V> queue_;
-		qint64 maxSize_;
+		long long maxSize_;
 		mutable QReadWriteLock lock_;
 	};;
 
@@ -1632,7 +1673,7 @@ namespace util
 	{
 	public:
 		SafeVector() = default;
-		explicit SafeVector(qint64 size) : data_(size)
+		explicit SafeVector(long long size) : data_(size)
 		{
 		}
 
@@ -1680,7 +1721,7 @@ namespace util
 		{
 		}
 
-		T& operator[](qint64 i)
+		T& operator[](long long i)
 		{
 			QWriteLocker locker(&lock_);
 			if (i < 0 || i >= data_.size())
@@ -1690,7 +1731,7 @@ namespace util
 			return data_[i];
 		}
 
-		const T& operator[](qint64 i) const
+		const T& operator[](long long i) const
 		{
 			QReadLocker locker(&lock_);
 			if (i < 0 || i >= data_.size())
@@ -1700,7 +1741,7 @@ namespace util
 			return data_[i];
 		}
 
-		const T at(qint64 i) const
+		const T at(long long i) const
 		{
 			QReadLocker locker(&lock_);
 			if (i < 0 || i >= data_.size())
@@ -1788,13 +1829,13 @@ namespace util
 			return data_.cend();
 		}
 
-		void resize(qint64 size)
+		void resize(long long size)
 		{
 			QWriteLocker locker(&lock_);
 			data_.resize(size);
 		}
 
-		qint64 size() const
+		long long size() const
 		{
 			QReadLocker locker(&lock_);
 			return data_.size();
@@ -1848,7 +1889,7 @@ namespace util
 			data_.erase(first, last);
 		}
 
-		T value(qint64 i) const
+		T value(long long i) const
 		{
 			QReadLocker locker(&lock_);
 			return data_.value(i);
@@ -1864,9 +1905,9 @@ namespace util
 
 	struct MapData
 	{
-		qint64 floor = 0;
-		qint64 x = 0;
-		qint64 y = 0;
+		long long floor = 0;
+		long long x = 0;
+		long long y = 0;
 		QString name = "";
 	};
 
@@ -1954,7 +1995,7 @@ namespace util
 
 		VirtualMemory() = default;
 
-		VirtualMemory(HANDLE h, qint64 size, bool autoclear)
+		VirtualMemory(HANDLE h, long long size, bool autoclear)
 			: autoclear(autoclear)
 			, hProcess(h)
 		{
@@ -1970,12 +2011,12 @@ namespace util
 			hProcess = h;
 		}
 
-		inline operator quint64() const
+		inline operator unsigned long long() const
 		{
 			return this->lpAddress;
 		}
 
-		VirtualMemory& operator=(qint64 other)
+		VirtualMemory& operator=(long long other)
 		{
 			this->lpAddress = other;
 			return *this;
@@ -2047,7 +2088,7 @@ namespace util
 			return !lpAddress;
 		}
 
-		Q_REQUIRED_RESULT inline bool isData(BYTE* data, qint64 size) const
+		Q_REQUIRED_RESULT inline bool isData(BYTE* data, long long size) const
 		{
 			QScopedArrayPointer <BYTE> _data(data);
 			mem::read(hProcess, lpAddress, size, _data.data());
@@ -2071,7 +2112,7 @@ namespace util
 
 	private:
 		bool autoclear = false;
-		quint64 lpAddress = NULL;
+		unsigned long long lpAddress = NULL;
 		HANDLE hProcess = NULL;
 	};
 
@@ -2156,7 +2197,7 @@ namespace util
 			}
 
 			return QFile::open(QIODevice::ReadOnly | QIODevice::Unbuffered);
-		}
+			}
 
 		bool openReadWrite()
 		{
@@ -2210,7 +2251,7 @@ namespace util
 		}
 
 		template <typename T>
-		bool mmap(T*& p, qint64 offset, qint64 size, QFile::MemoryMapFlags flags = QFileDevice::MapPrivateOption)//QFile::NoOptions
+		bool mmap(T*& p, long long offset, long long size, QFile::MemoryMapFlags flags = QFileDevice::MapPrivateOption)//QFile::NoOptions
 		{
 			uchar* uc = QFile::map(offset, size, flags);
 			if (uc)
@@ -2225,7 +2266,7 @@ namespace util
 
 	private:
 		QSet<uchar*> m_maps;
-	};
+		};
 
 	//Json配置讀寫
 	class Config
@@ -2407,14 +2448,14 @@ namespace util
 	//用於掛機訊息紀錄
 	typedef struct tagAfkRecorder
 	{
-		qint64 levelrecord = 0;
-		qint64 leveldifference = 0;
-		qint64 exprecord = 0;
-		qint64 expdifference = 0;
-		qint64 goldearn = 0;
-		qint64 deadthcount = 0;
-		qint64 reprecord = 0;
-		qint64 repearn = 0;
+		long long levelrecord = 0;
+		long long leveldifference = 0;
+		long long exprecord = 0;
+		long long expdifference = 0;
+		long long goldearn = 0;
+		long long deadthcount = 0;
+		long long reprecord = 0;
+		long long repearn = 0;
 		bool deadthcountflag = false;
 	}AfkRecorder;
 	//#pragma warning(push)
@@ -2435,5 +2476,5 @@ namespace util
 	static const QRegularExpression rexSquareBrackets(R"(\[(\d+)\])");
 	//([\w\p{Han}]+)\[(\d+)\]
 
-}
+	}
 

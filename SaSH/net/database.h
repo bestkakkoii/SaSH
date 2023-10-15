@@ -25,142 +25,142 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 constexpr size_t LINEBUFSIZ = 8192u;
 
 #ifdef _MORECHARACTERS_
-constexpr qint64 MAX_CHARACTER = 4;
+constexpr long long MAX_CHARACTER = 4;
 #else
-constexpr qint64 MAX_CHARACTER = 2;
+constexpr long long MAX_CHARACTER = 2;
 #endif
-constexpr qint64 CHAR_NAME_LEN = 16;
-constexpr qint64 CHAR_FREENAME_LEN = 32;
-constexpr qint64 MAGIC_NAME_LEN = 28;
-constexpr qint64 MAGIC_MEMO_LEN = 72;
-constexpr qint64 ITEM_NAME_LEN = 28;
-constexpr qint64 ITEM_NAME2_LEN = 16;
-constexpr qint64 ITEM_MEMO_LEN = 84;
-constexpr qint64 PET_NAME_LEN = 16;
-constexpr qint64 PET_FREENAME_LEN = 32;
-constexpr qint64 CHAR_FMNAME_LEN = 33;     // 家族名稱
+constexpr long long CHAR_NAME_LEN = 16;
+constexpr long long CHAR_FREENAME_LEN = 32;
+constexpr long long MAGIC_NAME_LEN = 28;
+constexpr long long MAGIC_MEMO_LEN = 72;
+constexpr long long ITEM_NAME_LEN = 28;
+constexpr long long ITEM_NAME2_LEN = 16;
+constexpr long long ITEM_MEMO_LEN = 84;
+constexpr long long PET_NAME_LEN = 16;
+constexpr long long PET_FREENAME_LEN = 32;
+constexpr long long CHAR_FMNAME_LEN = 33;     // 家族名稱
 
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
-constexpr qint64 PROFESSION_MEMO_LEN = 84;
+constexpr long long PROFESSION_MEMO_LEN = 84;
 #endif
 
 #ifdef _GM_IDENTIFY		// Rog ADD GM識別
-constexpr qint64 GM_NAME_LEN = 32;
+constexpr long long GM_NAME_LEN = 32;
 #endif
 
-constexpr qint64 CHARNAMELEN = 256;
+constexpr long long CHARNAMELEN = 256;
 
-constexpr qint64 MAX_PET = 5;
+constexpr long long MAX_PET = 5;
 
-constexpr qint64 MAX_MAGIC = 9;
+constexpr long long MAX_MAGIC = 9;
 
-constexpr qint64 MAX_PETSKILL = 7;
+constexpr long long MAX_PETSKILL = 7;
 
-constexpr qint64 MAX_PARTY = 5;
+constexpr long long MAX_PARTY = 5;
 
-constexpr qint64 MAX_ADR_BOOK_COUNT = 4;
+constexpr long long MAX_ADR_BOOK_COUNT = 4;
 #ifdef _EXTEND_AB
-constexpr qint64 MAX_ADR_BOOK_PAGE = 20;//20  //10   20050214 cyg 10 add to 20
+constexpr long long MAX_ADR_BOOK_PAGE = 20;//20  //10   20050214 cyg 10 add to 20
 #else
-constexpr qint64 MAX_ADR_BOOK_PAGE = 10;
+constexpr long long MAX_ADR_BOOK_PAGE = 10;
 #endif
-constexpr qint64 MAX_ADDRESS_BOOK = (MAX_ADR_BOOK_COUNT * MAX_ADR_BOOK_PAGE);
+constexpr long long MAX_ADDRESS_BOOK = (MAX_ADR_BOOK_COUNT * MAX_ADR_BOOK_PAGE);
 
 #ifdef _PRO3_ADDSKILL
-constexpr qint64 MAX_PROFESSION_SKILL = 30;
+constexpr long long MAX_PROFESSION_SKILL = 30;
 #else
-constexpr qint64 MAX_PROFESSION_SKILL = 26;
+constexpr long long MAX_PROFESSION_SKILL = 26;
 #endif
 
-constexpr qint64 BATTLE_BUF_SIZE = 4;
-constexpr qint64 BATTLE_COMMAND_SIZE = 4096;
+constexpr long long BATTLE_BUF_SIZE = 4;
+constexpr long long BATTLE_COMMAND_SIZE = 4096;
 
-constexpr qint64 FLOOR_NAME_LEN = 24;
+constexpr long long FLOOR_NAME_LEN = 24;
 
-constexpr qint64 RESULT_ITEM_COUNT = 3;
-constexpr qint64 RESULT_ITEM_NAME_LEN = 24;
-//constexpr qint64 RESULT_CHR_EXP = 4;
-constexpr qint64 RESULT_CHR_EXP = 5;
+constexpr long long RESULT_ITEM_COUNT = 3;
+constexpr long long RESULT_ITEM_NAME_LEN = 24;
+//constexpr long long RESULT_CHR_EXP = 4;
+constexpr long long RESULT_CHR_EXP = 5;
 
-constexpr qint64 SKILL_NAME_LEN = 24;
-constexpr qint64 SKILL_MEMO_LEN = 72;
-constexpr qint64 MAX_SKILL = 7;
+constexpr long long SKILL_NAME_LEN = 24;
+constexpr long long SKILL_MEMO_LEN = 72;
+constexpr long long MAX_SKILL = 7;
 
-constexpr qint64 MIN_HP_PERCENT = 10;
+constexpr long long MIN_HP_PERCENT = 10;
 
-constexpr qint64 MAX_GOLD = 1000000;
-constexpr qint64 MAX_BANKGOLD = 10000000;
-constexpr qint64 MAX_FMBANKGOLD = 100000000;
+constexpr long long MAX_GOLD = 1000000;
+constexpr long long MAX_BANKGOLD = 10000000;
+constexpr long long MAX_FMBANKGOLD = 100000000;
 
 
-constexpr qint64 MAX_PERSONAL_BANKGOLD = 50000000;
+constexpr long long MAX_PERSONAL_BANKGOLD = 50000000;
 
 #ifdef _FMVER21
-constexpr qint64 FAMILY_MAXMEMBER = 100;    // 家族人數
+constexpr long long FAMILY_MAXMEMBER = 100;    // 家族人數
 #else
-constexpr qint64 FAMILY_MAXMEMBER = 50;    // 家族人數
+constexpr long long FAMILY_MAXMEMBER = 50;    // 家族人數
 #endif
 
-constexpr qint64 MAP_TILE_GRID_X1 = -20;
-constexpr qint64 MAP_TILE_GRID_X2 = +17;
-constexpr qint64 MAP_TILE_GRID_Y1 = -16;
-constexpr qint64 MAP_TILE_GRID_Y2 = +21;
-constexpr qint64 MAP_X_SIZE = (MAP_TILE_GRID_X2 - MAP_TILE_GRID_X1);
-constexpr qint64 MAP_Y_SIZE = (MAP_TILE_GRID_Y2 - MAP_TILE_GRID_Y1);
+constexpr long long MAP_TILE_GRID_X1 = -20;
+constexpr long long MAP_TILE_GRID_X2 = +17;
+constexpr long long MAP_TILE_GRID_Y1 = -16;
+constexpr long long MAP_TILE_GRID_Y2 = +21;
+constexpr long long MAP_X_SIZE = (MAP_TILE_GRID_X2 - MAP_TILE_GRID_X1);
+constexpr long long MAP_Y_SIZE = (MAP_TILE_GRID_Y2 - MAP_TILE_GRID_Y1);
 
-constexpr qint64 MAP_READ_FLAG = 0x8000;
-constexpr qint64 MAP_SEE_FLAG = 0x4000;
+constexpr long long MAP_READ_FLAG = 0x8000;
+constexpr long long MAP_SEE_FLAG = 0x4000;
 
-constexpr qint64 TARGET_SIDE_0 = 20;	// 右下
-constexpr qint64 TARGET_SIDE_1 = 21;	// 左上
-constexpr qint64 TARGET_ALL = 22;// 全體
-constexpr qint64 TARGET_SIDE_0_B_ROW = 26;  // 右下後一列
-constexpr qint64 TARGET_SIDE_0_F_ROW = 25;  // 右下前一列
-constexpr qint64 TARGET_SIDE_1_F_ROW = 24;  // 左上前一列
-constexpr qint64 TARGET_SIDE_1_B_ROW = 23;  // 左上後一列
-constexpr qint64 TARGER_THROUGH = 27;
+constexpr long long TARGET_SIDE_0 = 20;	// 右下
+constexpr long long TARGET_SIDE_1 = 21;	// 左上
+constexpr long long TARGET_ALL = 22;// 全體
+constexpr long long TARGET_SIDE_0_B_ROW = 26;  // 右下後一列
+constexpr long long TARGET_SIDE_0_F_ROW = 25;  // 右下前一列
+constexpr long long TARGET_SIDE_1_F_ROW = 24;  // 左上前一列
+constexpr long long TARGET_SIDE_1_B_ROW = 23;  // 左上後一列
+constexpr long long TARGER_THROUGH = 27;
 
-constexpr qint64 BATTLE_BP_JOIN = (1 << 0);//等待回合结束
-constexpr qint64 BATTLE_BP_PLAYER_MENU_NON = (1 << 1);//觀戰
-constexpr qint64 BATTLE_BP_BOOMERANG = (1 << 2);//迴旋鏢
-constexpr qint64 BATTLE_BP_PET_MENU_NON = (1 << 3);//觀戰
-constexpr qint64 BATTLE_BP_ENEMY_SURPRISAL = (1 << 4);//遭遇偷襲
-constexpr qint64 BATTLE_BP_PLAYER_SURPRISAL = (1 << 5);//出奇不意
+constexpr long long BATTLE_BP_JOIN = (1 << 0);//等待回合结束
+constexpr long long BATTLE_BP_PLAYER_MENU_NON = (1 << 1);//觀戰
+constexpr long long BATTLE_BP_BOOMERANG = (1 << 2);//迴旋鏢
+constexpr long long BATTLE_BP_PET_MENU_NON = (1 << 3);//觀戰
+constexpr long long BATTLE_BP_ENEMY_SURPRISAL = (1 << 4);//遭遇偷襲
+constexpr long long BATTLE_BP_PLAYER_SURPRISAL = (1 << 5);//出奇不意
 
-constexpr qint64 BC_FLG_NEW = (1LL << 0);
-constexpr qint64 BC_FLG_DEAD = (1LL << 1);	  //死亡
-constexpr qint64 BC_FLG_PLAYER = (1LL << 2);	  //玩家,玩家有異常狀態時要有此值
-constexpr qint64 BC_FLG_POISON = (1LL << 3);	  //中毒
-constexpr qint64 BC_FLG_PARALYSIS = (1LL << 4); //麻痹
-constexpr qint64 BC_FLG_SLEEP = (1LL << 5);  //昏睡
-constexpr qint64 BC_FLG_STONE = (1LL << 6);	  //石化
-constexpr qint64 BC_FLG_DRUNK = (1LL << 7);  //酒醉
-constexpr qint64 BC_FLG_CONFUSION = (1LL << 8); //混亂
-constexpr qint64 BC_FLG_HIDE = (1LL << 9);	  //是否隱藏，地球一周
-constexpr qint64 BC_FLG_REVERSE = (1LL << 10);  //反轉
-constexpr qint64 BC_FLG_WEAKEN = (1 << 11); // 虛弱
-constexpr qint64 BC_FLG_DEEPPOISON = (1LL << 12); // 劇毒
-constexpr qint64 BC_FLG_BARRIER = (1LL << 13); // 魔障
-constexpr qint64 BC_FLG_NOCAST = (1LL << 14); // 沈默
-constexpr qint64 BC_FLG_SARS = (1LL << 15); // 毒煞蔓延
-constexpr qint64 BC_FLG_DIZZY = (1LL << 16);	// 暈眩
-constexpr qint64 BC_FLG_ENTWINE = (1LL << 17);	// 樹根纏繞
-constexpr qint64 BC_FLG_DRAGNET = (1LL << 18);	// 天羅地網
-constexpr qint64 BC_FLG_ICECRACK = (1LL << 19);	// 冰爆術
-constexpr qint64 BC_FLG_OBLIVION = (1LL << 20);	// 遺忘
-constexpr qint64 BC_FLG_ICEARROW = (1LL << 21);	// 冰箭
-constexpr qint64 BC_FLG_BLOODWORMS = (1LL << 22);	// 嗜血蠱
-constexpr qint64 BC_FLG_SIGN = (1LL << 23);	// 一針見血
-constexpr qint64 BC_FLG_CARY = (1LL << 24); // 挑撥
-constexpr qint64 BC_FLG_F_ENCLOSE = (1LL << 25); // 火附體
-constexpr qint64 BC_FLG_I_ENCLOSE = (1LL << 26); // 冰附體
-constexpr qint64 BC_FLG_T_ENCLOSE = (1LL << 27); // 雷附體
-constexpr qint64 BC_FLG_WATER = (1LL << 28); // 水附體
-constexpr qint64 BC_FLG_FEAR = (1LL << 29); // 恐懼
-constexpr qint64 BC_FLG_CHANGE = (1LL << 30); // 雷爾變身
+constexpr long long BC_FLG_NEW = (1LL << 0);
+constexpr long long BC_FLG_DEAD = (1LL << 1);	  //死亡
+constexpr long long BC_FLG_PLAYER = (1LL << 2);	  //玩家,玩家有異常狀態時要有此值
+constexpr long long BC_FLG_POISON = (1LL << 3);	  //中毒
+constexpr long long BC_FLG_PARALYSIS = (1LL << 4); //麻痹
+constexpr long long BC_FLG_SLEEP = (1LL << 5);  //昏睡
+constexpr long long BC_FLG_STONE = (1LL << 6);	  //石化
+constexpr long long BC_FLG_DRUNK = (1LL << 7);  //酒醉
+constexpr long long BC_FLG_CONFUSION = (1LL << 8); //混亂
+constexpr long long BC_FLG_HIDE = (1LL << 9);	  //是否隱藏，地球一周
+constexpr long long BC_FLG_REVERSE = (1LL << 10);  //反轉
+constexpr long long BC_FLG_WEAKEN = (1 << 11); // 虛弱
+constexpr long long BC_FLG_DEEPPOISON = (1LL << 12); // 劇毒
+constexpr long long BC_FLG_BARRIER = (1LL << 13); // 魔障
+constexpr long long BC_FLG_NOCAST = (1LL << 14); // 沈默
+constexpr long long BC_FLG_SARS = (1LL << 15); // 毒煞蔓延
+constexpr long long BC_FLG_DIZZY = (1LL << 16);	// 暈眩
+constexpr long long BC_FLG_ENTWINE = (1LL << 17);	// 樹根纏繞
+constexpr long long BC_FLG_DRAGNET = (1LL << 18);	// 天羅地網
+constexpr long long BC_FLG_ICECRACK = (1LL << 19);	// 冰爆術
+constexpr long long BC_FLG_OBLIVION = (1LL << 20);	// 遺忘
+constexpr long long BC_FLG_ICEARROW = (1LL << 21);	// 冰箭
+constexpr long long BC_FLG_BLOODWORMS = (1LL << 22);	// 嗜血蠱
+constexpr long long BC_FLG_SIGN = (1LL << 23);	// 一針見血
+constexpr long long BC_FLG_CARY = (1LL << 24); // 挑撥
+constexpr long long BC_FLG_F_ENCLOSE = (1LL << 25); // 火附體
+constexpr long long BC_FLG_I_ENCLOSE = (1LL << 26); // 冰附體
+constexpr long long BC_FLG_T_ENCLOSE = (1LL << 27); // 雷附體
+constexpr long long BC_FLG_WATER = (1LL << 28); // 水附體
+constexpr long long BC_FLG_FEAR = (1LL << 29); // 恐懼
+constexpr long long BC_FLG_CHANGE = (1LL << 30); // 雷爾變身
 
 
-inline constexpr bool hasBadStatus(quint64 status)
+inline constexpr bool hasBadStatus(unsigned long long status)
 {
 	if (status & BC_FLG_DEAD) //死亡
 		return true;
@@ -221,7 +221,7 @@ inline constexpr bool hasBadStatus(quint64 status)
 	return false;
 }
 
-inline constexpr bool hasUnMoveableStatue(quint64 status)
+inline constexpr bool hasUnMoveableStatue(unsigned long long status)
 {
 	if (status & BC_FLG_DEAD) //死亡
 		return true;
@@ -241,84 +241,84 @@ inline constexpr bool hasUnMoveableStatue(quint64 status)
 	return false;
 }
 
-constexpr qint64 ITEM_FLAG_PET_MAIL = (1LL << 0);
-constexpr qint64 ITEM_FLAG_MIX = (1LL << 1);
-constexpr qint64 ITEM_FLAG_COOKING_MIX = (1LL << 2);
-constexpr qint64 ITEM_FLAG_METAL_MIX = (1LL << 3);	//金屬
-constexpr qint64 ITEM_FLAG_JEWEL_MIX = (1LL << 4);	//寶石
-constexpr qint64 ITEM_FLAG_FIX_MIX = (1LL << 5);	//修理
+constexpr long long ITEM_FLAG_PET_MAIL = (1LL << 0);
+constexpr long long ITEM_FLAG_MIX = (1LL << 1);
+constexpr long long ITEM_FLAG_COOKING_MIX = (1LL << 2);
+constexpr long long ITEM_FLAG_METAL_MIX = (1LL << 3);	//金屬
+constexpr long long ITEM_FLAG_JEWEL_MIX = (1LL << 4);	//寶石
+constexpr long long ITEM_FLAG_FIX_MIX = (1LL << 5);	//修理
 #ifdef _ITEM_INTENSIFY
-constexpr qint64 ITEM_FLAG_INTENSIFY_MIX = (1LL << 6);	//強化
+constexpr long long ITEM_FLAG_INTENSIFY_MIX = (1LL << 6);	//強化
 #endif
 #ifdef _ITEM_UPINSLAY
-constexpr qint64 ITEM_FLAG_UPINSLAY_MIX = (1LL << 7);	//鑿孔
+constexpr long long ITEM_FLAG_UPINSLAY_MIX = (1LL << 7);	//鑿孔
 #endif
 
-constexpr qint64 JOY_RIGHT = (1LL << 15);/* Right Key				*/
-constexpr qint64 JOY_LEFT = (1LL << 14);/*  Left Key				*/
-constexpr qint64 JOY_DOWN = (1LL << 13);/*  Down Key				*/
-constexpr qint64 JOY_UP = (1LL << 12);	/*    Up Key				*/
-constexpr qint64 JOY_START = (1LL << 11);	/* Start					*/
-constexpr qint64 JOY_A = (1LL << 10);	/* A Trigger				*/
-constexpr qint64 JOY_C = (1LL << 9);/* C Trigger				*/
-constexpr qint64 JOY_B = (1LL << 8);	/* B Trigger				*/
-constexpr qint64 JOY_R = (1LL << 7);	/* R Trigger				*/
-constexpr qint64 JOY_X = (1LL << 6);	/* X Trigger				*/
-constexpr qint64 JOY_DEL = (1LL << 5);	/* DELETE					*/
-constexpr qint64 JOY_INS = (1LL << 4);	/* INSERT					*/
-constexpr qint64 JOY_END = (1LL << 3);/* END						*/
-constexpr qint64 JOY_HOME = (1LL << 2);	/* HOME						*/
-constexpr qint64 JOY_P_DOWN = (1LL << 1);	/* PAGE_UP					*/
-constexpr qint64 JOY_P_UP = (1LL << 0);	/* PAGE_DOWN				*/
+constexpr long long JOY_RIGHT = (1LL << 15);/* Right Key				*/
+constexpr long long JOY_LEFT = (1LL << 14);/*  Left Key				*/
+constexpr long long JOY_DOWN = (1LL << 13);/*  Down Key				*/
+constexpr long long JOY_UP = (1LL << 12);	/*    Up Key				*/
+constexpr long long JOY_START = (1LL << 11);	/* Start					*/
+constexpr long long JOY_A = (1LL << 10);	/* A Trigger				*/
+constexpr long long JOY_C = (1LL << 9);/* C Trigger				*/
+constexpr long long JOY_B = (1LL << 8);	/* B Trigger				*/
+constexpr long long JOY_R = (1LL << 7);	/* R Trigger				*/
+constexpr long long JOY_X = (1LL << 6);	/* X Trigger				*/
+constexpr long long JOY_DEL = (1LL << 5);	/* DELETE					*/
+constexpr long long JOY_INS = (1LL << 4);	/* INSERT					*/
+constexpr long long JOY_END = (1LL << 3);/* END						*/
+constexpr long long JOY_HOME = (1LL << 2);	/* HOME						*/
+constexpr long long JOY_P_DOWN = (1LL << 1);	/* PAGE_UP					*/
+constexpr long long JOY_P_UP = (1LL << 0);	/* PAGE_DOWN				*/
 
-constexpr qint64 JOY_ESC = (1LL << 31);/* ESC Key					*/
-constexpr qint64 JOY_CTRL_M = (1LL << 30);	/* Ctrl + M					*/
-constexpr qint64 JOY_CTRL_S = (1LL << 29);	/* Ctrl + S					*/
-constexpr qint64 JOY_CTRL_P = (1LL << 28);	/* Ctrl + P					*/
-constexpr qint64 JOY_CTRL_I = (1LL << 27);	/* Ctrl + I					*/
-constexpr qint64 JOY_CTRL_E = (1LL << 26);	/* Ctrl + E					*/
-constexpr qint64 JOY_CTRL_A = (1LL << 25);	/* Ctrl + A					*/
+constexpr long long JOY_ESC = (1LL << 31);/* ESC Key					*/
+constexpr long long JOY_CTRL_M = (1LL << 30);	/* Ctrl + M					*/
+constexpr long long JOY_CTRL_S = (1LL << 29);	/* Ctrl + S					*/
+constexpr long long JOY_CTRL_P = (1LL << 28);	/* Ctrl + P					*/
+constexpr long long JOY_CTRL_I = (1LL << 27);	/* Ctrl + I					*/
+constexpr long long JOY_CTRL_E = (1LL << 26);	/* Ctrl + E					*/
+constexpr long long JOY_CTRL_A = (1LL << 25);	/* Ctrl + A					*/
 
-constexpr qint64 JOY_CTRL_C = (1LL << 24);	/* Ctrl + C					*/
-constexpr qint64 JOY_CTRL_V = (1LL << 23);	/* Ctrl + V					*/
-constexpr qint64 JOY_CTRL_T = (1LL << 22);	/* Ctrl + T					*/
+constexpr long long JOY_CTRL_C = (1LL << 24);	/* Ctrl + C					*/
+constexpr long long JOY_CTRL_V = (1LL << 23);	/* Ctrl + V					*/
+constexpr long long JOY_CTRL_T = (1LL << 22);	/* Ctrl + T					*/
 
-constexpr qint64 MAIL_STR_LEN = 140;
-constexpr qint64 MAIL_DATE_STR_LEN = 20;
-constexpr qint64 MAIL_MAX_HISTORY = 20;
-constexpr qint64 MAX_CHAT_REGISTY_STR = 8;
+constexpr long long MAIL_STR_LEN = 140;
+constexpr long long MAIL_DATE_STR_LEN = 20;
+constexpr long long MAIL_MAX_HISTORY = 20;
+constexpr long long MAX_CHAT_REGISTY_STR = 8;
 
-constexpr qint64 MAX_ENEMY = 20;
-constexpr qint64 MAX_CHAT_HISTORY = 20;
-constexpr qint64 MAX_DIALOG_LINE = 200;
+constexpr long long MAX_ENEMY = 20;
+constexpr long long MAX_CHAT_HISTORY = 20;
+constexpr long long MAX_DIALOG_LINE = 200;
 
-constexpr qint64 MAX_DIR = 8;
+constexpr long long MAX_DIR = 8;
 
 constexpr const char* SUCCESSFULSTR = "successful";
 constexpr const char* FAILEDSTR = "failed";
 constexpr const char* OKSTR = "ok";
 constexpr const char* CANCLE = "cancle";
 
-constexpr qint64 BATTLE_MAP_FILES = 220;
-constexpr qint64 GRID_SIZE = 64;
+constexpr long long BATTLE_MAP_FILES = 220;
+constexpr long long GRID_SIZE = 64;
 
-constexpr qint64 LSTIME_SECONDS_PER_DAY = 5400LL;
-constexpr qint64 LSTIME_HOURS_PER_DAY = 1024LL;
-constexpr qint64 LSTIME_DAYS_PER_YEAR = 100LL;
+constexpr long long LSTIME_SECONDS_PER_DAY = 5400LL;
+constexpr long long LSTIME_HOURS_PER_DAY = 1024LL;
+constexpr long long LSTIME_DAYS_PER_YEAR = 100LL;
 
 #if 0
 
-constexpr qint64  NIGHT_TO_MORNING = 906;
-constexpr qint64  MORNING_TO_NOON = 1006;
-constexpr qint64  NOON_TO_EVENING = 356;
-constexpr qint64  EVENING_TO_NIGHT = 456;
+constexpr long long  NIGHT_TO_MORNING = 906;
+constexpr long long  MORNING_TO_NOON = 1006;
+constexpr long long  NOON_TO_EVENING = 356;
+constexpr long long  EVENING_TO_NIGHT = 456;
 
 #else
 
-constexpr qint64 NIGHT_TO_MORNING = 700;
-constexpr qint64 MORNING_TO_NOON = 930;
-constexpr qint64 NOON_TO_EVENING = 200;
-constexpr qint64 EVENING_TO_NIGHT = 300;
+constexpr long long NIGHT_TO_MORNING = 700;
+constexpr long long MORNING_TO_NOON = 930;
+constexpr long long NOON_TO_EVENING = 200;
+constexpr long long EVENING_TO_NIGHT = 300;
 
 #endif
 
@@ -678,21 +678,21 @@ typedef enum tagITEM_CATEGORY
 	ITEM_PET_FIN,			// 腳部,鰭
 	ITEM_CATEGORYNUM
 }ITEM_CATEGORY;
-constexpr qint64 MAX_PET_ITEM = 7;
+constexpr long long MAX_PET_ITEM = 7;
 #endif
 
 
-constexpr qint64 MAX_ITEMSTART = CHAR_EQUIPPLACENUM;
-constexpr qint64 MAX_MAXHAVEITEM = 15;
+constexpr long long MAX_ITEMSTART = CHAR_EQUIPPLACENUM;
+constexpr long long MAX_MAXHAVEITEM = 15;
 #ifdef _NEW_ITEM_
-constexpr qint64 MAX_ITEM(MAX_ITEMSTART + MAX_MAXHAVEITEM * 3);
-//qint64 判斷玩家道具數量();
+constexpr long long MAX_ITEM(MAX_ITEMSTART + MAX_MAXHAVEITEM * 3);
+//long long 判斷玩家道具數量();
 #else
-constexpr qint64 MAX_ITEM = (MAX_ITEMSTART + MAX_MAXHAVEITEM);
+constexpr long long MAX_ITEM = (MAX_ITEMSTART + MAX_MAXHAVEITEM);
 #endif
 #else
-constexpr qint64 MAX_ITEMSTART = 5;
-constexpr qint64 MAX_ITEM = 20;
+constexpr long long MAX_ITEMSTART = 5;
+constexpr long long MAX_ITEM = 20;
 #endif
 
 enum
@@ -1195,33 +1195,33 @@ typedef struct action
 
 typedef struct customdialog_s
 {
-	qint64 x = 0;
-	qint64 y = 0;
+	long long x = 0;
+	long long y = 0;
 	BUTTON_TYPE button = BUTTON_NOTUSED;
-	qint64 row = 0;
-	qint64 rawbutton = 0;
+	long long row = 0;
+	long long rawbutton = 0;
 } customdialog_t;
 
 typedef struct tagLSTIME
 {
-	qint64 year = 0;
-	qint64 day = 0;
-	qint64 hour = 0;
+	long long year = 0;
+	long long day = 0;
+	long long hour = 0;
 }LSTIME;
 
 typedef struct tagMAIL_HISTORY
 {
-	qint64 	noReadFlag[MAIL_MAX_HISTORY] = { 0 };
-	qint64 	petLevel[MAIL_MAX_HISTORY] = { 0 };
-	qint64 	itemGraNo[MAIL_MAX_HISTORY] = { 0 };
-	qint64 	newHistoryNo = 0;
+	long long 	noReadFlag[MAIL_MAX_HISTORY] = { 0 };
+	long long 	petLevel[MAIL_MAX_HISTORY] = { 0 };
+	long long 	itemGraNo[MAIL_MAX_HISTORY] = { 0 };
+	long long 	newHistoryNo = 0;
 	QString str[MAIL_MAX_HISTORY];
 	QString dateStr[MAIL_MAX_HISTORY];
 	QString petName[MAIL_MAX_HISTORY];
 
 	void clear()
 	{
-		for (qint64 i = 0; i < MAIL_MAX_HISTORY; ++i)
+		for (long long i = 0; i < MAIL_MAX_HISTORY; ++i)
 		{
 			str[i] = "";
 			dateStr[i] = "";
@@ -1237,20 +1237,20 @@ typedef struct tagMAIL_HISTORY
 typedef struct tagITEM
 {
 	bool valid = false;
-	qint64 color = 0;
-	qint64 modelid = 0;
-	qint64 level = 0;
-	qint64 stack = 0;
-	qint64 type = 0ui16;
-	qint64 field = 0;
-	qint64 target = 0;
-	qint64 deadTargetFlag = 0;
-	qint64 sendFlag = 0;
-	qint64 itemup = 0;
-	qint64 counttime = 0;
+	long long color = 0;
+	long long modelid = 0;
+	long long level = 0;
+	long long stack = 0;
+	long long type = 0ui16;
+	long long field = 0;
+	long long target = 0;
+	long long deadTargetFlag = 0;
+	long long sendFlag = 0;
+	long long itemup = 0;
+	long long counttime = 0;
 
 	//custom
-	qint64 maxStack = -1;
+	long long maxStack = -1;
 
 	QString name = "";
 	QString name2 = "";
@@ -1259,74 +1259,74 @@ typedef struct tagITEM
 	QString alch = 0; // #ifdef _ITEMSET7_TXT_ALCHEMIST
 	QString jigsaw = "";
 #ifdef _MAGIC_ITEM_
-	qint64 道具類型 = 0;
+	long long 道具類型 = 0;
 #endif
 } ITEM;
 
 typedef struct tagPC
 {
-	qint64 selectPetNo[MAX_PET] = { 0, 0, 0, 0, 0 };
-	qint64 battlePetNo = -1;
-	qint64 mailPetNo = -1;
-	qint64 standbyPet = -1;
-	qint64 ridePetNo = -1;
+	long long selectPetNo[MAX_PET] = { 0, 0, 0, 0, 0 };
+	long long battlePetNo = -1;
+	long long mailPetNo = -1;
+	long long standbyPet = -1;
+	long long ridePetNo = -1;
 
-	qint64 modelid = 0;
-	qint64 faceid = 0;
-	qint64 id = 0;
-	qint64 dir = 0;
-	qint64 hp = 0, maxHp = 0, hpPercent = 0;
-	qint64 mp = 0, maxMp = 0, mpPercent = 0;
-	qint64 vit = 0;
-	qint64 str = 0, tgh = 0, dex = 0;
-	qint64 exp = 0, maxExp = 0;
-	qint64 level = 0;
-	qint64 atk = 0, def = 0;
-	qint64 agi = 0, chasma = 0, luck = 0;
-	qint64 earth = 0, water = 0, fire = 0, wind = 0;
-	qint64 gold = 0;
-	qint64 fame = 0;
-	qint64 titleNo = 0;
-	qint64 dp = 0;
-	qint64 nameColor = 0;
-	qint64 status = 0;
-	qint64 etcFlag = 0;
-	qint64 battleNo = 0;
-	qint64 sideNo = 0i16;
-	qint64 helpMode = 0i16;
-	qint64 pcNameColor = 0;
-	qint64 transmigration = 0;
+	long long modelid = 0;
+	long long faceid = 0;
+	long long id = 0;
+	long long dir = 0;
+	long long hp = 0, maxHp = 0, hpPercent = 0;
+	long long mp = 0, maxMp = 0, mpPercent = 0;
+	long long vit = 0;
+	long long str = 0, tgh = 0, dex = 0;
+	long long exp = 0, maxExp = 0;
+	long long level = 0;
+	long long atk = 0, def = 0;
+	long long agi = 0, chasma = 0, luck = 0;
+	long long earth = 0, water = 0, fire = 0, wind = 0;
+	long long gold = 0;
+	long long fame = 0;
+	long long titleNo = 0;
+	long long dp = 0;
+	long long nameColor = 0;
+	long long status = 0;
+	long long etcFlag = 0;
+	long long battleNo = 0;
+	long long sideNo = 0i16;
+	long long helpMode = 0i16;
+	long long pcNameColor = 0;
+	long long transmigration = 0;
 	QString chusheng = "";
 	QString family = "";
-	qint64 familyleader = 0;
-	qint64 channel = 0;
-	qint64 quickChannel = 0;
-	qint64 personal_bankgold = 0;
-	qint64 learnride = 0;//學習騎乘
-	qint64 lowsride = 0u;
-	qint64 ridePetLevel = 0;
-	qint64 familySprite = 0;
-	qint64 baseGraNo = 0;
-	qint64 big4fm = 0;
-	qint64 trade_confirm = 0;         // 1 -> 初始值
-	qint64 profession_class = 0;
-	qint64 profession_level = 0;
-	qint64 profession_exp = 0;
-	qint64 profession_skill_point = 0;
+	long long familyleader = 0;
+	long long channel = 0;
+	long long quickChannel = 0;
+	long long personal_bankgold = 0;
+	long long learnride = 0;//學習騎乘
+	long long lowsride = 0u;
+	long long ridePetLevel = 0;
+	long long familySprite = 0;
+	long long baseGraNo = 0;
+	long long big4fm = 0;
+	long long trade_confirm = 0;         // 1 -> 初始值
+	long long profession_class = 0;
+	long long profession_level = 0;
+	long long profession_exp = 0;
+	long long profession_skill_point = 0;
 
-	qint64 herofloor = 0;// (不可開)排行榜NPC
-	qint64 iOnStreetVendor = 0;		// 擺攤模式
-	qint64 skywalker = 0; // GM天行者
-	qint64 iTheaterMode = 0;		// 劇場模式
-	qint64 iSceneryNumber = 0;		// 記錄劇院背景圖號
+	long long herofloor = 0;// (不可開)排行榜NPC
+	long long iOnStreetVendor = 0;		// 擺攤模式
+	long long skywalker = 0; // GM天行者
+	long long iTheaterMode = 0;		// 劇場模式
+	long long iSceneryNumber = 0;		// 記錄劇院背景圖號
 
-	qint64 iDanceMode = 0;			// 動一動模式
-	qint64 newfame = 0; // 討伐魔軍積分
-	qint64 ftype = 0;
+	long long iDanceMode = 0;			// 動一動模式
+	long long newfame = 0; // 討伐魔軍積分
+	long long ftype = 0;
 
 	//custom
-	qint64 maxload = -1;
-	qint64 point = 0;
+	long long maxload = -1;
+	long long point = 0;
 
 	QString name = "";
 	QString freeName = "";
@@ -1343,14 +1343,14 @@ typedef struct tagPC
 	//ACTION* pActNPC[5];		// 記錄劇場中臨時產生出來的NPC
 
 #ifdef _NEW_ITEM_
-	qint64 道具欄狀態 = 0;
+	long long 道具欄狀態 = 0;
 #endif
 #ifdef _CHARSIGNADY_NO_
-	qint64 簽到標記 = 0;
+	long long 簽到標記 = 0;
 #endif
 #ifdef _MAGIC_ITEM_
-	qint64 法寶道具狀態 = 0;
-	qint64 道具光環效果 = 0;
+	long long 法寶道具狀態 = 0;
+	long long 道具光環效果 = 0;
 #endif
 } PC;
 
@@ -1358,29 +1358,29 @@ typedef struct tagPET
 {
 	bool valid = false;
 	PetState state = PetState::kNoneState;
-	qint64 index = 0;						//位置
-	qint64 modelid = 0;						//圖號
-	qint64 hp = 0, maxHp = 0, hpPercent = 0;					//血量
-	qint64 mp = 0, maxMp = 0, mpPercent = 0;					//魔力
-	qint64 exp = 0, maxExp = 0;				//經驗值
-	qint64 level = 0;						//等級
-	qint64 atk = 0;						//攻擊力
-	qint64 def = 0;						//防禦力
-	qint64 agi = 0;						//速度
-	qint64 loyal = 0;							//AI
-	qint64 earth = 0, water = 0, fire = 0, wind = 0;
-	qint64 maxSkill = 0;
-	qint64 transmigration = 0;						// 寵物轉生數
-	qint64 fusion = 0;						// low word: 寵蛋旗標, hi word: 物種編碼
-	qint64 status = 0;
-	qint64 oldlevel = 0, oldhp = 0, oldatk = 0, oldagi = 0, olddef = 0;
-	qint64 rideflg = 0;
-	qint64 blessflg = 0;
-	qint64 blesshp = 0;
-	qint64 blessatk = 0;
-	qint64 blessquick = 0;
-	qint64 blessdef = 0;
-	qint64 changeNameFlag = 0;
+	long long index = 0;						//位置
+	long long modelid = 0;						//圖號
+	long long hp = 0, maxHp = 0, hpPercent = 0;					//血量
+	long long mp = 0, maxMp = 0, mpPercent = 0;					//魔力
+	long long exp = 0, maxExp = 0;				//經驗值
+	long long level = 0;						//等級
+	long long atk = 0;						//攻擊力
+	long long def = 0;						//防禦力
+	long long agi = 0;						//速度
+	long long loyal = 0;							//AI
+	long long earth = 0, water = 0, fire = 0, wind = 0;
+	long long maxSkill = 0;
+	long long transmigration = 0;						// 寵物轉生數
+	long long fusion = 0;						// low word: 寵蛋旗標, hi word: 物種編碼
+	long long status = 0;
+	long long oldlevel = 0, oldhp = 0, oldatk = 0, oldagi = 0, olddef = 0;
+	long long rideflg = 0;
+	long long blessflg = 0;
+	long long blesshp = 0;
+	long long blessatk = 0;
+	long long blessquick = 0;
+	long long blessdef = 0;
+	long long changeNameFlag = 0;
 	QString name = "";
 	QString freeName = "";
 
@@ -1395,10 +1395,10 @@ typedef struct tagPET
 typedef struct tagMAGIC
 {
 	bool valid = false;
-	qint64 costmp = 0;
-	qint64 field = 0;
-	qint64 target = 0;
-	qint64 deadTargetFlag = 0;
+	long long costmp = 0;
+	long long field = 0;
+	long long target = 0;
+	long long deadTargetFlag = 0;
 	QString name = "";
 	QString memo = "";
 } MAGIC;
@@ -1407,12 +1407,12 @@ typedef struct tagMAGIC
 typedef struct tagPARTY
 {
 	bool valid = false;
-	qint64 id = 0;
-	qint64 level = 0;
-	qint64 maxHp = 0;
-	qint64 hp = 0;
-	qint64 hpPercent = 0;
-	qint64 mp = 0;
+	long long id = 0;
+	long long level = 0;
+	long long maxHp = 0;
+	long long hp = 0;
+	long long hpPercent = 0;
+	long long mp = 0;
 	QString name = "";
 	//ACTION* ptAct;
 } PARTY;
@@ -1422,10 +1422,10 @@ typedef struct tagADDRESS_BOOK
 {
 	bool valid = false;
 	bool onlineFlag = false;
-	qint64 level = 0;
-	qint64 transmigration = 0i16;
-	qint64 dp = 0;
-	qint64 modelid = 0;
+	long long level = 0;
+	long long transmigration = 0i16;
+	long long dp = 0;
+	long long modelid = 0;
 	QString name = "";
 #ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
 	QString planetname = "";
@@ -1435,9 +1435,9 @@ typedef struct tagADDRESS_BOOK
 typedef struct tagPET_SKILL
 {
 	bool valid = false;
-	qint64 skillId = 0;
-	qint64 field = 0;
-	qint64 target = 0;
+	long long skillId = 0;
+	long long field = 0;
+	long long target = 0;
 	QString name = "";
 	QString memo = "";
 } PET_SKILL;
@@ -1446,13 +1446,13 @@ typedef struct tagPET_SKILL
 typedef struct tagPROFESSION_SKILL
 {
 	bool valid = false;
-	qint64 skillId = 0;
-	qint64 target = 0;
-	qint64 kind = 0;
-	qint64 icon = 0;
-	qint64 costmp = 0;
-	qint64 skill_level = 0;
-	qint64 cooltime = 0;
+	long long skillId = 0;
+	long long target = 0;
+	long long kind = 0;
+	long long icon = 0;
+	long long costmp = 0;
+	long long skill_level = 0;
+	long long cooltime = 0;
 	QString name = "";
 	QString memo = "";
 } PROFESSION_SKILL;
@@ -1462,30 +1462,30 @@ typedef struct tagPROFESSION_SKILL
 typedef struct tagCHARLISTTABLE
 {
 	bool valid = false;
-	qint64 attr[4] = { 0, 0, 0, 0 };
-	qint64 level = 0;
-	qint64 login = 0;
-	qint64 faceid = 0;
-	qint64 hp = 0;
-	qint64 str = 0;
-	qint64 def = 0;
-	qint64 agi = 0;
-	qint64 chasma = 0;
-	qint64 dp = 0;
-	qint64 pos = -1;
+	long long attr[4] = { 0, 0, 0, 0 };
+	long long level = 0;
+	long long login = 0;
+	long long faceid = 0;
+	long long hp = 0;
+	long long str = 0;
+	long long def = 0;
+	long long agi = 0;
+	long long chasma = 0;
+	long long dp = 0;
+	long long pos = -1;
 	QString name = "";
 } CHARLISTTABLE;
 #ifdef _AIDENGLU_
 typedef struct
 {
-	qint64 大區 = 0;
-	qint64 隊模 = 0;
-	qint64 小區 = 0;
-	qint64 人物 = 0;
-	qint64 是否自動喊話 = 0;
-	qint64 是否自動遇敵 = 0;
-	qint64 人物方向 = 0;
-	qint64 登陸延時時間 = 0;
+	long long 大區 = 0;
+	long long 隊模 = 0;
+	long long 小區 = 0;
+	long long 人物 = 0;
+	long long 是否自動喊話 = 0;
+	long long 是否自動遇敵 = 0;
+	long long 人物方向 = 0;
+	long long 登陸延時時間 = 0;
 	char 登陸人物名稱[4][32] = { 0 };
 }Landed;
 #endif
@@ -1493,7 +1493,7 @@ typedef struct
 constexpr int MAX_MISSION = 300;
 typedef struct tagJOBDAILY
 {
-	qint64 JobId = 0;								// 任務編號
+	long long JobId = 0;								// 任務編號
 	QString explain = "";						// 任務說明
 	QString state = "";							// 狀態
 }JOBDAILY;
@@ -1511,8 +1511,8 @@ struct showitem
 
 typedef struct SPetItemInfo
 {
-	qint64 bmpNo = 0;										// 图号
-	qint64 color = 0;										// 文字颜色
+	long long bmpNo = 0;										// 图号
+	long long color = 0;										// 文字颜色
 	QString memo;						// 说明
 	QString name;						// 名字
 	QString damage;								// 耐久度
@@ -1548,10 +1548,10 @@ struct showpet
 
 typedef struct dialog_s
 {
-	qint64 windowtype = 0;
-	qint64 buttontype = 0;
-	qint64 dialogid = 0;
-	qint64 unitid = 0;
+	long long windowtype = 0;
+	long long buttontype = 0;
+	long long dialogid = 0;
+	long long unitid = 0;
 	QString data = "";
 	QStringList linedatas;
 	QStringList linebuttontext;
@@ -1561,18 +1561,18 @@ typedef struct dialog_s
 typedef struct battleobject_s
 {
 	bool ready = false;
-	qint64 pos = -1;
-	qint64 modelid = 0;
-	qint64 level = 0;
-	qint64 hp = 0;
-	qint64 maxHp = 0;
-	qint64 hpPercent = 0;
-	qint64 status = 0;
-	qint64 rideFlag = 0;
-	qint64 rideLevel = 0;
-	qint64 rideHp = 0;
-	qint64 rideMaxHp = 0;
-	qint64 rideHpPercent = 0;
+	long long pos = -1;
+	long long modelid = 0;
+	long long level = 0;
+	long long hp = 0;
+	long long maxHp = 0;
+	long long hpPercent = 0;
+	long long status = 0;
+	long long rideFlag = 0;
+	long long rideLevel = 0;
+	long long rideHp = 0;
+	long long rideMaxHp = 0;
+	long long rideHpPercent = 0;
 	QString rideName = 0;
 	QString name = "";
 	QString freeName = "";
@@ -1582,8 +1582,8 @@ typedef struct battledata_s
 {
 	bool charAlreadyAction = false;
 	bool petAlreadyAction = false;
-	qint64 fieldAttr = 0;
-	qint64 alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
+	long long fieldAttr = 0;
+	long long alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
 	battleobject_t player = {};
 	battleobject_t pet = {};
 	QVector<battleobject_t> objects;
@@ -1596,21 +1596,21 @@ typedef struct mapunit_s
 {
 	bool isVisible = false;
 	bool walkable = false;
-	qint64 id = 0;
-	qint64 modelid = 0;
-	qint64 x = 0;
-	qint64 y = 0;
-	qint64 dir = 0;
-	qint64 level = 0;
-	qint64 nameColor = 0;
-	qint64 height = 0;
-	qint64 charNameColor = 0;
-	qint64 petlevel = 0;
-	qint64 classNo = 0;
-	qint64 gold = 0;
-	qint64 profession_class = 0;
-	qint64 profession_level = 0;
-	qint64 profession_skill_point = 0;
+	long long id = 0;
+	long long modelid = 0;
+	long long x = 0;
+	long long y = 0;
+	long long dir = 0;
+	long long level = 0;
+	long long nameColor = 0;
+	long long height = 0;
+	long long charNameColor = 0;
+	long long petlevel = 0;
+	long long classNo = 0;
+	long long gold = 0;
+	long long profession_class = 0;
+	long long profession_level = 0;
+	long long profession_skill_point = 0;
 	QPoint p;
 	CHAR_TYPE type = CHAR_TYPENONE;
 	util::ObjectType objType = util::ObjectType::OBJ_UNKNOWN;
@@ -1624,22 +1624,185 @@ typedef struct mapunit_s
 
 typedef struct bankpet_s
 {
-	qint64 level = 0;
-	qint64 maxHp = 0;
+	long long level = 0;
+	long long maxHp = 0;
 	QString name;
 }bankpet_t;
 
 typedef struct currencydata_s
 {
-	qint64 expbufftime = 0;
-	qint64 prestige = 0;      // 聲望
-	qint64 energy = 0;        // 氣勢
-	qint64 shell = 0;         // 貝殼
-	qint64 vitality = 0;      // 活力
-	qint64 points = 0;        // 積分
-	qint64 VIPPoints = 0;  // 會員點
+	long long expbufftime = 0;
+	long long prestige = 0;      // 聲望
+	long long energy = 0;        // 氣勢
+	long long shell = 0;         // 貝殼
+	long long vitality = 0;      // 活力
+	long long points = 0;        // 積分
+	long long VIPPoints = 0;  // 會員點
 } currencydata_t;
 
 #pragma pack()
 
 #pragma endregion
+
+static const QHash<QString, BUTTON_TYPE> buttonMap = {
+	{"OK", BUTTON_OK},
+	{"CANCEL", BUTTON_CANCEL},
+	{"YES", BUTTON_YES},
+	{"NO", BUTTON_NO},
+	{"PREVIOUS", BUTTON_PREVIOUS},
+	{"NEXT", BUTTON_NEXT},
+	{"AUTO", BUTTON_AUTO},
+	{"CLOSE", BUTTON_CLOSE },
+
+	//big5
+	{"確認", BUTTON_YES},
+	{"確定", BUTTON_YES},
+	{"取消", BUTTON_NO},
+	{"好", BUTTON_YES},
+	{"不好", BUTTON_NO},
+	{"可以", BUTTON_YES},
+	{"不可以", BUTTON_NO},
+	{"上一頁", BUTTON_PREVIOUS},
+	{"上一步", BUTTON_PREVIOUS},
+	{"下一頁", BUTTON_NEXT},
+	{"下一步", BUTTON_NEXT},
+	{"買", BUTTON_BUY},
+	{"賣", BUTTON_SELL},
+	{"出去", BUTTON_OUT},
+	{"回上一頁", BUTTON_BACK},
+	{ "關閉", BUTTON_CLOSE },
+
+	//gb2312
+	{"确认", BUTTON_YES},
+	{"确定", BUTTON_YES},
+	{"取消", BUTTON_NO},
+	{"好", BUTTON_YES},
+	{"不好", BUTTON_NO},
+	{"可以", BUTTON_YES},
+	{"不可以", BUTTON_NO},
+	{"上一页", BUTTON_PREVIOUS},
+	{"上一步", BUTTON_PREVIOUS},
+	{"下一页", BUTTON_NEXT},
+	{"下一步", BUTTON_NEXT},
+	{"买", BUTTON_BUY},
+	{"卖", BUTTON_SELL},
+	{"出去", BUTTON_OUT},
+	{"回上一页", BUTTON_BACK},
+	{ "关闭", BUTTON_CLOSE },
+};
+
+static const QHash<QString, PetState> petStateMap = {
+	{ "戰鬥", kBattle },
+	{ "等待", kStandby },
+	{ "郵件", kMail },
+	{ "休息", kRest },
+	{ "騎乘", kRide },
+
+	{ "战斗", kBattle },
+	{ "等待", kStandby },
+	{ "邮件", kMail },
+	{ "休息", kRest },
+	{ "骑乘", kRide },
+
+	{ "battle", kBattle },
+	{ "standby", kStandby },
+	{ "mail", kMail },
+	{ "rest", kRest },
+	{ "ride", kRide },
+};
+
+static const QHash<QString, DirType> dirMap = {
+	{ "北", kDirNorth },
+	{ "東北", kDirNorthEast },
+	{ "東", kDirEast },
+	{ "東南", kDirSouthEast },
+	{ "南", kDirSouth },
+	{ "西南", kDirSouthWest },
+	{ "西", kDirWest },
+	{ "西北", kDirNorthWest },
+
+	{ "北", kDirNorth },
+	{ "东北", kDirNorthEast },
+	{ "东", kDirEast },
+	{ "东南", kDirSouthEast },
+	{ "南", kDirSouth },
+	{ "西南", kDirSouthWest },
+	{ "西", kDirWest },
+	{ "西北", kDirNorthWest },
+
+	{ "A", kDirNorth },
+	{ "B", kDirNorthEast },
+	{ "C", kDirEast },
+	{ "D", kDirSouthEast },
+	{ "E", kDirSouth },
+	{ "F", kDirSouthWest },
+	{ "G", kDirWest },
+	{ "H", kDirNorthWest },
+};
+
+static const QHash<QString, CHAR_EquipPlace> equipMap = {
+	{ "頭", CHAR_HEAD },
+	{ "身體", CHAR_BODY },
+	{ "右手", CHAR_ARM },
+	{ "左飾", CHAR_DECORATION1 },
+	{ "右飾", CHAR_DECORATION2 },
+	{ "腰帶", CHAR_EQBELT },
+	{ "左手", CHAR_EQSHIELD },
+	{ "鞋子", CHAR_EQSHOES },
+	{ "手套", CHAR_EQGLOVE },
+
+	{ "头", CHAR_HEAD },
+	{ "身体", CHAR_BODY },
+	{ "右手", CHAR_ARM },
+	{ "左饰", CHAR_DECORATION1 },
+	{ "右饰", CHAR_DECORATION2 },
+	{ "腰带", CHAR_EQBELT },
+	{ "左手", CHAR_EQSHIELD },
+	{ "鞋子", CHAR_EQSHOES },
+	{ "手套", CHAR_EQGLOVE },
+
+	{ "head", CHAR_HEAD },
+	{ "body", CHAR_BODY },
+	{ "right", CHAR_ARM },
+	{ "las", CHAR_DECORATION1 },
+	{ "ras", CHAR_DECORATION2 },
+	{ "belt", CHAR_EQBELT },
+	{ "left", CHAR_EQSHIELD },
+	{ "shoe", CHAR_EQSHOES },
+	{ "glove", CHAR_EQGLOVE },
+};
+
+static const QHash<QString, CHAR_EquipPlace> petEquipMap = {
+	{ "頭", PET_HEAD },
+	{ "翼", PET_WING },
+	{ "牙", PET_TOOTH },
+	{ "身體", PET_PLATE },
+	{ "背", PET_BACK },
+	{ "爪", PET_CLAW },
+	{ "腳", PET_FOOT },
+
+	{ "头", PET_HEAD },
+	{ "翼", PET_WING },
+	{ "牙", PET_TOOTH },
+	{ "身体", PET_PLATE },
+	{ "背", PET_BACK },
+	{ "爪", PET_CLAW },
+	{ "脚", PET_FOOT },
+
+	{ "head", PET_HEAD },
+	{ "wing", PET_WING },
+	{ "tooth", PET_TOOTH },
+	{ "body", PET_PLATE },
+	{ "back", PET_BACK },
+	{ "claw", PET_CLAW },
+	{ "foot", PET_FOOT },
+};
+
+enum BufferControl
+{
+	BC_NONE,
+	BC_NEED_TO_CLEAN,
+	BC_HAS_NEXT,
+	BC_ABOUT_TO_END,
+	BC_INVALID,
+};

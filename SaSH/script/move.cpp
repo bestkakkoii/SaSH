@@ -23,18 +23,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "map/mapanalyzer.h"
 
 //move
-qint64 Interpreter::setdir(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::setdir(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString dirStr = "";
-	qint64 dir = -1;
+	long long dir = -1;
 	checkInteger(TK, 1, &dir);
 	checkString(TK, 1, &dirStr);
 
@@ -43,11 +43,11 @@ qint64 Interpreter::setdir(qint64 currentIndex, qint64 currentLine, const TokenM
 	if (dir != -1 && dirStr.isEmpty() && dir >= 1 && dir <= 8)
 	{
 		--dir;
-		injector.server->setCharFaceDirection(dir);
+		injector.worker->setCharFaceDirection(dir);
 	}
 	else if (dir == -1 && !dirStr.isEmpty())
 	{
-		injector.server->setCharFaceDirection(dirStr);
+		injector.worker->setCharFaceDirection(dirStr);
 	}
 	else
 		return Parser::kArgError + 1ll;
@@ -55,23 +55,23 @@ qint64 Interpreter::setdir(qint64 currentIndex, qint64 currentLine, const TokenM
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::walkpos(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::walkpos(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 x = 0;
-	qint64 y = 0;
+	long long x = 0;
+	long long y = 0;
 	checkInteger(TK, 1, &x);
 	checkInteger(TK, 2, &y);
 	QPoint p(x, y);
 
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 3, &timeout);
 
 	if (p.x() < 0 || p.x() >= 1500)
@@ -80,16 +80,16 @@ qint64 Interpreter::walkpos(qint64 currentIndex, qint64 currentLine, const Token
 	if (p.y() < 0 || p.y() >= 1500)
 		return Parser::kArgError + 2ll;
 
-	injector.server->move(p);
+	injector.worker->move(p);
 	QThread::msleep(1);
 
 	waitfor(timeout, [this, &injector, &p]()->bool
 		{
 			checkBattleThenWait();
-			bool result = injector.server->getPoint() == p;
+			bool result = injector.worker->getPoint() == p;
 			if (result)
 			{
-				injector.server->move(p);
+				injector.worker->move(p);
 			}
 			return result;
 		});

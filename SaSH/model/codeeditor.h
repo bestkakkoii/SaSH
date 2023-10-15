@@ -160,7 +160,7 @@ protected:
 				if (m_lineNumber)
 				{
 					bool ok;
-					qint64 line = lineEdit->text().toLongLong(&ok);
+					long long line = lineEdit->text().toLongLong(&ok);
 					if (ok)
 					{
 						*m_lineNumber = line;

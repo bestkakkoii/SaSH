@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-AfkInfoForm::AfkInfoForm(qint64 index, QWidget* parent)
+AfkInfoForm::AfkInfoForm(long long index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -48,37 +48,37 @@ AfkInfoForm::~AfkInfoForm()
 
 void AfkInfoForm::onButtonClicked()
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	injector.server->loginTimer.restart();
-	PC pc = injector.server->getPC();
+	injector.worker->loginTimer.restart();
+	PC pc = injector.worker->getPC();
 	util::AfkRecorder recorder;
 	recorder.levelrecord = pc.level;
 	recorder.exprecord = pc.exp;
 	recorder.goldearn = 0;
 	recorder.deadthcount = 0;
-	injector.server->recorder[0] = recorder;
+	injector.worker->recorder[0] = recorder;
 
-	for (qint64 i = 0; i < MAX_PET; ++i)
+	for (long long i = 0; i < MAX_PET; ++i)
 	{
-		PET pet = injector.server->getPet(i);
+		PET pet = injector.worker->getPet(i);
 		recorder = {};
 		recorder.levelrecord = pet.level;
 		recorder.exprecord = pet.exp;
 		recorder.deadthcount = 0;
-		injector.server->recorder[i + 1] = recorder;
+		injector.worker->recorder[i + 1] = recorder;
 	}
 }
 
-void AfkInfoForm::updateTableText(qint64 row, qint64 col, const QString& text)
+void AfkInfoForm::updateTableText(long long row, long long col, const QString& text)
 {
 	ui.tableWidget->setText(row, col, text);
 }
 
-void AfkInfoForm::onUpdateAfkInfoTable(qint64 row, const QString& text)
+void AfkInfoForm::onUpdateAfkInfoTable(long long row, const QString& text)
 {
 	updateTableText(row, 1, text);
 }
@@ -95,7 +95,7 @@ void AfkInfoForm::onResetControlTextLanguage()
 		"",
 	};
 
-	for (qint64 i = 0; i < MAX_PET; ++i)
+	for (long long i = 0; i < MAX_PET; ++i)
 	{
 		sectionList.append(tr("pet %1 level difference").arg(i + 1));
 		sectionList.append(tr("pet %1 exp difference").arg(i + 1));
@@ -105,8 +105,8 @@ void AfkInfoForm::onResetControlTextLanguage()
 	}
 
 
-	qint64 rowCount = ui.tableWidget->rowCount();
-	for (qint64 row = 0; row < rowCount; ++row)
+	long long rowCount = ui.tableWidget->rowCount();
+	for (long long row = 0; row < rowCount; ++row)
 	{
 		if (row >= sectionList.size())
 			break;

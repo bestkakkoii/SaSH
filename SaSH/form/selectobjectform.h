@@ -39,6 +39,7 @@ public:
 		kAutoLogOut,
 		kWhiteList,
 		kBlackList,
+		kItem,
 	};
 
 	SelectObjectForm(TitleType type, QWidget* parent = nullptr);

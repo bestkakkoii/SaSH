@@ -22,10 +22,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-//constexpr qint64 max_col = 2;
-constexpr qint64 max_row = 10;
+//constexpr long long max_col = 2;
+constexpr long long max_row = 10;
 
-BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
+BattleInfoForm::BattleInfoForm(long long index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -50,13 +50,13 @@ BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 	ui.tableWidget_top->setRowCount(max_row);
 
 	Injector& injector = Injector::getInstance(index);
-	if (!injector.server.isNull())
+	if (!injector.worker.isNull())
 	{
-		QVariant topInfoContents = injector.server->topInfoContents.get();
-		QVariant bottomInfoContents = injector.server->bottomInfoContents.get();
-		QString timeLabelContents = injector.server->timeLabelContents.get();
-		QString labelCharAction = injector.server->labelCharAction.get();
-		QString labelPetAction = injector.server->labelPetAction.get();
+		QVariant topInfoContents = injector.worker->topInfoContents.get();
+		QVariant bottomInfoContents = injector.worker->bottomInfoContents.get();
+		QString timeLabelContents = injector.worker->timeLabelContents.get();
+		QString labelCharAction = injector.worker->labelCharAction.get();
+		QString labelPetAction = injector.worker->labelPetAction.get();
 
 		onUpdateTopInfoContents(topInfoContents);
 		onUpdateBottomInfoContents(bottomInfoContents);
@@ -145,62 +145,62 @@ col 列1                     列2
 row
 */
 
-static const QHash<qint64, QPair<qint64, qint64>> fill_hash = {
-	{ 4, QPair<qint64, qint64>{ 0, 0 } },
-	{ 9, QPair<qint64, qint64>{ 1, 0 } },
-	{ 2, QPair<qint64, qint64>{ 2, 0 } },
-	{ 7, QPair<qint64, qint64>{ 3, 0 } },
-	{ 0, QPair<qint64, qint64>{ 4, 0 } },
-	{ 5, QPair<qint64, qint64>{ 5, 0 } },
-	{ 1, QPair<qint64, qint64>{ 6, 0 } },
-	{ 6, QPair<qint64, qint64>{ 7, 0 } },
-	{ 3, QPair<qint64, qint64>{ 8, 0 } },
-	{ 8, QPair<qint64, qint64>{ 9, 0 } },
+static const QHash<long long, QPair<long long, long long>> fill_hash = {
+	{ 4, QPair<long long, long long>{ 0, 0 } },
+	{ 9, QPair<long long, long long>{ 1, 0 } },
+	{ 2, QPair<long long, long long>{ 2, 0 } },
+	{ 7, QPair<long long, long long>{ 3, 0 } },
+	{ 0, QPair<long long, long long>{ 4, 0 } },
+	{ 5, QPair<long long, long long>{ 5, 0 } },
+	{ 1, QPair<long long, long long>{ 6, 0 } },
+	{ 6, QPair<long long, long long>{ 7, 0 } },
+	{ 3, QPair<long long, long long>{ 8, 0 } },
+	{ 8, QPair<long long, long long>{ 9, 0 } },
 
-	{ 14, QPair<qint64, qint64>{ 0, 0 } },
-	{ 19, QPair<qint64, qint64>{ 1, 0 } },
-	{ 12, QPair<qint64, qint64>{ 2, 0 } },
-	{ 17, QPair<qint64, qint64>{ 3, 0 } },
-	{ 10, QPair<qint64, qint64>{ 4, 0 } },
-	{ 15, QPair<qint64, qint64>{ 5, 0 } },
-	{ 11, QPair<qint64, qint64>{ 6, 0 } },
-	{ 16, QPair<qint64, qint64>{ 7, 0 } },
-	{ 13, QPair<qint64, qint64>{ 8, 0 } },
-	{ 18, QPair<qint64, qint64>{ 9, 0 } },
+	{ 14, QPair<long long, long long>{ 0, 0 } },
+	{ 19, QPair<long long, long long>{ 1, 0 } },
+	{ 12, QPair<long long, long long>{ 2, 0 } },
+	{ 17, QPair<long long, long long>{ 3, 0 } },
+	{ 10, QPair<long long, long long>{ 4, 0 } },
+	{ 15, QPair<long long, long long>{ 5, 0 } },
+	{ 11, QPair<long long, long long>{ 6, 0 } },
+	{ 16, QPair<long long, long long>{ 7, 0 } },
+	{ 13, QPair<long long, long long>{ 8, 0 } },
+	{ 18, QPair<long long, long long>{ 9, 0 } },
 };
 
-void BattleInfoForm::onBattleTableItemForegroundColorChanged(qint64 index, const QColor& color)
+void BattleInfoForm::onBattleTableItemForegroundColorChanged(long long index, const QColor& color)
 {
 	if (index < 0 || index > MAX_ENEMY + 2)
 		return;
 
 	if (index == 20)
 	{
-		for (qint64 i = 0; i < max_row; ++i)
+		for (long long i = 0; i < max_row; ++i)
 			ui.tableWidget_bottom->setItemForeground(i, 0, color);
 	}
 	else if (index == 21)
 	{
-		for (qint64 i = 0; i < max_row; ++i)
+		for (long long i = 0; i < max_row; ++i)
 			ui.tableWidget_top->setItemForeground(i, 0, color);
 
 	}
 	else if (index == 22)
 	{
-		for (qint64 i = 0; i < max_row; ++i)
+		for (long long i = 0; i < max_row; ++i)
 		{
 			ui.tableWidget_top->setItemForeground(i, 0, color);
 			ui.tableWidget_bottom->setItemForeground(i, 0, color);
 		}
 	}
 
-	QPair<qint64, qint64> pair = fill_hash.value(index, qMakePair(-1, -1));
+	QPair<long long, long long> pair = fill_hash.value(index, qMakePair(-1, -1));
 	if (pair.first == -1)
 		return;
 	if (pair.first >= max_row)
 		return;
 
-	qint64 row = pair.first;
+	long long row = pair.first;
 
 	if (index >= 10)
 	{
@@ -214,19 +214,21 @@ void BattleInfoForm::onBattleTableItemForegroundColorChanged(qint64 index, const
 
 void BattleInfoForm::onBattleTableAllItemResetColor()
 {
-	for (qint64 i = 0; i < max_row; ++i)
+	for (long long i = 0; i < max_row; ++i)
 	{
 		ui.tableWidget_top->setItemForeground(i, 0, Qt::black);
 		ui.tableWidget_bottom->setItemForeground(i, 0, Qt::black);
 	}
 }
 
-void BattleInfoForm::onNotifyBattleActionState(qint64 index, bool left)
+void BattleInfoForm::onNotifyBattleActionState(long long index, bool left)
 {
 	if (!fill_hash.contains(index))
 		return;
 
-	const QPair<qint64, qint64> pair = fill_hash.value(index);
+	Injector& injector = Injector::getInstance(getIndex());
+
+	const QPair<long long, long long> pair = fill_hash.value(index);
 
 	QTableWidgetItem* item = nullptr;
 	if (left)
@@ -242,15 +244,22 @@ void BattleInfoForm::onNotifyBattleActionState(qint64 index, bool left)
 		return;
 
 	QString text = item->text().mid(1);
-	if (text.simplified().startsWith("＊"))
+	QString actMark = injector.getStringHash(util::kBattleActMarkString);
+	if (text.simplified().startsWith(actMark))
 		return;
 
+	QString spaceMark = injector.getStringHash(util::kBattleSpaceMarkString);
+	if (spaceMark.isEmpty())
+		spaceMark = "　";
+
+	QChar cspace = spaceMark.front();
+
 	//找到非空格的的第一個字符 前方插入 "*"
-	for (qint64 i = 0; i < text.size(); ++i)
+	for (long long i = 0; i < text.size(); ++i)
 	{
-		if (text.at(i).unicode() != L'　')
+		if (text.at(i).unicode() != cspace.unicode())
 		{
-			text.insert(i, "＊");
+			text.insert(i, actMark);
 			break;
 		}
 	}
@@ -280,6 +289,9 @@ void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const Q
 	const QString objectName = tableWidget->objectName();
 	//const bool isTop = objectName.contains("top", Qt::CaseInsensitive);
 
+	Injector& injector = Injector::getInstance(getIndex());
+	QString spaceMark = injector.getStringHash(util::kBattleSpaceMarkString);
+
 	bool ok = false;
 	for (const QStringList& l : list)
 	{
@@ -288,7 +300,7 @@ void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const Q
 			continue;
 		}
 
-		qint64 pos = l.value(0).toLongLong(&ok);
+		long long pos = l.value(0).toLongLong(&ok);
 		if (!ok)
 		{
 			continue;
@@ -297,7 +309,7 @@ void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const Q
 		QString text = l.value(1);
 		const QString ride = l.value(2);
 
-		const QPair<qint64, qint64> fill = fill_hash.value(pos, qMakePair(-1, -1));
+		const QPair<long long, long long> fill = fill_hash.value(pos, qMakePair(-1, -1));
 		if (fill.first == -1)
 		{
 			continue;
@@ -305,7 +317,7 @@ void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const Q
 
 		QString content;
 		if (fill.first % 2)
-			content = "　" + text;
+			content = spaceMark + text;
 		else
 			content = text;
 

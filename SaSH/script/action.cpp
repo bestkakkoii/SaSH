@@ -23,58 +23,58 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "map/mapanalyzer.h"
 
 //action
-qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::useitem(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	QHash<QString, qint64> hash = {
+	QHash<QString, long long> hash = {
 		{ "自己", 0},
-		{ "戰寵", injector.server->getPC().battlePetNo},
-		{ "騎寵", injector.server->getPC().ridePetNo},
+		{ "戰寵", injector.worker->getPC().battlePetNo},
+		{ "騎寵", injector.worker->getPC().ridePetNo},
 		{ "隊長", 6},
 
 		{ "自己", 0},
-		{ "战宠", injector.server->getPC().battlePetNo},
-		{ "骑宠", injector.server->getPC().ridePetNo},
+		{ "战宠", injector.worker->getPC().battlePetNo},
+		{ "骑宠", injector.worker->getPC().ridePetNo},
 		{ "队长", 6},
 
 		{ "self", 0},
-		{ "battlepet", injector.server->getPC().battlePetNo},
-		{ "ride", injector.server->getPC().ridePetNo},
+		{ "battlepet", injector.worker->getPC().battlePetNo},
+		{ "ride", injector.worker->getPC().ridePetNo},
 		{ "leader", 6},
 	};
 
-	for (qint64 i = 0; i < MAX_PET; ++i)
+	for (long long i = 0; i < MAX_PET; ++i)
 	{
 		hash.insert("寵物" + util::toQString(i + 1), i + 1);
 		hash.insert("宠物" + util::toQString(i + 1), i + 1);
 		hash.insert("pet" + util::toQString(i + 1), i + 1);
 	}
 
-	for (qint64 i = 1; i < MAX_PARTY; ++i)
+	for (long long i = 1; i < MAX_PARTY; ++i)
 	{
 		hash.insert("隊員" + util::toQString(i), i + 1 + MAX_PET);
 		hash.insert("队员" + util::toQString(i), i + 1 + MAX_PET);
 		hash.insert("teammate" + util::toQString(i), i + 1 + MAX_PET);
 	}
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
 	QString itemName;
 	QString itemMemo;
 	QStringList itemNames;
 	QStringList itemMemos;
 
-	qint64 target = 0;
-	qint64 totalUse = 1;
+	long long target = 0;
+	long long totalUse = 1;
 
-	qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
+	long long min = 0, max = static_cast<long long>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 	if (!checkRange(TK, 1, &min, &max))
 	{
 		checkString(TK, 1, &itemName);
@@ -154,21 +154,21 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 				if (itemMemos.size() > 0)
 					memo = itemMemos.takeFirst();
 
-				QVector<qint64> v;
-				if (!injector.server->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
+				QVector<long long> v;
+				if (!injector.worker->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
 					continue;
 
 				totalUse = target - 100;
 
 				bool ok = false;
-				QHash<qint64, ITEM> items = injector.server->getItems();
-				for (const qint64& it : v)
+				QHash<long long, ITEM> items = injector.worker->getItems();
+				for (const long long& it : v)
 				{
 					ITEM item = items.value(it);
-					qint64 size = item.stack;
-					for (qint64 i = 0; i < size; ++i)
+					long long size = item.stack;
+					for (long long i = 0; i < size; ++i)
 					{
-						injector.server->useItem(it, 0);
+						injector.worker->useItem(it, 0);
 						if (target != -1)
 						{
 							--totalUse;
@@ -193,21 +193,21 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 				if (itemNames.size() > 0)
 					name = itemNames.takeFirst();
 
-				QVector<qint64> v;
-				if (!injector.server->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
+				QVector<long long> v;
+				if (!injector.worker->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
 					continue;
 
 				totalUse = target - 100;
 
 				bool ok = false;
-				QHash<qint64, ITEM> items = injector.server->getItems();
-				for (const qint64& it : v)
+				QHash<long long, ITEM> items = injector.worker->getItems();
+				for (const long long& it : v)
 				{
 					ITEM item = items.value(it);
-					qint64 size = item.stack;
-					for (qint64 i = 0; i < size; ++i)
+					long long size = item.stack;
+					for (long long i = 0; i < size; ++i)
 					{
-						injector.server->useItem(it, 0);
+						injector.worker->useItem(it, 0);
 						if (target != -1)
 						{
 							--totalUse;
@@ -237,14 +237,14 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 			if (itemMemos.size() > 0)
 				memo = itemMemos.takeFirst();
 
-			QVector<qint64> v;
-			if (!injector.server->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
+			QVector<long long> v;
+			if (!injector.worker->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
 				continue;
 
 			if (totalUse == 1)
 			{
-				qint64 itemIndex = v.front();
-				injector.server->useItem(itemIndex, target);
+				long long itemIndex = v.front();
+				injector.worker->useItem(itemIndex, target);
 				break;
 			}
 
@@ -257,8 +257,8 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 				if (v.size() == 0)
 					break;
 
-				qint64 itemIndex = v.takeFirst();
-				injector.server->useItem(itemIndex, target);
+				long long itemIndex = v.takeFirst();
+				injector.worker->useItem(itemIndex, target);
 				--n;
 			}
 		}
@@ -271,15 +271,15 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 			if (itemNames.size() > 0)
 				name = itemNames.takeFirst();
 
-			QVector<qint64> v;
-			if (!injector.server->getItemIndexsByName(itemName, memo, &v, CHAR_EQUIPPLACENUM))
+			QVector<long long> v;
+			if (!injector.worker->getItemIndexsByName(itemName, memo, &v, CHAR_EQUIPPLACENUM))
 				continue;
 
 			if (totalUse == 1)
 			{
-				qint64 itemIndex = v.front();
-				injector.server->useItem(itemIndex, target);
-				injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
+				long long itemIndex = v.front();
+				injector.worker->useItem(itemIndex, target);
+				injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 				break;
 			}
 
@@ -292,24 +292,24 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 				if (v.size() == 0)
 					break;
 
-				qint64 itemIndex = v.takeFirst();
-				injector.server->useItem(itemIndex, target);
-				injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
+				long long itemIndex = v.takeFirst();
+				injector.worker->useItem(itemIndex, target);
+				injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 				--n;
 			}
 		}
 	}
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::dropitem(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -317,25 +317,25 @@ qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const Toke
 
 	QString tempName;
 	QString memo;
-	qint64 itemIndex = -1;
+	long long itemIndex = -1;
 	checkString(TK, 1, &tempName);
 	checkInteger(TK, 1, &itemIndex);
 
 	checkString(TK, 2, &memo);
 	if (tempName.isEmpty() && memo.isEmpty() && itemIndex == -1)
 	{
-		injector.server->dropItem(-1);
+		injector.worker->dropItem(-1);
 		return Parser::kNoChange;
 	}
 
 	if (tempName == kFuzzyPrefix)
 	{
-		for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
-			injector.server->dropItem(i);
+		for (long long i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+			injector.worker->dropItem(i);
 	}
 
 	if (tempName.isEmpty() && memo.isEmpty()
-		&& ((itemIndex >= 1 && itemIndex <= (MAX_ITEM - CHAR_EQUIPPLACENUM)) || (itemIndex >= 101 && itemIndex <= static_cast<qint64>(CHAR_EQUIPPLACENUM + 100))))
+		&& ((itemIndex >= 1 && itemIndex <= (MAX_ITEM - CHAR_EQUIPPLACENUM)) || (itemIndex >= 101 && itemIndex <= static_cast<long long>(CHAR_EQUIPPLACENUM + 100))))
 	{
 		if (itemIndex < 100)
 		{
@@ -345,16 +345,16 @@ qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const Toke
 		else
 			itemIndex -= 100;
 
-		injector.server->dropItem(itemIndex);
+		injector.worker->dropItem(itemIndex);
 		return Parser::kNoChange;
 	}
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
 	//指定丟棄白名單，位於白名單的物品不丟棄
 	if (tempName == QString("非"))
 	{
-		qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
+		long long min = 0, max = static_cast<long long>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 		if (!checkRange(TK, 2, &min, &max))
 			return Parser::kArgError + 2ll;
 
@@ -366,22 +366,22 @@ qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const Toke
 		if (itemNames.isEmpty())
 			return Parser::kArgError + 3ll;
 
-		QVector<qint64> indexs;
-		if (injector.server->getItemIndexsByName(itemNames, "", &indexs, min, max))
+		QVector<long long> indexs;
+		if (injector.worker->getItemIndexsByName(itemNames, "", &indexs, min, max))
 		{
 			//排除掉所有包含在indexs的
-			for (qint64 i = min; i <= max; ++i)
+			for (long long i = min; i <= max; ++i)
 			{
 				if (!indexs.contains(i))
 				{
-					injector.server->dropItem(i);
+					injector.worker->dropItem(i);
 				}
 			}
 		}
 	}
 	else
 	{
-		qint64 onlyOne = 0;
+		long long onlyOne = 0;
 		bool bOnlyOne = false;
 		checkInteger(TK, 1, &onlyOne);
 		if (onlyOne == 1)
@@ -393,16 +393,16 @@ qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const Toke
 		if (itemNameList.isEmpty())
 			return Parser::kArgError + 1ll;
 
-		//qint64 size = itemNameList.size();
+		//long long size = itemNameList.size();
 		for (const QString& name : itemNameList)
 		{
-			QVector<qint64> indexs;
+			QVector<long long> indexs;
 			bool ok = false;
-			if (injector.server->getItemIndexsByName(name, memo, &indexs))
+			if (injector.worker->getItemIndexsByName(name, memo, &indexs))
 			{
-				for (const qint64 it : indexs)
+				for (const long long it : indexs)
 				{
-					injector.server->dropItem(it);
+					injector.worker->dropItem(it);
 					if (bOnlyOne)
 					{
 						ok = true;
@@ -416,23 +416,23 @@ qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const Toke
 		}
 
 	}
-	qDebug() << injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET;
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	qDebug() << injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET;
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::swapitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::swapitem(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 a = 0, b = 0;
+	long long a = 0, b = 0;
 	if (!checkInteger(TK, 1, &a))
 		return Parser::kArgError + 1ll;
 	if (!checkInteger(TK, 2, &b))
@@ -456,19 +456,19 @@ qint64 Interpreter::swapitem(qint64 currentIndex, qint64 currentLine, const Toke
 	if (b < 0 || b >= MAX_ITEM)
 		return Parser::kArgError + 2ll;
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
-	injector.server->swapItem(a, b);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->swapItem(a, b);
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::playerrename(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::playerrename(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -476,21 +476,21 @@ qint64 Interpreter::playerrename(qint64 currentIndex, qint64 currentLine, const 
 	QString newName;
 	checkString(TK, 1, &newName);
 
-	injector.server->setCharFreeName(newName);
+	injector.worker->setCharFreeName(newName);
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::petrename(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::petrename(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 
-	qint64 petIndex = -1;
+	long long petIndex = -1;
 	if (!checkInteger(TK, 1, &petIndex))
 		return Parser::kArgError + 1ll;
 	petIndex -= 1;
@@ -498,22 +498,22 @@ qint64 Interpreter::petrename(qint64 currentIndex, qint64 currentLine, const Tok
 	QString newName;
 	checkString(TK, 2, &newName);
 
-	injector.server->setPetFreeName(petIndex, newName);
+	injector.worker->setPetFreeName(petIndex, newName);
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::setpetstate(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::setpetstate(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 petIndex = -1;
+	long long petIndex = -1;
 	checkInteger(TK, 1, &petIndex);
 	petIndex -= 1;
 	if (petIndex < 0 || petIndex >= MAX_PET)
@@ -527,22 +527,22 @@ qint64 Interpreter::setpetstate(qint64 currentIndex, qint64 currentLine, const T
 	PetState state = petStateMap.value(stateStr.toLower(), PetState::kRest);
 
 
-	injector.server->setPetState(petIndex, state);
+	injector.worker->setPetState(petIndex, state);
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::droppet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::droppet(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 petIndex = -1;
+	long long petIndex = -1;
 	checkInteger(TK, 1, &petIndex);
 	petIndex -= 1;
 
@@ -550,38 +550,38 @@ qint64 Interpreter::droppet(qint64 currentIndex, qint64 currentLine, const Token
 	checkString(TK, 1, &petName);
 
 	if (petIndex >= 0)
-		injector.server->dropPet(petIndex);
+		injector.worker->dropPet(petIndex);
 	else if (!petName.isEmpty())
 	{
-		QVector<qint64> v;
-		if (injector.server->getPetIndexsByName(petName, &v))
+		QVector<long long> v;
+		if (injector.worker->getPetIndexsByName(petName, &v))
 		{
-			for (const qint64 it : v)
-				injector.server->dropPet(it);
+			for (const long long it : v)
+				injector.worker->dropPet(it);
 		}
 	}
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::buy(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::buy(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 itemIndex = -1;
+	long long itemIndex = -1;
 	checkInteger(TK, 1, &itemIndex);
 	itemIndex -= 1;
 
 	if (itemIndex < 0)
 		return Parser::kArgError + 1ll;
 
-	qint64 count = 0;
+	long long count = 0;
 	checkInteger(TK, 2, &count);
 
 	if (count <= 0)
@@ -590,32 +590,32 @@ qint64 Interpreter::buy(qint64 currentIndex, qint64 currentLine, const TokenMap&
 	QString npcName;
 	checkString(TK, 3, &npcName);
 
-	qint64 dlgid = -1;
+	long long dlgid = -1;
 	checkInteger(TK, 4, &dlgid);
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
 	if (npcName.isEmpty())
-		injector.server->buy(itemIndex, count, dlgid);
+		injector.worker->buy(itemIndex, count, dlgid);
 	else
 	{
 		mapunit_t unit;
-		if (injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
+		if (injector.worker->findUnit(npcName, util::OBJ_NPC, &unit))
 		{
-			injector.server->buy(itemIndex, count, dlgid, unit.id);
+			injector.worker->buy(itemIndex, count, dlgid, unit.id);
 		}
 	}
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::sell(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::sell(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -630,14 +630,14 @@ qint64 Interpreter::sell(qint64 currentIndex, qint64 currentLine, const TokenMap
 	QString npcName;
 	checkString(TK, 2, &npcName);
 
-	qint64 dlgid = -1;
+	long long dlgid = -1;
 	checkInteger(TK, 3, &dlgid);
 
-	QVector<qint64> itemIndexs;
+	QVector<long long> itemIndexs;
 	for (const QString& it : nameList)
 	{
-		QVector<qint64> indexs;
-		if (!injector.server->getItemIndexsByName(it, "", &indexs, CHAR_EQUIPPLACENUM))
+		QVector<long long> indexs;
+		if (!injector.worker->getItemIndexsByName(it, "", &indexs, CHAR_EQUIPPLACENUM))
 			continue;
 		itemIndexs.append(indexs);
 	}
@@ -646,43 +646,43 @@ qint64 Interpreter::sell(qint64 currentIndex, qint64 currentLine, const TokenMap
 	auto it = std::unique(itemIndexs.begin(), itemIndexs.end());
 	itemIndexs.erase(it, itemIndexs.end());
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
 	if (npcName.isEmpty())
-		injector.server->sell(itemIndexs, dlgid);
+		injector.worker->sell(itemIndexs, dlgid);
 	else
 	{
 		mapunit_t unit;
-		if (injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
+		if (injector.worker->findUnit(npcName, util::OBJ_NPC, &unit))
 		{
-			injector.server->sell(itemIndexs, dlgid, unit.id);
+			injector.worker->sell(itemIndexs, dlgid, unit.id);
 		}
 	}
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::sellpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::sellpet(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	mapunit_t unit;
-	if (!injector.server->findUnit("宠物店", util::OBJ_NPC, &unit))
+	if (!injector.worker->findUnit("宠物店", util::OBJ_NPC, &unit))
 	{
-		if (!injector.server->findUnit("寵物店", util::OBJ_NPC, &unit))
+		if (!injector.worker->findUnit("寵物店", util::OBJ_NPC, &unit))
 			return Parser::kNoChange;
 	}
 
-	//qint64 petIndex = -1;
-	qint64 min = 1, max = MAX_PET;
+	//long long petIndex = -1;
+	long long min = 1, max = MAX_PET;
 	if (!checkRange(TK, 1, &min, &max))
 	{
 		min = 0;
@@ -692,7 +692,7 @@ qint64 Interpreter::sellpet(qint64 currentIndex, qint64 currentLine, const Token
 		max = min;
 	}
 
-	for (qint64 petIndex = min; petIndex <= max; ++petIndex)
+	for (long long petIndex = min; petIndex <= max; ++petIndex)
 	{
 		if (isInterruptionRequested())
 			return Parser::kNoChange;
@@ -700,13 +700,13 @@ qint64 Interpreter::sellpet(qint64 currentIndex, qint64 currentLine, const Token
 		if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 			return Parser::kNoChange;
 
-		if (injector.server.isNull())
+		if (injector.worker.isNull())
 			return Parser::kServerNotReady;
 
 		if (petIndex - 1 < 0 || petIndex - 1 >= MAX_PET)
 			return Parser::kArgError + 1ll;
 
-		PET pet = injector.server->getPet(petIndex - 1);
+		PET pet = injector.worker->getPet(petIndex - 1);
 
 		if (!pet.valid)
 			continue;
@@ -717,37 +717,37 @@ qint64 Interpreter::sellpet(qint64 currentIndex, qint64 currentLine, const Token
 			if (isInterruptionRequested())
 				return Parser::kNoChange;
 
-			if (injector.server.isNull())
+			if (injector.worker.isNull())
 				return Parser::kServerNotReady;
 
-			dialog_t dialog = injector.server->currentDialog;
+			dialog_t dialog = injector.worker->currentDialog;
 			switch (dialog.dialogid)
 			{
 			case 263:
 			{
-				//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-				injector.server->press(BUTTON_YES, 263, unit.id);
-				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
+				//injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+				injector.worker->press(BUTTON_YES, 263, unit.id);
+				//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
 				bret = true;
 				break;
 			}
 			case 262:
 			{
-				//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-				injector.server->press(petIndex, 262, unit.id);
-				injector.server->press(BUTTON_YES, 263, unit.id);
+				//injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+				injector.worker->press(petIndex, 262, unit.id);
+				injector.worker->press(BUTTON_YES, 263, unit.id);
 				bret = true;
-				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
+				//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
 				break;
 			}
 			default:
 			{
-				//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-				injector.server->press(3, 261, unit.id);
-				injector.server->press(petIndex, 262, unit.id);
-				injector.server->press(BUTTON_YES, 263, unit.id);
+				//injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+				injector.worker->press(3, 261, unit.id);
+				injector.worker->press(petIndex, 262, unit.id);
+				injector.worker->press(BUTTON_YES, 263, unit.id);
 				bret = true;
-				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
+				//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
 				break;
 			}
 			}
@@ -763,11 +763,11 @@ qint64 Interpreter::sellpet(qint64 currentIndex, qint64 currentLine, const Token
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::make(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::make(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -780,20 +780,20 @@ qint64 Interpreter::make(qint64 currentIndex, qint64 currentLine, const TokenMap
 	if (ingreNameList.isEmpty())
 		return Parser::kArgError + 1ll;
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
-	injector.server->craft(util::kCraftItem, ingreNameList);
+	injector.worker->craft(util::kCraftItem, ingreNameList);
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::cook(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::cook(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -806,41 +806,41 @@ qint64 Interpreter::cook(qint64 currentIndex, qint64 currentLine, const TokenMap
 	if (ingreNameList.isEmpty())
 		return Parser::kArgError + 1ll;
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
-	injector.server->craft(util::kCraftFood, ingreNameList);
+	injector.worker->craft(util::kCraftFood, ingreNameList);
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::learn(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::learn(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 petIndex = 0;
+	long long petIndex = 0;
 	checkInteger(TK, 1, &petIndex);
 	if (petIndex <= 0 || petIndex >= 6)
 		return Parser::kArgError + 1ll;
 	--petIndex;
 
-	qint64 skillIndex = 0;
+	long long skillIndex = 0;
 	checkInteger(TK, 2, &skillIndex);
 	if (skillIndex <= 0)
 		return Parser::kArgError + 2ll;
 	--skillIndex;
 
 
-	qint64 spot = 0;
+	long long spot = 0;
 	checkInteger(TK, 3, &spot);
-	if (spot <= 0 || spot > static_cast<qint64>(MAX_SKILL + 1))
+	if (spot <= 0 || spot > static_cast<long long>(MAX_SKILL + 1))
 		return Parser::kArgError + 3ll;
 	--spot;
 
@@ -848,17 +848,17 @@ qint64 Interpreter::learn(qint64 currentIndex, qint64 currentLine, const TokenMa
 	checkString(TK, 4, &npcName);
 
 
-	qint64 dialogid = -1;
+	long long dialogid = -1;
 	checkInteger(TK, 5, &dialogid);
 
 	if (npcName.isEmpty())
-		injector.server->learn(skillIndex, petIndex, spot);
+		injector.worker->learn(skillIndex, petIndex, spot);
 	else
 	{
 		mapunit_t unit;
-		if (injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
+		if (injector.worker->findUnit(npcName, util::OBJ_NPC, &unit))
 		{
-			injector.server->learn(skillIndex, petIndex, spot, dialogid, unit.id);
+			injector.worker->learn(skillIndex, petIndex, spot, dialogid, unit.id);
 		}
 	}
 
@@ -866,48 +866,48 @@ qint64 Interpreter::learn(qint64 currentIndex, qint64 currentLine, const TokenMa
 }
 
 //group
-qint64 Interpreter::join(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::join(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	injector.server->setTeamState(true);
+	injector.worker->setTeamState(true);
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::leave(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::leave(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	injector.server->setTeamState(false);
+	injector.worker->setTeamState(false);
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::kick(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::kick(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	//0解隊 1-4隊員
-	qint64 partyIndex = -1;
+	long long partyIndex = -1;
 	checkInteger(TK, 1, &partyIndex);
 	if (partyIndex < 0 || partyIndex >= MAX_PARTY)
 	{
@@ -919,12 +919,12 @@ qint64 Interpreter::kick(qint64 currentIndex, qint64 currentLine, const TokenMap
 			if (list.isEmpty() || list.size() > 4)
 				return Parser::kArgError + 1ll;
 
-			QVector<qint64> wrongIndex;
+			QVector<long long> wrongIndex;
 
 			bool bret = false;
-			for (qint64 i = 1; i < MAX_PARTY; ++i)
+			for (long long i = 1; i < MAX_PARTY; ++i)
 			{
-				PARTY party = injector.server->getParty(i);
+				PARTY party = injector.worker->getParty(i);
 				if (!party.valid)
 					continue;
 
@@ -957,24 +957,24 @@ qint64 Interpreter::kick(qint64 currentIndex, qint64 currentLine, const TokenMap
 
 			if (!wrongIndex.isEmpty())
 			{
-				for (qint64 i : wrongIndex)
+				for (long long i : wrongIndex)
 				{
-					injector.server->kickteam(i);
+					injector.worker->kickteam(i);
 				}
 			}
 		}
 	}
 
-	injector.server->kickteam(partyIndex);
+	injector.worker->kickteam(partyIndex);
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::usemagic(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::usemagic(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -985,7 +985,7 @@ qint64 Interpreter::usemagic(qint64 currentIndex, qint64 currentLine, const Toke
 	if (magicName.isEmpty())
 		return Parser::kArgError + 1ll;
 
-	qint64 target = -1;
+	long long target = -1;
 	checkInteger(TK, 2, &target);
 	if (target < 0)
 	{
@@ -998,31 +998,31 @@ qint64 Interpreter::usemagic(qint64 currentIndex, qint64 currentLine, const Toke
 		}
 		else
 		{
-			QHash<QString, qint64> hash = {
+			QHash<QString, long long> hash = {
 				{ "自己", 0},
-				{ "戰寵", injector.server->getPC().battlePetNo},
-				{ "騎寵", injector.server->getPC().ridePetNo},
+				{ "戰寵", injector.worker->getPC().battlePetNo},
+				{ "騎寵", injector.worker->getPC().ridePetNo},
 				{ "隊長", 6},
 
 				{ "自己", 0},
-				{ "战宠", injector.server->getPC().battlePetNo},
-				{ "骑宠", injector.server->getPC().ridePetNo},
+				{ "战宠", injector.worker->getPC().battlePetNo},
+				{ "骑宠", injector.worker->getPC().ridePetNo},
 				{ "队长", 6},
 
 				{ "self", 0},
-				{ "battlepet", injector.server->getPC().battlePetNo},
-				{ "ride", injector.server->getPC().ridePetNo},
+				{ "battlepet", injector.worker->getPC().battlePetNo},
+				{ "ride", injector.worker->getPC().ridePetNo},
 				{ "leader", 6},
 			};
 
-			for (qint64 i = 0; i < MAX_PET; ++i)
+			for (long long i = 0; i < MAX_PET; ++i)
 			{
 				hash.insert("寵物" + util::toQString(i + 1), i + 1);
 				hash.insert("宠物" + util::toQString(i + 1), i + 1);
 				hash.insert("pet" + util::toQString(i + 1), i + 1);
 			}
 
-			for (qint64 i = 1; i < MAX_PARTY; ++i)
+			for (long long i = 1; i < MAX_PARTY; ++i)
 			{
 				hash.insert("隊員" + util::toQString(i), i + 1 + MAX_PET);
 				hash.insert("队员" + util::toQString(i), i + 1 + MAX_PET);
@@ -1038,20 +1038,20 @@ qint64 Interpreter::usemagic(qint64 currentIndex, qint64 currentLine, const Toke
 		}
 	}
 
-	qint64 magicIndex = injector.server->getMagicIndexByName(magicName);
+	long long magicIndex = injector.worker->getMagicIndexByName(magicName);
 	if (magicIndex < 0)
 		return Parser::kArgError + 1ll;
 
-	injector.server->useMagic(magicIndex, target);
+	injector.worker->useMagic(magicIndex, target);
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::pickitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::pickitem(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -1064,10 +1064,10 @@ qint64 Interpreter::pickitem(qint64 currentIndex, qint64 currentLine, const Toke
 
 	if (dirStr.startsWith("全"))
 	{
-		for (qint64 i = 0; i < 7; ++i)
+		for (long long i = 0; i < 7; ++i)
 		{
-			injector.server->setCharFaceDirection(i);
-			injector.server->pickItem(i);
+			injector.worker->setCharFaceDirection(i);
+			injector.worker->pickItem(i);
 		}
 	}
 	else
@@ -1075,103 +1075,103 @@ qint64 Interpreter::pickitem(qint64 currentIndex, qint64 currentLine, const Toke
 		DirType type = dirMap.value(dirStr, kDirNone);
 		if (type == kDirNone)
 			return Parser::kArgError + 1ll;
-		injector.server->setCharFaceDirection(type);
-		injector.server->pickItem(type);
+		injector.worker->setCharFaceDirection(type);
+		injector.worker->pickItem(type);
 	}
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::depositgold(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::depositgold(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	if (injector.server->getPC().gold <= 0)
+	if (injector.worker->getPC().gold <= 0)
 		return Parser::kNoChange;
 
-	qint64 gold;
+	long long gold;
 	checkInteger(TK, 1, &gold);
 
 	if (gold <= 0)
 		return Parser::kArgError + 1ll;
 
-	qint64 isPublic = 0;
+	long long isPublic = 0;
 	checkInteger(TK, 2, &isPublic);
 
-	if (gold > injector.server->getPC().gold)
-		gold = injector.server->getPC().gold;
+	if (gold > injector.worker->getPC().gold)
+		gold = injector.worker->getPC().gold;
 
-	injector.server->depositGold(gold, isPublic > 0);
+	injector.worker->depositGold(gold, isPublic > 0);
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::withdrawgold(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::withdrawgold(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 gold;
+	long long gold;
 	checkInteger(TK, 1, &gold);
 
-	qint64 isPublic = 0;
+	long long isPublic = 0;
 	checkInteger(TK, 2, &isPublic);
 
-	injector.server->withdrawGold(gold, isPublic > 0);
+	injector.worker->withdrawGold(gold, isPublic > 0);
 
 	return Parser::kNoChange;
 }
 
-util::SafeHash<qint64, QHash<qint64, ITEM>> recordedEquip_;
-qint64 Interpreter::recordequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+util::SafeHash<long long, QHash<long long, ITEM>> recordedEquip_;
+long long Interpreter::recordequip(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 
 
-	QHash<qint64, ITEM> items = injector.server->getItems();
-	QHash<qint64, ITEM> recordedItems = recordedEquip_.value(currentIndex);
-	for (qint64 i = 0; i < CHAR_EQUIPPLACENUM; ++i)
+	QHash<long long, ITEM> items = injector.worker->getItems();
+	QHash<long long, ITEM> recordedItems = recordedEquip_.value(currentIndex);
+	for (long long i = 0; i < CHAR_EQUIPPLACENUM; ++i)
 	{
-		injector.server->announce(QObject::tr("record equip:[%1]%2").arg(i + 1).arg(items.value(i).name));
+		injector.worker->announce(QObject::tr("record equip:[%1]%2").arg(i + 1).arg(items.value(i).name));
 		recordedItems.insert(i, items.value(i));
 	}
 	recordedEquip_.insert(currentIndex, recordedItems);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::wearequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::wearequip(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	if (!injector.server->getOnlineFlag())
+	if (!injector.worker->getOnlineFlag())
 		return Parser::kNoChange;
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
-	QHash<qint64, ITEM> items = injector.server->getItems();
-	for (qint64 i = 0; i < CHAR_EQUIPPLACENUM; ++i)
+	QHash<long long, ITEM> items = injector.worker->getItems();
+	for (long long i = 0; i < CHAR_EQUIPPLACENUM; ++i)
 	{
 		ITEM item = items.value(i);
 		ITEM recordedItem = recordedEquip_.value(currentIndex).value(i);
@@ -1181,29 +1181,29 @@ qint64 Interpreter::wearequip(qint64 currentIndex, qint64 currentLine, const Tok
 		if (item.name == recordedItem.name && item.memo == recordedItem.memo)
 			continue;
 
-		qint64 itemIndex = injector.server->getItemIndexByName(recordedItem.name, true, "", CHAR_EQUIPPLACENUM);
+		long long itemIndex = injector.worker->getItemIndexByName(recordedItem.name, true, "", CHAR_EQUIPPLACENUM);
 		if (itemIndex == -1)
 			continue;
 
-		injector.server->useItem(itemIndex, 0);
+		injector.worker->useItem(itemIndex, 0);
 	}
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::unwearequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::unwearequip(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 part = CHAR_EQUIPNONE;
+	long long part = CHAR_EQUIPNONE;
 
 	if (!checkInteger(TK, 1, &part) || part < 1)
 	{
@@ -1226,49 +1226,49 @@ qint64 Interpreter::unwearequip(qint64 currentIndex, qint64 currentLine, const T
 	else
 		--part;
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
 	if (part < 100)
 	{
-		qint64 spotIndex = injector.server->getItemEmptySpotIndex();
+		long long spotIndex = injector.worker->getItemEmptySpotIndex();
 		if (spotIndex == -1)
 			return Parser::kNoChange;
 
-		injector.server->swapItem(part, spotIndex);
+		injector.worker->swapItem(part, spotIndex);
 	}
 	else
 	{
-		QVector<qint64> v;
-		if (!injector.server->getItemEmptySpotIndexs(&v))
+		QVector<long long> v;
+		if (!injector.worker->getItemEmptySpotIndexs(&v))
 			return Parser::kNoChange;
 
-		for (qint64 i = 0; i < CHAR_EQUIPPLACENUM; ++i)
+		for (long long i = 0; i < CHAR_EQUIPPLACENUM; ++i)
 		{
 			if (v.isEmpty())
 				break;
 
-			qint64 itemIndex = v.takeFirst();
+			long long itemIndex = v.takeFirst();
 
-			injector.server->swapItem(i, itemIndex);
+			injector.worker->swapItem(i, itemIndex);
 		}
 	}
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::petequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::petequip(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 petIndex = -1;
+	long long petIndex = -1;
 	if (!checkInteger(TK, 1, &petIndex))
 		return Parser::kArgError + 1ll;
 
@@ -1282,26 +1282,26 @@ qint64 Interpreter::petequip(qint64 currentIndex, qint64 currentLine, const Toke
 	if (itemName.isEmpty())
 		return Parser::kArgError;
 
-	qint64 itemIndex = injector.server->getItemIndexByName(itemName, true, "", CHAR_EQUIPPLACENUM);
+	long long itemIndex = injector.worker->getItemIndexByName(itemName, true, "", CHAR_EQUIPPLACENUM);
 	if (itemIndex != -1)
-		injector.server->petitemswap(petIndex, itemIndex, -1);
+		injector.worker->petitemswap(petIndex, itemIndex, -1);
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::petunequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::petunequip(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 part = CHAR_EQUIPNONE;
+	long long part = CHAR_EQUIPNONE;
 
-	qint64 petIndex = -1;
+	long long petIndex = -1;
 	if (!checkInteger(TK, 1, &petIndex))
 		return Parser::kArgError + 1ll;
 
@@ -1332,49 +1332,49 @@ qint64 Interpreter::petunequip(qint64 currentIndex, qint64 currentLine, const To
 	else
 		--part;
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
 	if (part < 100)
 	{
-		qint64 spotIndex = injector.server->getItemEmptySpotIndex();
+		long long spotIndex = injector.worker->getItemEmptySpotIndex();
 		if (spotIndex == -1)
 			return Parser::kNoChange;
 
-		injector.server->petitemswap(petIndex, part, spotIndex);
+		injector.worker->petitemswap(petIndex, part, spotIndex);
 	}
 	else
 	{
-		QVector<qint64> v;
-		if (!injector.server->getItemEmptySpotIndexs(&v))
+		QVector<long long> v;
+		if (!injector.worker->getItemEmptySpotIndexs(&v))
 			return Parser::kNoChange;
 
-		for (qint64 i = 0; i < CHAR_EQUIPPLACENUM; ++i)
+		for (long long i = 0; i < CHAR_EQUIPPLACENUM; ++i)
 		{
 			if (v.isEmpty())
 				break;
 
-			qint64 itemIndex = v.takeFirst();
+			long long itemIndex = v.takeFirst();
 
-			injector.server->petitemswap(petIndex, i, itemIndex);
+			injector.worker->petitemswap(petIndex, i, itemIndex);
 		}
 	}
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::depositpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::depositpet(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 petIndex = 0;
+	long long petIndex = 0;
 	QString petName;
 	if (!checkInteger(TK, 1, &petIndex))
 	{
@@ -1390,8 +1390,8 @@ qint64 Interpreter::depositpet(qint64 currentIndex, qint64 currentLine, const To
 		--petIndex;
 	else
 	{
-		QVector<qint64> v;
-		if (!injector.server->getPetIndexsByName(petName, &v))
+		QVector<long long> v;
+		if (!injector.worker->getPetIndexsByName(petName, &v))
 			return Parser::kArgError + 1ll;
 		petIndex = v.first();
 	}
@@ -1399,33 +1399,33 @@ qint64 Interpreter::depositpet(qint64 currentIndex, qint64 currentLine, const To
 	if (petIndex == -1)
 		return Parser::kArgError + 1ll;
 
-	injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-	injector.server->depositPet(petIndex);
-	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
+	injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+	injector.worker->depositPet(petIndex);
+	waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
-	injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-	injector.server->press(BUTTON_YES);
-	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
+	injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+	injector.worker->press(BUTTON_YES);
+	waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
-	injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-	injector.server->press(BUTTON_OK);
-	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
+	injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+	injector.worker->press(BUTTON_OK);
+	waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
-	injector.server->IS_WAITFOR_DIALOG_FLAG.store(false, std::memory_order_release);
+	injector.worker->IS_WAITFOR_DIALOG_FLAG.store(false, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::deposititem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::deposititem(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
+	long long min = 0, max = static_cast<long long>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 	if (!checkRange(TK, 1, &min, &max))
 		return Parser::kArgError + 1ll;
 
@@ -1435,7 +1435,7 @@ qint64 Interpreter::deposititem(qint64 currentIndex, qint64 currentLine, const T
 	QString itemName;
 	checkString(TK, 2, &itemName);
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
 	if (!itemName.isEmpty() && TK.value(2).type != TK_FUZZY)
 	{
@@ -1443,11 +1443,11 @@ qint64 Interpreter::deposititem(qint64 currentIndex, qint64 currentLine, const T
 		if (itemNames.isEmpty())
 			return Parser::kArgError + 2ll;
 
-		QVector<qint64> allv;
+		QVector<long long> allv;
 		for (const QString& name : itemNames)
 		{
-			QVector<qint64> v;
-			if (!injector.server->getItemIndexsByName(name, "", &v, CHAR_EQUIPPLACENUM))
+			QVector<long long> v;
+			if (!injector.worker->getItemIndexsByName(name, "", &v, CHAR_EQUIPPLACENUM))
 				return Parser::kArgError;
 			else
 				allv.append(v);
@@ -1457,24 +1457,24 @@ qint64 Interpreter::deposititem(qint64 currentIndex, qint64 currentLine, const T
 		auto iter = std::unique(allv.begin(), allv.end());
 		allv.erase(iter, allv.end());
 
-		QVector<qint64> v;
-		for (const qint64 it : allv)
+		QVector<long long> v;
+		for (const long long it : allv)
 		{
 			if (it < min || it > max)
 				continue;
 
-			//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-			injector.server->depositItem(it);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
-			//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-			//injector.server->press(1);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
+			//injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+			injector.worker->depositItem(it);
+			//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
+			//injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+			//injector.worker->press(1);
+			//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
 		}
 	}
 	else
 	{
-		QHash<qint64, ITEM> items = injector.server->getItems();
-		for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+		QHash<long long, ITEM> items = injector.worker->getItems();
+		for (long long i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 		{
 			ITEM item = items.value(i);
 			if (item.name.isEmpty() || !item.valid)
@@ -1483,21 +1483,21 @@ qint64 Interpreter::deposititem(qint64 currentIndex, qint64 currentLine, const T
 			if (i < min || i > max)
 				continue;
 
-			injector.server->depositItem(i);
-			injector.server->press(1);
+			injector.worker->depositItem(i);
+			injector.worker->press(1);
 		}
 	}
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::withdrawpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::withdrawpet(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -1508,21 +1508,21 @@ qint64 Interpreter::withdrawpet(qint64 currentIndex, qint64 currentLine, const T
 	if (petName.isEmpty())
 		return Parser::kArgError + 1ll;
 
-	qint64 level = 0;
+	long long level = 0;
 	checkInteger(TK, 2, &level);
 
-	qint64 maxHp = 0;
+	long long maxHp = 0;
 	checkInteger(TK, 3, &maxHp);
 
 	for (;;)
 	{
-		QPair<qint64, QVector<bankpet_t>> bankPetList = injector.server->currentBankPetList;
-		qint64 button = bankPetList.first;
+		QPair<long long, QVector<bankpet_t>> bankPetList = injector.worker->currentBankPetList;
+		long long button = bankPetList.first;
 		if (button == 0)
 			break;
 
 		QVector<bankpet_t> petList = bankPetList.second;
-		qint64 petIndex = 0;
+		long long petIndex = 0;
 		bool bret = false;
 		for (const bankpet_t& it : petList)
 		{
@@ -1558,32 +1558,32 @@ qint64 Interpreter::withdrawpet(qint64 currentIndex, qint64 currentLine, const T
 
 		if (bret)
 		{
-			injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-			injector.server->withdrawPet(petIndex);
-			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
+			injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+			injector.worker->withdrawPet(petIndex);
+			waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
-			injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-			injector.server->press(BUTTON_YES);
-			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
+			injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+			injector.worker->press(BUTTON_YES);
+			waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
-			injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-			injector.server->press(BUTTON_OK);
-			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
+			injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+			injector.worker->press(BUTTON_OK);
+			waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
-			injector.server->IS_WAITFOR_DIALOG_FLAG.store(false, std::memory_order_release);
+			injector.worker->IS_WAITFOR_DIALOG_FLAG.store(false, std::memory_order_release);
 			break;
 		}
 
 		if ((button & BUTTON_NEXT) == BUTTON_NEXT)
 		{
-			injector.server->IS_WAITFOR_BANK_FLAG.store(true, std::memory_order_release);
-			injector.server->press(BUTTON_NEXT);
-			if (!waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_BANK_FLAG.load(std::memory_order_acquire); }))
+			injector.worker->IS_WAITFOR_BANK_FLAG.store(true, std::memory_order_release);
+			injector.worker->press(BUTTON_NEXT);
+			if (!waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_BANK_FLAG.load(std::memory_order_acquire); }))
 			{
-				injector.server->IS_WAITFOR_BANK_FLAG.store(false, std::memory_order_release);
+				injector.worker->IS_WAITFOR_BANK_FLAG.store(false, std::memory_order_release);
 				break;
 			}
-			injector.server->IS_WAITFOR_BANK_FLAG.store(false, std::memory_order_release);
+			injector.worker->IS_WAITFOR_BANK_FLAG.store(false, std::memory_order_release);
 		}
 		else
 			break;
@@ -1593,11 +1593,11 @@ qint64 Interpreter::withdrawpet(qint64 currentIndex, qint64 currentLine, const T
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::withdrawitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::withdrawitem(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -1606,15 +1606,15 @@ qint64 Interpreter::withdrawitem(qint64 currentIndex, qint64 currentLine, const 
 	QString itemNames;
 	checkString(TK, 1, &itemNames);
 	QStringList itemList = itemNames.split(util::rexOR, Qt::SkipEmptyParts);
-	qint64 itemListSize = itemList.size();
+	long long itemListSize = itemList.size();
 
 	QString memos;
 	checkString(TK, 2, &memos);
 	QStringList memoList = memos.split(util::rexOR, Qt::SkipEmptyParts);
-	qint64 memoListSize = memoList.size();
+	long long memoListSize = memoList.size();
 
 	bool isAll = false;
-	qint64 nisall = 0;
+	long long nisall = 0;
 	checkInteger(TK, 3, &nisall);
 	if (nisall > 1)
 		isAll = true;
@@ -1622,16 +1622,16 @@ qint64 Interpreter::withdrawitem(qint64 currentIndex, qint64 currentLine, const 
 	if (itemListSize == 0 && memoListSize == 0)
 		return Parser::kArgError + 1ll;
 
-	qint64 max = 0;
+	long long max = 0;
 	// max 以大於0且最小的為主 否則以不為0的為主
 	if (itemListSize > 0)
 		max = itemListSize;
 	if (memoListSize > 0 && (max == 0 || memoListSize < max))
 		max = memoListSize;
 
-	QVector<ITEM> bankItemList = injector.server->currentBankItemList.toVector();
+	QVector<ITEM> bankItemList = injector.worker->currentBankItemList.toVector();
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
 	for (int i = 0; i < max; ++i)
 	{
@@ -1642,7 +1642,7 @@ qint64 Interpreter::withdrawitem(qint64 currentIndex, qint64 currentLine, const 
 		if (!memoList.isEmpty())
 			memo = memoList.value(i);
 
-		qint64 itemIndex = 0;
+		long long itemIndex = 0;
 		bool bret = false;
 		for (const ITEM& it : bankItemList)
 		{
@@ -1682,25 +1682,25 @@ qint64 Interpreter::withdrawitem(qint64 currentIndex, qint64 currentLine, const 
 
 		if (bret)
 		{
-			//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-			injector.server->withdrawItem(itemIndex);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
-			//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
-			//injector.server->press(1);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
+			//injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+			injector.worker->withdrawItem(itemIndex);
+			//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
+			//injector.worker->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
+			//injector.worker->press(1);
+			//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
 		}
 	}
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::addpoint(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::addpoint(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -1711,7 +1711,7 @@ qint64 Interpreter::addpoint(qint64 currentIndex, qint64 currentLine, const Toke
 	if (pointName.isEmpty())
 		return Parser::kArgError + 1ll;
 
-	static const QHash<QString, qint64> hash = {
+	static const QHash<QString, long long> hash = {
 		{ "體力", 0},
 		{ "腕力", 1},
 		{ "耐力", 2},
@@ -1728,25 +1728,25 @@ qint64 Interpreter::addpoint(qint64 currentIndex, qint64 currentLine, const Toke
 		{ "dex", 3},
 	};
 
-	qint64 point = hash.value(pointName.toLower(), -1);
+	long long point = hash.value(pointName.toLower(), -1);
 	if (point == -1)
 		return Parser::kArgError + 1ll;
 
-	qint64 max = 0;
+	long long max = 0;
 	checkInteger(TK, 2, &max);
 	if (max <= 0)
 		return Parser::kArgError + 2ll;
 
-	injector.server->addPoint(point, max);
+	injector.worker->addPoint(point, max);
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::trade(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -1763,31 +1763,32 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 	QString petListStr;
 	checkString(TK, 3, &petListStr);
 
-	qint64 gold = 0;
+	long long gold = 0;
 	if (!checkInteger(TK, 4, &gold))
 	{
 		QString tmp;
 		if (checkString(TK, 4, &tmp) && tmp == "all")
-			gold = injector.server->getPC().gold;
+			gold = injector.worker->getPC().gold;
 	}
 
 
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 5, &timeout);
 
 	mapunit_s unit;
-	if (!injector.server->findUnit(name, util::OBJ_HUMAN, &unit))
+	if (!injector.worker->findUnit(name, util::OBJ_HUMAN, &unit))
 		return Parser::kNoChange;
 
 	QPoint dst;
 	CAStar astar;
-	qint64 dir = injector.server->mapAnalyzer.calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+	long long dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(
+		currentIndex, astar, injector.worker->getFloor(), injector.worker->getPoint(), unit.p, &dst, true, unit.dir);
 	if (dir == -1)
 		return Parser::kNoChange;
 
-	injector.server->setCharFaceDirection(dir);
+	injector.worker->setCharFaceDirection(dir);
 
-	if (!injector.server->tradeStart(name, timeout))
+	if (!injector.worker->tradeStart(name, timeout))
 		return Parser::kNoChange;
 
 	//bool ok = false;
@@ -1796,28 +1797,28 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 		QStringList itemIndexList = itemListStr.split(util::rexOR, Qt::SkipEmptyParts);
 		if (itemListStr.toLower() == "all")
 		{
-			for (qint64 i = 1; i <= 15; ++i)
+			for (long long i = 1; i <= 15; ++i)
 				itemIndexList.append(util::toQString(i));
 		}
 		else if (itemListStr.count("-") == 1)
 		{
-			qint64 min = 1;
-			qint64 max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM);
+			long long min = 1;
+			long long max = static_cast<long long>(MAX_ITEM - CHAR_EQUIPPLACENUM);
 			if (!checkRange(TK, 2, &min, &max))
 				return Parser::kArgError + 2ll;
 
-			for (qint64 i = min; i <= max; ++i)
+			for (long long i = min; i <= max; ++i)
 				itemIndexList.append(util::toQString(i));
 		}
 
-		QVector<qint64> itemIndexVec;
+		QVector<long long> itemIndexVec;
 		for (const QString& itemIndex : itemIndexList)
 		{
 			bool bret = false;
-			qint64 index = itemIndex.toLongLong(&bret);
+			long long index = itemIndex.toLongLong(&bret);
 			--index;
 			index += CHAR_EQUIPPLACENUM;
-			QHash<qint64, ITEM> items = injector.server->getItems();
+			QHash<long long, ITEM> items = injector.worker->getItems();
 			if (bret && index >= CHAR_EQUIPPLACENUM && index < MAX_ITEM)
 			{
 				if (items.value(index).valid)
@@ -1834,7 +1835,7 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 
 		if (!itemIndexVec.isEmpty())
 		{
-			injector.server->tradeAppendItems(name, itemIndexVec);
+			injector.worker->tradeAppendItems(name, itemIndexVec);
 			//ok = true;
 		}
 		else
@@ -1846,30 +1847,30 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 		QStringList petIndexList = petListStr.split(util::rexOR, Qt::SkipEmptyParts);
 		if (itemListStr.toLower() == "all")
 		{
-			for (qint64 i = 1; i <= MAX_PET; ++i)
+			for (long long i = 1; i <= MAX_PET; ++i)
 				petIndexList.append(util::toQString(i));
 		}
 		else if (itemListStr.count("-") == 1)
 		{
-			qint64 min = 1;
-			qint64 max = MAX_PET;
+			long long min = 1;
+			long long max = MAX_PET;
 			if (!checkRange(TK, 2, &min, &max))
 				return Parser::kArgError + 2ll;
 
-			for (qint64 i = min; i <= max; ++i)
+			for (long long i = min; i <= max; ++i)
 				petIndexList.append(util::toQString(i));
 		}
 
-		QVector<qint64> petIndexVec;
+		QVector<long long> petIndexVec;
 		for (const QString& petIndex : petIndexList)
 		{
 			bool bret = false;
-			qint64 index = petIndex.toLongLong(&bret);
+			long long index = petIndex.toLongLong(&bret);
 			--index;
 
 			if (bret && index >= 0 && index < MAX_PET)
 			{
-				PET pet = injector.server->getPet(index);
+				PET pet = injector.worker->getPet(index);
 				if (pet.valid)
 					petIndexVec.append(index);
 			}
@@ -1881,41 +1882,41 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 
 		if (!petIndexVec.isEmpty())
 		{
-			injector.server->tradeAppendPets(name, petIndexVec);
+			injector.worker->tradeAppendPets(name, petIndexVec);
 			//ok = true;
 		}
 		else
 			return Parser::kArgError + 3ll;
 	}
 
-	if (gold > 0 && gold <= injector.server->getPC().gold)
+	if (gold > 0 && gold <= injector.worker->getPC().gold)
 	{
-		injector.server->tradeAppendGold(name, gold);
+		injector.worker->tradeAppendGold(name, gold);
 		//ok = true;
 	}
 
-	injector.server->tradeComfirm(name);
+	injector.worker->tradeComfirm(name);
 
 	waitfor(timeout, [&injector]()
 		{
-			return injector.server->getPC().trade_confirm >= 3;
+			return injector.worker->getPC().trade_confirm >= 3;
 		});
 
-	injector.server->tradeComplete(name);
+	injector.worker->tradeComplete(name);
 
 	waitfor(timeout, [&injector]()
 		{
-			return !injector.server->IS_TRADING.load(std::memory_order_acquire);
+			return !injector.worker->IS_TRADING.load(std::memory_order_acquire);
 		});
 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::mail(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::mail(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -1923,7 +1924,7 @@ qint64 Interpreter::mail(qint64 currentIndex, qint64 currentLine, const TokenMap
 
 	QVariant card;
 	QString name;
-	qint64 addrIndex = -1;
+	long long addrIndex = -1;
 	if (!checkInteger(TK, 1, &addrIndex))
 	{
 		if (!checkString(TK, 1, &name))
@@ -1945,7 +1946,7 @@ qint64 Interpreter::mail(qint64 currentIndex, qint64 currentLine, const TokenMap
 	QString text;
 	checkString(TK, 2, &text);
 
-	qint64 petIndex = -1;
+	long long petIndex = -1;
 	checkInteger(TK, 3, &petIndex);
 	if (petIndex != -1)
 	{
@@ -1963,23 +1964,23 @@ qint64 Interpreter::mail(qint64 currentIndex, qint64 currentLine, const TokenMap
 	if (petIndex != -1 && itemMemo.isEmpty() && !itemName.isEmpty())
 		return Parser::kArgError + 4ll;
 
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
-	injector.server->mail(card, text, petIndex, itemName, itemMemo);
+	injector.worker->mail(card, text, petIndex, itemName, itemMemo);
 
-	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
-	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::doffstone(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::doffstone(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 gold = 0;
+	long long gold = 0;
 	if (!checkInteger(TK, 1, &gold))
 		return Parser::kArgError + 1ll;
 
@@ -1988,7 +1989,7 @@ qint64 Interpreter::doffstone(qint64 currentIndex, qint64 currentLine, const Tok
 
 	if (gold == -1)
 	{
-		PC pc = injector.server->getPC();
+		PC pc = injector.worker->getPC();
 		gold = pc.gold;
 	}
 
@@ -1997,220 +1998,220 @@ qint64 Interpreter::doffstone(qint64 currentIndex, qint64 currentLine, const Tok
 
 	checkBattleThenWait();
 
-	injector.server->dropGold(gold);
+	injector.worker->dropGold(gold);
 
 	return Parser::kNoChange;
 }
 
 //battle
-qint64 Interpreter::bh(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//atk
+long long Interpreter::bh(long long currentIndex, long long currentLine, const TokenMap& TK)//atk
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 index = 0;
+	long long index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
 		return Parser::kArgError + 1ll;
 	--index;
 
-	injector.server->sendBattleCharAttackAct(index);
+	injector.worker->sendBattleCharAttackAct(index);
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bj(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//magic
+long long Interpreter::bj(long long currentIndex, long long currentLine, const TokenMap& TK)//magic
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 magicIndex = 0;
+	long long magicIndex = 0;
 	checkInteger(TK, 1, &magicIndex);
 	if (magicIndex <= 0)
 		return Parser::kArgError + 1ll;
 	--magicIndex;
 
-	qint64 target = 0;
+	long long target = 0;
 	checkInteger(TK, 2, &target);
 	if (target <= 0)
 		return Parser::kArgError + 2ll;
 	--target;
 
-	injector.server->sendBattleCharMagicAct(magicIndex, target);
+	injector.worker->sendBattleCharMagicAct(magicIndex, target);
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bp(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//skill
+long long Interpreter::bp(long long currentIndex, long long currentLine, const TokenMap& TK)//skill
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 skillIndex = 0;
+	long long skillIndex = 0;
 	checkInteger(TK, 1, &skillIndex);
 	if (skillIndex <= 0)
 		return Parser::kArgError + 1ll;
 	--skillIndex;
 
-	qint64 target = 0;
+	long long target = 0;
 	checkInteger(TK, 2, &target);
 	if (target <= 0)
 		return Parser::kArgError + 2ll;
 	--target;
 
-	injector.server->sendBattleCharJobSkillAct(skillIndex, target);
+	injector.worker->sendBattleCharJobSkillAct(skillIndex, target);
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bs(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//switch
+long long Interpreter::bs(long long currentIndex, long long currentLine, const TokenMap& TK)//switch
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 index = 0;
+	long long index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
 		return Parser::kArgError + 1ll;
 	--index;
-	injector.server->sendBattleCharSwitchPetAct(index);
+	injector.worker->sendBattleCharSwitchPetAct(index);
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::be(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//escape
+long long Interpreter::be(long long currentIndex, long long currentLine, const TokenMap& TK)//escape
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	injector.server->sendBattleCharEscapeAct();
+	injector.worker->sendBattleCharEscapeAct();
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bd(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//defense
+long long Interpreter::bd(long long currentIndex, long long currentLine, const TokenMap& TK)//defense
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	injector.server->sendBattleCharDefenseAct();
+	injector.worker->sendBattleCharDefenseAct();
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bi(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//item
+long long Interpreter::bi(long long currentIndex, long long currentLine, const TokenMap& TK)//item
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 index = 0;
+	long long index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
 		return Parser::kArgError + 1ll;
 	--index;
 	index += CHAR_EQUIPPLACENUM;
 
-	qint64 target = 1;
+	long long target = 1;
 	checkInteger(TK, 2, &target);
 	if (target <= 0)
 		return Parser::kArgError + 2ll;
 	--target;
 
-	injector.server->sendBattleCharItemAct(index, target);
+	injector.worker->sendBattleCharItemAct(index, target);
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bt(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//catch
+long long Interpreter::bt(long long currentIndex, long long currentLine, const TokenMap& TK)//catch
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 index = 0;
+	long long index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
 		return Parser::kArgError + 1ll;
 	--index;
 
-	injector.server->sendBattleCharCatchPetAct(index);
+	injector.worker->sendBattleCharCatchPetAct(index);
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bn(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//nothing
+long long Interpreter::bn(long long currentIndex, long long currentLine, const TokenMap& TK)//nothing
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	injector.server->sendBattleCharDoNothing();
+	injector.worker->sendBattleCharDoNothing();
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bw(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//petskill
+long long Interpreter::bw(long long currentIndex, long long currentLine, const TokenMap& TK)//petskill
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 skillIndex = 0;
+	long long skillIndex = 0;
 	checkInteger(TK, 1, &skillIndex);
 	if (skillIndex <= 0)
 		return Parser::kArgError + 1ll;
 	--skillIndex;
 
-	qint64 target = 0;
+	long long target = 0;
 	checkInteger(TK, 2, &target);
 	if (target <= 0)
 		return Parser::kArgError + 1ll;
 	--target;
 
-	injector.server->sendBattlePetSkillAct(skillIndex, target);
+	injector.worker->sendBattlePetSkillAct(skillIndex, target);
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bwf(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//pet nothing
+long long Interpreter::bwf(long long currentIndex, long long currentLine, const TokenMap& TK)//pet nothing
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	injector.server->sendBattlePetDoNothing();
+	injector.worker->sendBattlePetDoNothing();
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::bwait(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::bwait(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 1, &timeout);
 	injector.sendMessage(kEnableBattleDialog, false, NULL);
 	bool bret = waitfor(timeout, [&injector]()
 		{
-			if (!injector.server->getBattleFlag())
+			if (!injector.worker->getBattleFlag())
 				return true;
-			qint64 G = injector.server->getGameStatus();
-			qint64 W = injector.server->getWorldStatus();
+			long long G = injector.worker->getGameStatus();
+			long long W = injector.worker->getWorldStatus();
 
 			return W == 10 && G == 4;
 		});
-	if (injector.server->getBattleFlag())
+	if (injector.worker->getBattleFlag())
 		injector.sendMessage(kEnableBattleDialog, true, NULL);
 	else
 		bret = false;
@@ -2218,19 +2219,19 @@ qint64 Interpreter::bwait(qint64 currentIndex, qint64 currentLine, const TokenMa
 	return checkJump(TK, 2, bret, FailedJump);
 }
 
-qint64 Interpreter::bend(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::bend(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 G = injector.server->getGameStatus();
+	long long G = injector.worker->getGameStatus();
 	if (G == 4)
 	{
 		mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
-		injector.server->setGameStatus(5);
-		injector.server->isBattleDialogReady.store(false, std::memory_order_release);
+		injector.worker->setGameStatus(5);
+		injector.worker->isBattleDialogReady.store(false, std::memory_order_release);
 	}
 	return Parser::kNoChange;
 }

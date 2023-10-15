@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "selecttargetform.h"
 #include "selectobjectform.h"
 
-AfkForm::AfkForm(qint64 index, QWidget* parent)
+AfkForm::AfkForm(long long index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -36,60 +36,73 @@ AfkForm::AfkForm(qint64 index, QWidget* parent)
 	windowflag |= Qt::WindowType::Tool;
 	setWindowFlag(Qt::WindowType::Tool);
 
+	util::setTab(ui.tabWidget);
+
 	connect(this, &AfkForm::resetControlTextLanguage, this, &AfkForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &AfkForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateComboBoxItemText, this, &AfkForm::onUpdateComboBoxItemText, Qt::QueuedConnection);
 
+	QStringList nameCheckList;
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
-		if (button)
-			connect(button, &PushButton::clicked, this, &AfkForm::onButtonClicked, Qt::QueuedConnection);
+		if (button && !nameCheckList.contains(button->objectName()))
+		{
+			nameCheckList.append(button->objectName());
+			connect(button, &PushButton::clicked, this, &AfkForm::onButtonClicked, Qt::UniqueConnection);
+		}
 	}
 
 	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
 	for (auto& checkBox : checkBoxList)
 	{
-		if (checkBox)
-			connect(checkBox, &QCheckBox::stateChanged, this, &AfkForm::onCheckBoxStateChanged, Qt::QueuedConnection);
+		if (checkBox && !nameCheckList.contains(checkBox->objectName()))
+		{
+			nameCheckList.append(checkBox->objectName());
+			connect(checkBox, &QCheckBox::stateChanged, this, &AfkForm::onCheckBoxStateChanged, Qt::UniqueConnection);
+		}
 	}
 
 	QList <QSpinBox*> spinBoxList = util::findWidgets<QSpinBox>(this);
 	for (auto& spinBox : spinBoxList)
 	{
-		if (spinBox)
-			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::QueuedConnection);
+		if (spinBox && !nameCheckList.contains(spinBox->objectName()))
+		{
+			nameCheckList.append(spinBox->objectName());
+			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
+		}
+	}
+
+	QList <QLineEdit*> lineEditList = util::findWidgets<QLineEdit>(this);
+	for (auto& lineEdit : lineEditList)
+	{
+		if (lineEdit && !nameCheckList.contains(lineEdit->objectName()))
+		{
+			util::setLineEdit(lineEdit);
+			nameCheckList.append(lineEdit->objectName());
+			connect(lineEdit, &QLineEdit::textChanged, this, &AfkForm::onLineEditTextChanged, Qt::UniqueConnection);
+		}
 	}
 
 	QList <ComboBox*> comboBoxList = util::findWidgets<ComboBox>(this);
 	for (auto& comboBox : comboBoxList)
 	{
-		if (comboBox)
-			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::QueuedConnection);
-	}
-
-	QList <ComboBox*> ccomboBoxList = util::findWidgets<ComboBox>(this);
-	for (auto& comboBox : ccomboBoxList)
-	{
-		if (comboBox)
+		if (comboBox && !nameCheckList.contains(comboBox->objectName()))
 		{
-			connect(comboBox, &ComboBox::clicked, this, &AfkForm::onComboBoxClicked, Qt::QueuedConnection);
-			connect(comboBox, &ComboBox::currentTextChanged, this, &AfkForm::onComboBoxTextChanged, Qt::QueuedConnection);
+			nameCheckList.append(comboBox->objectName());
+			connect(comboBox, &ComboBox::clicked, this, &AfkForm::onComboBoxClicked, Qt::UniqueConnection);
+			connect(comboBox, &ComboBox::currentTextChanged, this, &AfkForm::onComboBoxTextChanged, Qt::UniqueConnection);
+			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
 		}
 	}
 
 	onResetControlTextLanguage();
 
 	Injector& injector = Injector::getInstance(index);
-	if (!injector.server.isNull())
-		injector.server->updateComboBoxList();
-
-	util::FormSettingManager formSettingManager(this);
-	formSettingManager.loadSettings();
-
-	emit signalDispatcher.applyHashSettingsToUI();
+	if (!injector.worker.isNull())
+		injector.worker->updateComboBoxList();
 }
 
 AfkForm::~AfkForm()
@@ -102,9 +115,12 @@ void AfkForm::showEvent(QShowEvent* e)
 	setAttribute(Qt::WA_Mapped);
 	QWidget::showEvent(e);
 
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.loadSettings();
+
 	Injector& injector = Injector::getInstance(getIndex());
-	if (!injector.server.isNull())
-		injector.server->updateComboBoxList();
+	if (!injector.worker.isNull())
+		injector.worker->updateComboBoxList();
 }
 
 void AfkForm::closeEvent(QCloseEvent* event)
@@ -130,7 +146,7 @@ void AfkForm::onButtonClicked()
 	QStringList dstList;
 	QStringList srcSelectList;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//battle
@@ -215,6 +231,75 @@ void AfkForm::onButtonClicked()
 			pPushButton->setText(temp);
 		return;
 	}
+
+	auto fillItem = [this, &injector](QLineEdit* pLineEdit, util::UserSetting set)->void
+		{
+			QStringList srcSelectList;
+			QStringList srcList;
+			QStringList dstList;
+
+			QVariant dat = injector.getUserData(util::kUserItemNames);
+			if (dat.isValid())
+				srcSelectList = dat.toStringList();
+
+			QString src = pLineEdit->text();
+			if (src.isEmpty())
+				src = injector.getStringHash(set);
+
+			if (!src.isEmpty())
+				srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
+
+			if (!createSelectObjectForm(SelectObjectForm::kItem, srcSelectList, srcList, &dstList, this))
+				return;
+
+			QString dst = dstList.join("|");
+			injector.setStringHash(set, dst);
+			pLineEdit->setText(dst);
+		};
+
+	if (name == "pushButton_magicheal_normal_select")
+	{
+		fillItem(ui.lineEdit_magicheal_normal, util::kNormalMagicHealItemString);
+		return;
+	}
+
+	if (name == "pushButton_itemheal_normal_select")
+	{
+		fillItem(ui.lineEdit_itemheal_normal, util::kNormalItemHealItemString);
+		return;
+	}
+
+	if (name == "pushButton_itemhealmp_select")
+	{
+		fillItem(ui.lineEdit_itemhealmp_normal, util::kNormalItemHealMpItemString);
+		return;
+	}
+
+	if (name == "pushButton_itemheal_select")
+	{
+		fillItem(ui.lineEdit_itemheal, util::kBattleItemHealItemString);
+		return;
+	}
+
+	if (name == "pushButton_itemhealmp_select")
+	{
+		fillItem(ui.lineEdit_itemhealmp, util::kBattleItemHealMpItemString);
+		return;
+	}
+
+	if (name == "pushButton_itemrevive_select")
+	{
+		fillItem(ui.lineEdit_itemrevive, util::kBattleItemReviveItemString);
+		return;
+	}
+
+	if (name == "pushButton_autocatchpet_item_select")
+	{
+		fillItem(ui.lineEdit_autocatchpet_item, util::kBattleCatchCharItemString);
+		return;
+	}
+
+
 	//catch
 	if (name == "pushButton_autocatchpet")
 	{
@@ -292,7 +377,7 @@ void AfkForm::onCheckBoxStateChanged(int state)
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//battle
@@ -484,7 +569,7 @@ void AfkForm::onSpinBoxValueChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//battle heal
@@ -678,6 +763,65 @@ void AfkForm::onSpinBoxValueChanged(int value)
 	}
 }
 
+void AfkForm::onLineEditTextChanged(const QString& text)
+{
+	QLineEdit* pLineEdit = qobject_cast<QLineEdit*>(sender());
+	if (!pLineEdit)
+		return;
+
+	QString name = pLineEdit->objectName();
+	if (name.isEmpty())
+		return;
+
+	long long currentIndex = getIndex();
+
+	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (name == "lineEdit_magicheal_normal")
+	{
+		injector.setStringHash(util::kNormalMagicHealItemString, text);
+		return;
+	}
+
+	if (name == "lineEdit_itemheal_normal")
+	{
+		injector.setStringHash(util::kNormalItemHealItemString, text);
+		return;
+	}
+
+	if (name == "lineEdit_itemhealmp_normal")
+	{
+		injector.setStringHash(util::kNormalItemHealMpItemString, text);
+		return;
+	}
+
+	if (name == "lineEdit_itemheal")
+	{
+		injector.setStringHash(util::kBattleItemHealItemString, text);
+		return;
+	}
+
+	if (name == "lineEdit_itemhealmp")
+	{
+		injector.setStringHash(util::kBattleItemHealMpItemString, text);
+		return;
+	}
+
+	if (name == "lineEdit_itemrevive")
+	{
+		injector.setStringHash(util::kBattleItemReviveItemString, text);
+		return;
+	}
+
+	if (name == "lineEdit_autocatchpet_item")
+	{
+		injector.setStringHash(util::kBattleCatchCharItemString, text);
+		return;
+	}
+
+
+}
+
 void AfkForm::onComboBoxCurrentIndexChanged(int value)
 {
 	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
@@ -688,7 +832,7 @@ void AfkForm::onComboBoxCurrentIndexChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//battle char
@@ -866,61 +1010,15 @@ void AfkForm::onComboBoxClicked()
 
 	util::UserSetting settingType = util::kSettingNotUsed;
 
-	//battle
-	do
-	{
-		if (name == "comboBox_itemheal")
-		{
-			settingType = util::kBattleItemHealItemString;
-			break;
-		}
-		if (name == "comboBox_itemhealmp")
-		{
-			settingType = util::kBattleItemHealMpItemString;
-			break;
-		}
-		if (name == "comboBox_itemrevive")
-		{
-			settingType = util::kBattleItemReviveItemString;
-			break;
-		}
-		//normal
-		if (name == "comboBox_itemheal_normal")
-		{
-			settingType = util::kNormalItemHealItemString;
-			break;
-		}
-		if (name == "comboBox_itemhealmp_normal")
-		{
-			settingType = util::kNormalItemHealMpItemString;
-			break;
-		}
 
-		//catch
-		if (name == "comboBox_autocatchpet_item")
-		{
-			settingType = util::kBattleCatchCharItemString;
-			break;
-		}
-	} while (false);
-
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	if (name.contains("item"))
+	if (!name.contains("item"))
 	{
-		QString currentText = pComboBox->currentText();
-		pComboBox->clear();
-		QStringList itemList = injector.getUserData(util::kUserItemNames).toStringList();
-		itemList.prepend(currentText);
-		itemList.removeDuplicates();
-		pComboBox->addItems(itemList);
-	}
-	else
-	{
-		injector.server->updateComboBoxList();
+		injector.worker->updateComboBoxList();
 	}
 }
 
@@ -935,7 +1033,7 @@ void AfkForm::onComboBoxTextChanged(const QString& text)
 		return;
 
 	QString newText = text.simplified();
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//battle
@@ -974,19 +1072,13 @@ void AfkForm::onResetControlTextLanguage()
 			if (combo == nullptr)
 				return;
 
-			if (combo->hasFocus())
-				return;
-
-			if (combo->view()->hasFocus())
-				return;
-
 			combo->clear();
 			combo->addItem(tr("not use"));
-			for (qint64 i = 1; i <= 100; ++i)
+			for (long long i = 1; i <= 100; ++i)
 			{
 				QString text = tr("at round %1").arg(i);
 				combo->addItem(text);
-				qint64 index = static_cast<qint64>(combo->count()) - 1;
+				long long index = static_cast<long long>(combo->count()) - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
 			}
 		};
@@ -996,19 +1088,13 @@ void AfkForm::onResetControlTextLanguage()
 			if (combo == nullptr)
 				return;
 
-			if (combo->hasFocus())
-				return;
-
-			if (combo->view()->hasFocus())
-				return;
-
 			combo->clear();
 			combo->addItem(tr("not use"));
-			for (qint64 i = 1; i <= 9; ++i)
+			for (long long i = 1; i <= 9; ++i)
 			{
 				QString text = tr("enemy amount > %1").arg(i);
 				combo->addItem(text);
-				qint64 index = static_cast<qint64>(combo->count()) - 1;
+				long long index = static_cast<long long>(combo->count()) - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
 			}
 		};
@@ -1021,15 +1107,12 @@ void AfkForm::onResetControlTextLanguage()
 			if (combo->hasFocus())
 				return;
 
-			if (combo->view()->hasFocus())
-				return;
-
 			combo->clear();
-			for (qint64 i = 1; i <= 100; ++i)
+			for (long long i = 1; i <= 100; ++i)
 			{
 				QString text = tr("every %1 round").arg(i);
 				combo->addItem(text);
-				qint64 index = static_cast<qint64>(combo->count()) - 1;
+				long long index = static_cast<long long>(combo->count()) - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
 			}
 		};
@@ -1039,19 +1122,13 @@ void AfkForm::onResetControlTextLanguage()
 			if (combo == nullptr)
 				return;
 
-			if (combo->hasFocus())
-				return;
-
-			if (combo->view()->hasFocus())
-				return;
-
 			combo->clear();
 			combo->addItem(tr("not use"));
-			for (qint64 i = 10; i <= 250; i += 10)
+			for (long long i = 10; i <= 250; i += 10)
 			{
 				QString text = tr("enemy level > %1").arg(i);
 				combo->addItem(text);
-				qint64 index = static_cast<qint64>(combo->count()) - 1;
+				long long index = static_cast<long long>(combo->count()) - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
 			}
 		};
@@ -1059,12 +1136,6 @@ void AfkForm::onResetControlTextLanguage()
 	auto appendCharAction = [](QComboBox* combo, bool notBattle = false)->void
 		{
 			if (combo == nullptr)
-				return;
-
-			if (combo->hasFocus())
-				return;
-
-			if (combo->view()->hasFocus())
 				return;
 
 			combo->clear();
@@ -1075,44 +1146,38 @@ void AfkForm::onResetControlTextLanguage()
 				tr("gloves")
 			};
 
-			for (qint64 i = 0; i < actionList.size(); ++i)
+			for (long long i = 0; i < actionList.size(); ++i)
 			{
 				if (notBattle && i < 3)
 					continue;
 
 				combo->addItem(actionList[i] + (i >= 3 ? ":" : ""));
-				qint64 index = static_cast<qint64>(combo->count()) - 1;
+				long long index = static_cast<long long>(combo->count()) - 1;
 				combo->setItemData(index, QString("%1").arg(actionList[i]), Qt::ToolTipRole);
 			}
 
 			if (notBattle)
 				return;
 
-			for (qint64 i = 0; i < MAX_PROFESSION_SKILL; ++i)
+			for (long long i = 0; i < MAX_PROFESSION_SKILL; ++i)
 			{
 				QString text = QString("%1:").arg(i + 1);
 				combo->addItem(text);
-				qint64 index = static_cast<qint64>(combo->count()) - 1;
+				long long index = static_cast<long long>(combo->count()) - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
 			}
 		};
 
-	auto appendNumbers = [](QComboBox* combo, qint64 max)->void
+	auto appendNumbers = [](QComboBox* combo, long long max)->void
 		{
 			if (combo == nullptr)
 				return;
 
-			if (combo->hasFocus())
-				return;
-
-			if (combo->view()->hasFocus())
-				return;
-
 			combo->clear();
-			for (qint64 i = 1; i <= max; ++i)
+			for (long long i = 1; i <= max; ++i)
 			{
 				combo->addItem(QString("%1:").arg(i));
-				qint64 index = static_cast<qint64>(combo->count()) - 1;
+				long long index = static_cast<long long>(combo->count()) - 1;
 				combo->setItemData(index, QString("%1").arg(i), Qt::ToolTipRole);
 			}
 		};
@@ -1142,11 +1207,11 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_purgaction_char_action, false);
 
 	appendCharAction(ui.comboBox_magicheal_normal, true);
-	for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+	for (long long i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 	{
 		QString text = QString("%1:").arg(i + 1 - CHAR_EQUIPPLACENUM);
 		ui.comboBox_magicheal_normal->addItem(text);
-		qint64 index = static_cast<qint64>(ui.comboBox_magicheal_normal->count()) - 1;
+		long long index = static_cast<long long>(ui.comboBox_magicheal_normal->count()) - 1;
 		ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);
 	}
 
@@ -1173,16 +1238,16 @@ void AfkForm::onResetControlTextLanguage()
 
 void AfkForm::onApplyHashSettingsToUI()
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, long long> valueHash = injector.getValuesHash();
 	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
-	if (!injector.server.isNull() && injector.server->getOnlineFlag())
+	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
 	{
 		QString title = tr("AfkForm");
-		QString newTitle = QString("[%1] %2").arg(injector.server->getPC().name).arg(title);
+		QString newTitle = QString("[%1] %2").arg(injector.worker->getPC().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 
@@ -1227,12 +1292,14 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.comboBox_magicheal->setCurrentIndex(valueHash.value(util::kBattleMagicHealMagicValue));
 	ui.comboBox_magicrevive->setCurrentIndex(valueHash.value(util::kBattleMagicReviveMagicValue));
 
-	ui.comboBox_itemheal->setCurrentText(stringHash.value(util::kBattleItemHealItemString));
-	ui.comboBox_itemhealmp->setCurrentText(stringHash.value(util::kBattleItemHealMpItemString));
-	ui.comboBox_itemrevive->setCurrentText(stringHash.value(util::kBattleItemReviveItemString));
-	ui.comboBox_itemheal_normal->setCurrentText(stringHash.value(util::kNormalItemHealItemString));
-	ui.comboBox_itemhealmp_normal->setCurrentText(stringHash.value(util::kNormalItemHealMpItemString));
+	ui.lineEdit_itemheal->setText(stringHash.value(util::kBattleItemHealItemString));
+	ui.lineEdit_itemhealmp->setText(stringHash.value(util::kBattleItemHealMpItemString));
+	ui.lineEdit_itemrevive->setText(stringHash.value(util::kBattleItemReviveItemString));
+
+	ui.lineEdit_magicheal_normal->setText(stringHash.value(util::kNormalMagicHealItemString));
 	ui.comboBox_magicheal_normal->setCurrentIndex(valueHash.value(util::kNormalMagicHealMagicValue));
+	ui.lineEdit_itemheal_normal->setText(stringHash.value(util::kNormalItemHealItemString));
+	ui.lineEdit_itemhealmp_normal->setText(stringHash.value(util::kNormalItemHealMpItemString));
 
 	ui.checkBox_noscapewhilelockpet->setChecked(enableHash.value(util::kBattleNoEscapeWhileLockPetEnable));
 
@@ -1281,7 +1348,7 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.spinBox_autocatchpet_level->setValue(valueHash.value(util::kBattleCatchTargetLevelValue));
 	ui.spinBox_autocatchpet_hp->setValue(valueHash.value(util::kBattleCatchTargetMaxHpValue));
 	ui.lineEdit_autocatchpet->setText(stringHash.value(util::kBattleCatchPetNameString));
-	ui.comboBox_autocatchpet_item->setCurrentText(stringHash.value(util::kBattleCatchCharItemString));
+	ui.lineEdit_autocatchpet_item->setText(stringHash.value(util::kBattleCatchCharItemString));
 	ui.spinBox_autocatchpet_magic->setValue(valueHash.value(util::kBattleCatchTargetMagicHpValue));
 	ui.spinBox_autocatchpet_item->setValue(valueHash.value(util::kBattleCatchTargetItemHpValue));
 
@@ -1307,14 +1374,14 @@ void AfkForm::onApplyHashSettingsToUI()
 	updateTargetButtonText();
 }
 
-void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
+void AfkForm::onUpdateComboBoxItemText(long long type, const QStringList& textList)
 {
 	if (isHidden())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 
-	auto appendText = [&textList](QComboBox* combo, qint64 max, bool noIndex)->void
+	auto appendText = [&textList](QComboBox* combo, long long max, bool noIndex)->void
 		{
 			if (combo == nullptr)
 				return;
@@ -1327,21 +1394,31 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 
 			combo->blockSignals(true);
 			combo->setUpdatesEnabled(false);
-			qint64 nOriginalIndex = combo->currentIndex();
-			combo->clear();
-			qint64 size = textList.size();
-			qint64 n = 0;
-			for (qint64 i = 0; i < max; ++i)
+			long long nOriginalIndex = combo->currentIndex();
+
+			long long size = textList.size();
+			long long n = 0;
+
+			if (combo->count() > max)
 			{
-				qint64 index = 0;
+				for (long long i = static_cast<long long>(combo->count()) - 1; i >= max; --i)
+					combo->removeItem(i);
+			}
+
+			for (long long i = 0; i < max; ++i)
+			{
+				if (i >= combo->count())
+					combo->addItem("");
+
+				long long index = 0;
 				QString text;
 				if (!noIndex)
 				{
 					if (i >= size)
 					{
-						combo->addItem(QString("%1:").arg(i + 1));
-						index = static_cast<qint64>(combo->count()) - 1;
-						combo->setItemData(index, QString("%1:").arg(i + 1), Qt::ToolTipRole);
+						combo->setItemText(i, QString("%1:").arg(i + 1));
+						//index = static_cast<long long>(combo->count()) - 1;
+						combo->setItemData(i, QString("%1:").arg(i + 1), Qt::ToolTipRole);
 						continue;
 					}
 					text = QString("%1:%2").arg(i + 1).arg(textList[i]);
@@ -1355,10 +1432,9 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 				}
 
 				combo->addItem(text);
-				index = static_cast<qint64>(combo->count()) - 1;
+				index = static_cast<long long>(combo->count()) - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
 			}
-
 
 			combo->setCurrentIndex(nOriginalIndex);
 			combo->setUpdatesEnabled(true);
@@ -1369,14 +1445,17 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 	{
 	case util::kComboBoxCharAction:
 	{
-		QStringList actionList = {
-			tr("attack"), tr("defense"), tr("escape"),
+		const QStringList normalActionList = {
+			tr("attack"), tr("defense"), tr("escape")
+		};
+
+		const QStringList equipActionList = {
 			tr("head"), tr("body"), tr("righthand"), tr("leftacc"),
 			tr("rightacc"), tr("belt"), tr("lefthand"), tr("shoes"),
 			tr("gloves")
 		};
 
-		auto appendMagicText = [this, &actionList, &textList, currentIndex](QComboBox* combo, bool notBattle = false)->void
+		auto appendMagicText = [this, &normalActionList, &equipActionList, &textList, currentIndex](QComboBox* combo)->void
 			{
 				if (combo == nullptr)
 					return;
@@ -1389,57 +1468,57 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 
 				combo->blockSignals(true);
 				combo->setUpdatesEnabled(false);
-				qint64 nOriginalIndex = combo->currentIndex();
-				combo->clear();
-				qint64 size = actionList.size();
-				qint64 n = 0;
-				for (qint64 i = 0; i < size; ++i)
-				{
+				long long nOriginalIndex = combo->currentIndex();
 
-					QString text;
+				long long base = 3; //基礎3個動作
+				long long size = MAX_MAGIC + base + MAX_PROFESSION_SKILL;
+				long long n = 0;
+
+				//去除多餘的
+				if (combo->count() > size)
+				{
+					for (long long i = static_cast<long long>(combo->count()) - 1; i >= size; --i)
+						combo->removeItem(i);
+				}
+
+				//更新精靈
+				for (long long i = 0; i < size; ++i)
+				{
+					//缺則補
+					if (i >= combo->count())
+						combo->addItem("");
+
+					//重設基礎動作
+					QString text = "";
 					if (i < 3)
 					{
-						if (notBattle)
-							continue;
-						text = actionList[i];
-						combo->addItem(text);
+						text = normalActionList.value(i);
+					}
+					else if (i >= 3 && i < MAX_MAGIC + 3)
+					{
+						text = QString("%1:%2").arg(equipActionList.value(i - 3)).arg(textList.value(i - 3));
 					}
 					else
 					{
-						text = QString("%1:%2").arg(actionList[i]).arg(textList[i - 3]);
-						combo->addItem(text);
+						text = QString("%1:%2").arg(i - (MAX_MAGIC + 3) + 1).arg(textList.value(i - 3));
 					}
 
-					qint64 index = static_cast<qint64>(combo->count()) - 1;
-					combo->setItemData(index, text, Qt::ToolTipRole);
+					combo->setItemText(i, text);
+					combo->setItemData(i, text, Qt::ToolTipRole);
 					++n;
 				}
-
-				qint64 textListSize = textList.size();
-				for (qint64 i = size - 3; i < textListSize; ++i)
-				{
-					if (notBattle)
-						continue;
-
-					combo->addItem(QString("%1:%2").arg(i - size + 4).arg(textList[i]));
-					++n;
-				}
-
 
 				Injector& injector = Injector::getInstance(currentIndex);
-				if (!injector.server.isNull() && injector.server->getOnlineFlag() && combo == ui.comboBox_magicheal_normal)
+				if (!injector.worker.isNull() && injector.worker->getOnlineFlag() && combo == ui.comboBox_magicheal_normal)
 				{
-
-					QHash<qint64, ITEM> items = injector.server->getItems();
-					for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+					QStringList list;
+					QHash<long long, ITEM> items = injector.worker->getItems();
+					for (long long i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 					{
 						ITEM item = items.value(i);
-						QString text = QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(item.name);
-						combo->addItem(text);
-						qint64 index = combo->count() - 1;
-						combo->setItemData(index, text, Qt::ToolTipRole);
+						if (!list.contains(item.name))
+							list.append(item.name);
 					}
-
 				}
 
 				combo->setCurrentIndex(nOriginalIndex);
@@ -1451,12 +1530,12 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 		appendMagicText(ui.comboBox_normalaction_char_action);
 		appendMagicText(ui.comboBox_crossaction_char_action);
 		appendMagicText(ui.comboBox_roundaction_char_action);
-		appendMagicText(ui.comboBox_magicheal, true);
-		appendMagicText(ui.comboBox_magicrevive, true);
-		appendMagicText(ui.comboBox_magicheal_normal, true);
+		appendMagicText(ui.comboBox_magicheal);
+		appendMagicText(ui.comboBox_magicrevive);
+		appendMagicText(ui.comboBox_magicheal_normal);
 
 		//appendProfText(ui.comboBox_skillMp);
-		appendMagicText(ui.comboBox_purgaction_char_action, true);
+		appendMagicText(ui.comboBox_purgaction_char_action);
 
 		//catch
 		appendMagicText(ui.comboBox_autocatchpet_magic);
@@ -1477,10 +1556,7 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 	}
 	case util::kComboBoxItem:
 	{
-		//appendText(ui.comboBox_itemheal, MAX_ITEM, true);
-		//appendText(ui.comboBox_itemhealmp, MAX_ITEM, true);
-		//appendText(ui.comboBox_itemheal_normal, MAX_ITEM, true);
-		//appendText(ui.comboBox_itemhealmp_normal, MAX_ITEM, true);
+
 		break;
 	}
 	}
@@ -1488,11 +1564,11 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 
 void AfkForm::updateTargetButtonText()
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, long long> valueHash = injector.getValuesHash();
 
-	auto get = [](quint64 value)->QString { return SelectTargetForm::generateShortName(value); };
+	auto get = [](unsigned long long value)->QString { return SelectTargetForm::generateShortName(value); };
 
 	ui.pushButton_roundaction_char->setText(get(valueHash.value(util::kBattleCharRoundActionTargetValue)));
 	ui.pushButton_crossaction_char->setText(get(valueHash.value(util::kBattleCharCrossActionTargetValue)));

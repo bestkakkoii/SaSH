@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //取靠近目標的最佳座標和方向
 typedef struct qdistance_s
 {
-	qint64 dir;
+	long long dir;
 	qreal distance;//for euclidean distance
 	QPoint p;
 	QPointF pf;
@@ -51,19 +51,19 @@ typedef struct mapheader_s
 
 typedef struct map_s
 {
-	qint64 floor = 0;
-	qint64 width = 0;
-	qint64 height = 0;
+	long long floor = 0;
+	long long width = 0;
+	long long height = 0;
 	QString name = "";
 	QVector<qmappoint_t> stair = {};
 	QSet<QPoint> workable = {};
 
 	QHash<QPoint, util::ObjectType> data;
-	QHash<QPoint, qint64> ground;
-	QHash<QPoint, qint64> object;
-	QHash<QPoint, qint64> flag;
+	QHash<QPoint, long long> ground;
+	QHash<QPoint, long long> object;
+	QHash<QPoint, long long> flag;
 
-	qint64 refCount = 0;
+	long long refCount = 0;
 	QElapsedTimer timer;
 }map_t;
 
@@ -104,45 +104,46 @@ static const QHash<util::ObjectType, QColor> MAP_COLOR_HASH = {
 
 class MapAnalyzer : public Indexer
 {
+	Q_DISABLE_COPY_MOVE(MapAnalyzer)
 public:
-	explicit MapAnalyzer(qint64 index);
+	explicit MapAnalyzer(long long index);
 	virtual ~MapAnalyzer();
 
 	static void loadHotData(Downloader& downloder);
 
-	bool readFromBinary(qint64  floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
+	bool readFromBinary(long long currentIndex, long long  floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
 
-	bool getMapDataByFloor(qint64  floor, map_t* map);
+	bool getMapDataByFloor(long long  floor, map_t* map);
 
-	bool calcNewRoute(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
+	bool calcNewRoute(long long currentIndex, CAStar& astar, long long floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
 
-	inline void clear() { maps_.clear(); pixMap_.clear(); }
+	void clear() const;
 
-	inline void clear(qint64 floor) { maps_.remove(floor); pixMap_.remove(floor); }
+	void clear(long long floor) const;
 
-	bool saveAsBinary(map_t map, const QString& fileName);
+	Q_REQUIRED_RESULT QPixmap getPixmapByIndex(long long index) const;
 
-	inline Q_REQUIRED_RESULT QPixmap getPixmapByIndex(qint64 index) const { return pixMap_.value(index); }
+	bool saveAsBinary(long long currentIndex, map_t map, const QString& fileName);
 
-	qint64  calcBestFollowPointByDstPoint(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
+	long long calcBestFollowPointByDstPoint(long long currentIndex, CAStar& astar, long long floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, long long npcdir);
 
-	bool isPassable(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst);
+	bool isPassable(long long currentIndex, CAStar& astar, long long floor, const QPoint& src, const QPoint& dst);
 
-	QString getGround(qint64 floor, const QString& name, const QPoint& src);
+	QString getGround(long long currentIndex, long long floor, const QString& name, const QPoint& src);
 
-	Q_REQUIRED_RESULT QString getCurrentPreHandleMapPath(qint64 floor) const;
+	Q_REQUIRED_RESULT QString getCurrentPreHandleMapPath(long long currentIndex, long long floor) const;
 
 private:
-	Q_REQUIRED_RESULT QString getCurrentMapPath(qint64 floor) const;
+	Q_REQUIRED_RESULT QString getCurrentMapPath(long long floor) const;
 
 
-	void setMapDataByFloor(qint64 floor, const map_t& map);
-	void setPixmapByIndex(qint64 index, const QPixmap& pix);
+	void setMapDataByFloor(long long floor, const map_t& map);
+	void setPixmapByIndex(long long index, const QPixmap& pix);
 
-	bool loadFromBinary(qint64 floor, map_t* _map);
+	bool loadFromBinary(long long currentIndex, long long floor, map_t* _map);
 
-	Q_REQUIRED_RESULT util::ObjectType getGroundType(const uint16_t data) const;
-	Q_REQUIRED_RESULT util::ObjectType getObjectType(const uint16_t data) const;
+	Q_REQUIRED_RESULT util::ObjectType getGroundType(const unsigned short data) const;
+	Q_REQUIRED_RESULT util::ObjectType getObjectType(const unsigned short data) const;
 
 public:
 #if 0
@@ -212,8 +213,6 @@ public:
 
 private:
 	QString directory = "";
-	static util::SafeHash<qint64, QPixmap> pixMap_;
-	static util::SafeHash<qint64, map_t> maps_;
 	QMutex mutex_;
 };
 

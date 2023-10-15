@@ -61,6 +61,7 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 	{ kAutoLogOut, tr("auto logout") },//自動登出名單
 	{ kWhiteList, tr("white list") },//允許加入名單
 	{ kBlackList, tr("black list") },//自動踢除名單
+	{ kItem, tr("select item") },//道具選擇
 	};
 	setWindowTitle(title_hash.value(type_, tr("unknown type")));
 }
@@ -145,8 +146,8 @@ void SelectObjectForm::onAccept()
 	if (pRecviveList_ != nullptr)
 	{
 		pRecviveList_->clear();
-		qint64 size = ui.listWidget->count();
-		for (qint64 i = 0; i < size; ++i)
+		long long size = ui.listWidget->count();
+		for (long long i = 0; i < size; ++i)
 		{
 			pRecviveList_->append(ui.listWidget->item(i)->text());
 		}

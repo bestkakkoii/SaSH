@@ -23,11 +23,11 @@ public:
 			}
 		)");
 
-		qint64 rowCount = this->rowCount();
-		qint64 columnCount = this->columnCount();
-		for (qint64 row = 0; row < rowCount; ++row)
+		long long rowCount = this->rowCount();
+		long long columnCount = this->columnCount();
+		for (long long row = 0; row < rowCount; ++row)
 		{
-			for (qint64 column = 0; column < columnCount; ++column)
+			for (long long column = 0; column < columnCount; ++column)
 			{
 				QTableWidgetItem* item = q_check_ptr(new QTableWidgetItem(""));
 				if (item == nullptr)
@@ -62,7 +62,7 @@ public:
 
 	virtual ~TableWidget() = default;
 
-	void setItemForeground(qint64 row, qint64 column, const QColor& color)
+	void setItemForeground(long long row, long long column, const QColor& color)
 	{
 		QTableWidgetItem* item = QTableWidget::item(row, column);
 		if (item == nullptr)
@@ -71,12 +71,12 @@ public:
 		item->setForeground(color);
 	}
 
-	void setText(qint64 row, qint64 column, const QString& text, const QString& toolTip = "", QVariant data = QVariant())
+	void setText(long long row, long long column, const QString& text, const QString& toolTip = "", QVariant data = QVariant())
 	{
-		qint64 max = QTableWidget::rowCount();
+		long long max = QTableWidget::rowCount();
 		if (row >= max)
 		{
-			for (qint64 i = max; i <= row; ++i)
+			for (long long i = max; i <= row; ++i)
 				QTableWidget::insertRow(i);
 		}
 
@@ -108,7 +108,7 @@ public:
 		}
 	}
 
-	void setHorizontalHeaderText(qint64 col, const QString& text)
+	void setHorizontalHeaderText(long long col, const QString& text)
 	{
 		QTableWidgetItem* item = QTableWidget::horizontalHeaderItem(col);
 		if (item == nullptr)
@@ -128,7 +128,7 @@ public:
 	}
 
 private:
-	void setItem(qint64 row, qint64 column, QTableWidgetItem* item)
+	void setItem(long long row, long long column, QTableWidgetItem* item)
 	{
 		if (item == nullptr)
 			return;

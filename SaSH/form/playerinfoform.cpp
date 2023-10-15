@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-CharInfoForm::CharInfoForm(qint64 index, QWidget* parent)
+CharInfoForm::CharInfoForm(long long index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 	, abilityForm_(index, nullptr)
@@ -44,20 +44,20 @@ CharInfoForm::CharInfoForm(qint64 index, QWidget* parent)
 	connect(ui.tableWidget->horizontalHeader(), &QHeaderView::sectionClicked, this, &CharInfoForm::onHeaderClicked);
 
 	Injector& injector = Injector::getInstance(index);
-	if (!injector.server.isNull())
+	if (!injector.worker.isNull())
 	{
-		QHash<qint64, QVariant> playerInfoColContents = injector.server->playerInfoColContents.toHash();
+		QHash<long long, QVariant> playerInfoColContents = injector.worker->playerInfoColContents.toHash();
 		for (auto it = playerInfoColContents.begin(); it != playerInfoColContents.end(); ++it)
 		{
 			onUpdateCharInfoColContents(it.key(), it.value());
 		}
 
-		qint64 stone = injector.server->getPC().gold;
+		long long stone = injector.worker->getPC().gold;
 		onUpdateCharInfoStone(stone);
 
-		for (qint64 i = 0; i < MAX_PET; ++i)
+		for (long long i = 0; i < MAX_PET; ++i)
 		{
-			PET pet = injector.server->getPet(i);
+			PET pet = injector.worker->getPet(i);
 			onUpdateCharInfoPetState(i, pet.state);
 		}
 	}
@@ -81,14 +81,14 @@ void CharInfoForm::onResetControlTextLanguage()
 		tr("atk") + "/" + tr("def") + "/" + tr("agi"), tr("growth"), tr("power"),
 	};
 
-	qint64 size = equipVHeaderList.size();
-	for (qint64 row = 0; row < size; ++row)
+	long long size = equipVHeaderList.size();
+	for (long long row = 0; row < size; ++row)
 	{
 		ui.tableWidget->setText(row, 0, equipVHeaderList.value(row));
 	}
 }
 
-void CharInfoForm::onUpdateCharInfoColContents(qint64 col, const QVariant& data)
+void CharInfoForm::onUpdateCharInfoColContents(long long col, const QVariant& data)
 {
 	// 檢查是否為 QVariantList
 	if (data.type() != QVariant::List)
@@ -100,15 +100,15 @@ void CharInfoForm::onUpdateCharInfoColContents(qint64 col, const QVariant& data)
 	QVariantList list = data.toList();
 
 	// 取得 QVariantList 的大小
-	const qint64 size = list.size();
+	const long long size = list.size();
 
 	// 獲取當前表格的總行數
-	const qint64 rowCount = ui.tableWidget->rowCount();
+	const long long rowCount = ui.tableWidget->rowCount();
 	if (col < 0 || col >= rowCount)
 		return;
 
 	// 開始填入內容
-	for (qint64 row = 0; row < rowCount; ++row)
+	for (long long row = 0; row < rowCount; ++row)
 	{
 		// 設置內容
 		if (row >= size)
@@ -125,14 +125,14 @@ void CharInfoForm::onUpdateCharInfoColContents(qint64 col, const QVariant& data)
 }
 
 
-void CharInfoForm::onUpdateCharInfoStone(qint64 stone)
+void CharInfoForm::onUpdateCharInfoStone(long long stone)
 {
 	ui.label->setText(tr("stone:%1").arg(stone));
 }
 
-void CharInfoForm::onUpdateCharInfoPetState(qint64 petIndex, qint64 state)
+void CharInfoForm::onUpdateCharInfoPetState(long long petIndex, long long state)
 {
-	qint64 col = petIndex + 1;
+	long long col = petIndex + 1;
 	if (col < 0 || col >= ui.tableWidget->columnCount())
 		return;
 
@@ -151,60 +151,60 @@ void CharInfoForm::onUpdateCharInfoPetState(qint64 petIndex, qint64 state)
 	ui.tableWidget->setHorizontalHeaderText(col + 1, petName);
 }
 
-void CharInfoForm::onHeaderClicked(qint64 logicalIndex)
+void CharInfoForm::onHeaderClicked(long long logicalIndex)
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	switch (logicalIndex)
 	{
 	case 1:
 	{
 		QPoint mousePos = QCursor::pos();
-		qint64 x = static_cast<qint64>(mousePos.x()) - 10;
-		qint64 y = static_cast<qint64>(mousePos.y()) + 50;
+		long long x = static_cast<long long>(mousePos.x()) - 10;
+		long long y = static_cast<long long>(mousePos.y()) + 50;
 		abilityForm_.move(x, y);
 		abilityForm_.show();
 		break;
 	}
 	default:
 	{
-		qint64 petIndex = logicalIndex - 2;
+		long long petIndex = logicalIndex - 2;
 		if (petIndex < 0 || petIndex >= MAX_PET)
 			break;
 		Injector& injector = Injector::getInstance(currentIndex);
-		if (injector.server.isNull())
+		if (injector.worker.isNull())
 			break;
 
-		PET pet = injector.server->getPet(petIndex);
+		PET pet = injector.worker->getPet(petIndex);
 		switch (pet.state)
 		{
 		case PetState::kRest:
 		{
 
-			injector.server->setPetState(petIndex, PetState::kStandby);
+			injector.worker->setPetState(petIndex, PetState::kStandby);
 			break;
 		}
 		case PetState::kStandby:
 		{
-			injector.server->setPetState(petIndex, PetState::kBattle);
+			injector.worker->setPetState(petIndex, PetState::kBattle);
 			break;
 		}
 		case PetState::kBattle:
 		{
-			injector.server->setPetState(petIndex, PetState::kMail);
+			injector.worker->setPetState(petIndex, PetState::kMail);
 			break;
 		}
 		case PetState::kMail:
 		{
 
-			if (injector.server->getPet(petIndex).loyal == 100)
-				injector.server->setPetState(petIndex, PetState::kRide);
+			if (injector.worker->getPet(petIndex).loyal == 100)
+				injector.worker->setPetState(petIndex, PetState::kRide);
 			else
-				injector.server->setPetState(petIndex, PetState::kRest);
+				injector.worker->setPetState(petIndex, PetState::kRest);
 			break;
 		}
 		case PetState::kRide:
 		{
-			injector.server->setPetState(petIndex, PetState::kRest);
+			injector.worker->setPetState(petIndex, PetState::kRest);
 			break;
 		}
 		}

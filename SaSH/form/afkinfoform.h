@@ -26,7 +26,7 @@ class AfkInfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit AfkInfoForm(qint64 index, QWidget* parent);
+	explicit AfkInfoForm(long long index, QWidget* parent);
 
 	virtual ~AfkInfoForm();
 
@@ -40,12 +40,12 @@ protected:
 private slots:
 	void onResetControlTextLanguage();
 
-	void onUpdateAfkInfoTable(qint64 row, const QString& text);
+	void onUpdateAfkInfoTable(long long row, const QString& text);
 
 	void onButtonClicked();
 
 private:
-	void updateTableText(qint64 row, qint64 col, const QString& text);
+	void updateTableText(long long row, long long col, const QString& text);
 
 private:
 	Ui::AfkInfoFormClass ui;

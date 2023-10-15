@@ -58,7 +58,7 @@ public:
 	}
 
 public slots:
-	void onProgressReset(qint64 value)
+	void onProgressReset(long long value)
 	{
 		reset();
 		setMaximum(100);
@@ -107,16 +107,16 @@ private:
 
 signals:
 	void labelTextChanged(const QString& text);
-	void progressReset(qint64 value);
+	void progressReset(long long value);
 
 private slots:
-	void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+	void onDownloadProgress(long long bytesReceived, long long bytesTotal);
 	void onDownloadFinished();
 	void onErrorOccurred(QNetworkReply::NetworkError code);
 	void onCanceled();
 
 private:
-	const qint64 pid_ = _getpid();
+	const long long pid_ = _getpid();
 	const QString szCurrentDirectory_;
 	const QString szCurrentDotExe_;
 	const QString szCurrentDotExeAsDotTmp_;

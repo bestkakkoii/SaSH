@@ -20,7 +20,7 @@
    <string>AfkForm</string>
   </property>
   <property name="styleSheet">
-   <string notr="true"/>
+   <string notr="true">background-color: #F1F1F1;</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">
@@ -40,6 +40,12 @@
    </property>
    <item row="0" column="0">
     <widget class="QTabWidget" name="tabWidget">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="currentIndex">
       <number>0</number>
      </property>
@@ -681,6 +687,12 @@
             </item>
             <item>
              <widget class="QSpinBox" name="spinBox_rounddelay">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -786,6 +798,12 @@
             </item>
             <item>
              <widget class="QSpinBox" name="spinBox_resend_delay">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -938,7 +956,30 @@
              </widget>
             </item>
             <item>
+             <widget class="QLineEdit" name="lineEdit_magicheal_normal">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="PushButton" name="pushButton_magicheal_normal_select">
+              <property name="text">
+               <string>select</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="ComboBox" name="comboBox_magicheal_normal">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -1168,21 +1209,12 @@
              </widget>
             </item>
             <item>
-             <widget class="ComboBox" name="comboBox_itemheal_normal">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="editable">
-               <bool>true</bool>
+             <widget class="QLineEdit" name="lineEdit_itemheal_normal"/>
+            </item>
+            <item>
+             <widget class="PushButton" name="pushButton_itemheal_normal_select">
+              <property name="text">
+               <string>select</string>
               </property>
              </widget>
             </item>
@@ -1444,21 +1476,12 @@
              </widget>
             </item>
             <item>
-             <widget class="ComboBox" name="comboBox_itemhealmp_normal">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="editable">
-               <bool>true</bool>
+             <widget class="QLineEdit" name="lineEdit_itemhealmp_normal"/>
+            </item>
+            <item>
+             <widget class="PushButton" name="pushButton_itemhealmp_normal_select">
+              <property name="text">
+               <string>select</string>
               </property>
              </widget>
             </item>
@@ -1564,6 +1587,12 @@
             </item>
             <item>
              <widget class="ComboBox" name="comboBox_magicheal">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -1809,21 +1838,12 @@
              </widget>
             </item>
             <item>
-             <widget class="ComboBox" name="comboBox_itemheal">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="editable">
-               <bool>true</bool>
+             <widget class="QLineEdit" name="lineEdit_itemheal"/>
+            </item>
+            <item>
+             <widget class="PushButton" name="pushButton_itemheal_select">
+              <property name="text">
+               <string>select</string>
               </property>
              </widget>
             </item>
@@ -2077,21 +2097,12 @@
              </widget>
             </item>
             <item>
-             <widget class="ComboBox" name="comboBox_itemhealmp">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="editable">
-               <bool>true</bool>
+             <widget class="QLineEdit" name="lineEdit_itemhealmp"/>
+            </item>
+            <item>
+             <widget class="PushButton" name="pushButton_itemhealmp_select">
+              <property name="text">
+               <string>select</string>
               </property>
              </widget>
             </item>
@@ -2225,6 +2236,12 @@
             </item>
             <item>
              <widget class="ComboBox" name="comboBox_magicrevive">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -2282,21 +2299,25 @@
              </widget>
             </item>
             <item>
-             <widget class="ComboBox" name="comboBox_itemrevive">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>20</height>
-               </size>
+             <widget class="QLineEdit" name="lineEdit_itemrevive">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
               </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>20</height>
-               </size>
+             </widget>
+            </item>
+            <item>
+             <widget class="PushButton" name="pushButton_itemrevive_select">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
               </property>
-              <property name="editable">
-               <bool>true</bool>
+              <property name="text">
+               <string>select</string>
               </property>
              </widget>
             </item>
@@ -2344,6 +2365,12 @@
             </item>
             <item>
              <widget class="ComboBox" name="comboBox_healaction_pet_action">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -2590,6 +2617,12 @@
             </item>
             <item>
              <widget class="ComboBox" name="comboBox_purgaction_pet_action">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -2648,6 +2681,12 @@
             </item>
             <item>
              <widget class="ComboBox" name="comboBox_purgaction_char_action">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -2805,6 +2844,12 @@
               <property name="enabled">
                <bool>true</bool>
               </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimum">
                <number>1</number>
               </property>
@@ -2834,6 +2879,12 @@
              <widget class="QSpinBox" name="spinBox_autocatchpet_hp">
               <property name="enabled">
                <bool>true</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
               </property>
               <property name="minimum">
                <number>1</number>
@@ -2924,18 +2975,12 @@
              </widget>
             </item>
             <item>
-             <widget class="ComboBox" name="comboBox_autocatchpet_item">
-              <property name="enabled">
-               <bool>true</bool>
-              </property>
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="editable">
-               <bool>true</bool>
+             <widget class="QLineEdit" name="lineEdit_autocatchpet_item"/>
+            </item>
+            <item>
+             <widget class="PushButton" name="pushButton_autocatchpet_item_select">
+              <property name="text">
+               <string>select</string>
               </property>
              </widget>
             </item>

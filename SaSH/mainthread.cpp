@@ -25,7 +25,182 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "map/mapanalyzer.h"
 #include "update/downloader.h"
 
-bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* parent)
+QSharedMemory g_sharedMemory;
+
+UniqueIdManager::~UniqueIdManager()
+{
+	if (g_sharedMemory.isAttached())
+		g_sharedMemory.detach();
+	qDebug() << "~UniqueIdManager()";
+}
+
+long long UniqueIdManager::allocateUniqueId(long long id)
+{
+	if (id < 0 || id >= SASH_MAX_THREAD)
+		id = -1;
+
+	QSystemSemaphore semaphore("UniqueIdManagerSystemSemaphore", 1, QSystemSemaphore::Open);
+	semaphore.acquire();
+
+	long long allocatedId = -1;
+
+	// 嘗試連接到共享內存，如果不存在則創建
+	if (g_sharedMemory.key().isEmpty())
+	{
+		g_sharedMemory.setKey("UniqueIdManagerSharedMemory");
+		if (!g_sharedMemory.isAttached() && !g_sharedMemory.attach())
+		{
+			qDebug() << "sharedMemory not exist, create new one now.";
+			g_sharedMemory.create(SASH_MAX_SHARED_MEM);
+			reset();
+		}
+	}
+
+	QSet<long long> allocatedIds;
+
+	do
+	{
+		bool bret = readSharedMemory(&allocatedIds);
+		if (!bret)
+			id = -1;
+
+		if (id >= 0 && id < SASH_MAX_THREAD)
+		{
+			// 分配指定的ID
+			if (!allocatedIds.contains(id))
+			{
+				allocatedIds.insert(id);
+				updateSharedMemory(allocatedIds);
+				allocatedId = id;
+				break;
+			}
+		}
+
+		// 分配唯一的ID
+		for (long long i = 0; i < SASH_MAX_THREAD; ++i)
+		{
+			if (!allocatedIds.contains(i))
+			{
+				allocatedIds.insert(i);
+				updateSharedMemory(allocatedIds);
+				allocatedId = i;
+				break;
+			}
+		}
+	} while (false);
+
+	semaphore.release();
+	return  allocatedId;
+}
+
+void UniqueIdManager::clear()
+{
+	memset(g_sharedMemory.data(), 0, g_sharedMemory.size());
+}
+
+void UniqueIdManager::write(const char* from)
+{
+	clear();
+	_snprintf_s(reinterpret_cast<char*>(g_sharedMemory.data()), g_sharedMemory.size(), _TRUNCATE, "%s", from);
+}
+
+bool UniqueIdManager::readSharedMemory(QSet<long long>* pAllocatedIds)
+{
+	do
+	{
+		if (!g_sharedMemory.lock())
+		{
+			qDebug() << "g_sharedMemory.lock() == false";
+			break;
+		}
+
+		qDebug() << "g_sharedMemory.size():" << g_sharedMemory.size();
+
+		QByteArray data = QByteArray::fromRawData(static_cast<const char*>(g_sharedMemory.constData()), g_sharedMemory.size());
+		g_sharedMemory.unlock();
+
+		if (data.isEmpty())
+		{
+			qDebug() << "data.isEmpty() == true";
+			break;
+		}
+		else if (data.front() == '\0')
+		{
+			qDebug() << "data.front() == '\\0'";
+			break;
+		}
+
+		long long indexEof = data.indexOf('\0');
+		if (indexEof != -1)
+		{
+			data = data.left(indexEof);
+		}
+
+		qDebug() << data;
+
+		QJsonParseError error;
+		QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+		if (error.error != QJsonParseError::NoError)
+		{
+			qDebug() << "QJsonParseError:" << error.errorString();
+			break;
+		}
+
+		if (!doc.isObject())
+		{
+			qDebug() << "doc.isObject() == false";
+			break;
+		}
+
+		QJsonObject obj = doc.object();
+		QJsonValue value = obj[jsonKey_];
+		if (!value.isArray())
+		{
+			qDebug() << "!value.isArray()";
+			break;
+		}
+
+		QJsonArray idArray = value.toArray();
+		for (const QJsonValue& idValue : idArray)
+		{
+			pAllocatedIds->insert(idValue.toInt());
+		}
+
+		return true;
+	} while (false);
+
+	return false;
+}
+
+void UniqueIdManager::updateSharedMemory(const QSet<long long>& allocatedIds)
+{
+	// 將分配的ID保存為JSON字符串，並寫入共享內存
+	QJsonObject obj;
+	QJsonArray idArray;
+	for (long long id : allocatedIds)
+	{
+		idArray.append(static_cast<int>(id));
+	}
+
+	obj[jsonKey_] = idArray;
+
+	QJsonDocument doc(obj);
+
+	// 將 JSON 文檔轉換為 UTF-8 編碼的 QByteArray
+	QByteArray data = doc.toJson(QJsonDocument::Compact);
+	QString str = QString::fromUtf8(data).simplified();
+	data = str.toUtf8();
+	data.replace(" ", "");
+
+	if (g_sharedMemory.lock())
+	{
+		const char* from = data.constData();
+		write(from);
+		g_sharedMemory.unlock();
+	}
+}
+
+bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* parent)
 {
 	QMutexLocker locker(&mutex_);
 	if (threads_.contains(index))
@@ -63,7 +238,7 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 				if (nullptr == thread_)
 					return;
 
-				qint64 index = object->getIndex();
+				long long index = object->getIndex();
 				threads_.remove(index);
 				objects_.remove(index);
 
@@ -87,7 +262,7 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 	return false;
 }
 
-void ThreadManager::close(qint64 index)
+void ThreadManager::close(long long index)
 {
 	QMutexLocker locker(&mutex_);
 	if (threads_.contains(index) && objects_.contains(index))
@@ -105,7 +280,7 @@ void ThreadManager::close(qint64 index)
 	}
 }
 
-MainObject::MainObject(qint64 index, QObject* parent)
+MainObject::MainObject(long long index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
 
@@ -129,11 +304,8 @@ void MainObject::run()
 	do
 	{
 		//檢查服務端是否實例化
-		if (injector.server.isNull())
-			break;
-
 		//檢查服務端是否正在運行並且正在監聽
-		if (!injector.server->isListening())
+		if (!injector.server.isListening())
 			break;
 
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpening);
@@ -151,7 +323,7 @@ void MainObject::run()
 		if (createResult == Injector::CreateAboveWindow8Success)
 		{
 			//注入dll 並通知客戶端要連入的port
-			if (!injector.injectLibrary(process_info, injector.server->getPort(), &remove_thread_reason)
+			if (!injector.injectLibrary(process_info, injector.server.serverPort(), &remove_thread_reason)
 				|| (remove_thread_reason != util::REASON_NO_ERROR))
 			{
 				qDebug() << "injectLibrary failed. reason:" << remove_thread_reason;
@@ -162,12 +334,19 @@ void MainObject::run()
 		//等待客戶端連入
 		for (;;)
 		{
-			if (injector.server->hasClientExist())
+			//檢查TCP是否握手成功
+			if (injector.IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire))
 				break;
 
 			if (isInterruptionRequested())
 			{
 				remove_thread_reason = util::REASON_REQUEST_STOP;
+				break;
+			}
+
+			if (!injector.isWindowAlive())
+			{
+				remove_thread_reason = util::REASON_TARGET_WINDOW_DISAPPEAR;
 				break;
 			}
 
@@ -178,6 +357,9 @@ void MainObject::run()
 			}
 			QThread::msleep(100);
 		}
+
+		if (remove_thread_reason != util::REASON_NO_ERROR)
+			break;
 
 		//進入主循環
 		mainProc();
@@ -292,13 +474,8 @@ void MainObject::mainProc()
 			break;
 		}
 
-		//檢查TCP是否握手成功
-		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire))
-		{
-			QThread::msleep(100);
-			nodelay = true;
+		if (injector.worker.isNull())
 			continue;
-		}
 
 		//自動釋放記憶體
 		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(5ll * 60ll * 1000ll))
@@ -312,16 +489,16 @@ void MainObject::mainProc()
 		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeSelfMemTimer.hasExpired(60ll * 60ll * 1000ll))
 		{
 			freeSelfMemTimer.restart();
-			injector.server->mapAnalyzer.clear();
+			injector.worker->mapAnalyzer.clear();
 		}
 		else
 			freeSelfMemTimer.restart();
 
 		//有些數據需要和客戶端內存同步
-		injector.server->updateDatasFromMemory();
+		injector.worker->updateDatasFromMemory();
 
 		//其他所有功能
-		qint64 status = checkAndRunFunctions();
+		long long status = checkAndRunFunctions();
 
 		//這裡是預留的暫時沒作用
 		if (status == 1)//非登入狀態
@@ -350,27 +527,27 @@ void MainObject::mainProc()
 void MainObject::inGameInitialize()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
 	//等待完全進入登入後的遊戲畫面
-	for (qint64 i = 0; i < 10; ++i)
+	for (long long i = 0; i < 10; ++i)
 	{
 		if (isInterruptionRequested())
 			return;
 
-		if (injector.server.isNull())
+		if (injector.worker.isNull())
 			return;
 
-		if (injector.server->checkWG(9, 3))
+		if (injector.worker->checkWG(9, 3))
 			break;
 
 		QThread::msleep(1000);
 	}
 
-	if (!injector.server->getBattleFlag())
+	if (!injector.worker->getBattleFlag())
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
 
 	QDateTime current = QDateTime::currentDateTime();
@@ -391,20 +568,20 @@ void MainObject::inGameInitialize()
 		.arg(SASH_VERSION_MAJOR) \
 		.arg(SASH_VERSION_MINOR) \
 		.arg(newestVerStr);
-	injector.server->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
-	injector.server->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
-	injector.server->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
+	injector.worker->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
+	injector.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
+	injector.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
 }
 
-qint64 MainObject::checkAndRunFunctions()
+long long MainObject::checkAndRunFunctions()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return 0;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
-	qint64 status = injector.server->getUnloginStatus();
+	long long status = injector.worker->getUnloginStatus();
 
 	if (status == util::kStatusDisappear)
 	{
@@ -414,12 +591,13 @@ qint64 MainObject::checkAndRunFunctions()
 	{
 		//檢查UI的設定是否有變化
 		checkControl();
+		injector.worker->setWindowTitle(injector.getStringHash(util::kTitleFormatString));
 
 		switch (status)
 		{
 		default:
 		{
-			if (injector.server->getOnlineFlag())
+			if (injector.worker->getOnlineFlag())
 				break;
 
 			Q_FALLTHROUGH();
@@ -438,20 +616,20 @@ qint64 MainObject::checkAndRunFunctions()
 			{
 				login_run_once_flag_ = true;
 
-				injector.server->clear();
+				injector.worker->clear();
 				injector.chatLogModel.clear();
 			}
 
-			injector.server->loginTimer.restart();
+			injector.worker->loginTimer.restart();
 			//自動登入 或 斷線重連
-			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.server->IS_DISCONNECTED.load(std::memory_order_acquire))
-				injector.server->login(status);
+			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.worker->IS_DISCONNECTED.load(std::memory_order_acquire))
+				injector.worker->login(status);
 			return 1;
 		}
 		case util::kStatusDisconnect:
 		{
 			if (injector.getEnableHash(util::kAutoReconnectEnable))
-				injector.server->login(status);
+				injector.worker->login(status);
 			return 1;
 		}
 		}
@@ -471,7 +649,7 @@ qint64 MainObject::checkAndRunFunctions()
 			isFirstLogin_ = false;
 	}
 
-	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.server->loginTimer.elapsed(), true));
+	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.worker->loginTimer.elapsed(), true));
 
 	updateAfkInfos();
 
@@ -497,7 +675,7 @@ qint64 MainObject::checkAndRunFunctions()
 	checkRecordableNpcInfo();
 
 	//平時
-	if (!injector.server->getBattleFlag())
+	if (!injector.worker->getBattleFlag())
 	{
 		//每次進入平時只會執行一次
 		if (!battle_run_once_flag_)
@@ -545,21 +723,21 @@ void MainObject::updateAfkInfos()
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	qint64 duration = injector.server->loginTimer.elapsed();
+	long long duration = injector.worker->loginTimer.elapsed();
 	signalDispatcher.updateAfkInfoTable(0, util::formatMilliseconds(duration));
 
-	util::AfkRecorder recorder = injector.server->recorder[0];
+	util::AfkRecorder recorder = injector.worker->recorder[0];
 
-	qint64 avgLevelPerHour = 0;
+	long long avgLevelPerHour = 0;
 	if (duration > 0 && recorder.leveldifference > 0)
 		avgLevelPerHour = recorder.leveldifference * 3600000.0 / duration;
 	signalDispatcher.updateAfkInfoTable(2, QString(tr("%1→%2 (avg level: %3)"))
 		.arg(recorder.levelrecord).arg(recorder.levelrecord + recorder.leveldifference).arg(avgLevelPerHour));
 
-	qint64 avgExpPerHour = 0;
+	long long avgExpPerHour = 0;
 	if (duration > 0 && recorder.expdifference > 0)
 		avgExpPerHour = recorder.expdifference * 3600000.0 / duration;
 
@@ -568,16 +746,16 @@ void MainObject::updateAfkInfos()
 	signalDispatcher.updateAfkInfoTable(4, util::toQString(recorder.deadthcount));
 
 
-	qint64 avgGoldPerHour = 0;
+	long long avgGoldPerHour = 0;
 	if (duration > 0 && recorder.goldearn > 0)
 		avgGoldPerHour = recorder.goldearn * 3600000.0 / duration;
 	signalDispatcher.updateAfkInfoTable(5, tr("%1 (avg gold: %2)").arg(recorder.goldearn).arg(avgGoldPerHour));
 
-	constexpr qint64 n = 7;
-	qint64 j = 0;
-	for (qint64 i = 0; i < MAX_PET; ++i)
+	constexpr long long n = 7;
+	long long j = 0;
+	for (long long i = 0; i < MAX_PET; ++i)
 	{
-		recorder = injector.server->recorder[i + 1];
+		recorder = injector.worker->recorder[i + 1];
 
 		avgExpPerHour = 0;
 		if (duration > 0 && recorder.leveldifference > 0)
@@ -613,16 +791,16 @@ void MainObject::battleTimeThread()
 		if (battleTime_future_cancel_flag_.load(std::memory_order_acquire))
 			break;
 
-		if (injector.server.isNull())
+		if (injector.worker.isNull())
 			break;
 
-		if (!injector.server->getOnlineFlag())
+		if (!injector.worker->getOnlineFlag())
 			break;
 
-		if (!injector.server->getBattleFlag())
+		if (!injector.worker->getBattleFlag())
 			break;
 
-		injector.server->updateBattleTimeInfo();
+		injector.worker->updateBattleTimeInfo();
 		QThread::msleep(50);
 	}
 	battleTime_future_cancel_flag_.store(false, std::memory_order_release);
@@ -632,28 +810,29 @@ void MainObject::battleTimeThread()
 void MainObject::setUserDatas()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
 	QStringList itemNames;
-	qint64 index = 0;
+	long long index = 0;
 
-	QHash<qint64, ITEM> items = injector.server->getItems();
-	for (qint64 index = CHAR_EQUIPPLACENUM; index < MAX_ITEM; ++index)
+	QHash<long long, ITEM> items = injector.worker->getItems();
+	for (long long index = CHAR_EQUIPPLACENUM; index < MAX_ITEM; ++index)
 	{
 		if (items.value(index).name.isEmpty() || !items.value(index).valid)
 			continue;
 
-		itemNames.append(items.value(index).name);
+		if (!itemNames.contains(items.value(index).name))
+			itemNames.append(items.value(index).name);
 	}
 
 	injector.setUserData(util::kUserItemNames, itemNames);
 
 	QStringList petNames;
 
-	for (qint64 i = 0; i < MAX_PET; ++i)
+	for (long long i = 0; i < MAX_PET; ++i)
 	{
-		PET pet = injector.server->getPet(i);
+		PET pet = injector.worker->getPet(i);
 		if (pet.name.isEmpty() || !pet.valid)
 			continue;
 
@@ -661,7 +840,7 @@ void MainObject::setUserDatas()
 	}
 	injector.setUserData(util::kUserPetNames, petNames);
 
-	injector.setUserData(util::kUserEnemyNames, injector.server->enemyNameListCache.get());
+	injector.setUserData(util::kUserEnemyNames, injector.worker->enemyNameListCache.get());
 
 }
 
@@ -669,10 +848,10 @@ void MainObject::setUserDatas()
 void MainObject::checkControl()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	qint64 value = 0;
+	long long value = 0;
 
 	//隱藏人物按下，異步隱藏
 	bool bChecked = injector.getEnableHash(util::kHideCharacterEnable);
@@ -682,31 +861,31 @@ void MainObject::checkControl()
 		injector.postMessage(kEnableCharShow, !bChecked, NULL);
 	}
 
-	if (!injector.server->getOnlineFlag())
+	if (!injector.worker->getOnlineFlag())
 		return;
 
 	//登出按下，異步登出
 	if (injector.getEnableHash(util::kLogOutEnable))
 	{
 		injector.setEnableHash(util::kLogOutEnable, false);
-		if (!injector.server.isNull())
-			injector.server->logOut();
+		if (!injector.worker.isNull())
+			injector.worker->logOut();
 	}
 
 	//回點按下，異步回點
 	if (injector.getEnableHash(util::kLogBackEnable))
 	{
 		injector.setEnableHash(util::kLogBackEnable, false);
-		if (!injector.server.isNull())
-			injector.server->logBack();
+		if (!injector.worker.isNull())
+			injector.worker->logBack();
 	}
 
 	//EO按下，異步發送EO
 	if (injector.getEnableHash(util::kEchoEnable))
 	{
 		injector.setEnableHash(util::kEchoEnable, false);
-		if (!injector.server.isNull())
-			injector.server->EO();
+		if (!injector.worker.isNull())
+			injector.worker->EO();
 	}
 
 	//////////////////////////////
@@ -774,7 +953,7 @@ void MainObject::checkControl()
 	}
 
 	//快速戰鬥，異步阻止戰鬥封包
-	qint64 W = injector.server->getWorldStatus();
+	long long W = injector.worker->getWorldStatus();
 	if (bCheckedFastBattle && W == 9) //如果有開啟快速戰鬥，且畫面不在戰鬥中
 	{
 		injector.postMessage(kSetBlockPacket, true, NULL);
@@ -802,7 +981,7 @@ void MainObject::checkControl()
 		injector.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
 	}
 
-	if (injector.server->loginTimer.elapsed() < 10000)
+	if (injector.worker->loginTimer.elapsed() < 10000)
 		return;
 
 	//異步關閉聲音
@@ -818,12 +997,12 @@ void MainObject::checkControl()
 void MainObject::checkEtcFlag()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	qint64 flg = injector.server->getPC().etcFlag;
+	long long flg = injector.worker->getPC().etcFlag;
 	bool hasChange = false;
-	auto toBool = [flg](qint64 f)->bool
+	auto toBool = [flg](long long f)->bool
 		{
 			return ((flg & f) != 0);
 		};
@@ -917,14 +1096,14 @@ void MainObject::checkEtcFlag()
 	}
 
 	if (hasChange)
-		injector.server->setSwitcher(flg);
+		injector.worker->setSwitcher(flg);
 }
 
 //自動疊加
 void MainObject::checkAutoSortItem()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
 	if (injector.getEnableHash(util::kAutoStackEnable))
@@ -936,8 +1115,8 @@ void MainObject::checkAutoSortItem()
 
 		autosortitem_future_ = QtConcurrent::run([&injector, this]()
 			{
-				qint64	i = 0;
-				constexpr qint64 duration = 30;
+				long long	i = 0;
+				constexpr long long duration = 30;
 
 				for (;;)
 				{
@@ -946,7 +1125,7 @@ void MainObject::checkAutoSortItem()
 						if (isInterruptionRequested())
 							return;
 
-						if (injector.server.isNull())
+						if (injector.worker.isNull())
 							return;
 
 						if (autosortitem_future_cancel_flag_.load(std::memory_order_acquire))
@@ -955,7 +1134,7 @@ void MainObject::checkAutoSortItem()
 						QThread::msleep(100);
 					}
 
-					injector.server->sortItem();
+					injector.worker->sortItem();
 				}
 			});
 	}
@@ -974,7 +1153,7 @@ void MainObject::checkAutoSortItem()
 void MainObject::checkAutoWalk()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
 	if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
@@ -986,7 +1165,7 @@ void MainObject::checkAutoWalk()
 		//重置停止標誌
 		autowalk_future_cancel_flag_.store(false, std::memory_order_release);
 		//紀錄當前人物座標
-		QPoint current_pos = injector.server->getPoint();
+		QPoint current_pos = injector.worker->getPoint();
 		autowalk_future_ = QtConcurrent::run([&injector, current_pos, this]()
 			{
 				bool current_side = false;
@@ -1009,19 +1188,19 @@ void MainObject::checkAutoWalk()
 						return;
 
 					//如果人物不在線上則自動退出
-					if (!injector.server->getOnlineFlag())
+					if (!injector.worker->getOnlineFlag())
 						return;
 
 					//如果人物在戰鬥中則進入循環等待
-					if (injector.server->getBattleFlag())
+					if (injector.worker->getBattleFlag())
 					{
 						//先等一小段時間
 						QThread::msleep(100);
 
 						//如果已經退出戰鬥就等待1.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
-						if (!injector.server->getBattleFlag())
+						if (!injector.worker->getBattleFlag())
 						{
-							for (qint64 i = 0; i < 5; ++i)
+							for (long long i = 0; i < 5; ++i)
 							{
 								//如果主線程關閉則自動退出
 								if (isInterruptionRequested())
@@ -1033,21 +1212,21 @@ void MainObject::checkAutoWalk()
 							continue;
 					}
 
-					qint64 walk_speed = injector.getValueHash(util::kAutoWalkDelayValue);//走路速度
+					long long walk_speed = injector.getValueHash(util::kAutoWalkDelayValue);//走路速度
 
 					//走路遇敵
 					if (enableAutoWalk)
 					{
-						qint64 walk_len = injector.getValueHash(util::kAutoWalkDistanceValue);//走路距離
-						qint64 walk_dir = injector.getValueHash(util::kAutoWalkDirectionValue);//走路方向
+						long long walk_len = injector.getValueHash(util::kAutoWalkDistanceValue);//走路距離
+						long long walk_dir = injector.getValueHash(util::kAutoWalkDirectionValue);//走路方向
 
 						//如果direction是0，則current_pos +- x，否則 +- y 如果是2 則隨機加減
 						//一次性移動walk_len格
 
-						qint64 x = 0, y = 0;
+						long long x = 0, y = 0;
 						QString dirStr;
 						QString steps;
-						for (qint64 i = 0; i < 4; ++i)//4個字母為一組
+						for (long long i = 0; i < 4; ++i)//4個字母為一組
 						{
 							if (walk_dir == 0)
 							{
@@ -1084,8 +1263,8 @@ void MainObject::checkAutoWalk()
 								//取隨機數
 								std::random_device rd;
 								std::mt19937_64 gen(rd());
-								std::uniform_int_distribution<qint64> distributionX(current_pos.x() - walk_len, current_pos.x() + walk_len);
-								std::uniform_int_distribution<qint64> distributionY(current_pos.y() - walk_len, current_pos.y() + walk_len);
+								std::uniform_int_distribution<long long> distributionX(current_pos.x() - walk_len, current_pos.x() + walk_len);
+								std::uniform_int_distribution<long long> distributionY(current_pos.y() - walk_len, current_pos.y() + walk_len);
 								x = distributionX(gen);
 								y = distributionY(gen);
 							}
@@ -1096,19 +1275,19 @@ void MainObject::checkAutoWalk()
 							else
 								current_side = true;
 
-							for (qint64 j = 0; j < walk_len; ++j)
+							for (long long j = 0; j < walk_len; ++j)
 								steps += dirStr;
 						}
 
 						if (walk_len <= 6 && walk_dir != 2)
-							injector.server->move(current_pos, steps);
+							injector.worker->move(current_pos, steps);
 						else
-							injector.server->move(QPoint(x, y));
+							injector.worker->move(QPoint(x, y));
 						steps.clear();
 					}
 					else if (enableFastAutoWalk) //快速遇敵 (封包)
 					{
-						injector.server->move(QPoint(0, 0), "gcgc");
+						injector.worker->move(QPoint(0, 0), "gcgc");
 					}
 					QThread::msleep(walk_speed + 1);//避免太快無論如何都+15ms (太快並不會遇比較快)
 				}
@@ -1127,8 +1306,9 @@ void MainObject::checkAutoWalk()
 //自動組隊
 void MainObject::checkAutoJoin()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	long long currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
 		return;
 
 	if (injector.getEnableHash(util::kAutoJoinEnable) &&
@@ -1140,18 +1320,18 @@ void MainObject::checkAutoJoin()
 
 		autojoin_future_cancel_flag_.store(false, std::memory_order_release);
 
-		autojoin_future_ = QtConcurrent::run([this]()
+		autojoin_future_ = QtConcurrent::run([this, currentIndex]()
 			{
 				QSet<QPoint> blockList;
 				for (;;)
 				{
-					Injector& injector = Injector::getInstance(getIndex());
-					if (injector.server.isNull()) return;
-					if (!injector.server->getOnlineFlag()) return;
-					if (injector.server->getBattleFlag()) return;
-					if (injector.server->getWorldStatus() != 9 || injector.server->getGameStatus() != 3) return;
+					Injector& injector = Injector::getInstance(currentIndex);
+					if (injector.worker.isNull()) return;
+					if (!injector.worker->getOnlineFlag()) return;
+					if (injector.worker->getBattleFlag()) return;
+					if (injector.worker->getWorldStatus() != 9 || injector.worker->getGameStatus() != 3) return;
 
-					PC ch = injector.server->getPC();
+					PC ch = injector.worker->getPC();
 
 					if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
 						return;
@@ -1164,7 +1344,7 @@ void MainObject::checkAutoJoin()
 					if (leader.isEmpty())
 						return;
 
-					qint64 actionType = injector.getValueHash(util::kAutoFunTypeValue);
+					long long actionType = injector.getValueHash(util::kAutoFunTypeValue);
 					if (actionType == 0)
 					{
 						if ((ch.status & CHR_STATUS_LEADER) || (ch.status & CHR_STATUS_PARTY))
@@ -1172,27 +1352,27 @@ void MainObject::checkAutoJoin()
 							QThread::msleep(500);
 							bool ok = false;
 
-							QString name = injector.server->getParty(0).name;
+							QString name = injector.worker->getParty(0).name;
 							if (!name.isEmpty() && leader.contains(name))
 							{
 								return;
 							}
 
-							injector.server->setTeamState(false);
+							injector.worker->setTeamState(false);
 							QThread::msleep(100);
 						}
 					}
 
-					constexpr qint64 MAX_SINGLE_STEP = 3;
+					constexpr long long MAX_SINGLE_STEP = 3;
 					map_t map;
 					std::vector<QPoint> path;
 					QPoint current_point;
 					QPoint newpoint;
 					mapunit_t unit = {};
-					qint64 dir = -1;
-					qint64 floor = injector.server->getFloor();
-					qint64 len = MAX_SINGLE_STEP;
-					qint64 size = 0;
+					long long dir = -1;
+					long long floor = injector.worker->getFloor();
+					long long len = MAX_SINGLE_STEP;
+					long long size = 0;
 					CAStar astar;
 
 					for (;;)
@@ -1205,14 +1385,14 @@ void MainObject::checkAutoJoin()
 						if (autojoin_future_cancel_flag_.load(std::memory_order_acquire))
 							return;
 
-						if (injector.server.isNull())
+						if (injector.worker.isNull())
 							return;
 
 						//如果人物不在線上則自動退出
-						if (!injector.server->getOnlineFlag())
+						if (!injector.worker->getOnlineFlag())
 							return;
 
-						if (injector.server->getBattleFlag())
+						if (injector.worker->getBattleFlag())
 							return;
 
 						leader = injector.getStringHash(util::kAutoFunNameString);
@@ -1220,17 +1400,17 @@ void MainObject::checkAutoJoin()
 						if (leader.isEmpty())
 							return;
 
-						ch = injector.server->getPC();
+						ch = injector.worker->getPC();
 						if (leader == ch.name)
 							return;
 
-						if (injector.server->getWorldStatus() != 9 || injector.server->getGameStatus() != 3)
+						if (injector.worker->getWorldStatus() != 9 || injector.worker->getGameStatus() != 3)
 							return;
 
 						if (!floor)
 							return;
 
-						if (floor != injector.server->getFloor())
+						if (floor != injector.worker->getFloor())
 							return;
 
 						QString freeName = "";
@@ -1245,19 +1425,19 @@ void MainObject::checkAutoJoin()
 						}
 
 						//查找目標人物所在坐標
-						if (!injector.server->findUnit(leader, util::OBJ_HUMAN, &unit, freeName))
+						if (!injector.worker->findUnit(leader, util::OBJ_HUMAN, &unit, freeName))
 							return;
 
 						//如果和目標人物處於同一個坐標則向隨機方向移動一格
-						current_point = injector.server->getPoint();
+						current_point = injector.worker->getPoint();
 						if (current_point == unit.p)
 						{
-							injector.server->move(current_point + util::fix_point.value(QRandomGenerator::global()->bounded(0, 7)));
+							injector.worker->move(current_point + util::fix_point.value(QRandomGenerator::global()->bounded(0, 7)));
 							continue;
 						}
 
 						//計算最短離靠近目標人物的坐標和面相的方向
-						dir = injector.server->mapAnalyzer.calcBestFollowPointByDstPoint(astar, floor, current_point, unit.p, &newpoint, false, -1);
+						dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(currentIndex, astar, floor, current_point, unit.p, &newpoint, false, -1);
 						if (-1 == dir)
 							break;
 
@@ -1266,17 +1446,17 @@ void MainObject::checkAutoJoin()
 
 						if (current_point != newpoint)
 						{
-							if (!injector.server->mapAnalyzer.getMapDataByFloor(floor, &map))
+							if (!injector.worker->mapAnalyzer.getMapDataByFloor(floor, &map))
 							{
-								injector.server->mapAnalyzer.readFromBinary(floor, injector.server->getFloorName(), false);
+								injector.worker->mapAnalyzer.readFromBinary(currentIndex, floor, injector.worker->getFloorName(), false);
 								continue;
 							}
 
-							if (!injector.server->mapAnalyzer.calcNewRoute(astar, floor, current_point, newpoint, blockList, &path))
+							if (!injector.worker->mapAnalyzer.calcNewRoute(currentIndex, astar, floor, current_point, newpoint, blockList, &path))
 								return;
 
 							len = MAX_SINGLE_STEP;
-							size = static_cast<qint64>(path.size()) - 1;
+							size = static_cast<long long>(path.size()) - 1;
 
 							//步長 如果path大小 小於步長 就遞減步長
 							for (;;)
@@ -1290,10 +1470,10 @@ void MainObject::checkAutoJoin()
 							if (len < 0)
 								break;
 
-							if (len >= static_cast<qint64>(path.size()))
+							if (len >= static_cast<long long>(path.size()))
 								break;
 
-							injector.server->move(path.at(len));
+							injector.worker->move(path.at(len));
 						}
 						else
 							break;
@@ -1305,8 +1485,8 @@ void MainObject::checkAutoJoin()
 					actionType = injector.getValueHash(util::kAutoFunTypeValue);
 					if (actionType == 0)
 					{
-						injector.server->setCharFaceDirection(dir);
-						injector.server->setTeamState(true);
+						injector.worker->setCharFaceDirection(dir);
+						injector.worker->setTeamState(true);
 						continue;
 					}
 				}
@@ -1327,7 +1507,7 @@ void MainObject::checkAutoJoin()
 void MainObject::checkAutoHeal()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
 	if (autoheal_future_.isRunning())
@@ -1343,7 +1523,7 @@ void MainObject::checkAutoHeal()
 			{
 				Injector& injector = Injector::getInstance(getIndex());
 
-				auto checkStatus = [this, &injector]()->qint64
+				auto checkStatus = [this, &injector]()->long long
 					{
 						//如果主線程關閉則自動退出
 						if (isInterruptionRequested())
@@ -1353,13 +1533,13 @@ void MainObject::checkAutoHeal()
 						if (autoheal_future_cancel_flag_.load(std::memory_order_acquire))
 							return -1;
 
-						if (injector.server.isNull())
+						if (injector.worker.isNull())
 							return -1;
 
-						if (!injector.server->getOnlineFlag())
+						if (!injector.worker->getOnlineFlag())
 							return 0;
 
-						if (injector.server->getBattleFlag())
+						if (injector.worker->getBattleFlag())
 							return 0;
 
 						return 1;
@@ -1368,14 +1548,14 @@ void MainObject::checkAutoHeal()
 				for (;;)
 				{
 					QThread::msleep(100);
-					qint64 state = checkStatus();
+					long long state = checkStatus();
 					if (-1 == state)
 						return;
 					else if (0 == state)
 						continue;
 
 					QStringList items;
-					qint64 itemIndex = -1;
+					long long itemIndex = -1;
 
 					//平時道具補氣
 					for (;;)
@@ -1387,8 +1567,8 @@ void MainObject::checkAutoHeal()
 						if (!itemHealMpEnable)
 							break;
 
-						qint64 cmpvalue = injector.getValueHash(util::kNormalItemHealMpValue);
-						if (!injector.server->checkCharMp(cmpvalue))
+						long long cmpvalue = injector.getValueHash(util::kNormalItemHealMpValue);
+						if (!injector.worker->checkCharMp(cmpvalue))
 							break;
 
 						QString text = injector.getStringHash(util::kNormalItemHealMpItemString).simplified();
@@ -1402,7 +1582,7 @@ void MainObject::checkAutoHeal()
 						itemIndex = -1;
 						for (const QString& str : items)
 						{
-							itemIndex = injector.server->getItemIndexByName(str);
+							itemIndex = injector.worker->getItemIndexByName(str);
 							if (itemIndex != -1)
 								break;
 						}
@@ -1410,7 +1590,7 @@ void MainObject::checkAutoHeal()
 						if (itemIndex == -1)
 							break;
 
-						injector.server->useItem(itemIndex, 0);
+						injector.worker->useItem(itemIndex, 0);
 						QThread::msleep(300);
 					}
 
@@ -1424,31 +1604,31 @@ void MainObject::checkAutoHeal()
 						if (!itemHealHpEnable)
 							break;
 
-						qint64 charPercent = injector.getValueHash(util::kNormalItemHealCharValue);
-						qint64 petPercent = injector.getValueHash(util::kNormalItemHealPetValue);
-						qint64 alliePercent = injector.getValueHash(util::kNormalItemHealAllieValue);
+						long long charPercent = injector.getValueHash(util::kNormalItemHealCharValue);
+						long long petPercent = injector.getValueHash(util::kNormalItemHealPetValue);
+						long long alliePercent = injector.getValueHash(util::kNormalItemHealAllieValue);
 
 						if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
 							break;
 
-						qint64 target = -1;
+						long long target = -1;
 						bool ok = false;
-						if ((charPercent > 0) && injector.server->checkCharHp(charPercent))
+						if ((charPercent > 0) && injector.worker->checkCharHp(charPercent))
 						{
 							ok = true;
 							target = 0;
 						}
-						else if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
+						else if (!ok && (petPercent > 0) && injector.worker->checkPetHp(petPercent))
 						{
 							ok = true;
-							target = injector.server->getPC().battlePetNo + 1;
+							target = injector.worker->getPC().battlePetNo + 1;
 						}
-						else if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
+						else if (!ok && (petPercent > 0) && injector.worker->checkRideHp(petPercent))
 						{
 							ok = true;
-							target = injector.server->getPC().ridePetNo + 1;
+							target = injector.worker->getPC().ridePetNo + 1;
 						}
-						else if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
+						else if (!ok && (alliePercent > 0) && injector.worker->checkPartyHp(alliePercent, &target))
 						{
 							ok = true;
 							target += MAX_PET;
@@ -1461,7 +1641,7 @@ void MainObject::checkAutoHeal()
 						bool meatProiory = injector.getEnableHash(util::kNormalItemHealMeatPriorityEnable);
 						if (meatProiory)
 						{
-							itemIndex = injector.server->getItemIndexByName("?肉", false, "耐久力");
+							itemIndex = injector.worker->getItemIndexByName("?肉", false, "耐久力");
 						}
 
 						if (itemIndex == -1)
@@ -1471,7 +1651,7 @@ void MainObject::checkAutoHeal()
 							items = text.split(util::rexOR, Qt::SkipEmptyParts);
 							for (const QString& str : items)
 							{
-								itemIndex = injector.server->getItemIndexByName(str);
+								itemIndex = injector.worker->getItemIndexByName(str);
 								if (itemIndex != -1)
 									break;
 							}
@@ -1480,14 +1660,14 @@ void MainObject::checkAutoHeal()
 						if (itemIndex == -1)
 							break;
 
-						qint64 targetType = injector.server->getItem(itemIndex).target;
+						long long targetType = injector.worker->getItem(itemIndex).target;
 						if ((targetType != ITEM_TARGET_MYSELF) && (targetType != ITEM_TARGET_OTHER))
 							break;
 
 						if ((targetType == ITEM_TARGET_MYSELF) && (target != 0))
 							break;
 
-						injector.server->useItem(itemIndex, target);
+						injector.worker->useItem(itemIndex, target);
 						QThread::msleep(300);
 					}
 
@@ -1501,32 +1681,32 @@ void MainObject::checkAutoHeal()
 						if (!magicHealHpEnable)
 							break;
 
-						qint64 charPercent = injector.getValueHash(util::kNormalMagicHealCharValue);
-						qint64 petPercent = injector.getValueHash(util::kNormalMagicHealPetValue);
-						qint64 alliePercent = injector.getValueHash(util::kNormalMagicHealAllieValue);
+						long long charPercent = injector.getValueHash(util::kNormalMagicHealCharValue);
+						long long petPercent = injector.getValueHash(util::kNormalMagicHealPetValue);
+						long long alliePercent = injector.getValueHash(util::kNormalMagicHealAllieValue);
 
 						if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
 							break;
 
 
-						qint64 target = -1;
+						long long target = -1;
 						bool ok = false;
-						if ((charPercent > 0) && injector.server->checkCharHp(charPercent))
+						if ((charPercent > 0) && injector.worker->checkCharHp(charPercent))
 						{
 							ok = true;
 							target = 0;
 						}
-						else if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
+						else if (!ok && (petPercent > 0) && injector.worker->checkPetHp(petPercent))
 						{
 							ok = true;
-							target = injector.server->getPC().battlePetNo + 1;
+							target = injector.worker->getPC().battlePetNo + 1;
 						}
-						else if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
+						else if (!ok && (petPercent > 0) && injector.worker->checkRideHp(petPercent))
 						{
 							ok = true;
-							target = injector.server->getPC().ridePetNo + 1;
+							target = injector.worker->getPC().ridePetNo + 1;
 						}
-						else if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
+						else if (!ok && (alliePercent > 0) && injector.worker->checkPartyHp(alliePercent, &target))
 						{
 							ok = true;
 							target += MAX_PET;
@@ -1535,21 +1715,29 @@ void MainObject::checkAutoHeal()
 						if (!ok || target == -1)
 							break;
 
-						qint64 magicIndex = injector.getValueHash(util::kNormalMagicHealMagicValue);
-						if (magicIndex < 0 || magicIndex >= MAX_ITEM)
-							break;
-
-						if (magicIndex < CHAR_EQUIPPLACENUM)
+						long long magicIndex = -1;
 						{
-							qint64 targetType = injector.server->getMagic(magicIndex).target;
-							if ((targetType != MAGIC_TARGET_MYSELF) && (targetType != MAGIC_TARGET_OTHER))
-								break;
-
-							if ((targetType == MAGIC_TARGET_MYSELF) && (target != 0))
-								break;
+							QString itemNames = injector.getStringHash(util::kNormalMagicHealItemString).simplified();
+							QVector<long long> items;
+							if (injector.worker->getItemIndexsByName(itemNames, "", &items) && !items.isEmpty())
+								magicIndex = items.front();
 						}
 
-						injector.server->useMagic(magicIndex, target);
+						if (magicIndex == -1)
+						{
+							magicIndex = injector.getValueHash(util::kNormalMagicHealMagicValue);
+							if (magicIndex >= 0 && magicIndex < CHAR_EQUIPPLACENUM)
+							{
+								long long targetType = injector.worker->getMagic(magicIndex).target;
+								if ((targetType != MAGIC_TARGET_MYSELF) && (targetType != MAGIC_TARGET_OTHER))
+									break;
+
+								if ((targetType == MAGIC_TARGET_MYSELF) && (target != 0))
+									break;
+							}
+						}
+
+						injector.worker->useMagic(magicIndex, target);
 						QThread::msleep(300);
 					}
 				}
@@ -1570,7 +1758,7 @@ void MainObject::checkAutoHeal()
 void MainObject::checkAutoDropPet()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
 	if (autodroppet_future_.isRunning())
@@ -1583,7 +1771,7 @@ void MainObject::checkAutoDropPet()
 		autodroppet_future_ = QtConcurrent::run([this]()->void
 			{
 				Injector& injector = Injector::getInstance(getIndex());
-				auto checkStatus = [this, &injector]()->qint64
+				auto checkStatus = [this, &injector]()->long long
 					{
 						//如果主線程關閉則自動退出
 						if (isInterruptionRequested())
@@ -1596,13 +1784,13 @@ void MainObject::checkAutoDropPet()
 						if (!injector.getEnableHash(util::kDropPetEnable))
 							return -1;
 
-						if (injector.server.isNull())
+						if (injector.worker.isNull())
 							return -1;
 
-						if (!injector.server->getOnlineFlag())
+						if (!injector.worker->getOnlineFlag())
 							return 0;
 
-						if (injector.server->getBattleFlag())
+						if (injector.worker->getBattleFlag())
 							return 0;
 
 						return 1;
@@ -1611,7 +1799,7 @@ void MainObject::checkAutoDropPet()
 				for (;;)
 				{
 					QThread::msleep(100);
-					qint64 state = checkStatus();
+					long long state = checkStatus();
 					if (-1 == state)
 						return;
 					else if (0 == state)
@@ -1630,12 +1818,12 @@ void MainObject::checkAutoDropPet()
 					if (!text.isEmpty())
 						nameList = text.split(util::rexOR, Qt::SkipEmptyParts);
 
-					for (qint64 i = 0; i < MAX_PET; ++i)
+					for (long long i = 0; i < MAX_PET; ++i)
 					{
 						if (checkStatus() != 1)
 							break;
 
-						PET pet = injector.server->getPet(i);
+						PET pet = injector.worker->getPet(i);
 						if (!pet.valid || pet.maxHp <= 0 || pet.level <= 0)
 							continue;
 
@@ -1696,7 +1884,7 @@ void MainObject::checkAutoDropPet()
 							}
 
 							if (okDrop)
-								injector.server->dropPet(i);
+								injector.worker->dropPet(i);
 						}
 					}
 				}
@@ -1717,7 +1905,7 @@ void MainObject::checkAutoDropPet()
 void MainObject::checkAutoDropItems()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
 	if (autodropitem_future_.isRunning())
@@ -1728,7 +1916,7 @@ void MainObject::checkAutoDropItems()
 		autodropitem_future_ = QtConcurrent::run([this]()
 			{
 				Injector& injector = Injector::getInstance(getIndex());
-				auto checkEnable = [this, &injector]()->qint64
+				auto checkEnable = [this, &injector]()->long long
 					{
 						if (isInterruptionRequested())
 							return -1;
@@ -1739,13 +1927,13 @@ void MainObject::checkAutoDropItems()
 						if (!injector.getEnableHash(util::kAutoDropEnable))
 							return -1;
 
-						if (injector.server.isNull())
+						if (injector.worker.isNull())
 							return -1;
 
-						if (!injector.server->getOnlineFlag())
+						if (!injector.worker->getOnlineFlag())
 							return 0;
 
-						if (injector.server->getBattleFlag())
+						if (injector.worker->getBattleFlag())
 							return 0;
 
 						return 1;
@@ -1755,7 +1943,7 @@ void MainObject::checkAutoDropItems()
 				{
 					QThread::msleep(100);
 
-					qint64 state = checkEnable();
+					long long state = checkEnable();
 					if (-1 == state)
 						return;
 					else if (0 == state)
@@ -1769,8 +1957,8 @@ void MainObject::checkAutoDropItems()
 					if (dropItems.isEmpty())
 						continue;
 
-					QHash<qint64, ITEM> items = injector.server->getItems();
-					for (qint64 i = 0; i < MAX_ITEM; ++i)
+					QHash<long long, ITEM> items = injector.worker->getItems();
+					for (long long i = 0; i < MAX_ITEM; ++i)
 					{
 						ITEM item = items.value(i);
 						if (item.name.isEmpty())
@@ -1789,13 +1977,13 @@ void MainObject::checkAutoDropItems()
 								QString newCmpItem = cmpItem.mid(1);//去除問號
 								if (item.name.contains(newCmpItem))
 								{
-									injector.server->dropItem(i);
+									injector.worker->dropItem(i);
 									continue;
 								}
 							}
 							else if ((item.name == cmpItem))//精確匹配
 							{
-								injector.server->dropItem(i);
+								injector.worker->dropItem(i);
 							}
 						}
 					}
@@ -1828,13 +2016,13 @@ void MainObject::checkAutoEatBoostExpItem()
 			if (!injector.getEnableHash(util::kAutoEatBeanEnable))
 				return false;
 
-			if (injector.server.isNull())
+			if (injector.worker.isNull())
 				return false;
 
-			if (!injector.server->getOnlineFlag())
+			if (!injector.worker->getOnlineFlag())
 				return false;
 
-			if (injector.server->getBattleFlag())
+			if (injector.worker->getBattleFlag())
 				return false;
 
 			return true;
@@ -1843,8 +2031,8 @@ void MainObject::checkAutoEatBoostExpItem()
 	if (!checkEnable())
 		return;
 
-	QHash<qint64, ITEM> items = injector.server->getItems();
-	for (qint64 i = 0; i < MAX_ITEM; ++i)
+	QHash<long long, ITEM> items = injector.worker->getItems();
+	for (long long i = 0; i < MAX_ITEM; ++i)
 	{
 		if (!checkEnable())
 			return;
@@ -1855,9 +2043,9 @@ void MainObject::checkAutoEatBoostExpItem()
 
 		if (item.memo.contains("經驗值上升") || item.memo.contains("经验值上升"))
 		{
-			if (injector.server.isNull())
+			if (injector.worker.isNull())
 				return;
-			injector.server->useItem(i, 0);
+			injector.worker->useItem(i, 0);
 		}
 	}
 }
@@ -1866,7 +2054,7 @@ void MainObject::checkAutoEatBoostExpItem()
 void MainObject::checkRecordableNpcInfo()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
 	if (pointerwriter_future_.isRunning())
@@ -1876,14 +2064,15 @@ void MainObject::checkRecordableNpcInfo()
 
 	pointerwriter_future_ = QtConcurrent::run([this]()
 		{
-			Injector& injector = Injector::getInstance(getIndex());
+			long long currentIndex = getIndex();
+			Injector& injector = Injector::getInstance(currentIndex);
 			for (;;)
 			{
-				for (__int64 i = 0; i < 5; ++i)
+				for (long long i = 0; i < 5; ++i)
 				{
 					QThread::msleep(1000);
 
-					if (injector.server.isNull())
+					if (injector.worker.isNull())
 						return;
 
 					if (isInterruptionRequested())
@@ -1892,19 +2081,19 @@ void MainObject::checkRecordableNpcInfo()
 					if (pointerwriter_future_cancel_flag_.load(std::memory_order_acquire))
 						return;
 
-					if (injector.server.isNull())
+					if (injector.worker.isNull())
 						return;
 				}
 
-				if (!injector.server->getOnlineFlag())
+				if (!injector.worker->getOnlineFlag())
 					continue;
 
-				if (injector.server->getBattleFlag())
+				if (injector.worker->getBattleFlag())
 					continue;
 
 				CAStar astar;
 
-				QHash<qint64, mapunit_t> units = injector.server->mapUnitHash.toHash();
+				QHash<long long, mapunit_t> units = injector.worker->mapUnitHash.toHash();
 				util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
 				for (const mapunit_t& unit : units)
@@ -1915,29 +2104,29 @@ void MainObject::checkRecordableNpcInfo()
 					if (pointerwriter_future_cancel_flag_.load(std::memory_order_acquire))
 						return;
 
-					if (injector.server.isNull())
+					if (injector.worker.isNull())
 						return;
 
-					if (!injector.server->getOnlineFlag())
+					if (!injector.worker->getOnlineFlag())
 						break;
 
-					if (injector.server->getBattleFlag())
+					if (injector.worker->getBattleFlag())
 						break;
 
 					if ((unit.objType != util::OBJ_NPC)
 						|| unit.name.isEmpty()
-						|| (injector.server->getWorldStatus() != 9)
-						|| (injector.server->getGameStatus() != 3)
-						|| injector.server->npcUnitPointHash.contains(QPoint(unit.x, unit.y)))
+						|| (injector.worker->getWorldStatus() != 9)
+						|| (injector.worker->getGameStatus() != 3)
+						|| injector.worker->npcUnitPointHash.contains(QPoint(unit.x, unit.y)))
 					{
 						continue;
 					}
 
-					injector.server->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
+					injector.worker->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
 
 					util::MapData d;
-					qint64 nowFloor = injector.server->nowFloor_.load(std::memory_order_acquire);
-					QPoint nowPoint = injector.server->nowPoint_.get();
+					long long nowFloor = injector.worker->nowFloor_.load(std::memory_order_acquire);
+					QPoint nowPoint = injector.worker->nowPoint_.get();
 
 					d.floor = nowFloor;
 					d.name = unit.name;
@@ -1945,7 +2134,7 @@ void MainObject::checkRecordableNpcInfo()
 					//npc前方一格
 					QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
 					//檢查是否可走
-					if (injector.server->mapAnalyzer.isPassable(astar, nowFloor, nowPoint, newPoint))
+					if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, newPoint))
 					{
 						d.x = newPoint.x();
 						d.y = newPoint.y();
@@ -1955,7 +2144,7 @@ void MainObject::checkRecordableNpcInfo()
 						//再往前一格
 						QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
 						//檢查是否可走
-						if (injector.server->mapAnalyzer.isPassable(astar, nowFloor, nowPoint, additionPoint))
+						if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, additionPoint))
 						{
 							d.x = additionPoint.x();
 							d.y = additionPoint.y();
@@ -1964,10 +2153,10 @@ void MainObject::checkRecordableNpcInfo()
 						{
 							//檢查NPC周圍8格
 							bool flag = false;
-							for (qint64 i = 0; i < 8; ++i)
+							for (long long i = 0; i < 8; ++i)
 							{
 								newPoint = util::fix_point.value(i) + unit.p;
-								if (injector.server->mapAnalyzer.isPassable(astar, nowFloor, nowPoint, newPoint))
+								if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, newPoint))
 								{
 									d.x = newPoint.x();
 									d.y = newPoint.y();
@@ -2014,7 +2203,7 @@ void MainObject::checkRecordableNpcInfo()
 						continue;
 
 					bool ok = false;
-					const qint64 floor = entranceData.value(0).toLongLong(&ok);
+					const long long floor = entranceData.value(0).toLongLong(&ok);
 					if (!ok)
 						continue;
 
@@ -2023,11 +2212,11 @@ void MainObject::checkRecordableNpcInfo()
 					if (pointData.size() != 2)
 						continue;
 
-					qint64 x = pointData.value(0).toLongLong(&ok);
+					long long x = pointData.value(0).toLongLong(&ok);
 					if (!ok)
 						continue;
 
-					qint64 y = pointData.value(1).toLongLong(&ok);
+					long long y = pointData.value(1).toLongLong(&ok);
 					if (!ok)
 						continue;
 
@@ -2047,7 +2236,7 @@ void MainObject::checkRecordableNpcInfo()
 					unit.p = pos;
 					unit.name = name;
 
-					injector.server->npcUnitPointHash.insert(pos, unit);
+					injector.worker->npcUnitPointHash.insert(pos, unit);
 
 					config.writeMapData(name, d);
 				}
@@ -2061,7 +2250,7 @@ void MainObject::checkRecordableNpcInfo()
 void MainObject::checkAutoLockSchedule()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
 	auto checkSchedule = [this](util::UserSetting set)->bool
@@ -2079,8 +2268,8 @@ void MainObject::checkAutoLockSchedule()
 
 			Injector& injector = Injector::getInstance(getIndex());
 			QString lockPetSchedule = injector.getStringHash(set);
-			qint64 rindex = -1;
-			qint64 bindex = -1;
+			long long rindex = -1;
+			long long bindex = -1;
 			do
 			{
 				if (lockPetSchedule.isEmpty())
@@ -2110,7 +2299,7 @@ void MainObject::checkAutoLockSchedule()
 							continue;
 
 						QString nameStr = name.left(1);
-						qint64 petIndex = -1;
+						long long petIndex = -1;
 						bool ok = false;
 						petIndex = nameStr.toLongLong(&ok);
 						if (!ok)
@@ -2125,7 +2314,7 @@ void MainObject::checkAutoLockSchedule()
 							continue;
 
 						ok = false;
-						qint64 level = levelStr.toLongLong(&ok);
+						long long level = levelStr.toLongLong(&ok);
 						if (!ok)
 							continue;
 
@@ -2138,7 +2327,7 @@ void MainObject::checkAutoLockSchedule()
 
 						PetState type = hashType.value(typeStr, kRest);
 
-						PET pet = injector.server->getPet(petIndex);
+						PET pet = injector.worker->getPet(petIndex);
 
 						if (pet.level >= level)
 							continue;
@@ -2177,38 +2366,38 @@ void MainObject::checkAutoLockSchedule()
 
 			if (rindex != -1)
 			{
-				PET pet = injector.server->getPet(rindex);
+				PET pet = injector.worker->getPet(rindex);
 				if (pet.hp <= 1)
 				{
-					injector.server->setPetState(rindex, kRest);
+					injector.worker->setPetState(rindex, kRest);
 					QThread::msleep(100);
 				}
 
 				if (pet.state != kRide)
-					injector.server->setPetState(rindex, kRide);
+					injector.worker->setPetState(rindex, kRide);
 			}
 
 			if (bindex != -1)
 			{
-				PET pet = injector.server->getPet(bindex);
+				PET pet = injector.worker->getPet(bindex);
 				if (pet.hp <= 1)
 				{
-					injector.server->setPetState(bindex, kRest);
+					injector.worker->setPetState(bindex, kRest);
 					QThread::msleep(100);
 				}
 
 				if (pet.state != kBattle)
-					injector.server->setPetState(bindex, kBattle);
+					injector.worker->setPetState(bindex, kBattle);
 			}
 
-			for (qint64 i = 0; i < MAX_PET; ++i)
+			for (long long i = 0; i < MAX_PET; ++i)
 			{
 				if (bindex == i || rindex == i)
 					continue;
 
-				PET pet = injector.server->getPet(i);
+				PET pet = injector.worker->getPet(i);
 				if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
-					injector.server->setPetState(i, kRest);
+					injector.worker->setPetState(i, kRest);
 			}
 			return false;
 		};

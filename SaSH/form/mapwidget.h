@@ -33,12 +33,12 @@ class MapWidget : public QMainWindow, public Indexer
 {
 	Q_OBJECT;
 public:
-	explicit MapWidget(qint64 index, QWidget* parent);
+	explicit MapWidget(long long index, QWidget* parent);
 
 	virtual ~MapWidget();
 
 signals:
-	void on_close(qint64 index);
+	void on_close(long long index);
 	void updateMap(const QPixmap& map, const QPoint& characterPos);
 
 protected:
@@ -94,11 +94,11 @@ private:
 	QRectF rectangle_dst_ = { 0.0, 0.0, 0.0, 0.0 };
 
 	bool isDownloadingMap_ = false;
-	qint64 downloadMapX_ = 0;
-	qint64 downloadMapY_ = 0;
-	qint64 downloadMapXSize_ = 0;
-	qint64 downloadMapYSize_ = 0;
-	qint64 downloadCount_ = 0;
+	long long downloadMapX_ = 0;
+	long long downloadMapY_ = 0;
+	long long downloadMapXSize_ = 0;
+	long long downloadMapYSize_ = 0;
+	long long downloadCount_ = 0;
 	qreal totalMapBlocks_ = 0;
 	qreal downloadMapProgress_ = 0.0;
 
@@ -115,15 +115,15 @@ private:
 
 	QPointF curMousePos_ = { 0,0 };
 
-	static QHash<qint64, QHash<QPoint, QString>> entrances_;
+	static QHash<long long, QHash<QPoint, QString>> entrances_;
 
-	qint64 counter_ = 10;
+	long long counter_ = 10;
 
 #if OPEN_GL_ON
 
 	QTimer gltimer_;
 
-	const qint64 boundaryWidth_ = 1;
+	const long long boundaryWidth_ = 1;
 
 	//QPoint clickPos_;
 

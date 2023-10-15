@@ -64,5 +64,6 @@
         <file>image/icon_unlock.svg</file>
         <file>image/icon_qt.svg</file>
         <file>image/icon_cplusplus.svg</file>
+        <file>image/icon_downarrow.svg</file>
     </qresource>
 </RCC>

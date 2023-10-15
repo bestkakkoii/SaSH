@@ -129,8 +129,8 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	const QString companyName("Bestkakkoii llc.");
 	const QString AuthorName("Philip飞");
 	const QString webUrl("https://www.lovesa.cc");
-	constexpr qint64 nowSysBit = QSysInfo::WordSize;
-	constexpr qint64 yearStart = 2023;
+	constexpr long long nowSysBit = QSysInfo::WordSize;
+	constexpr long long yearStart = 2023;
 	const QString qqImage(R"(:/image/icon_group.png)");
 	const QString qqLink("https://qm.qq.com/cgi-bin/qm/qr?"
 		"k=Mm_Asx4CFMhLWttW10ScuPngFPFgGNFP" \
@@ -246,8 +246,8 @@ void CopyRightDialog::pushButton_copyinfo_clicked()
 	infos.append(ui.label_copyrighttext->text());
 	infos.append(ui.label_txt->text());
 
-	qint64 size = ui.listWidget->count();
-	for (qint64 i = 0; i < size; ++i)
+	long long size = ui.listWidget->count();
+	for (long long i = 0; i < size; ++i)
 	{
 		QListWidgetItem* item = ui.listWidget->item(i);
 		if (item != nullptr && !item->text().isEmpty())

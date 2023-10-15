@@ -31,7 +31,7 @@ class ScriptForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	ScriptForm(qint64 index, QWidget* parent);
+	ScriptForm(long long index, QWidget* parent);
 
 	virtual ~ScriptForm();
 
@@ -50,7 +50,7 @@ private slots:
 
 	void onScriptTableWidgetClicked(QTableWidgetItem* item);
 
-	void onScriptLabelRowTextChanged(qint64 row, qint64 max, bool noSelect);
+	void onScriptLabelRowTextChanged(long long row, long long max, bool noSelect);
 
 	void onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous);
 
@@ -76,7 +76,7 @@ protected:
 	}
 
 private:
-	void resizeTableWidgetRow(qint64 max);
+	void resizeTableWidgetRow(long long max);
 
 private:
 	Ui::ScriptFormClass ui;

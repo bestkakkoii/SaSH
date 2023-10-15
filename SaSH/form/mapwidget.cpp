@@ -25,13 +25,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "script/interpreter.h"
 #include "model/customtitlebar.h"
 
-constexpr qint64 MAP_REFRESH_TIME = 100;
-constexpr qint64 MAX_BLOCK_SIZE = 24;
-constexpr qint64 MAX_DOWNLOAD_DELAY = 0;
+constexpr long long MAP_REFRESH_TIME = 144;
+constexpr long long MAX_BLOCK_SIZE = 24;
+constexpr long long MAX_DOWNLOAD_DELAY = 0;
 
-QHash<qint64, QHash<QPoint, QString>> MapWidget::entrances_;
+QHash<long long, QHash<QPoint, QString>> MapWidget::entrances_;
 
-MapWidget::MapWidget(qint64 index, QWidget* parent)
+MapWidget::MapWidget(long long index, QWidget* parent)
 	: QMainWindow(parent)
 	, Indexer(index)
 {
@@ -89,7 +89,7 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 	}
 
 	QStringList entrances = content.simplified().split(" ");
-	QHash<qint64, QHash<QPoint, QString>> preEntrances;
+	QHash<long long, QHash<QPoint, QString>> preEntrances;
 
 	for (const QString& entrance : entrances)
 	{
@@ -98,7 +98,7 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 			continue;
 
 		bool ok = false;
-		const qint64 floor = entranceData.value(0).toLongLong(&ok);
+		const long long floor = entranceData.value(0).toLongLong(&ok);
 		if (!ok)
 			continue;
 
@@ -107,11 +107,11 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 		if (pointData.size() != 2)
 			continue;
 
-		qint64 x = pointData.value(0).toLongLong(&ok);
+		long long x = pointData.value(0).toLongLong(&ok);
 		if (!ok)
 			continue;
 
-		qint64 y = pointData.value(1).toLongLong(&ok);
+		long long y = pointData.value(1).toLongLong(&ok);
 		if (!ok)
 			continue;
 
@@ -175,21 +175,33 @@ static inline void zoom(QWidget* p, const QPixmap& pix, qreal* scaleWidth, qreal
 
 void MapWidget::onRefreshTimeOut()
 {
-	qint64 currentIndex = getIndex();
+	if (!isVisible())
+	{
+		setUpdatesEnabled(false);
+		blockSignals(true);
+		return;
+	}
+	else
+	{
+		setUpdatesEnabled(true);
+		blockSignals(false);
+	}
+
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull()) return;
+	if (injector.worker.isNull()) return;
 
 
-	if (!injector.server->getOnlineFlag()) return;
+	if (!injector.worker->getOnlineFlag()) return;
 
-	PC _ch = injector.server->getPC();
-	qint64 floor = injector.server->getFloor();
-	const QPointF qp_current(injector.server->getPoint());
+	PC _ch = injector.worker->getPC();
+	long long floor = injector.worker->getFloor();
+	const QPointF qp_current(injector.worker->getPoint());
 
 	QString caption(tr("[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8")
 		.arg(currentIndex)
 		.arg(_ch.name)
-		.arg(injector.server->getFloorName())
+		.arg(injector.worker->getFloorName())
 		.arg(floor)
 		.arg(qp_current.x()).arg(qp_current.y())
 		.arg(qFloor(curMousePos_.x())).arg(qFloor(curMousePos_.y())));
@@ -198,17 +210,17 @@ void MapWidget::onRefreshTimeOut()
 		caption += " " + tr("downloading(%1%2)").arg(util::toQString(downloadMapProgress_)).arg("%");
 	setWindowTitle(caption);
 
-	bool map_ret = injector.server->mapAnalyzer.readFromBinary(floor, injector.server->getFloorName(), true);
+	bool map_ret = injector.worker->mapAnalyzer.readFromBinary(currentIndex, floor, injector.worker->getFloorName(), true);
 	if (!map_ret)
 		return;
 
-	QPixmap ppix = injector.server->mapAnalyzer.getPixmapByIndex(floor);
+	QPixmap ppix = injector.worker->mapAnalyzer.getPixmapByIndex(floor);
 	if (ppix.isNull())  return;
 
 	map_t m_map = {};
-	injector.server->mapAnalyzer.getMapDataByFloor(floor, &m_map);
+	injector.worker->mapAnalyzer.getMapDataByFloor(floor, &m_map);
 
-	QHash<qint64, mapunit_t> unitHash = injector.server->mapUnitHash.toHash();
+	QHash<long long, mapunit_t> unitHash = injector.worker->mapUnitHash.toHash();
 	auto findMapUnitByPoint = [&unitHash](const QPoint& p, mapunit_t* u)->bool
 		{
 			for (auto it = unitHash.begin(); it != unitHash.end(); ++it)
@@ -461,7 +473,7 @@ void MapWidget::onRefreshTimeOut()
 
 	zoom(ui.dockWidget_gl, ppix, &scaleWidth_, &scaleHeight_, &zoom_value_, fix_zoom_value_);
 
-	if (ui.openGLWidget->width() != static_cast<qint64>(scaleWidth_) || ui.openGLWidget->height() != static_cast<qint64>(scaleHeight_))
+	if (ui.openGLWidget->width() != static_cast<long long>(scaleWidth_) || ui.openGLWidget->height() != static_cast<long long>(scaleHeight_))
 		ui.openGLWidget->resize(scaleWidth_, scaleHeight_);
 
 
@@ -507,12 +519,12 @@ void MapWidget::on_openGLWidget_notifyRightClick()
 
 void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	if (!injector.server->getOnlineFlag())
+	if (!injector.worker->getOnlineFlag())
 		return;
 
 	if (nullptr != interpreter_ && interpreter_->isRunning())
@@ -526,8 +538,8 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	const QPointF predst(pos / zoom_value_);
 	const QPoint dst(predst.toPoint());
 
-	qint64 x = dst.x();
-	qint64 y = dst.y();
+	long long x = dst.x();
+	long long y = dst.y();
 
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
@@ -554,8 +566,8 @@ void MapWidget::on_openGLWidget_notifyWheelMove(const QPointF& zoom, const QPoin
 
 void MapWidget::downloadNextBlock()
 {
-	qint64 blockWidth = qMin(MAX_BLOCK_SIZE, downloadMapXSize_ - downloadMapX_);
-	qint64 blockHeight = qMin(MAX_BLOCK_SIZE, downloadMapYSize_ - downloadMapY_);
+	long long blockWidth = qMin(MAX_BLOCK_SIZE, downloadMapXSize_ - downloadMapX_);
+	long long blockHeight = qMin(MAX_BLOCK_SIZE, downloadMapYSize_ - downloadMapY_);
 
 	// 移除一個小區塊
 	downloadMapX_ += blockWidth;
@@ -578,45 +590,45 @@ void MapWidget::onDownloadMapTimeout()
 			ui.pushButton_download->setEnabled(true);
 		return;
 	}
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 	{
 		isDownloadingMap_ = false;
 		return;
 	}
 
-	injector.server->downloadMap(downloadMapX_, downloadMapY_);
-	qint64 floor = injector.server->getFloor();
-	QString name = injector.server->getFloorName();
+	injector.worker->downloadMap(downloadMapX_, downloadMapY_);
+	long long floor = injector.worker->getFloor();
+	QString name = injector.worker->getFloorName();
 
 	downloadNextBlock();
 
 	if (downloadMapProgress_ >= 100.0)
 	{
 		downloadMapTimer_.stop();
-		const QPoint qp_current = injector.server->getPoint();
+		const QPoint qp_current = injector.worker->getPoint();
 		QString caption(tr("[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8")
 			.arg(currentIndex)
-			.arg(injector.server->getPC().name)
-			.arg(injector.server->getFloorName())
-			.arg(injector.server->getFloor())
+			.arg(injector.worker->getPC().name)
+			.arg(injector.worker->getFloorName())
+			.arg(injector.worker->getFloor())
 			.arg(qp_current.x()).arg(qp_current.y())
 			.arg(qFloor(curMousePos_.x())).arg(qFloor(curMousePos_.y())));
 		caption += " " + tr("downloading(%1%2)").arg(util::toQString(100.00)).arg("%");
 		setWindowTitle(caption);
 
-		injector.server->mapAnalyzer.clear(floor);
-		const QString fileName(injector.server->mapAnalyzer.getCurrentPreHandleMapPath(floor));
+		injector.worker->mapAnalyzer.clear(floor);
+		const QString fileName(injector.worker->mapAnalyzer.getCurrentPreHandleMapPath(currentIndex, floor));
 		QFile file(fileName);
 		if (file.exists())
 		{
 			file.remove();
 		}
 		isDownloadingMap_ = false;
-		injector.server->EO();
-		injector.server->mapAnalyzer.readFromBinary(floor, name, true, true);
+		injector.worker->EO();
+		injector.worker->mapAnalyzer.readFromBinary(currentIndex, floor, name, true, true);
 		if (!ui.pushButton_download->isEnabled())
 			ui.pushButton_download->setEnabled(true);
 	}
@@ -626,10 +638,10 @@ void MapWidget::on_pushButton_download_clicked()
 {
 	if (isDownloadingMap_)
 		return;
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 	{
 		return;
 	}
@@ -637,7 +649,7 @@ void MapWidget::on_pushButton_download_clicked()
 	ui.pushButton_download->setEnabled(false);
 
 	map_t map = {};
-	injector.server->mapAnalyzer.getMapDataByFloor(injector.server->getFloor(), &map);
+	injector.worker->mapAnalyzer.getMapDataByFloor(injector.worker->getFloor(), &map);
 
 	downloadCount_ = 0;
 	downloadMapXSize_ = map.width;
@@ -646,9 +658,9 @@ void MapWidget::on_pushButton_download_clicked()
 	downloadMapY_ = 0;
 	downloadMapProgress_ = 0.0;
 
-	const qint64 numBlocksX = (downloadMapXSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
-	const qint64 numBlocksY = (downloadMapYSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
-	const qint64 totalBlocks = numBlocksX * numBlocksY;
+	const long long numBlocksX = (downloadMapXSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
+	const long long numBlocksY = (downloadMapYSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
+	const long long totalBlocks = numBlocksX * numBlocksY;
 	totalMapBlocks_ = static_cast<qreal>(totalBlocks);
 
 	isDownloadingMap_ = true;
@@ -657,30 +669,30 @@ void MapWidget::on_pushButton_download_clicked()
 
 void MapWidget::on_pushButton_clear_clicked()
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	qint64 floor = injector.server->getFloor();
-	injector.server->mapAnalyzer.clear(floor);
+	long long floor = injector.worker->getFloor();
+	injector.worker->mapAnalyzer.clear(floor);
 
-	const QString fileName(injector.server->mapAnalyzer.getCurrentPreHandleMapPath(floor));
+	const QString fileName(injector.worker->mapAnalyzer.getCurrentPreHandleMapPath(currentIndex, floor));
 	QFile file(fileName);
 	if (!file.exists())
 		return;
 
 	file.remove();
 
-	injector.server->mapAnalyzer.readFromBinary(floor, injector.server->getFloorName(), true, true);
+	injector.worker->mapAnalyzer.readFromBinary(currentIndex, floor, injector.worker->getFloorName(), true, true);
 }
 
 void MapWidget::on_pushButton_returnBase_clicked()
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 	{
 		return;
 	}
@@ -691,7 +703,7 @@ void MapWidget::on_pushButton_returnBase_clicked()
 
 void MapWidget::on_pushButton_findPath_clicked()
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.isValid())
 		return;
@@ -699,10 +711,10 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	if (!injector.server->getOnlineFlag())
+	if (!injector.worker->getOnlineFlag())
 		return;
 
 	if (nullptr != interpreter_ && interpreter_->isRunning())
@@ -710,8 +722,8 @@ void MapWidget::on_pushButton_findPath_clicked()
 
 	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
 
-	qint64 x = ui.spinBox_findPathX->value();
-	qint64 y = ui.spinBox_findPathY->value();
+	long long x = ui.spinBox_findPathX->value();
+	long long y = ui.spinBox_findPathY->value();
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
 
@@ -728,9 +740,9 @@ void MapWidget::onClear()
 
 void MapWidget::updateNpcListAllContents(const QVariant& d)
 {
-	qint64 col = 0;
-	qint64 row = 0;
-	qint64 size = 0;
+	long long col = 0;
+	long long row = 0;
+	long long size = 0;
 	QVariantList D = d.value<QVariantList>();
 
 	ui.tableWidget_NPCList->setUpdatesEnabled(false);
@@ -741,12 +753,12 @@ void MapWidget::updateNpcListAllContents(const QVariant& d)
 	size /= 2;
 	if (size > ui.tableWidget_NPCList->rowCount())
 	{
-		for (qint64 i = 0; i < size - ui.tableWidget_NPCList->rowCount(); ++i)
+		for (long long i = 0; i < size - ui.tableWidget_NPCList->rowCount(); ++i)
 			ui.tableWidget_NPCList->insertRow(ui.tableWidget_NPCList->rowCount());
 	}
 	else if (size < ui.tableWidget_NPCList->rowCount())
 	{
-		for (qint64 i = 0; i < (ui.tableWidget_NPCList->rowCount() - size); ++i)
+		for (long long i = 0; i < (ui.tableWidget_NPCList->rowCount() - size); ++i)
 			ui.tableWidget_NPCList->removeRow(ui.tableWidget_NPCList->rowCount() - 1);
 	}
 
@@ -779,7 +791,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		return;
 	}
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.isValid())
 		return;
@@ -787,10 +799,10 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	if (!injector.server->getOnlineFlag())
+	if (!injector.worker->getOnlineFlag())
 		return;
 
 	if (nullptr != interpreter_ && interpreter_->isRunning())
@@ -805,8 +817,8 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		return;
 
 	bool okx, oky;
-	qint64 x = list.value(0).toLongLong(&okx);
-	qint64 y = list.value(1).toLongLong(&oky);
+	long long x = list.value(0).toLongLong(&okx);
+	long long y = list.value(1).toLongLong(&oky);
 	if (!okx || !oky)
 		return;
 
@@ -815,31 +827,31 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	{
 		static const QRegularExpression rex(R"(\[NPC\]\[\d+\])");
 		name = name.remove(rex);
-		if (!injector.server->findUnit(name, util::OBJ_NPC, &unit))
+		if (!injector.worker->findUnit(name, util::OBJ_NPC, &unit))
 			return;
 	}
 	else if (name.contains(tr("[P]")))
 	{
 		name = name.remove(tr("[P]"));
-		if (!injector.server->findUnit(name, util::OBJ_PET, &unit))
+		if (!injector.worker->findUnit(name, util::OBJ_PET, &unit))
 			return;
 	}
 	else if (name.contains(tr("[H]")))
 	{
 		name = name.remove(tr("[H]"));
-		if (!injector.server->findUnit(name, util::OBJ_HUMAN, &unit))
+		if (!injector.worker->findUnit(name, util::OBJ_HUMAN, &unit))
 			return;
 	}
 	else if (name.contains(tr("[I]")))
 	{
 		name = name.remove(tr("[I]"));
-		if (!injector.server->findUnit(name, util::OBJ_ITEM, &unit))
+		if (!injector.worker->findUnit(name, util::OBJ_ITEM, &unit))
 			return;
 	}
 	else if (name.contains(tr("[G]")))
 	{
 		name = name.remove(tr("[G]"));
-		if (!injector.server->findUnit(name, util::OBJ_GOLD, &unit))
+		if (!injector.worker->findUnit(name, util::OBJ_GOLD, &unit))
 			return;
 	}
 	else
@@ -849,13 +861,13 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 
 	CAStar astar;
-	qint64 floor = injector.server->getFloor();
-	QPoint point = injector.server->getPoint();
+	long long floor = injector.worker->getFloor();
+	QPoint point = injector.worker->getPoint();
 	//npc前方一格
 	QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
 
 	//檢查是否可走
-	if (injector.server->mapAnalyzer.isPassable(astar, floor, point, newPoint))
+	if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, floor, point, newPoint))
 	{
 		x = newPoint.x();
 		y = newPoint.y();
@@ -865,7 +877,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		//再往前一格
 		QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
 		//檢查是否可走
-		if (injector.server->mapAnalyzer.isPassable(astar, floor, point, additionPoint))
+		if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, floor, point, additionPoint))
 		{
 			x = additionPoint.x();
 			y = additionPoint.y();
@@ -874,10 +886,10 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		{
 			//檢查NPC周圍8格
 			bool flag = false;
-			for (qint64 i = 0; i < 8; ++i)
+			for (long long i = 0; i < 8; ++i)
 			{
 				newPoint = util::fix_point.value(i) + unit.p;
-				if (injector.server->mapAnalyzer.isPassable(astar, floor, point, newPoint))
+				if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, floor, point, newPoint))
 				{
 					x = newPoint.x();
 					y = newPoint.y();

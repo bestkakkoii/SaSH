@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include <highlighter.h>
 
-constexpr qint64 NewlineArrow = 32;
+constexpr long long NewlineArrow = 32;
 
 Highlighter::Highlighter(QObject* parent)
 	: QsciLexerLua(parent)

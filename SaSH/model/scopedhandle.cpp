@@ -73,7 +73,7 @@ ScopedHandle::ScopedHandle(int dwProcess, bool bAutoClose)
 	openProcess(static_cast<DWORD>(dwProcess));
 }
 
-ScopedHandle::ScopedHandle(qint64 dwProcess, bool bAutoClose)
+ScopedHandle::ScopedHandle(long long dwProcess, bool bAutoClose)
 	: enableAutoClose_(bAutoClose)
 {
 	openProcess(static_cast<DWORD>(dwProcess));
@@ -129,7 +129,7 @@ HANDLE ScopedHandle::NtOpenProcess(DWORD dwProcess)
 	CLIENT_ID ClientId = {};
 
 	InitializeObjectAttributes(&ObjectAttribute, 0, 0, 0, 0);
-	ClientId.UniqueProcess = reinterpret_cast<PVOID>(static_cast<qint64>(dwProcess));
+	ClientId.UniqueProcess = reinterpret_cast<PVOID>(static_cast<long long>(dwProcess));
 	ClientId.UniqueThread = (PVOID)0;
 
 	BOOL ret = NT_SUCCESS(MINT::NtOpenProcess(&ProcessHandle, MAXIMUM_ALLOWED,
@@ -145,7 +145,7 @@ HANDLE ScopedHandle::ZwOpenProcess(DWORD dwProcess)
 		sizeof(MINT::OBJECT_ATTRIBUTES), 0, 0, 0, 0, 0 };
 	ObjectAttribute.Attributes = NULL;
 	MINT::CLIENT_ID ClientIds = {};
-	ClientIds.UniqueProcess = reinterpret_cast<HANDLE>(static_cast<qint64>(dwProcess));
+	ClientIds.UniqueProcess = reinterpret_cast<HANDLE>(static_cast<long long>(dwProcess));
 	ClientIds.UniqueThread = (HANDLE)0;
 	BOOL ret = NT_SUCCESS(MINT::ZwOpenProcess(&ProcessHandle, PROCESS_ALL_ACCESS, &ObjectAttribute,
 		&ClientIds));

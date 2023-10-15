@@ -18,42 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma once
 
-#pragma region MACROS
-//custom
-//#define OCR_ENABLE
 
-//sa original
-#define _PETS_SELECTCON
-#define _NEW_SYSTEM_MENU
-#define _ANNOUNCEMENT_
-#define _JOBDAILY
-#define _TEACHER_SYSTEM
-#define _MAGIC_NOCAST
-#define _TEAM_KICKPARTY
-#define _CHECK_GAMESPEED
-#define _PET_ITEM
-#define _ITEM_FIREWORK
-#define _ITEM_EQUITSPACE
-#define _CHAR_PROFESSION
-#define _STANDBYPET
-#define _ITEM_PILENUMS
-#define _ALCHEMIST
-#define _ITEM_JIGSAW
-#define _SHOW_FUSION
-#define _CHAR_NEWLOGOUT
-#define _CHANNEL_MODIFY
-#define _FMVER21
-#define _CHANNEL_WORLD
-#define _EQUIT_NEWGLOVE
-#define __ATTACK_MAGIC
-#define _SKILL_ADDBARRIER
-#define _OBJSEND_C
-#define _NEWSHOP_
-#define _NEW_CLIENT_LOGIN
-#define _PETCOM_
-#pragma endregion
-
-#include "database.h"
 
 class Autil;
 class Lssproto

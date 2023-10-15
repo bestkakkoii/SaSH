@@ -161,7 +161,7 @@ class ThreadPlugin : public QObject, public Indexer
 {
 	Q_OBJECT
 public:
-	ThreadPlugin(qint64 index, QObject* parent)
+	ThreadPlugin(long long index, QObject* parent)
 		: QObject(parent)
 		, Indexer(index)
 	{

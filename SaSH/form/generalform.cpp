@@ -11,7 +11,7 @@
 //#include "net/webauthenticator.h"
 //#endif
 
-GeneralForm::GeneralForm(qint64 index, QWidget* parent)
+GeneralForm::GeneralForm(long long index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 	, pAfkForm_(index, nullptr)
@@ -25,42 +25,51 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &GeneralForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::gameStarted, this, &GeneralForm::onGameStart, Qt::QueuedConnection);
 
-
+	QStringList nameCheckList;
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
-		if (button)
-			connect(button, &PushButton::clicked, this, &GeneralForm::onButtonClicked, Qt::QueuedConnection);
+		if (button && !nameCheckList.contains(button->objectName()))
+		{
+			nameCheckList.append(button->objectName());
+			connect(button, &PushButton::clicked, this, &GeneralForm::onButtonClicked, Qt::UniqueConnection);
+		}
 	}
 
 	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
 	for (auto& checkBox : checkBoxList)
 	{
-		if (checkBox)
-			connect(checkBox, &QCheckBox::stateChanged, this, &GeneralForm::onCheckBoxStateChanged, Qt::QueuedConnection);
+		if (checkBox && !nameCheckList.contains(checkBox->objectName()))
+		{
+			nameCheckList.append(checkBox->objectName());
+			connect(checkBox, &QCheckBox::stateChanged, this, &GeneralForm::onCheckBoxStateChanged, Qt::UniqueConnection);
+		}
 	}
 
 	QList <QSpinBox*> spinBoxList = util::findWidgets<QSpinBox>(this);
 	for (auto& spinBox : spinBoxList)
 	{
-		if (spinBox)
-			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::QueuedConnection);
+		if (spinBox && !nameCheckList.contains(spinBox->objectName()))
+		{
+			nameCheckList.append(spinBox->objectName());
+			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
+		}
 	}
 
 	QList <ComboBox*> comboBoxList = util::findWidgets<ComboBox>(this);
 	for (auto& comboBox : comboBoxList)
 	{
-		if (comboBox)
+		if (comboBox && !nameCheckList.contains(comboBox->objectName()))
 		{
-			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::QueuedConnection);
-			connect(comboBox, &ComboBox::clicked, this, &GeneralForm::onComboBoxClicked, Qt::QueuedConnection);
+			nameCheckList.append(comboBox->objectName());
+			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
+			connect(comboBox, &ComboBox::clicked, this, &GeneralForm::onComboBoxClicked, Qt::UniqueConnection);
 		}
 	}
 
 	reloadPaths();
 
 	pAfkForm_.hide();
-	pAfkForm_.resetControlTextLanguage();
 
 	emit signalDispatcher.applyHashSettingsToUI();
 
@@ -70,8 +79,8 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 		return;
 	}
 
-	qint64 idx = 0;
-	qint64 defaultIndex = -1;
+	long long idx = 0;
+	long long defaultIndex = -1;
 	ui.comboBox_setting->blockSignals(true);
 	ui.comboBox_setting->clear();
 	for (const QPair<QString, QString>& pair : fileList)
@@ -86,8 +95,6 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 		ui.comboBox_setting->setCurrentIndex(defaultIndex);
 
 	ui.comboBox_setting->blockSignals(false);
-
-
 
 	//驗證
 #ifdef WEBAUTHENTICATOR_H
@@ -114,7 +121,7 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 
 GeneralForm::~GeneralForm()
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 
 	ThreadManager& thread_manager = ThreadManager::getInstance();
 	thread_manager.close(currentIndex);
@@ -204,7 +211,7 @@ void GeneralForm::reloadPaths()
 		pListView->setMaximumWidth(260);
 	}
 
-	__int64 currentIndex = -1;
+	long long currentIndex = -1;
 	{
 		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		QStringList paths = config.readArray<QString>("System", "Command", "DirPath");
@@ -222,7 +229,7 @@ void GeneralForm::reloadPaths()
 
 		for (const QString& path : paths)
 		{
-			if (path.contains(SASH_SUPPORT_GAMENAME) && QFile::exists(path) && !newPaths.contains(path))
+			if (path.contains(SASH_SUPPORT_GAMENAME, Qt::CaseInsensitive) && QFile::exists(path) && !newPaths.contains(path, Qt::CaseInsensitive))
 			{
 				newPaths.append(path);
 			}
@@ -265,7 +272,7 @@ void GeneralForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -279,7 +286,7 @@ void GeneralForm::onButtonClicked()
 			|| newPath.isEmpty())
 			return;
 
-		if (!newPath.contains(SASH_SUPPORT_GAMENAME) || !QFile::exists(newPath))
+		if (!newPath.contains(SASH_SUPPORT_GAMENAME, Qt::CaseInsensitive) || !QFile::exists(newPath))
 			return;
 
 		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
@@ -288,7 +295,7 @@ void GeneralForm::onButtonClicked()
 
 		for (const QString& path : paths)
 		{
-			if (path.contains(SASH_SUPPORT_GAMENAME) && QFile::exists(path) && !newPaths.contains(path))
+			if (path.contains(SASH_SUPPORT_GAMENAME, Qt::CaseInsensitive) && QFile::exists(path) && !newPaths.contains(path, Qt::CaseInsensitive))
 			{
 				newPaths.append(path);
 			}
@@ -361,9 +368,9 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_clear")
 	{
-		if (injector.isValid() && !injector.server.isNull())
+		if (injector.isValid() && !injector.worker.isNull())
 		{
-			injector.server->cleanChatHistory();
+			injector.worker->cleanChatHistory();
 		}
 
 		return;
@@ -377,15 +384,15 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_joingroup")
 	{
-		if (!injector.server.isNull())
-			injector.server->setTeamState(true);
+		if (!injector.worker.isNull())
+			injector.worker->setTeamState(true);
 		return;
 	}
 
 	if (name == "pushButton_leavegroup")
 	{
-		if (!injector.server.isNull())
-			injector.server->setTeamState(false);
+		if (!injector.worker.isNull())
+			injector.worker->setTeamState(false);
 		return;
 	}
 
@@ -431,8 +438,8 @@ void GeneralForm::onButtonClicked()
 	if (name == "pushButton_savesettings")
 	{
 		QString fileName;
-		if (!injector.server.isNull())
-			fileName = injector.server->getPC().name;
+		if (!injector.worker.isNull())
+			fileName = injector.worker->getPC().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.saveHashSettings(fileName);
 		return;
@@ -441,8 +448,8 @@ void GeneralForm::onButtonClicked()
 	if (name == "pushButton_loadsettings")
 	{
 		QString fileName;
-		if (!injector.server.isNull())
-			fileName = injector.server->getPC().name;
+		if (!injector.worker.isNull())
+			fileName = injector.worker->getPC().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.loadHashSettings(fileName);
 		return;
@@ -466,7 +473,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//login
@@ -521,7 +528,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 	if (name == "checkBox_autojoin")
 	{
 		injector.setEnableHash(util::kAutoJoinEnable, isChecked);
-		qint64 type = injector.getValueHash(util::kAutoFunTypeValue);
+		long long type = injector.getValueHash(util::kAutoFunTypeValue);
 		if (isChecked && type != 0)
 		{
 			injector.setValueHash(util::kAutoFunTypeValue, 0);
@@ -667,9 +674,9 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 		bool bOriginal = injector.getEnableHash(util::kFastBattleEnable);
 		injector.setEnableHash(util::kFastBattleEnable, isChecked);
-		if (!bOriginal && isChecked && !injector.server.isNull())
+		if (!bOriginal && isChecked && !injector.worker.isNull())
 		{
-			injector.server->doBattleWork(false);
+			injector.worker->doBattleWork(false);
 		}
 		return;
 	}
@@ -683,9 +690,9 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 		bool bOriginal = injector.getEnableHash(util::kAutoBattleEnable);
 		injector.setEnableHash(util::kAutoBattleEnable, isChecked);
-		if (!bOriginal && isChecked && !injector.server.isNull())
+		if (!bOriginal && isChecked && !injector.worker.isNull())
 		{
-			injector.server->doBattleWork(false);
+			injector.worker->doBattleWork(false);
 		}
 
 		return;
@@ -860,7 +867,7 @@ void GeneralForm::onSpinBoxValueChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (name == "spinBox_speedboost")
@@ -880,7 +887,7 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (name == "comboBox_serverlist")
 	{
@@ -923,7 +930,7 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 	if (name == "comboBox_paths")
 	{
 		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
-		qint64 current = ui.comboBox_paths->currentIndex();
+		long long current = ui.comboBox_paths->currentIndex();
 		if (current >= 0)
 			config.write("System", "Command", "LastSelection", ui.comboBox_paths->currentIndex());
 		return;
@@ -932,15 +939,15 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 
 void GeneralForm::onApplyHashSettingsToUI()
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, long long> valueHash = injector.getValuesHash();
 	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
 	{
 		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
-		qint64 index = config.read<qint64>("System", "Command", "LastSelection");
+		long long index = config.read<long long>("System", "Command", "LastSelection");
 
 		if (index >= 0 && index < ui.comboBox_paths->count())
 		{
@@ -951,7 +958,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 		else if (ui.comboBox_paths->count() > 0)
 			ui.comboBox_paths->setCurrentIndex(0);
 
-		qint64 count = config.read<qint64>("System", "Server", "ListCount");
+		long long count = config.read<long long>("System", "Server", "ListCount");
 		if (count <= 0)
 		{
 			count = 3;
@@ -961,12 +968,12 @@ void GeneralForm::onApplyHashSettingsToUI()
 		ui.comboBox_serverlist->blockSignals(true);
 
 		ui.comboBox_serverlist->clear();
-		for (qint64 i = 0; i < count; ++i)
+		for (long long i = 0; i < count; ++i)
 		{
 			ui.comboBox_serverlist->addItem(tr("ServerList%1").arg(i + 1), i);
 		}
 
-		qint64 lastServerListSelection = config.read<qint64>("System", "Server", "LastServerListSelection");
+		long long lastServerListSelection = config.read<long long>("System", "Server", "LastServerListSelection");
 		if (lastServerListSelection >= 0 && lastServerListSelection < count)
 			ui.comboBox_serverlist->setCurrentIndex(lastServerListSelection);
 		else if (ui.comboBox_serverlist->count() > 0)
@@ -975,7 +982,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 		ui.comboBox_serverlist->blockSignals(false);
 	}
 
-	qint64 value = 0;
+	long long value = 0;
 
 	//login
 	value = valueHash.value(util::kServerValue);
@@ -1083,19 +1090,10 @@ void GeneralForm::startGameAsync()
 
 		ThreadManager& thread_manager = ThreadManager::getInstance();
 
-		qint64 currentIndex = getIndex();
+		long long currentIndex = getIndex();
 
 		Injector& injector = Injector::getInstance(currentIndex);
 		injector.currentGameExePath = path;
-
-		std::unique_ptr<Server> _pServer(q_check_ptr(new Server(currentIndex, this)));
-		if (_pServer == nullptr)
-			break;
-
-		if (!_pServer->start(this))
-			break;
-
-		injector.server.reset(_pServer.release());
 
 		MainObject* pMainObject = nullptr;
 		if (!thread_manager.createThread(currentIndex, &pMainObject, nullptr) || (nullptr == pMainObject))
@@ -1114,8 +1112,8 @@ void GeneralForm::startGameAsync()
 
 void GeneralForm::createServerList()
 {
-	qint64 currentIndex = getIndex();
-	qint64 currentListIndex = ui.comboBox_serverlist->currentIndex();
+	long long currentIndex = getIndex();
+	long long currentListIndex = ui.comboBox_serverlist->currentIndex();
 	if (currentListIndex < 0)
 		currentListIndex = 0;
 	QStringList list;
@@ -1179,7 +1177,7 @@ void GeneralForm::createServerList()
 				defaultListXGSA,
 			};
 
-			for (qint64 i = 0; i < defaultList.size(); ++i)
+			for (long long i = 0; i < defaultList.size(); ++i)
 				config.writeArray<QString>("System", "Server", QString("List_%1").arg(i), defaultList.value(i));
 
 			if (currentListIndex >= 0 && currentListIndex < defaultList.size())
@@ -1188,7 +1186,7 @@ void GeneralForm::createServerList()
 	}
 
 	QString currentText = ui.comboBox_server->currentText();
-	qint64 current = ui.comboBox_server->currentIndex();
+	long long current = ui.comboBox_server->currentIndex();
 
 	ui.comboBox_server->setUpdatesEnabled(false);
 	ui.comboBox_subserver->setUpdatesEnabled(false);
@@ -1239,8 +1237,8 @@ void GeneralForm::createServerList()
 
 void GeneralForm::serverListReLoad()
 {
-	qint64 current = ui.comboBox_subserver->currentIndex();
-	qint64 currentServerList = ui.comboBox_serverlist->currentIndex();
+	long long current = ui.comboBox_subserver->currentIndex();
+	long long currentServerList = ui.comboBox_serverlist->currentIndex();
 	if (currentServerList < 0)
 		currentServerList = 0;
 

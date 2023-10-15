@@ -29,14 +29,14 @@ class StringListModel;
 class Injector : public QObject, public Indexer
 {
 private:
-	static util::SafeHash<qint64, Injector*> instances;
+	static util::SafeHash<long long, Injector*> instances;
 
-	explicit Injector(qint64 index);
+	explicit Injector(long long index);
 
 public:
 	virtual ~Injector();
 
-	static Injector& getInstance(qint64 index)
+	static Injector& getInstance(long long index)
 	{
 		if (!instances.contains(index))
 		{
@@ -50,7 +50,7 @@ public:
 		return *instances.value(index);
 	}
 
-	static bool get(qint64 index, Injector** ppinstance)
+	static bool get(long long index, Injector** ppinstance)
 	{
 		if (!instances.contains(index))
 			return false;
@@ -62,12 +62,12 @@ public:
 
 public:
 	static void reset();
-	static void reset(qint64 index);
+	static void reset(long long index);
 
-	virtual inline void setIndex(qint64 index) override
+	virtual inline void setIndex(long long index) override
 	{
-		if (!server.isNull())
-			server->setIndex(index);
+		if (!worker.isNull())
+			worker->setIndex(index);
 
 		Indexer::setIndex(index);
 	}
@@ -84,8 +84,8 @@ public:
 
 	typedef struct process_information_s
 	{
-		qint64 dwProcessId = NULL;
-		qint64 dwThreadId = NULL;
+		long long dwProcessId = NULL;
+		long long dwThreadId = NULL;
 		HWND hWnd = nullptr;
 	} process_information_t, * pprocess_information_t, * lpprocess_information_t;
 
@@ -95,9 +95,9 @@ public:
 
 	Q_REQUIRED_RESULT inline HWND getProcessWindow() const { return pi_.hWnd; }
 
-	Q_REQUIRED_RESULT inline qint64 getProcessId() const { return pi_.dwProcessId; }
+	Q_REQUIRED_RESULT inline long long getProcessId() const { return pi_.dwProcessId; }
 
-	Q_REQUIRED_RESULT inline qint64 getProcessModule() const { return hGameModule_; }
+	Q_REQUIRED_RESULT inline long long getProcessModule() const { return hGameModule_; }
 
 	Q_REQUIRED_RESULT inline bool isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
 
@@ -107,29 +107,29 @@ public:
 
 	Q_REQUIRED_RESULT bool isWindowAlive() const;
 
-	qint64 sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const;
+	long long sendMessage(long long msg, long long wParam, long long lParam) const;
 
-	bool postMessage(qint64 msg, qint64 wParam, qint64 lParam) const;
+	bool postMessage(long long msg, long long wParam, long long lParam) const;
 
-	inline void setValueHash(util::UserSetting setting, qint64 value) { userSetting_value_hash_.insert(setting, value); }
+	inline void setValueHash(util::UserSetting setting, long long value) { userSetting_value_hash_.insert(setting, value); }
 
 	inline void setEnableHash(util::UserSetting setting, bool enable) { userSetting_enable_hash_.insert(setting, enable); }
 
 	inline void setStringHash(util::UserSetting setting, const QString& string) { userSetting_string_hash_.insert(setting, string); }
 
-	Q_REQUIRED_RESULT inline qint64 getValueHash(util::UserSetting setting) const { return userSetting_value_hash_.value(setting); }
+	Q_REQUIRED_RESULT inline long long getValueHash(util::UserSetting setting) const { return userSetting_value_hash_.value(setting); }
 
 	Q_REQUIRED_RESULT inline bool getEnableHash(util::UserSetting setting) const { return userSetting_enable_hash_.value(setting); }
 
 	Q_REQUIRED_RESULT inline QString getStringHash(util::UserSetting setting) const { return userSetting_string_hash_.value(setting); }
 
-	Q_REQUIRED_RESULT inline QHash<util::UserSetting, qint64> getValuesHash() const { return userSetting_value_hash_.toHash(); }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, long long> getValuesHash() const { return userSetting_value_hash_.toHash(); }
 
 	Q_REQUIRED_RESULT inline QHash<util::UserSetting, bool> getEnablesHash() const { return userSetting_enable_hash_.toHash(); }
 
 	Q_REQUIRED_RESULT inline QHash<util::UserSetting, QString> getStringsHash() const { return userSetting_string_hash_.toHash(); }
 
-	inline void setValuesHash(const QHash<util::UserSetting, qint64>& hash) { userSetting_value_hash_ = hash; }
+	inline void setValuesHash(const QHash<util::UserSetting, long long>& hash) { userSetting_value_hash_ = hash; }
 
 	inline void setEnablesHash(const QHash<util::UserSetting, bool>& hash) { userSetting_enable_hash_ = hash; }
 
@@ -139,17 +139,17 @@ public:
 
 	inline void setUserData(util::UserData type, const QVariant& data) { userData_hash_.insert(type, QVariant::fromValue(data)); }
 
-	void mouseMove(qint64 x, qint64 y) const;
+	void mouseMove(long long x, long long y) const;
 
-	void leftClick(qint64 x, qint64 y) const;
+	void leftClick(long long x, long long y) const;
 
-	void leftDoubleClick(qint64 x, qint64 y) const;
+	void leftDoubleClick(long long x, long long y) const;
 
-	void rightClick(qint64 x, qint64 y) const;
+	void rightClick(long long x, long long y) const;
 
-	void dragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2) const;
+	void dragto(long long x1, long long y1, long long x2, long long y2) const;
 
-	void hide(qint64 mode = 0);
+	void hide(long long mode = 0);
 
 	void show();
 
@@ -169,7 +169,7 @@ private:
 			if (!handle || !lParam) break;
 
 			::GetWindowThreadProcessId(handle, &dwProcessId);
-			if (data->dwProcessId == static_cast<qint64>(dwProcessId) && IsWindowVisible(handle))
+			if (data->dwProcessId == static_cast<long long>(dwProcessId) && IsWindowVisible(handle))
 			{
 				data->hWnd = handle;
 				return FALSE;
@@ -178,7 +178,7 @@ private:
 		return TRUE;
 	}
 
-	Q_REQUIRED_RESULT bool isHandleValid(qint64 pid);
+	Q_REQUIRED_RESULT bool isHandleValid(long long pid);
 
 #if 0
 	DWORD WINAPI getFunAddr(const DWORD* DllBase, const char* FunName);
@@ -187,7 +187,8 @@ private:
 public:
 	QString currentGameExePath;//當前使用的遊戲進程完整路徑
 
-	QSharedPointer<Server> server;//與遊戲TCP通信專用
+	static Server server;//與遊戲TCP通信專用
+	QSharedPointer<Worker> worker;
 
 	std::atomic_bool IS_SCRIPT_FLAG = false;//主腳本是否運行
 	std::atomic_bool IS_SCRIPT_INTERRUPT = false;//主腳本是否中斷
@@ -202,40 +203,41 @@ public:
 
 	util::SafeData<QStringList> subServerNameList;
 
-	qint64 currentServerListIndex = 0;
+	long long currentServerListIndex = 0;
 
 	std::atomic_bool isScriptDebugModeEnable = false;
 
 	std::atomic_bool isScriptEditorOpened = false;
 
-	quint64 scriptThreadId = 0;
+	unsigned long long scriptThreadId = 0;
 
 	Autil autil;
 
 	Logger log;
 
-	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
-	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
-	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
-	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
+	util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
+	util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
+	util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
+	util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
 
 	bool IS_INJECT_OK = false;//是否注入成功
+	std::atomic_bool IS_TCP_CONNECTION_OK_TO_USE = false;
 private:
-	quint64 hGameModule_ = NULL;
+	unsigned long long hGameModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;
 	process_information_t pi_ = {};
 	ScopedHandle processHandle_;
 	HWND parentWidget_ = nullptr;//主窗口句柄
 
 
-	qint64 nowChatRowCount_ = 0;
+	long long nowChatRowCount_ = 0;
 
 	util::SafeHash<util::UserData, QVariant> userData_hash_ = {
 		{ util::kUserItemNames, QStringList() },
 
 	};
 
-	util::SafeHash<util::UserSetting, qint64> userSetting_value_hash_ = {
+	util::SafeHash<util::UserSetting, long long> userSetting_value_hash_ = {
 		{ util::kSettingNotUsed, util::kSettingNotUsed },
 		{ util::kSettingMinValue, util::kSettingMinValue },
 
@@ -463,6 +465,7 @@ private:
 		{ util::kLockAttackString, "" },
 		{ util::kLockEscapeString, "" },
 
+		{ util::kNormalMagicHealItemString, "" },
 		{ util::kBattleItemHealItemString, "" },
 		{ util::kBattleItemHealMpItemString, "" },
 		{ util::kBattleItemReviveItemString, "" },
@@ -486,6 +489,13 @@ private:
 		{ util::kMailWhiteListString , "" },
 
 		{ util::kEOCommandString, "/EO" },
+
+		{ util::kTitleFormatString, "[%(index)] [%(sser):%(pos)] %(name) Lv:%(lv) Hp:%(hpp)" },
+		{ util::kBattleAllieFormatString, "[%(pos)]%(self)%(name) LV:%(lv)(%(hp)|%(hpp))[%(status)]" },
+		{ util::kBattleEnemyFormatString, "[%(pos)]%(mod):%(name) LV:%(lv)(%(hp)|%(hpp))[%(status)]" },
+		{ util::kBattleSelfMarkString, "★" },
+		{ util::kBattleActMarkString, "＊" },
+		{ util::kBattleSpaceMarkString, "　" },
 
 	};
 };

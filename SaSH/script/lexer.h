@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <indexer.h>
 
 constexpr const char* kFuzzyPrefix = "?";
-constexpr qint64 kMaxLuaTableDepth = 1024ll;
+constexpr long long kMaxLuaTableDepth = 1024ll;
 
 enum FTK
 {
@@ -146,7 +146,7 @@ struct Token
 };
 Q_DECLARE_METATYPE(Token)
 
-using TokenMap = QMap<qint64, Token>;
+using TokenMap = QMap<long long, Token>;
 Q_DECLARE_METATYPE(TokenMap)
 
 class Node
@@ -158,11 +158,11 @@ public:
 	QString name = "";//函數名稱
 	QList<Node*> children; // 指向子節點的指針列表
 
-	qint64 beginLine = 0ll;
-	qint64 endLine = 0ll;
+	long long beginLine = 0ll;
+	long long endLine = 0ll;
 	Field field = kGlobal;
-	qint64 level = 0ll;
-	quint64 callCount = 0ui64;
+	long long level = 0ll;
+	unsigned long long callCount = 0ui64;
 };
 Q_DECLARE_METATYPE(Node)
 
@@ -194,7 +194,7 @@ public:
 	QList<QPair<RESERVE, QVariant>> argList = {};
 	QHash<int, QStringList> returnTypes = {};
 
-	qint64 callFromLine = 0ll;
+	long long callFromLine = 0ll;
 
 	void clear()
 	{
@@ -242,15 +242,15 @@ Q_DECLARE_METATYPE(ForNode)
 class Lexer : public Indexer
 {
 public:
-	explicit Lexer(qint64 index) : Indexer(index) {}
+	explicit Lexer(long long index) : Indexer(index) {}
 
 	static bool tokenized(Lexer* pLexer, const QString& script);
 
 	QList<FunctionNode> getFunctionNodeList() const { return functionNodeList_; }
 	QList<ForNode> getForNodeList() const { return forNodeList_; }
 	QList<LuaNode> getLuaNodeList() const { return luaNodeList_; }
-	QHash<QString, qint64> getLabelList() const { return labelList_; }
-	QHash<qint64, TokenMap> getTokenMaps() const { return tokens_; }
+	QHash<QString, long long> getLabelList() const { return labelList_; }
+	QHash<long long, TokenMap> getTokenMaps() const { return tokens_; }
 
 private:
 	enum ErrorType
@@ -274,23 +274,23 @@ private:
 
 	void recordNode();
 
-	void tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, qint64>* plabel);
+	void tokenized(long long currentLine, const QString& line, TokenMap* ptoken, QHash<QString, long long>* plabel);
 
-	void createToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
+	void createToken(long long index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
 
-	void insertToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
+	void insertToken(long long index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
 
-	void createEmptyToken(qint64 index, TokenMap* ptoken);
+	void createEmptyToken(long long index, TokenMap* ptoken);
 
-	RESERVE getTokenType(qint64& pos, RESERVE previous, QString& str, const QString raw) const;
+	RESERVE getTokenType(long long& pos, RESERVE previous, QString& str, const QString raw) const;
 
 	FTK getStringToken(QString& src, const QString& delim, QString& out) const;
 
-	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
+	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<long long, TokenMap>& stokenmaps);
 
-	void checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
+	void checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<long long, TokenMap>& stokenmaps);
 
-	void checkFunctionPairs(const QHash<qint64, TokenMap>& tokenmaps);
+	void checkFunctionPairs(const QHash<long long, TokenMap>& tokenmaps);
 
 	inline void clear()
 	{
@@ -301,7 +301,7 @@ private:
 	}
 
 private:
-	qint64 currentLine_ = 0ll;
+	long long currentLine_ = 0ll;
 
 	LuaNode luaNode_ = {};
 	bool beginLuaCode_ = false;
@@ -311,8 +311,8 @@ private:
 	QList<LuaNode> luaNodeList_;
 	QList<FunctionNode> functionNodeList_;
 	QList<ForNode> forNodeList_;
-	QHash<QString, qint64> labelList_;
-	QHash<qint64, TokenMap> tokens_;
+	QHash<QString, long long> labelList_;
+	QHash<long long, TokenMap> tokens_;
 
 #ifdef TEST_LEXER
 	sol::state lua_;

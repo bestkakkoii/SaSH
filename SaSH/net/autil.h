@@ -40,7 +40,7 @@ constexpr const char* DEFAULTFUNCEND = "#";
 class Autil : public Indexer
 {
 public:
-	explicit Autil(qint64 index);
+	explicit Autil(long long index);
 
 	void util_Init(void);
 	void util_Release(void);
@@ -48,7 +48,7 @@ public:
 	bool util_SplitMessage(const QByteArray& source, char separator);
 	void util_EncodeMessage(char* dst, size_t dstlen, char* src);
 	void util_DecodeMessage(QByteArray& dst, QByteArray src);
-	qint64 util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest = 23);
+	long long util_GetFunctionFromSlice(long long* func, long long* fieldcount, long long offest = 23);
 	void util_DiscardMessage(void);
 	void util_SendMesg(int func, char* buffer);
 
@@ -169,6 +169,6 @@ public:
 
 
 private:
-	QHash<qint64, QByteArray> msgSlice_ = {};
+	QHash<long long, QByteArray> msgSlice_ = {};
 	QMutex msgMutex_;
 };

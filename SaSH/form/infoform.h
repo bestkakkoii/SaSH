@@ -43,9 +43,9 @@ class InfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	InfoForm(qint64 index, qint64 defaultPage, QWidget* parent);
+	InfoForm(long long index, long long defaultPage, QWidget* parent);
 	virtual ~InfoForm();
-	void setCurrentPage(qint64 page);
+	void setCurrentPage(long long page);
 
 signals:
 	void resetControlTextLanguage();
@@ -68,4 +68,5 @@ private:
 	//MailInfoForm pMailInfoForm_;
 	//PetInfoForm pPetInfoForm_;
 	AfkInfoForm pAfkInfoForm_;
+	QTimer* timer = nullptr;
 };

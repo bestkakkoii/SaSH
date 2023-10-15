@@ -21,102 +21,102 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-qint64 CLuaPet::setState(qint64 petIndex, qint64 state, sol::this_state s)
+long long CLuaPet::setState(long long petIndex, long long state, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->setPetState(--petIndex, static_cast<PetState>(state));
+	injector.worker->setPetState(--petIndex, static_cast<PetState>(state));
 
 	return TRUE;
 }
 
-qint64 CLuaPet::drop(qint64 petIndex, sol::this_state s)
+long long CLuaPet::drop(long long petIndex, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->dropPet(--petIndex);
+	injector.worker->dropPet(--petIndex);
 
 	return TRUE;
 }
 
-qint64 CLuaPet::rename(qint64 petIndex, std::string name, sol::this_state s)
+long long CLuaPet::rename(long long petIndex, std::string name, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
 	QString qname = util::toQString(name);
 
-	injector.server->setPetFreeName(--petIndex, qname);
+	injector.worker->setPetFreeName(--petIndex, qname);
 
 	return TRUE;
 }
 
-qint64 CLuaPet::learn(qint64 fromSkillIndex, qint64 petIndex, qint64 toSkillIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
+long long CLuaPet::learn(long long fromSkillIndex, long long petIndex, long long toSkillIndex, long long unitid, long long dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->learn(--fromSkillIndex, --petIndex, --toSkillIndex, dialogid, unitid);
+	injector.worker->learn(--fromSkillIndex, --petIndex, --toSkillIndex, dialogid, unitid);
 
 	return TRUE;
 }
 
-qint64 CLuaPet::swap(qint64 petIndex, qint64 from, qint64 to, sol::this_state s)
+long long CLuaPet::swap(long long petIndex, long long from, long long to, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->petitemswap(--petIndex, --from, --to);
+	injector.worker->petitemswap(--petIndex, --from, --to);
 
 	return TRUE;
 }
 
-qint64 CLuaPet::deposit(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
+long long CLuaPet::deposit(long long petIndex, long long unitid, long long dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->depositPet(--petIndex, dialogid, unitid);
+	injector.worker->depositPet(--petIndex, dialogid, unitid);
 
 	return TRUE;
 }
 
-qint64 CLuaPet::withdraw(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
+long long CLuaPet::withdraw(long long petIndex, long long unitid, long long dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->withdrawPet(--petIndex, dialogid, unitid);
+	injector.worker->withdrawPet(--petIndex, dialogid, unitid);
 
 	return TRUE;
 }

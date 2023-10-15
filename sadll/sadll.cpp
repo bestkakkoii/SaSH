@@ -68,10 +68,10 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 			break;
 
 		auto PathFileExists = [](const wchar_t* name)->BOOL
-		{
-			DWORD dwAttrib = GetFileAttributesW(name);
-			return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-		};
+			{
+				DWORD dwAttrib = GetFileAttributesW(name);
+				return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+			};
 
 		// Check if dump directory exists
 		if (!PathFileExists(L"dump"))
@@ -299,7 +299,7 @@ int WSAAPI GameService::New_connect(SOCKET s, const struct sockaddr* name, int n
 			char ipStr[INET_ADDRSTRLEN] = {};
 			if (inet_ntop(AF_INET, &(sockaddr_ipv4->sin_addr), ipStr, sizeof(ipStr)) != nullptr)
 			{
-				uint16_t port = ntohs(sockaddr_ipv4->sin_port);
+				unsigned short port = ntohs(sockaddr_ipv4->sin_port);
 				std::cout << "IPv4 Address: " << ipStr << " Port: " << port << std::endl;
 			}
 		}
@@ -1214,10 +1214,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
 		struct InitialData
 		{
-			__int64 parentHWnd = 0i64;
-			__int64 index = 0i64;
-			__int64 port = 0i64;
-			__int64 type = 0i64;
+			long long parentHWnd = 0i64;
+			long long index = 0i64;
+			long long port = 0i64;
+			long long type = 0i64;
 		};
 
 		InitialData* pData = reinterpret_cast<InitialData*>(wParam);
@@ -1427,7 +1427,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 	return TRUE;
 }
 
-BOOL GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type, unsigned short port)
+BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short type, unsigned short port)
 {
 	if (isInitialized_.load(std::memory_order_acquire) == TRUE)
 		return FALSE;
@@ -1582,7 +1582,7 @@ BOOL GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type
 	if (nullptr == asyncClient_)
 	{
 		//與外掛連線
-		asyncClient_.reset(new AsyncClient(parentHwnd));
+		asyncClient_.reset(new AsyncClient(parentHwnd, index));
 		if (nullptr == asyncClient_)
 			return FALSE;
 

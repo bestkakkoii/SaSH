@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <injector.h>
 #include "script/interpreter.h"
 
-util::SafeHash<qint64, MainForm*> g_mainFormHash;
+util::SafeHash<long long, MainForm*> g_mainFormHash;
 
 void MainForm::createMenu(QMenuBar* pMenuBar)
 {
@@ -70,7 +70,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 	pMenuBar->clear();
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	using KeyType = qint64;
+	using KeyType = long long;
 #else
 	using KeyType = QKeyCombination;
 #endif
@@ -232,7 +232,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 #endif
 {
 	MSG* msg = static_cast<MSG*>(message);
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 
 	switch (msg->message)
 	{
@@ -246,9 +246,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case WM_KEYUP + WM_USER + VK_DELETE:
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.server.isNull())
+		if (!injector.worker.isNull())
 		{
-			injector.server->cleanChatHistory();
+			injector.worker->cleanChatHistory();
 			*result = 1;
 		}
 		return true;
@@ -256,29 +256,26 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case kSetMove:
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
-		if (injector.isValid() && !injector.server.isNull())
+		if (injector.isValid() && !injector.worker.isNull())
 		{
-			qint64 index = getIndex();
+			long long index = getIndex();
 			std::ignore = QtConcurrent::run([index]() {
 				Injector& injector = Injector::getInstance(index);
-				std::ignore = injector.server->getPoint();
+				std::ignore = injector.worker->getPoint();
 				});
 
 		}
 		*result = 1;
 		return true;
 	}
-	case kConnectionOK://TCP握手
-	{
-		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.server.isNull())
-		{
-			injector.server->IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
-			*result = 1;
-			qDebug() << "tcp ok";
-		}
-		return true;
-	}
+	//case kConnectionOK://TCP握手
+	//{
+	//	Injector& injector = Injector::getInstance(currentIndex);
+	//	injector.IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
+	//	*result = 1;
+	//	qDebug() << "tcp ok";
+	//	return true;
+	//}
 	case InterfaceMessage::kGetCurrentId:
 	{
 		*result = currentIndex;
@@ -288,7 +285,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kRunScript:
 	{
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		QSharedPointer<Interpreter> interpreter(QSharedPointer<Interpreter>::create(id));
 		if (interpreter.isNull())
 		{
@@ -328,7 +325,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kStopScript:
 	{
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		QSharedPointer<Interpreter> interpreter = interpreter_hash_.value(id, nullptr);
 		if (interpreter.isNull())
 		{
@@ -346,7 +343,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kRunFile:
 	{
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		{
@@ -385,7 +382,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kStopFile:
 	{
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		{
@@ -403,9 +400,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kRunGame:
 	{
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		if (!injector.server.isNull())
+		if (!injector.worker.isNull())
 		{
 			updateStatusText(tr("server already on"));
 			return true;
@@ -421,9 +418,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kCloseGame:
 	{
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		if (injector.server.isNull())
+		if (injector.worker.isNull())
 		{
 			updateStatusText(tr("server is off"));
 			return true;
@@ -440,14 +437,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		if (result == nullptr)
 			return true;
 
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		qint64 value = 0;
-		if (injector.server.isNull())
+		long long value = 0;
+		if (injector.worker.isNull())
 			return true;
 
 
-		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire);
+		bool ok = injector.IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire);
 		if (!ok)
 			return true;
 
@@ -455,11 +452,11 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			value = 1;
 
-			if (!injector.server->getOnlineFlag())
+			if (!injector.worker->getOnlineFlag())
 				value = 2;
 			else
 			{
-				if (!injector.server->getBattleFlag())
+				if (!injector.worker->getBattleFlag())
 					value = 3;
 				else
 					value = 4;
@@ -476,9 +473,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		if (result == nullptr)
 			return true;
 
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		qint64 value = 0;
+		long long value = 0;
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			value = 1;
 
@@ -489,9 +486,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kMultiFunction:
 	{
-		qint64 id = msg->wParam;
-		qint64 type = LOWORD(msg->lParam);
-		qint64 arg = HIWORD(msg->lParam);
+		long long id = msg->wParam;
+		long long type = LOWORD(msg->lParam);
+		long long arg = HIWORD(msg->lParam);
 		*result = 0;
 
 		switch (type)
@@ -651,7 +648,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			for (const QString& s : strlist)
 			{
 				bool ok = false;
-				qint64 nhwnd = s.simplified().toLongLong(&ok);
+				long long nhwnd = s.simplified().toLongLong(&ok);
 				if (!ok && nhwnd > 0)
 					continue;
 
@@ -718,7 +715,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			for (const QString& s : strlist)
 			{
 				bool ok = false;
-				qint64 nhwnd = s.simplified().toLongLong(&ok);
+				long long nhwnd = s.simplified().toLongLong(&ok);
 				if (!ok && nhwnd > 0)
 					continue;
 
@@ -780,14 +777,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kOpenNewWindow:
 	{
 		*result = 0;
-		quint64 preid = msg->wParam;
-		qint64 id = -1;
+		unsigned long long preid = msg->wParam;
+		long long id = -1;
 		if (preid < SASH_MAX_THREAD)
 		{
 			id = preid;
 		}
 
-		qint64* pId = reinterpret_cast<qint64*>(msg->lParam);
+		long long* pId = reinterpret_cast<long long*>(msg->lParam);
 		MainForm* p = MainForm::createNewWindow(id, pId);
 		if (p == nullptr)
 		{
@@ -804,9 +801,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kGetGamePid:
 	{
 		*result = 0;
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		if (injector.server.isNull())
+		if (injector.worker.isNull())
 		{
 			updateStatusText(tr("server is off"));
 			return true;
@@ -821,9 +818,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kGetGameHwnd:
 	{
 		*result = 0;
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		if (injector.server.isNull())
+		if (injector.worker.isNull())
 		{
 			updateStatusText(tr("server is off"));
 			return true;
@@ -831,14 +828,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 		++interfaceCount_;
 		updateStatusText();
-		*result = reinterpret_cast<qint64>(injector.getProcessWindow());
+		*result = reinterpret_cast<long long>(injector.getProcessWindow());
 		return true;
 	}
 	case InterfaceMessage::kLoadSettings:
 	{
 		*result = 0;
-		qint64 id = msg->wParam;
-		qint64 pathptr = msg->lParam;
+		long long id = msg->wParam;
+		long long pathptr = msg->lParam;
 		if (pathptr == 0)
 		{
 			updateStatusText(tr("invalid lparam"));
@@ -883,7 +880,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kSetAutoLogin:
 	{
 		*result = 0;
-		qint64 id = msg->wParam;
+		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 		do
@@ -903,9 +900,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			qint64 server = pLoginInfo->server;
-			qint64 subserver = pLoginInfo->subserver;
-			qint64 position = pLoginInfo->position;
+			long long server = pLoginInfo->server;
+			long long subserver = pLoginInfo->subserver;
+			long long position = pLoginInfo->position;
 			QString username = util::toQString(pLoginInfo->username);
 			QString password = util::toQString(pLoginInfo->password);
 
@@ -959,22 +956,6 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	return false;
 }
 
-//void MainForm::paintEvent(QPaintEvent* e)
-//{
-//	Injector& injector = Injector::getInstance(currentIndex);
-//	HWND hWnd = injector.getProcessWindow();
-//	if (hWnd != nullptr)
-//	{
-//		//movewindow to refresh
-//		RECT rect;
-//		GetWindowRect(hWnd, &rect);
-//		MoveWindow(hWnd, 0, 0, rect.right - rect.left, rect.bottom - rect.top, TRUE);
-//	}
-//
-//
-//	QMainWindow::paintEvent(e);
-//}
-
 //窗口移動事件
 void MainForm::moveEvent(QMoveEvent* e)
 {
@@ -985,7 +966,7 @@ void MainForm::moveEvent(QMoveEvent* e)
 
 
 		QPoint pos = e->pos();
-		qint64 currentIndex = getIndex();
+		long long currentIndex = getIndex();
 		Injector& injector = Injector::getInstance(currentIndex);
 		HWND hWnd = injector.getProcessWindow();
 		if (hWnd == nullptr)
@@ -1029,11 +1010,11 @@ void MainForm::updateStatusText(const QString text)
 	ui.groupBox_basicinfo->setTitle(msg);
 }
 
-MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
+MainForm* MainForm::createNewWindow(long long idToAllocate, long long* pId)
 {
 	do
 	{
-		qint64 uniqueId = UniqueIdManager::getInstance().allocateUniqueId(idToAllocate);
+		long long uniqueId = UniqueIdManager::getInstance().allocateUniqueId(idToAllocate);
 		if (uniqueId < 0)
 			break;
 
@@ -1057,21 +1038,32 @@ MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 		if (pMainForm == nullptr)
 			break;
 
-		emit pMainForm->resetControlTextLanguage();
-
 		pMainForm->show();
 
 		g_mainFormHash.insert(uniqueId, pMainForm);
 
 		if (pId != nullptr)
 			*pId = pMainForm->getIndex();
+
+		std::ignore = QtConcurrent::run([uniqueId]()
+			{
+				QThread::msleep(2000);
+				QStringList paths;
+				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(uniqueId);
+				util::searchFiles(util::applicationDirPath(), "default", ".json", &paths, false);
+				if (!paths.isEmpty())
+					emit signalDispatcher.loadHashSettings(paths.front(), true);
+				else
+					emit signalDispatcher.saveHashSettings(util::applicationDirPath() + "/settings/default.json", true);
+			});
+
 		return pMainForm;
 	} while (false);
 
 	return nullptr;
 }
 
-MainForm::MainForm(qint64 index, QWidget* parent)
+MainForm::MainForm(long long index, QWidget* parent)
 	: QMainWindow(parent)
 	, Indexer(index)
 	, pGeneralForm_(index, nullptr)
@@ -1150,21 +1142,16 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 
 	ui.tabWidget_main->addTab(&pScriptForm_, tr("script"));
 
-	ui.progressBar_pchp->setName(tr("char"));
-	ui.progressBar_pcmp->setName(tr(""));
-	ui.progressBar_pethp->setName(tr("pet"));
-	ui.progressBar_ridehp->setName(tr("ride"));
-	ui.progressBar_pchp->onCurrentValueChanged(255, 9999, 9999);
-	ui.progressBar_pcmp->onCurrentValueChanged(255, 9999, 9999);
-	ui.progressBar_pethp->onCurrentValueChanged(255, 9999, 9999);
-	ui.progressBar_ridehp->onCurrentValueChanged(255, 9999, 9999);
+	util::setTab(ui.tabWidget_main);
 
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
 
+
 	onUpdateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 
-	onLoadHashSettings(util::applicationDirPath() + "/settings/default.json", true);
+	onResetControlTextLanguage();
+
 }
 
 MainForm::~MainForm()
@@ -1278,7 +1265,7 @@ void MainForm::onMenuActionTriggered()
 	if (actionName.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 
 	//system
 	if (actionName == "actionHide")
@@ -1417,8 +1404,8 @@ void MainForm::onMenuActionTriggered()
 	{
 		QString fileName;
 		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.server.isNull())
-			fileName = injector.server->getPC().name;
+		if (!injector.worker.isNull())
+			fileName = injector.worker->getPC().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.saveHashSettings(fileName);
 		return;
@@ -1428,8 +1415,8 @@ void MainForm::onMenuActionTriggered()
 	{
 		QString fileName;
 		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.server.isNull())
-			fileName = injector.server->getPC().name;
+		if (!injector.worker.isNull())
+			fileName = injector.worker->getPC().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.loadHashSettings(fileName);
 		return;
@@ -1440,7 +1427,7 @@ void MainForm::onMenuActionTriggered()
 		QString current;
 		QString result;
 		QString formatedDiff;
-		qint64 ret;
+		long long ret;
 
 		bool bret = Downloader::checkUpdate(&current, &result, &formatedDiff);
 		QString detail = tr("Current version:%1\nNew version:%2").arg(current).arg(result);
@@ -1466,9 +1453,6 @@ void MainForm::onMenuActionTriggered()
 		}
 
 		qDebug() << "ret:" << ret;
-		std::wstring sret = std::to_wstring(ret);
-		MessageBoxW(nullptr, sret.c_str(), L"ret", MB_OK);
-
 		if (ret == 1)
 			return;
 
@@ -1482,7 +1466,7 @@ bool MainForm::onResetControlTextLanguage()
 {
 	this->ui.retranslateUi(this);
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	QString buildTime = compile::buildDateTime(nullptr);
 	//take off year
 	buildTime = buildTime.mid(4);
@@ -1509,6 +1493,11 @@ bool MainForm::onResetControlTextLanguage()
 	ui.tabWidget_main->setTabText(3, tr("script"));
 	//ui.tabWidget_main->setTabText(4, "lua");
 
+	ui.progressBar_pchp->onCurrentValueChanged(255, 9999, 9999);
+	ui.progressBar_pcmp->onCurrentValueChanged(255, 9999, 9999);
+	ui.progressBar_pethp->onCurrentValueChanged(255, 9999, 9999);
+	ui.progressBar_ridehp->onCurrentValueChanged(255, 9999, 9999);
+
 
 	emit pGeneralForm_.resetControlTextLanguage();
 
@@ -1519,7 +1508,7 @@ bool MainForm::onResetControlTextLanguage()
 	return true;
 }
 
-void MainForm::onUpdateStatusLabelTextChanged(qint64 status)
+void MainForm::onUpdateStatusLabelTextChanged(long long status)
 {
 	const QHash<util::UserStatus, QString> hash = {
 		{ util::kLabelStatusNotUsed, tr("unknown") },
@@ -1547,7 +1536,7 @@ void MainForm::onUpdateStatusLabelTextChanged(qint64 status)
 	};
 
 	Injector& injector = Injector::getInstance(getIndex());
-	ui.label_status->setText((injector.IS_SCRIPT_FLAG ? QString("[" + tr("script running") + "]") : "") + hash.value(static_cast<util::UserStatus>(status), tr("unknown")));
+	ui.label_status->setText(hash.value(static_cast<util::UserStatus>(status), tr("unknown")));
 }
 
 void MainForm::onUpdateMapLabelTextChanged(const QString& text)
@@ -1570,14 +1559,14 @@ void MainForm::onUpdateTimeLabelTextChanged(const QString& text)
 	ui.label_time->setText(text);
 }
 
-void MainForm::onUpdateStonePosLabelTextChanged(qint64 ntext)
+void MainForm::onUpdateStonePosLabelTextChanged(long long ntext)
 {
 	ui.label_stone->setText(util::toQString(ntext));
 }
 
 void MainForm::onUpdateMainFormTitle(const QString& text)
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 #ifdef _WIN64
 	setWindowTitle(QString("[%1]SaSH-%2").arg(currentIndex).arg(text).simplified().replace("SaSH-", "SaSHx64-"));
 #else
@@ -1621,10 +1610,10 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 			return;
 	}
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, long long> valueHash = injector.getValuesHash();
 	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 	QString key;
 	util::UserSetting hkey = util::kSettingNotUsed;
@@ -1643,7 +1632,7 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 	for (auto iter = valueHash.constBegin(); iter != valueHash.constEnd(); ++iter)
 	{
 		hkey = iter.key();
-		qint64 hvalue = iter.value();
+		long long hvalue = iter.value();
 		key = jsonKeyHash.value(hkey, "Invalid");
 		if (key.endsWith("Value"))
 			config.write("User", "Value", key, hvalue);
@@ -1698,11 +1687,11 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 	if (!QFile::exists(fileName))
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 
 	Injector& injector = Injector::getInstance(currentIndex);
 	QHash<util::UserSetting, bool> enableHash;
-	QHash<util::UserSetting, qint64> valueHash;
+	QHash<util::UserSetting, long long> valueHash;
 	QHash<util::UserSetting, QString> stringHash;
 	QString key;
 	util::UserSetting hkey = util::kSettingNotUsed;
@@ -1725,7 +1714,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 			key = iter.value();
 			if (!key.endsWith("Value"))
 				continue;
-			qint64 value = config.read<qint64>("User", "Value", key);
+			long long value = config.read<long long>("User", "Value", key);
 			hkey = iter.key();
 			valueHash.insert(hkey, value);
 		}
@@ -1750,7 +1739,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 }
 
 //消息框
-void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title, qint64* pnret, QString topText, QString detail, void* p)
+void MainForm::onMessageBoxShow(const QString& text, long long type, QString title, long long* pnret, QString topText, QString detail, void* p)
 {
 	QEventLoop* pEventLoop = nullptr;
 	if (p != nullptr)
@@ -1830,7 +1819,7 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 	msgBox->addButton(tr("no"), QMessageBox::ButtonRole::NoRole);
 #endif
 
-	qint64 ret = msgBox->exec();
+	long long ret = msgBox->exec();
 	if (ret == QDialog::Rejected)
 		return;
 
@@ -1839,7 +1828,7 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 }
 
 //输入框
-void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retvalue, void* p)
+void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* retvalue, void* p)
 {
 	if (retvalue == nullptr)
 		return;
@@ -1902,10 +1891,10 @@ void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retval
 	switch (type)
 	{
 	case QInputDialog::IntInput:
-		*retvalue = static_cast<qint64>(inputDialog->intValue());
+		*retvalue = static_cast<long long>(inputDialog->intValue());
 		break;
 	case QInputDialog::DoubleInput:
-		*retvalue = static_cast<qint64>(inputDialog->doubleValue());
+		*retvalue = static_cast<long long>(inputDialog->doubleValue());
 		break;
 	case QInputDialog::TextInput:
 		*retvalue = inputDialog->textValue();
@@ -1914,9 +1903,9 @@ void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retval
 }
 
 //腳本日誌
-void MainForm::onAppendScriptLog(const QString& text, qint64 color)
+void MainForm::onAppendScriptLog(const QString& text, long long color)
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	injector.scriptLogModel.append(text, color);
@@ -1924,9 +1913,9 @@ void MainForm::onAppendScriptLog(const QString& text, qint64 color)
 }
 
 //對話日誌
-void MainForm::onAppendChatLog(const QString& text, qint64 color)
+void MainForm::onAppendChatLog(const QString& text, long long color)
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	injector.chatLogModel.append(text, color);

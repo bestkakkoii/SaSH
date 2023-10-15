@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <util.h>
 #include <injector.h>
 
-SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWidget* parent)
+SelectTargetForm::SelectTargetForm(long long index, long long type, QString* dst, QWidget* parent)
 	: QDialog(parent)
 	, Indexer(index)
 	, type_(type)
@@ -46,7 +46,7 @@ SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWid
 	}
 
 	Injector& injector = Injector::getInstance(index);
-	selectflag_ = static_cast<quint64>(injector.getValueHash(static_cast<util::UserSetting>(type)));
+	selectflag_ = static_cast<unsigned long long>(injector.getValueHash(static_cast<util::UserSetting>(type)));
 	checkControls();
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
@@ -55,7 +55,7 @@ SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWid
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
 
-	const QHash<qint64, QString> title_hash = {
+	const QHash<long long, QString> title_hash = {
 		//afk->battle button
 		{ util::kBattleCharRoundActionTargetValue, tr("player specific round action") },
 		{ util::kBattleCharCrossActionTargetValue, tr("Char alternating round action") },
@@ -96,7 +96,7 @@ void SelectTargetForm::onAccept()
 	if (dst_)
 	{
 		*dst_ = generateShortName(selectflag_);
-		qint64 currentIndex = getIndex();
+		long long currentIndex = getIndex();
 		Injector& injector = Injector::getInstance(currentIndex);
 		injector.setValueHash(static_cast<util::UserSetting>(type_), selectflag_);
 	}
@@ -125,7 +125,7 @@ void SelectTargetForm::checkControls()
 	ui.checkBox_teammate4_pet->setChecked(selectflag_ & util::kSelectTeammate4Pet);
 }
 
-void SelectTargetForm::onCheckBoxStateChanged(qint64 state)
+void SelectTargetForm::onCheckBoxStateChanged(long long state)
 {
 	QCheckBox* pCheckBox = qobject_cast<QCheckBox*>(sender());
 	if (!pCheckBox)
@@ -137,7 +137,7 @@ void SelectTargetForm::onCheckBoxStateChanged(qint64 state)
 	if (name.isEmpty())
 		return;
 
-	quint64 tempFlg = 0u;
+	unsigned long long tempFlg = 0u;
 
 	if (name == "checkBox_self")
 	{
@@ -223,7 +223,7 @@ void SelectTargetForm::onCheckBoxStateChanged(qint64 state)
 	}
 }
 
-QString SelectTargetForm::generateShortName(quint64 flg)
+QString SelectTargetForm::generateShortName(unsigned long long flg)
 {
 	QString shortName;
 	if (flg & util::kSelectSelf)
@@ -304,7 +304,7 @@ QString SelectTargetForm::generateShortName(quint64 flg)
 
 void SelectTargetForm::onUpdateTeamInfo(const QStringList& strList)
 {
-	for (qint64 i = 0; i <= MAX_PARTY; ++i)
+	for (long long i = 0; i <= MAX_PARTY; ++i)
 	{
 		QString objName = QString("checkBox_teammate%1").arg(i);
 		QCheckBox* label = ui.groupBox->findChild<QCheckBox*>(objName);

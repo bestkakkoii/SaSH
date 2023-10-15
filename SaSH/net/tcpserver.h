@@ -30,175 +30,40 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "lssproto.h"
 #include "map/mapanalyzer.h"
 
-static const QHash<QString, BUTTON_TYPE> buttonMap = {
-	{"OK", BUTTON_OK},
-	{"CANCEL", BUTTON_CANCEL},
-	{"YES", BUTTON_YES},
-	{"NO", BUTTON_NO},
-	{"PREVIOUS", BUTTON_PREVIOUS},
-	{"NEXT", BUTTON_NEXT},
-	{"AUTO", BUTTON_AUTO},
-	{"CLOSE", BUTTON_CLOSE },
-
-	//big5
-	{"確認", BUTTON_YES},
-	{"確定", BUTTON_YES},
-	{"取消", BUTTON_NO},
-	{"好", BUTTON_YES},
-	{"不好", BUTTON_NO},
-	{"可以", BUTTON_YES},
-	{"不可以", BUTTON_NO},
-	{"上一頁", BUTTON_PREVIOUS},
-	{"上一步", BUTTON_PREVIOUS},
-	{"下一頁", BUTTON_NEXT},
-	{"下一步", BUTTON_NEXT},
-	{"買", BUTTON_BUY},
-	{"賣", BUTTON_SELL},
-	{"出去", BUTTON_OUT},
-	{"回上一頁", BUTTON_BACK},
-	{ "關閉", BUTTON_CLOSE },
-
-	//gb2312
-	{"确认", BUTTON_YES},
-	{"确定", BUTTON_YES},
-	{"取消", BUTTON_NO},
-	{"好", BUTTON_YES},
-	{"不好", BUTTON_NO},
-	{"可以", BUTTON_YES},
-	{"不可以", BUTTON_NO},
-	{"上一页", BUTTON_PREVIOUS},
-	{"上一步", BUTTON_PREVIOUS},
-	{"下一页", BUTTON_NEXT},
-	{"下一步", BUTTON_NEXT},
-	{"买", BUTTON_BUY},
-	{"卖", BUTTON_SELL},
-	{"出去", BUTTON_OUT},
-	{"回上一页", BUTTON_BACK},
-	{ "关闭", BUTTON_CLOSE },
-};
-
-static const QHash<QString, PetState> petStateMap = {
-	{ "戰鬥", kBattle },
-	{ "等待", kStandby },
-	{ "郵件", kMail },
-	{ "休息", kRest },
-	{ "騎乘", kRide },
-
-	{ "战斗", kBattle },
-	{ "等待", kStandby },
-	{ "邮件", kMail },
-	{ "休息", kRest },
-	{ "骑乘", kRide },
-
-	{ "battle", kBattle },
-	{ "standby", kStandby },
-	{ "mail", kMail },
-	{ "rest", kRest },
-	{ "ride", kRide },
-};
-
-static const QHash<QString, DirType> dirMap = {
-	{ "北", kDirNorth },
-	{ "東北", kDirNorthEast },
-	{ "東", kDirEast },
-	{ "東南", kDirSouthEast },
-	{ "南", kDirSouth },
-	{ "西南", kDirSouthWest },
-	{ "西", kDirWest },
-	{ "西北", kDirNorthWest },
-
-	{ "北", kDirNorth },
-	{ "东北", kDirNorthEast },
-	{ "东", kDirEast },
-	{ "东南", kDirSouthEast },
-	{ "南", kDirSouth },
-	{ "西南", kDirSouthWest },
-	{ "西", kDirWest },
-	{ "西北", kDirNorthWest },
-
-	{ "A", kDirNorth },
-	{ "B", kDirNorthEast },
-	{ "C", kDirEast },
-	{ "D", kDirSouthEast },
-	{ "E", kDirSouth },
-	{ "F", kDirSouthWest },
-	{ "G", kDirWest },
-	{ "H", kDirNorthWest },
-};
-
-static const QHash<QString, CHAR_EquipPlace> equipMap = {
-	{ "頭", CHAR_HEAD },
-	{ "身體", CHAR_BODY },
-	{ "右手", CHAR_ARM },
-	{ "左飾", CHAR_DECORATION1 },
-	{ "右飾", CHAR_DECORATION2 },
-	{ "腰帶", CHAR_EQBELT },
-	{ "左手", CHAR_EQSHIELD },
-	{ "鞋子", CHAR_EQSHOES },
-	{ "手套", CHAR_EQGLOVE },
-
-	{ "头", CHAR_HEAD },
-	{ "身体", CHAR_BODY },
-	{ "右手", CHAR_ARM },
-	{ "左饰", CHAR_DECORATION1 },
-	{ "右饰", CHAR_DECORATION2 },
-	{ "腰带", CHAR_EQBELT },
-	{ "左手", CHAR_EQSHIELD },
-	{ "鞋子", CHAR_EQSHOES },
-	{ "手套", CHAR_EQGLOVE },
-
-	{ "head", CHAR_HEAD },
-	{ "body", CHAR_BODY },
-	{ "right", CHAR_ARM },
-	{ "las", CHAR_DECORATION1 },
-	{ "ras", CHAR_DECORATION2 },
-	{ "belt", CHAR_EQBELT },
-	{ "left", CHAR_EQSHIELD },
-	{ "shoe", CHAR_EQSHOES },
-	{ "glove", CHAR_EQGLOVE },
-};
-
-static const QHash<QString, CHAR_EquipPlace> petEquipMap = {
-	{ "頭", PET_HEAD },
-	{ "翼", PET_WING },
-	{ "牙", PET_TOOTH },
-	{ "身體", PET_PLATE },
-	{ "背", PET_BACK },
-	{ "爪", PET_CLAW },
-	{ "腳", PET_FOOT },
-
-	{ "头", PET_HEAD },
-	{ "翼", PET_WING },
-	{ "牙", PET_TOOTH },
-	{ "身体", PET_PLATE },
-	{ "背", PET_BACK },
-	{ "爪", PET_CLAW },
-	{ "脚", PET_FOOT },
-
-	{ "head", PET_HEAD },
-	{ "wing", PET_WING },
-	{ "tooth", PET_TOOTH },
-	{ "body", PET_PLATE },
-	{ "back", PET_BACK },
-	{ "claw", PET_CLAW },
-	{ "foot", PET_FOOT },
-};
-
-enum BufferControl
-{
-	BC_NONE,
-	BC_NEED_TO_CLEAN,
-	BC_HAS_NEXT,
-	BC_ABOUT_TO_END,
-	BC_INVALID,
-};
-
-class MapAnalyzer;
-class Server : public ThreadPlugin, public Lssproto
+class Socket : public QTcpSocket
 {
 	Q_OBJECT
+
 public:
-	QHash<qint64, QString> g_dirStrHash = {
+	Socket(qintptr socketDescriptor, QObject* parent = nullptr);
+
+	virtual ~Socket();
+
+	QThread thread;
+
+signals:
+	void read(const QByteArray& badata);
+
+private slots:
+	void onReadyRead();
+	void onWrite(QByteArray ba, long long size);
+
+private:
+	long long index_ = -1;
+	bool init = false;
+};
+
+class Worker : public ThreadPlugin, public Lssproto
+{
+	Q_OBJECT
+
+public:
+	Worker(long long index, Socket* socket, QObject* parent);
+
+	virtual ~Worker();
+
+private:
+	QHash<long long, QString> g_dirStrHash = {
 		{ 0, QObject::tr("North") },
 		{ 1, QObject::tr("ENorth") },
 		{ 2, QObject::tr("East") },
@@ -209,52 +74,41 @@ public:
 		{ 7, QObject::tr("WNorth") },
 	};
 
-	explicit Server(qint64 index, QObject* parent);
-
-	virtual ~Server();
-
-	Q_REQUIRED_RESULT inline bool isListening() const { return  server_ != nullptr && server_->isListening(); }
-
-	Q_REQUIRED_RESULT inline bool hasClientExist() const { return  server_ != nullptr && !clientSockets_.isEmpty(); }
-
-	bool start(QObject* parent);
-
-	Q_REQUIRED_RESULT inline unsigned short getPort() const { return port_.load(std::memory_order_acquire); }
 
 signals:
-	void write(QTcpSocket* clientSocket, QByteArray ba, qint64 size);
+	void write(QByteArray ba, long long size = 0);
 
-private slots:
-	void onWrite(QTcpSocket* clientSocket, QByteArray ba, qint64 size);
-	void onNewConnection();
-	void onClientReadyRead();
+public slots:
+	void onClientReadyRead(const QByteArray& badata);
 
 private:
-	qint64 dispatchMessage(const QByteArray& encoded);
+	long long dispatchMessage(const QByteArray& encoded);
 
 	bool handleCustomMessage(const QByteArray& data);
 
 	Q_INVOKABLE void handleData(QByteArray data);
 
 public://actions
-	Q_REQUIRED_RESULT qint64 getWorldStatus();
+	QString battleStringFormat(const battleobject_t& obj, QString formatStr);
 
-	Q_REQUIRED_RESULT qint64 getGameStatus();
+	Q_REQUIRED_RESULT long long getWorldStatus();
 
-	Q_REQUIRED_RESULT bool checkWG(qint64  w, qint64 g);
+	Q_REQUIRED_RESULT long long getGameStatus();
 
-	Q_REQUIRED_RESULT qint64 getUnloginStatus();
-	void setWorldStatus(qint64 w);
-	void setGameStatus(qint64 g);
+	Q_REQUIRED_RESULT bool checkWG(long long  w, long long g);
 
-	bool login(qint64 s);
+	Q_REQUIRED_RESULT long long getUnloginStatus();
+	void setWorldStatus(long long w);
+	void setGameStatus(long long g);
+
+	bool login(long long s);
 
 	void clientLogin(const QString& userName, const QString& password);
-	void playerLogin(qint64 index);
+	void playerLogin(long long index);
 
-	QString getBadStatusString(qint64 status);
+	QString getBadStatusString(long long status);
 
-	QString getFieldString(qint64 field);
+	QString getFieldString(long long field);
 
 	void unlockSecurityCode(const QString& code);
 
@@ -268,93 +122,93 @@ public://actions
 
 	void move(const QPoint& p);
 
-	void announce(const QString& msg, qint64 color = 4);
+	void announce(const QString& msg, long long color = 4);
 
-	void createCharacter(qint64 dataplacenum
+	void createCharacter(long long dataplacenum
 		, const QString& charname
-		, qint64 imgno
-		, qint64 faceimgno
-		, qint64 vit
-		, qint64 str
-		, qint64 tgh
-		, qint64 dex
-		, qint64 earth
-		, qint64 water
-		, qint64 fire
-		, qint64 wind
-		, qint64 hometown
+		, long long imgno
+		, long long faceimgno
+		, long long vit
+		, long long str
+		, long long tgh
+		, long long dex
+		, long long earth
+		, long long water
+		, long long fire
+		, long long wind
+		, long long hometown
 		, bool forcecover);
 
-	void deleteCharacter(qint64 index, const QString securityCode, bool backtofirst = false);
+	void deleteCharacter(long long index, const QString securityCode, bool backtofirst = false);
 
-	void talk(const QString& text, qint64 color = 0, TalkMode mode = kTalkNormal);
-	void inputtext(const QString& text, qint64 dialogid = -1, qint64 npcid = -1);
+	void talk(const QString& text, long long color = 0, TalkMode mode = kTalkNormal);
+	void inputtext(const QString& text, long long dialogid = -1, long long npcid = -1);
 
-	void windowPacket(const QString& command, qint64 dialogid, qint64 npcid);
+	void windowPacket(const QString& command, long long dialogid, long long npcid);
 
 	void EO();
 
-	void dropItem(qint64 index);
-	void dropItem(QVector<qint64> index);
+	void dropItem(long long index);
+	void dropItem(QVector<long long> index);
 
-	void useItem(qint64 itemIndex, qint64 target);
+	void useItem(long long itemIndex, long long target);
 
 
-	void swapItem(qint64 from, qint64 to);
+	void swapItem(long long from, long long to);
 
-	void petitemswap(qint64 petIndex, qint64 from, qint64 to);
+	void petitemswap(long long petIndex, long long from, long long to);
 
-	void useMagic(qint64 magicIndex, qint64 target);
+	void useMagic(long long magicIndex, long long target);
 
-	void dropPet(qint64 petIndex);
+	void dropPet(long long petIndex);
 
-	void setSwitcher(qint64 flg, bool enable);
+	void setSwitcher(long long flg, bool enable);
 
-	void setSwitcher(qint64 flg);
+	void setSwitcher(long long flg);
 
-	void press(BUTTON_TYPE select, qint64 dialogid = -1, qint64 unitid = -1);
-	void press(qint64 row, qint64 dialogid = -1, qint64 unitid = -1);
+	void press(BUTTON_TYPE select, long long dialogid = -1, long long unitid = -1);
+	void press(long long row, long long dialogid = -1, long long unitid = -1);
 
-	void buy(qint64 index, qint64 amt, qint64 dialogid = -1, qint64 unitid = -1);
-	void sell(const QVector<qint64>& indexs, qint64 dialogid = -1, qint64 unitid = -1);
-	void sell(qint64 index, qint64 dialogid = -1, qint64 unitid = -1);
-	void sell(const QString& name, const QString& memo = "", qint64 dialogid = -1, qint64 unitid = -1);
-	void learn(qint64 skillIndex, qint64 petIndex, qint64 spot, qint64 dialogid = -1, qint64 unitid = -1);
+	void buy(long long index, long long amt, long long dialogid = -1, long long unitid = -1);
+	void sell(const QVector<long long>& indexs, long long dialogid = -1, long long unitid = -1);
+	void sell(long long index, long long dialogid = -1, long long unitid = -1);
+	void sell(const QString& name, const QString& memo = "", long long dialogid = -1, long long unitid = -1);
+	void learn(long long skillIndex, long long petIndex, long long spot, long long dialogid = -1, long long unitid = -1);
 
 	void craft(util::CraftType type, const QStringList& ingres);
 
-	void createRemoteDialog(quint64 type, quint64 button, const QString& text);
+	void createRemoteDialog(unsigned long long type, unsigned long long button, const QString& text);
 
-	void mail(const QVariant& card, const QString& text, qint64 petIndex, const QString& itemName, const QString& itemMemo);
+	void mail(const QVariant& card, const QString& text, long long petIndex, const QString& itemName, const QString& itemMemo);
 
 	void warp();
 
-	void shopOk(qint64 n);
-	void saMenu(qint64 n);
+	void shopOk(long long n);
+	void saMenu(long long n);
 
-	bool addPoint(qint64 skillid, qint64 amt);
+	bool addPoint(long long skillid, long long amt);
 
-	void pickItem(qint64 dir);
+	void pickItem(long long dir);
 
-	void dropGold(qint64 gold);
+	void dropGold(long long gold);
 
-	void depositGold(qint64 gold, bool isPublic);
-	void withdrawGold(qint64 gold, bool isPublic);
+	void depositGold(long long gold, bool isPublic);
+	void withdrawGold(long long gold, bool isPublic);
 
-	void depositPet(qint64 petIndex, qint64 dialogid = -1, qint64 unitid = -1);
-	void withdrawPet(qint64 petIndex, qint64 dialogid = -1, qint64 unitid = -1);
+	void depositPet(long long petIndex, long long dialogid = -1, long long unitid = -1);
+	void withdrawPet(long long petIndex, long long dialogid = -1, long long unitid = -1);
 
-	void depositItem(qint64 index, qint64 dialogid = -1, qint64 unitid = -1);
-	void withdrawItem(qint64 itemIndex, qint64 dialogid = -1, qint64 unitid = -1);
+	void depositItem(long long index, long long dialogid = -1, long long unitid = -1);
+	void withdrawItem(long long itemIndex, long long dialogid = -1, long long unitid = -1);
 
 	bool captchaOCR(QString* pmsg);
 
 	void setAllPetState();
-	void setPetState(qint64 petIndex, PetState state);
-	void setFightPet(qint64 petIndex);
-	void setRidePet(qint64 petIndex);
-	void setPetStateSub(qint64 petIndex, qint64 state);
-	void setPetStandby(qint64 petIndex, qint64 state);
+	void setPetState(long long petIndex, PetState state);
+	void setFightPet(long long petIndex);
+	void setRidePet(long long petIndex);
+	void setPetStateSub(long long petIndex, long long state);
+	void setPetStandby(long long petIndex, long long state);
 
 	void updateItemByMemory();
 	void updateDatasFromMemory();
@@ -362,101 +216,101 @@ public://actions
 	void doBattleWork(bool waitforBA);
 	void asyncBattleAction(bool waitforBA);
 
-	void downloadMap(qint64 floor = -1);
-	void downloadMap(qint64 x, qint64 y, qint64 floor = -1);
+	void downloadMap(long long floor = -1);
+	void downloadMap(long long x, long long y, long long floor = -1);
 
-	bool tradeStart(const QString& name, qint64 timeout);
+	bool tradeStart(const QString& name, long long timeout);
 	void tradeComfirm(const QString& name);
 	void tradeCancel();
-	void tradeAppendItems(const QString& name, const QVector<qint64>& itemIndexs);
-	void tradeAppendGold(const QString& name, qint64 gold);
-	void tradeAppendPets(const QString& name, const QVector<qint64>& petIndex);
+	void tradeAppendItems(const QString& name, const QVector<long long>& itemIndexs);
+	void tradeAppendGold(const QString& name, long long gold);
+	void tradeAppendPets(const QString& name, const QVector<long long>& petIndex);
 	void tradeComplete(const QString& name);
 
 	void cleanChatHistory();
-	Q_REQUIRED_RESULT QString getChatHistory(qint64 index);
+	Q_REQUIRED_RESULT QString getChatHistory(long long index);
 
-	bool findUnit(const QString& name, qint64 type, mapunit_t* unit, const QString& freeName = "", qint64 modelid = -1);
+	bool findUnit(const QString& name, long long type, mapunit_t* unit, const QString& freeName = "", long long modelid = -1);
 
 	Q_REQUIRED_RESULT QString getGround();
 
 	void setTeamState(bool join);
-	void kickteam(qint64 n);
+	void kickteam(long long n);
 
-	qint64 setCharFaceToPoint(const QPoint& pos);
-	void setCharFaceDirection(qint64 dir);
+	long long setCharFaceToPoint(const QPoint& pos);
+	void setCharFaceDirection(long long dir);
 	void setCharFaceDirection(const QString& dirStr);
 
-	Q_REQUIRED_RESULT qint64 getPartySize() const;
+	Q_REQUIRED_RESULT long long getPartySize() const;
 	Q_REQUIRED_RESULT QStringList getJoinableUnitList() const;
-	Q_REQUIRED_RESULT bool getItemIndexsByName(const QString& name, const QString& memo, QVector<qint64>* pv, qint64 from = 0, qint64 to = MAX_ITEM);
-	Q_REQUIRED_RESULT qint64 getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", qint64 from = 0, qint64 to = MAX_ITEM);
-	Q_REQUIRED_RESULT qint64 getPetSkillIndexByName(qint64& petIndex, const QString& name) const;
-	Q_REQUIRED_RESULT qint64 getSkillIndexByName(const QString& name) const;
-	Q_REQUIRED_RESULT bool getPetIndexsByName(const QString& name, QVector<qint64>* pv) const;
-	Q_REQUIRED_RESULT qint64 getMagicIndexByName(const QString& name, bool isExact = true) const;
-	Q_REQUIRED_RESULT qint64 getItemEmptySpotIndex();
-	bool getItemEmptySpotIndexs(QVector<qint64>* pv);
+	Q_REQUIRED_RESULT bool getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv, long long from = 0, long long to = MAX_ITEM);
+	Q_REQUIRED_RESULT long long getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", long long from = 0, long long to = MAX_ITEM);
+	Q_REQUIRED_RESULT long long getPetSkillIndexByName(long long& petIndex, const QString& name) const;
+	Q_REQUIRED_RESULT long long getSkillIndexByName(const QString& name) const;
+	Q_REQUIRED_RESULT bool getPetIndexsByName(const QString& name, QVector<long long>* pv) const;
+	Q_REQUIRED_RESULT long long getMagicIndexByName(const QString& name, bool isExact = true) const;
+	Q_REQUIRED_RESULT long long getItemEmptySpotIndex();
+	bool getItemEmptySpotIndexs(QVector<long long>* pv);
 	void clear();
 
-	Q_REQUIRED_RESULT bool checkCharMp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
-	Q_REQUIRED_RESULT bool checkCharHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
-	Q_REQUIRED_RESULT bool checkRideHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
-	Q_REQUIRED_RESULT bool checkPetHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
-	Q_REQUIRED_RESULT bool checkPartyHp(qint64 cmpvalue, qint64* target);
+	Q_REQUIRED_RESULT bool checkCharMp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
+	Q_REQUIRED_RESULT bool checkCharHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
+	Q_REQUIRED_RESULT bool checkRideHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
+	Q_REQUIRED_RESULT bool checkPetHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
+	Q_REQUIRED_RESULT bool checkPartyHp(long long cmpvalue, long long* target);
 
 	Q_REQUIRED_RESULT bool isPetSpotEmpty() const;
-	Q_REQUIRED_RESULT qint64 checkJobDailyState(const QString& missionName);
+	Q_REQUIRED_RESULT long long checkJobDailyState(const QString& missionName);
 
 	Q_REQUIRED_RESULT bool isDialogVisible();
 
 	void setCharFreeName(const QString& name);
-	void setPetFreeName(qint64 petIndex, const QString& name);
+	void setPetFreeName(long long petIndex, const QString& name);
 
 	Q_REQUIRED_RESULT bool getBattleFlag();
 	Q_REQUIRED_RESULT bool getOnlineFlag() const;
 
 	void sortItem(bool deepSort = false);
 
-	Q_REQUIRED_RESULT qint64 getDir();
+	Q_REQUIRED_RESULT long long getDir();
 	Q_REQUIRED_RESULT QPoint getPoint();
 	void setPoint(const QPoint& pos);
 
-	Q_REQUIRED_RESULT qint64 getFloor();
-	void setFloor(qint64 floor);
+	Q_REQUIRED_RESULT long long getFloor();
+	void setFloor(long long floor);
 
 	Q_REQUIRED_RESULT QString getFloorName();
 	//battle
-	void sendBattleCharAttackAct(qint64 target);
-	void sendBattleCharMagicAct(qint64 magicIndex, qint64 target);
-	void sendBattleCharJobSkillAct(qint64 skillIndex, qint64 target);
-	void sendBattleCharItemAct(qint64 itemIndex, qint64 target);
+	void sendBattleCharAttackAct(long long target);
+	void sendBattleCharMagicAct(long long magicIndex, long long target);
+	void sendBattleCharJobSkillAct(long long skillIndex, long long target);
+	void sendBattleCharItemAct(long long itemIndex, long long target);
 	void sendBattleCharDefenseAct();
 	void sendBattleCharEscapeAct();
-	void sendBattleCharCatchPetAct(qint64 petIndex);
-	void sendBattleCharSwitchPetAct(qint64 petIndex);
+	void sendBattleCharCatchPetAct(long long petIndex);
+	void sendBattleCharSwitchPetAct(long long petIndex);
 	void sendBattleCharDoNothing();
-	void sendBattlePetSkillAct(qint64 skillIndex, qint64 target);
+	void sendBattlePetSkillAct(long long skillIndex, long long target);
 	void sendBattlePetDoNothing();
 	void setBattleEnd();
 
 	void updateBattleTimeInfo();
 
-	inline Q_REQUIRED_RESULT PC getPC() const { QReadLocker locker(&charInfoLock_); return pc_; }
+	inline Q_REQUIRED_RESULT PC getPC() const { /*QReadLocker locker(&charInfoLock_); */ return pc_; }
 	inline void setPC(PC pc) { pc_ = pc; }
 
-	inline Q_REQUIRED_RESULT MAGIC getMagic(qint64 magicIndex) const { return magic_.value(magicIndex); }
+	inline Q_REQUIRED_RESULT MAGIC getMagic(long long magicIndex) const { return magic_.value(magicIndex); }
 
-	inline Q_REQUIRED_RESULT PROFESSION_SKILL getSkill(qint64 skillIndex) const { QReadLocker locker(&charSkillInfoLock_); return profession_skill_.value(skillIndex); }
-	inline Q_REQUIRED_RESULT QHash<qint64, PROFESSION_SKILL> getSkills() const { QReadLocker locker(&charSkillInfoLock_); return profession_skill_.toHash(); }
+	inline Q_REQUIRED_RESULT PROFESSION_SKILL getSkill(long long skillIndex) const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.value(skillIndex); }
+	inline Q_REQUIRED_RESULT QHash<long long, PROFESSION_SKILL> getSkills() const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.toHash(); }
 
-	inline Q_REQUIRED_RESULT PET getPet(qint64 petIndex) const { QReadLocker locker(&petInfoLock_); return pet_.value(petIndex); }
-	inline Q_REQUIRED_RESULT QHash<qint64, PET> getPets() const { QReadLocker locker(&petInfoLock_); return pet_.toHash(); }
-	inline Q_REQUIRED_RESULT qint64 getPetSize() const
+	inline Q_REQUIRED_RESULT PET getPet(long long petIndex) const { QReadLocker locker(&petInfoLock_);  return pet_.value(petIndex); }
+	inline Q_REQUIRED_RESULT QHash<long long, PET> getPets() const { QReadLocker locker(&petInfoLock_);  return pet_.toHash(); }
+	inline Q_REQUIRED_RESULT long long getPetSize() const
 	{
 		QReadLocker locker(&petInfoLock_);
-		qint64 n = 0;
-		QHash<qint64, PET> pets = pet_.toHash();
+		long long n = 0;
+		QHash<long long, PET> pets = pet_.toHash();
 		for (const PET& it : pets)
 		{
 			if (it.level > 0 && it.valid && it.maxHp > 0)
@@ -465,62 +319,63 @@ public://actions
 		return n;
 	}
 
-	inline Q_REQUIRED_RESULT ITEM getItem(qint64 index) const { QReadLocker locker(&itemInfoLock_); return item_.value(index); }
-	inline Q_REQUIRED_RESULT QHash<qint64, ITEM> getItems() const { QReadLocker locker(&itemInfoLock_); return item_.toHash(); }
+	inline Q_REQUIRED_RESULT ITEM getItem(long long index) const { QReadLocker locker(&itemInfoLock_);  return item_.value(index); }
+	inline Q_REQUIRED_RESULT QHash<long long, ITEM> getItems() const { QReadLocker locker(&itemInfoLock_);  return item_.toHash(); }
 
-	inline Q_REQUIRED_RESULT PET_SKILL getPetSkill(qint64 petIndex, qint64 skillIndex) const { QReadLocker locker(&petSkillInfoLock_); return petSkill_.value(petIndex).value(skillIndex); }
-	inline Q_REQUIRED_RESULT QHash<qint64, PET_SKILL> getPetSkills(qint64 petIndex) const { QReadLocker locker(&petSkillInfoLock_); return petSkill_.value(petIndex); }
-	inline void setPetSkills(qint64 petIndex, const QHash<qint64, PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
-	inline void setPetSkill(qint64 petIndex, qint64 skillIndex, const PET_SKILL& skill)
+	inline Q_REQUIRED_RESULT PET_SKILL getPetSkill(long long petIndex, long long skillIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex).value(skillIndex); }
+	inline Q_REQUIRED_RESULT QHash<long long, PET_SKILL> getPetSkills(long long petIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex); }
+	inline void setPetSkills(long long petIndex, const QHash<long long, PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
+	inline void setPetSkill(long long petIndex, long long skillIndex, const PET_SKILL& skill)
 	{
-		QHash<qint64, PET_SKILL> skills = petSkill_.value(petIndex);
+		QHash<long long, PET_SKILL> skills = petSkill_.value(petIndex);
 		skills.insert(skillIndex, skill);
 		petSkill_.insert(petIndex, skills);
 	}
 
-	inline Q_REQUIRED_RESULT PARTY getParty(qint64 partyIndex) const { QReadLocker locker(&teamInfoLock_); return party_.value(partyIndex); }
-	inline Q_REQUIRED_RESULT QHash<qint64, PARTY> getParties() const { QReadLocker locker(&teamInfoLock_);  return party_.toHash(); }
+	inline Q_REQUIRED_RESULT PARTY getParty(long long partyIndex) const { /*QReadLocker locker(&teamInfoLock_); */ return party_.value(partyIndex); }
+	inline Q_REQUIRED_RESULT QHash<long long, PARTY> getParties() const { /*QReadLocker locker(&teamInfoLock_); */ return party_.toHash(); }
 
-	inline Q_REQUIRED_RESULT ITEM getPetEquip(qint64 petIndex, qint64 equipIndex) const { QReadLocker locker(&petEquipInfoLock_); return petItem_.value(petIndex).value(equipIndex); }
-	inline Q_REQUIRED_RESULT QHash<qint64, ITEM> getPetEquips(qint64 petIndex) const { QReadLocker locker(&petEquipInfoLock_); return petItem_.value(petIndex); }
+	inline Q_REQUIRED_RESULT ITEM getPetEquip(long long petIndex, long long equipIndex) const {/* QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex).value(equipIndex); }
+	inline Q_REQUIRED_RESULT QHash<long long, ITEM> getPetEquips(long long petIndex) const { /*QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex); }
 
-	inline Q_REQUIRED_RESULT ADDRESS_BOOK getAddressBook(qint64 index) const { return addressBook_.value(index); }
-	inline Q_REQUIRED_RESULT QHash<qint64, ADDRESS_BOOK> getAddressBooks() const { return addressBook_.toHash(); }
+	inline Q_REQUIRED_RESULT ADDRESS_BOOK getAddressBook(long long index) const { return addressBook_.value(index); }
+	inline Q_REQUIRED_RESULT QHash<long long, ADDRESS_BOOK> getAddressBooks() const { return addressBook_.toHash(); }
 
 	inline Q_REQUIRED_RESULT battledata_t getBattleData() const { return battleData.get(); }
-	inline Q_REQUIRED_RESULT JOBDAILY getJobDaily(qint64 index) const { return jobdaily_.value(index); }
-	inline Q_REQUIRED_RESULT QHash<qint64, JOBDAILY> getJobDailys() const { return jobdaily_.toHash(); }
-	inline Q_REQUIRED_RESULT CHARLISTTABLE getCharListTable(qint64 index) const { return chartable_.value(index); }
-	inline Q_REQUIRED_RESULT MAIL_HISTORY getMailHistory(qint64 index) const { return mailHistory_.value(index); }
+	inline Q_REQUIRED_RESULT JOBDAILY getJobDaily(long long index) const { return jobdaily_.value(index); }
+	inline Q_REQUIRED_RESULT QHash<long long, JOBDAILY> getJobDailys() const { return jobdaily_.toHash(); }
+	inline Q_REQUIRED_RESULT CHARLISTTABLE getCharListTable(long long index) const { return chartable_.value(index); }
+	inline Q_REQUIRED_RESULT MAIL_HISTORY getMailHistory(long long index) const { return mailHistory_.value(index); }
 
-	Q_REQUIRED_RESULT qint64 findInjuriedAllie();
+	Q_REQUIRED_RESULT long long findInjuriedAllie();
 
 	void refreshItemInfo();
 
 	void updateComboBoxList();
 
+	void setWindowTitle(QString formatStr);
 private:
-	void setWindowTitle();
-	void refreshItemInfo(qint64 index);
+
+	void refreshItemInfo(long long index);
 
 	void setBattleFlag(bool enable);
 	void setOnlineFlag(bool enable);
 
 	void getCharMaxCarryingCapacity();
-	inline Q_REQUIRED_RESULT constexpr bool isItemStackable(qint64 flg) { return ((flg >> 2) & 1); }
-	QString getAreaString(qint64 target);
-	Q_REQUIRED_RESULT bool matchPetNameByIndex(qint64 index, const QString& name);
-	Q_REQUIRED_RESULT qint64 getProfessionSkillIndexByName(const QString& names) const;
+	inline Q_REQUIRED_RESULT constexpr bool isItemStackable(long long flg) { return ((flg >> 2) & 1); }
+	QString getAreaString(long long target);
+	Q_REQUIRED_RESULT bool matchPetNameByIndex(long long index, const QString& name);
+	Q_REQUIRED_RESULT long long getProfessionSkillIndexByName(const QString& names) const;
 
 #pragma region BattleFunctions
-	qint64 playerDoBattleWork(const battledata_t& bt);
+	long long playerDoBattleWork(const battledata_t& bt);
 	void handleCharBattleLogics(const battledata_t& bt);
-	qint64 petDoBattleWork(const battledata_t& bt);
+	long long petDoBattleWork(const battledata_t& bt);
 	void handlePetBattleLogics(const battledata_t& bt);
 
-	bool isCharMpEnoughForMagic(qint64 magicIndex) const;
-	bool isCharMpEnoughForSkill(qint64 magicIndex) const;
-	bool isCharHpEnoughForSkill(qint64 magicIndex) const;
+	bool isCharMpEnoughForMagic(long long magicIndex) const;
+	bool isCharMpEnoughForSkill(long long magicIndex) const;
+	bool isCharHpEnoughForSkill(long long magicIndex) const;
 
 	void sortBattleUnit(QVector<battleobject_t>& v) const;
 
@@ -536,27 +391,27 @@ private:
 		MatchName,
 		MatchStatus
 	};
-	bool matchBattleTarget(const QVector<battleobject_t>& btobjs, BattleMatchType matchtype, qint64 firstMatchPos, QString op, QVariant cmpvar, qint64* ppos);
-	bool conditionMatchTarget(QVector<battleobject_t> btobjs, const QString& conditionStr, qint64* ppos);
+	bool matchBattleTarget(const QVector<battleobject_t>& btobjs, BattleMatchType matchtype, long long firstMatchPos, QString op, QVariant cmpvar, long long* ppos);
+	bool conditionMatchTarget(QVector<battleobject_t> btobjs, const QString& conditionStr, long long* ppos);
 
-	Q_REQUIRED_RESULT qint64 getBattleSelectableEnemyTarget(const battledata_t& bt) const;
+	Q_REQUIRED_RESULT long long getBattleSelectableEnemyTarget(const battledata_t& bt) const;
 
-	Q_REQUIRED_RESULT qint64 getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const;
+	Q_REQUIRED_RESULT long long getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const;
 
-	Q_REQUIRED_RESULT qint64 getBattleSelectableAllieTarget(const battledata_t& bt) const;
+	Q_REQUIRED_RESULT long long getBattleSelectableAllieTarget(const battledata_t& bt) const;
 
 	Q_REQUIRED_RESULT bool matchBattleEnemyByName(const QString& name, bool isExact, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
-	Q_REQUIRED_RESULT bool matchBattleEnemyByLevel(qint64 level, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
-	Q_REQUIRED_RESULT bool matchBattleEnemyByMaxHp(qint64  maxHp, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByLevel(long long level, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByMaxHp(long long  maxHp, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
 
-	Q_REQUIRED_RESULT qint64 getGetPetSkillIndexByName(qint64 etIndex, const QString& name) const;
+	Q_REQUIRED_RESULT long long getGetPetSkillIndexByName(long long etIndex, const QString& name) const;
 
-	bool fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint64* target) const;
-	bool fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint64* target) const;
-	bool fixCharTargetByItemIndex(qint64 itemIndex, qint64 oldtarget, qint64* target) const;
-	bool fixPetTargetBySkillIndex(qint64 skillIndex, qint64 oldtarget, qint64* target) const;
+	bool fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget, long long* target) const;
+	bool fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget, long long* target) const;
+	bool fixCharTargetByItemIndex(long long itemIndex, long long oldtarget, long long* target) const;
+	bool fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget, long long* target) const;
 	void updateCurrentSideRange(battledata_t& bt);
-	bool checkFlagState(qint64 pos);
+	bool checkFlagState(long long pos);
 
 	inline void setBattleData(const battledata_t& data) { battleData = data; }
 
@@ -573,7 +428,7 @@ private:
 #pragma region SAClientOriginal
 	//StoneAge Client Original Functions
 
-	void swapItemLocal(qint64 from, qint64 to);
+	void swapItemLocal(long long from, long long to);
 
 	void realTimeToSATime(LSTIME* lstime);
 
@@ -581,13 +436,13 @@ private:
 
 private: //lockers
 	mutable QReadWriteLock petInfoLock_;
-	mutable QReadWriteLock petSkillInfoLock_;
-	mutable QReadWriteLock charInfoLock_;
-	mutable QReadWriteLock charSkillInfoLock_;
-	mutable QReadWriteLock charMagicInfoLock_;
+	//mutable QReadWriteLock petSkillInfoLock_;
+	//mutable QReadWriteLock charInfoLock_;
+	//mutable QReadWriteLock charSkillInfoLock_;
+	//mutable QReadWriteLock charMagicInfoLock_;
 	mutable QReadWriteLock itemInfoLock_;
-	mutable QReadWriteLock petEquipInfoLock_;
-	mutable QReadWriteLock teamInfoLock_;
+	//mutable QReadWriteLock petEquipInfoLock_;
+	//mutable QReadWriteLock teamInfoLock_;
 
 private:
 	std::atomic_bool IS_BATTLE_FLAG = false;
@@ -596,7 +451,7 @@ private:
 	QElapsedTimer eottlTimer;//伺服器響應時間(MS)
 	QElapsedTimer connectingTimer;
 	std::atomic_bool petEscapeEnableTempFlag = false;
-	qint64 tempCatchPetTargetIndex = -1;
+	long long tempCatchPetTargetIndex = -1;
 
 	util::SafeData<battledata_t> battleData;
 
@@ -607,19 +462,19 @@ private:
 
 	PC pc_ = {};
 
-	util::SafeHash<qint64, PARTY> party_ = {};
-	util::SafeHash<qint64, ITEM> item_ = {};
-	util::SafeHash<qint64, QHash<qint64, ITEM>> petItem_ = {};
-	util::SafeHash<qint64, PET> pet_ = {};
-	util::SafeHash<qint64, MAGIC> magic_ = {};
-	util::SafeHash<qint64, ADDRESS_BOOK> addressBook_ = {};
-	util::SafeHash<qint64, JOBDAILY> jobdaily_ = {};
-	util::SafeHash<qint64, CHARLISTTABLE> chartable_ = {};
-	util::SafeHash<qint64, MAIL_HISTORY> mailHistory_ = {};
-	util::SafeHash<qint64, PROFESSION_SKILL> profession_skill_ = {};
-	util::SafeHash<qint64, QHash<qint64, PET_SKILL>> petSkill_ = {};
+	util::SafeHash<long long, PARTY> party_ = {};
+	util::SafeHash<long long, ITEM> item_ = {};
+	util::SafeHash<long long, QHash<long long, ITEM>> petItem_ = {};
+	util::SafeHash<long long, PET> pet_ = {};
+	util::SafeHash<long long, MAGIC> magic_ = {};
+	util::SafeHash<long long, ADDRESS_BOOK> addressBook_ = {};
+	util::SafeHash<long long, JOBDAILY> jobdaily_ = {};
+	util::SafeHash<long long, CHARLISTTABLE> chartable_ = {};
+	util::SafeHash<long long, MAIL_HISTORY> mailHistory_ = {};
+	util::SafeHash<long long, PROFESSION_SKILL> profession_skill_ = {};
+	util::SafeHash<long long, QHash<long long, PET_SKILL>> petSkill_ = {};
 
-	qint64 swapitemModeFlag = 0; //當前自動整理功能的階段
+	long long swapitemModeFlag = 0; //當前自動整理功能的階段
 	QHash<QString, bool>itemStackFlagHash = {};
 
 	util::SafeVector<bool> battlePetDisableList_ = {};
@@ -637,16 +492,16 @@ private:
 
 	//遊戲內當前時間相關
 	LSTIME saTimeStruct = { 0 };
-	qint64 serverTime = 0LL;
-	qint64 FirstTime = 0LL;
+	long long serverTime = 0LL;
+	long long FirstTime = 0LL;
 
 	//交易相關
-	qint64 opp_showindex = 0;
+	long long opp_showindex = 0;
 	QString opp_sockfd;
 	QString opp_name;
 	QString opp_goldmount;
-	qint64 showindex[7] = { 0 };
-	qint64 tradeWndDropGoldGet = 0;
+	long long showindex[7] = { 0 };
+	long long tradeWndDropGoldGet = 0;
 	QString opp_itemgraph;
 	QString opp_itemname;
 	QString opp_itemeffect;
@@ -654,18 +509,18 @@ private:
 	QString opp_itemdamage;
 	QString trade_kind;
 	QString trade_command;
-	qint64 tradeStatus = 0;
-	qint64 tradePetIndex = -1;
+	long long tradeStatus = 0;
+	long long tradePetIndex = -1;
 	PET tradePet[2] = {};
 	showitem opp_item[MAX_MAXHAVEITEM];	//交易道具阵列增为15个
 	showpet opp_pet[MAX_PET];
 	QStringList myitem_tradeList;
 	QStringList mypet_tradeList = { "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
-	qint64 mygoldtrade = 0;
+	long long mygoldtrade = 0;
 
 	//郵件相關
-	qint64 mailHistoryWndSelectNo = 0;
-	qint64 mailHistoryWndPageNo = 0;
+	long long mailHistoryWndSelectNo = 0;
+	long long mailHistoryWndPageNo = 0;
 #pragma endregion
 
 public:
@@ -676,7 +531,6 @@ public:
 	//custom
 	std::atomic_bool IS_TRADING = false;
 	std::atomic_bool IS_DISCONNECTED = false;
-	std::atomic_bool IS_TCP_CONNECTION_OK_TO_USE = false;
 
 	std::atomic_bool IS_WAITFOR_JOBDAILY_FLAG = false;
 	std::atomic_bool IS_WAITFOR_BANK_FLAG = false;
@@ -705,11 +559,11 @@ public:
 	util::SafeData<currencydata_t> currencyData = {};
 	util::SafeData<customdialog_t> customDialog = {};
 
-	util::SafeHash<qint64, mapunit_t> mapUnitHash;
+	util::SafeHash<long long, mapunit_t> mapUnitHash;
 	util::SafeHash<QPoint, mapunit_t> npcUnitPointHash;
-	util::SafeQueue<QPair<qint64, QString>> chatQueue;
+	util::SafeQueue<QPair<long long, QString>> chatQueue;
 
-	QPair<qint64, QVector<bankpet_t>> currentBankPetList;
+	QPair<long long, QVector<bankpet_t>> currentBankPetList;
 	util::SafeVector<ITEM> currentBankItemList;
 
 	QElapsedTimer repTimer;
@@ -718,9 +572,9 @@ public:
 	util::SafeData<dialog_t> currentDialog = {};
 
 	//用於緩存要發送到UI的數據(開啟子窗口初始化並加載當前最新數據時使用)
-	util::SafeHash<qint64, QVariant> playerInfoColContents;
-	util::SafeHash<qint64, QVariant> itemInfoRowContents;
-	util::SafeHash<qint64, QVariant> equipInfoRowContents;
+	util::SafeHash<long long, QVariant> playerInfoColContents;
+	util::SafeHash<long long, QVariant> itemInfoRowContents;
+	util::SafeHash<long long, QVariant> equipInfoRowContents;
 	util::SafeData<QStringList> enemyNameListCache;
 	util::SafeData<QVariant> topInfoContents;
 	util::SafeData<QVariant> bottomInfoContents;
@@ -729,11 +583,6 @@ public:
 	util::SafeData<QString> labelPetAction;
 
 private:
-	std::atomic_uint16_t port_ = 0;
-
-	std::unique_ptr<QTcpServer> server_;
-
-	QList<QTcpSocket*> clientSockets_;
 
 	QByteArray net_readbuf_;
 	QByteArray net_raw_;
@@ -741,12 +590,12 @@ private:
 	QMutex net_mutex;
 
 private://lssproto
-	qint64 appendReadBuf(const QByteArray& data);
+	long long appendReadBuf(const QByteArray& data);
 	QByteArrayList splitLinesFromReadBuf();
-	qint64 a62toi(const QString& a) const;
-	qint64 getStringToken(const QString& src, const QString& delim, qint64 count, QString& out) const;
-	qint64 getIntegerToken(const QString& src, const QString& delim, qint64 count) const;
-	qint64 getInteger62Token(const QString& src, const QString& delim, qint64 count) const;
+	long long a62toi(const QString& a) const;
+	long long getStringToken(const QString& src, const QString& delim, long long count, QString& out) const;
+	long long getIntegerToken(const QString& src, const QString& delim, long long count) const;
+	long long getInteger62Token(const QString& src, const QString& delim, long long count) const;
 	void makeStringFromEscaped(QString& src) const;
 
 private://lssproto_recv
@@ -879,4 +728,23 @@ private://lssproto_recv
 	virtual void lssproto_CustomWN_recv(const QString& data) override;
 	virtual void lssproto_CustomTK_recv(const QString& data) override;
 #pragma endregion
+};
+
+class Server : public QTcpServer
+{
+	Q_OBJECT
+public:
+	explicit Server(QObject* parent = nullptr);
+
+	virtual ~Server();
+
+	bool start(QObject* parent);
+
+	void clear();
+
+protected:
+	virtual void incomingConnection(qintptr socketDescriptor) override;
+
+private:
+	QList<Socket*> clientSockets_;
 };

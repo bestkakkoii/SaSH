@@ -94,7 +94,7 @@ void BattleConditionTextItem::paint(QPainter* painter, const QStyleOptionGraphic
 	QGraphicsTextItem::paint(painter, option, widget);
 }
 
-BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
+BattleSettingFrom::BattleSettingFrom(long long index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -167,10 +167,10 @@ BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
 
 	// 添加更多映射...
 
-	qint64 x = 0;
-	qint64 y = 0;
-	qint64 itemWidth = 80; // 调整每个项的宽度，根据需要修改
-	qint64 itemHeight = 20; // 调整每个项的高度，根据需要修改
+	long long x = 0;
+	long long y = 0;
+	long long itemWidth = 80; // 调整每个项的宽度，根据需要修改
+	long long itemHeight = 20; // 调整每个项的高度，根据需要修改
 	for (const QPair<QString, QString>& textPair : textMapping)
 	{
 		if (textPair.first.isEmpty())//換行
@@ -289,14 +289,14 @@ void BattleSettingFrom::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (name == "pushButton_save")
 	{
 		QStringList logicList;
-		for (qint64 i = 0; i < ui.listWidget->count(); ++i)
+		for (long long i = 0; i < ui.listWidget->count(); ++i)
 		{
 			QListWidgetItem* item = ui.listWidget->item(i);
 			if (item == nullptr)

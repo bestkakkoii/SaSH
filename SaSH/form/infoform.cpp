@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
+InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 	, pBattleInfoForm_(index, nullptr)
@@ -64,6 +64,7 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 
 	ui.tabWidget->addTab(&pAfkInfoForm_, tr("afkinfo"));
 
+	util::setTab(ui.tabWidget);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
@@ -77,9 +78,29 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	onApplyHashSettingsToUI();
 
 	setCurrentPage(defaultPage);
+
+	timer = new QTimer(this);
+	connect(timer, &QTimer::timeout, this, [this]()
+		{
+
+			if (!isVisible())
+			{
+				setUpdatesEnabled(false);
+				blockSignals(true);
+				return;
+			}
+			else
+			{
+				setUpdatesEnabled(true);
+				blockSignals(false);
+			}
+		});
+
+	timer->start(5000);
+
 }
 
-void InfoForm::setCurrentPage(qint64 defaultPage)
+void InfoForm::setCurrentPage(long long defaultPage)
 {
 	if (defaultPage > 0 && defaultPage <= ui.tabWidget->count())
 	{
@@ -90,6 +111,8 @@ void InfoForm::setCurrentPage(qint64 defaultPage)
 InfoForm::~InfoForm()
 {
 	qDebug() << "InfoForm is destroyed!";
+	timer->stop();
+	delete timer;
 }
 
 void InfoForm::showEvent(QShowEvent* e)
@@ -107,13 +130,13 @@ void InfoForm::closeEvent(QCloseEvent* e)
 void InfoForm::onResetControlTextLanguage()
 {
 	//reset title
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	QString title = tr("InfoForm");
 	QString newTitle = QString("[%1] %2").arg(currentIndex).arg(title);
 	setWindowTitle(newTitle);
 
 	//reset tab text
-	qint64 n = 0;
+	long long n = 0;
 	ui.tabWidget->setTabText(n++, tr("battleinfo"));
 	ui.tabWidget->setTabText(n++, tr("playerinfo"));
 	ui.tabWidget->setTabText(n++, tr("iteminfo"));
@@ -129,12 +152,12 @@ void InfoForm::onResetControlTextLanguage()
 
 void InfoForm::onApplyHashSettingsToUI()
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.server.isNull() && injector.server->getOnlineFlag())
+	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
 	{
 		QString title = tr("InfoForm");
-		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(injector.server->getPC().name).arg(title);
+		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(injector.worker->getPC().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 }

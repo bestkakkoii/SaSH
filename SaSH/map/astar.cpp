@@ -30,8 +30,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma region ASTAR
 
-constexpr qint64 kStepValue = 24;
-constexpr qint64 kObliqueValue = 32;
+constexpr long long kStepValue = 24;
+constexpr long long kObliqueValue = 32;
 
 CAStar::CAStar()
 	: step_val_(kStepValue)
@@ -46,7 +46,7 @@ CAStar::~CAStar()
 	clear();
 }
 
-void CAStar::init(qint64 width, qint64 height)
+void CAStar::init(long long width, long long height)
 {
 	std::lock_guard<std::mutex> lock(mutex_);
 	if (height_ == height && width_ == width)
@@ -72,25 +72,25 @@ void CAStar::set_corner(bool corner)
 }
 
 // 獲取直行估值
-constexpr qint64 CAStar::get_step_value() const
+constexpr long long CAStar::get_step_value() const
 {
 	return step_val_;
 }
 
 // 獲取拐角估值
-constexpr qint64 CAStar::get_oblique_value() const
+constexpr long long CAStar::get_oblique_value() const
 {
 	return oblique_val_;
 }
 
 // 設置直行估值
-constexpr void CAStar::set_step_value(qint64 value)
+constexpr void CAStar::set_step_value(long long value)
 {
 	step_val_ = value;
 }
 
 // 設置拐角估值
-constexpr void CAStar::set_oblique_value(qint64 value)
+constexpr void CAStar::set_oblique_value(long long value)
 {
 	oblique_val_ = value;
 }
@@ -122,10 +122,10 @@ bool CAStar::is_vlid_params(const QPoint& start, const QPoint& end) const
 }
 
 // 獲取節點索引
-bool CAStar::get_node_index(Node*& node, qint64* index)
+bool CAStar::get_node_index(Node*& node, long long* index)
 {
 	*index = 0;
-	qint64 size = open_list_.size();
+	long long size = open_list_.size();
 	while (*index < size)
 	{
 		if (open_list_[*index]->pos == node->pos)
@@ -138,9 +138,9 @@ bool CAStar::get_node_index(Node*& node, qint64* index)
 }
 
 // 二叉堆上濾
-void CAStar::percolate_up(qint64& hole)
+void CAStar::percolate_up(long long& hole)
 {
-	qint64 parent = 0;
+	long long parent = 0;
 	while (hole > 0)
 	{
 		parent = (hole - 1) / 2;
@@ -161,62 +161,62 @@ void CAStar::percolate_up(qint64& hole)
 }
 
 #if defined(Chebyshev_distance)
-__forceinline qint64 __fastcall Chebyshev_Distance(const QPoint& current, const QPoint& end)
+__forceinline long long __fastcall Chebyshev_Distance(const QPoint& current, const QPoint& end)
 {
 	return std::max(std::abs(current.x() - end.x()), std::abs(current.y() - end.y()));
 }
 #elif defined(Euclidean_distance)
-__forceinline qint64 __fastcall Euclidean_Distance(const QPoint& current, const QPoint& end)
+__forceinline long long __fastcall Euclidean_Distance(const QPoint& current, const QPoint& end)
 {
 	return std::sqrt(std::pow(current.x() - end.x(), 2) + std::pow(current.y() - end.y(), 2));
 }
 #elif defined(Octile_distance)
-__forceinline qint64 __fastcall Octile_Distance(const QPoint& current, const QPoint& end)
+__forceinline long long __fastcall Octile_Distance(const QPoint& current, const QPoint& end)
 {
-	quint64  dx = std::abs(current.x() - end.x());
-	quint64  dy = std::abs(current.y() - end.y());
+	unsigned long long  dx = std::abs(current.x() - end.x());
+	unsigned long long  dy = std::abs(current.y() - end.y());
 
 	if (dx > dy)
 		return kStepValue * dx + (kObliqueValue - kStepValue) * dy;
 	return kStepValue * dy + (kObliqueValue - kStepValue) * dx;
 }
 #else 
-__forceinline qint64 __fastcall Manhattan_Distance(const QPoint& current, const QPoint& end)
+__forceinline long long __fastcall Manhattan_Distance(const QPoint& current, const QPoint& end)
 {
 	return (current - end).manhattanLength();
 }
 #endif
 // 計算G值
 
-__forceinline qint64 CAStar::calcul_g_value(Node*& parent, const QPoint& current)
+__forceinline long long CAStar::calcul_g_value(Node*& parent, const QPoint& current)
 {
 #if defined(Chebyshev_distance)
-	qint64 g_value = Chebyshev_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
+	long long g_value = Chebyshev_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
 	return g_value += parent->g;
 #elif defined(Euclidean_distance)
-	qint64 g_value = Euclidean_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
+	long long g_value = Euclidean_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
 	return g_value += parent->g;
 #elif defined(Octile_distance)
-	qint64 g_value = Octile_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
+	long long g_value = Octile_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
 	return g_value += parent->g;
 #else
-	qint64 g_value = Manhattan_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
+	long long g_value = Manhattan_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
 	g_value += parent->g;
 	return g_value;
 #endif
 }
 
 // 計算F值
-__forceinline qint64 CAStar::calcul_h_value(const QPoint& current, const QPoint& end)
+__forceinline long long CAStar::calcul_h_value(const QPoint& current, const QPoint& end)
 {
 #if defined(Chebyshev_distance)
-	qint64 h_value = Chebyshev_Distance(current, end);
+	long long h_value = Chebyshev_Distance(current, end);
 #elif defined(Euclidean_distance)
-	qint64 h_value = Euclidean_Distance(current, end);
+	long long h_value = Euclidean_Distance(current, end);
 #elif defined(Octile_distance)
-	qint64 h_value = Octile_Distance(current, end);
+	long long h_value = Octile_Distance(current, end);
 #else
-	qint64 h_value = Manhattan_Distance(end, current);
+	long long h_value = Manhattan_Distance(end, current);
 #endif
 	return h_value * kStepValue;
 }
@@ -274,9 +274,9 @@ bool CAStar::can_pass(const QPoint& current, const QPoint& destination, const bo
 void CAStar::find_can_pass_nodes(const QPoint& current, const bool& corner, std::vector<QPoint>* out_lists)
 {
 	QPoint destination;
-	qint64 row_index = static_cast<qint64>(current.y()) - 1;
-	const qint64 max_row = static_cast<qint64>(current.y()) + 1;
-	const qint64 max_col = static_cast<qint64>(current.x()) + 1;
+	long long row_index = static_cast<long long>(current.y()) - 1;
+	const long long max_row = static_cast<long long>(current.y()) + 1;
+	const long long max_col = static_cast<long long>(current.x()) + 1;
 
 	if (row_index < 0)
 	{
@@ -285,7 +285,7 @@ void CAStar::find_can_pass_nodes(const QPoint& current, const bool& corner, std:
 
 	while (row_index <= max_row)
 	{
-		qint64 col_index = static_cast<qint64>(current.x()) - 1;
+		long long col_index = static_cast<long long>(current.x()) - 1;
 
 		if (col_index < 0)
 		{
@@ -309,13 +309,13 @@ void CAStar::find_can_pass_nodes(const QPoint& current, const bool& corner, std:
 // 處理找到節點的情況
 void CAStar::handle_found_node(Node*& current, Node*& destination)
 {
-	qint64 g_value = calcul_g_value(current, destination->pos);
+	long long g_value = calcul_g_value(current, destination->pos);
 	if (g_value < destination->g)
 	{
 		destination->g = g_value;
 		destination->parent = current;
 
-		qint64 index = 0;
+		long long index = 0;
 		if (get_node_index(destination, &index))
 		{
 			percolate_up(index);

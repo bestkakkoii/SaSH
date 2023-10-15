@@ -46,8 +46,9 @@ private:
 	};
 
 public:
-	AsyncClient(HWND parentHwnd)
+	AsyncClient(HWND parentHwnd, long long index)
 		: parendHwnd_(parentHwnd)
+		, index_(index)
 	{
 		WSADATA data = {};
 		do
@@ -180,13 +181,11 @@ public:
 				break;
 			}
 
-			DWORD_PTR result = 0UL;
-			if ((SendMessageTimeoutW(parendHwnd_, kConnectionOK, NULL, NULL, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) == 0L)
-				|| (0UL == result))
-			{
-				std::ignore = recordWinLastError(__LINE__);
+			std::string message = "hs|";
+			message += std::to_string(index_);
+			message += "\n";
+			if (syncSend(message) == FALSE)
 				break;
-			}
 
 #ifdef _DEBUG
 			std::wcout << L"Notified parent window OK" << std::endl;
@@ -207,6 +206,23 @@ public:
 		if (completionThread_ == nullptr)
 		{
 			std::ignore = recordWinLastError(__LINE__);
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+
+	inline BOOL syncSend(const std::string& msg)
+	{
+		if (clientSocket_ == INVALID_SOCKET)
+			return FALSE;
+
+		if (msg.empty())
+			return FALSE;
+
+		if (SOCKET_ERROR == send(clientSocket_, msg.c_str(), static_cast<int>(msg.length()), 0))
+		{
+			recordWSALastError(__LINE__);
 			return FALSE;
 		}
 
@@ -455,6 +471,7 @@ private:
 	}
 
 private:
+	long long index_;
 	SOCKET clientSocket_ = INVALID_SOCKET;
 	HANDLE completionPort_ = nullptr;
 	HANDLE completionThread_ = nullptr;

@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "script/interpreter.h"
 
 
-MapForm::MapForm(qint64 index, QWidget* parent)
+MapForm::MapForm(long long index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -73,7 +73,7 @@ void MapForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 
 	if (name == "pushButton_findpath_start")
 	{
@@ -85,10 +85,10 @@ void MapForm::onButtonClicked()
 			return;
 
 
-		if (injector.server.isNull())
+		if (injector.worker.isNull())
 			return;
 
-		if (!injector.server->getOnlineFlag())
+		if (!injector.worker->getOnlineFlag())
 			return;
 
 		if (nullptr != interpreter_ && interpreter_->isRunning())
@@ -100,8 +100,8 @@ void MapForm::onButtonClicked()
 		interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
 		connect(interpreter_.get(), &Interpreter::finished, this, &MapForm::onScriptFinished);
 
-		qint64 x = ui.spinBox_findpath_x->value();
-		qint64 y = ui.spinBox_findpath_y->value();
+		long long x = ui.spinBox_findpath_x->value();
+		long long y = ui.spinBox_findpath_y->value();
 
 		interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 		ui.pushButton_findpath_stop->setEnabled(true);
@@ -123,15 +123,15 @@ void MapForm::onButtonClicked()
 	}
 }
 
-void MapForm::resizeTableWidgetRow(qint64 max)
+void MapForm::resizeTableWidgetRow(long long max)
 {
 	//set row count
 	ui.tableWidget_map->setRowCount(max);
-	qint64 current = ui.tableWidget_map->rowCount();
+	long long current = ui.tableWidget_map->rowCount();
 	if (current > max)
 	{
 		//insert till max
-		for (qint64 i = current; i < max; ++i)
+		for (long long i = current; i < max; ++i)
 		{
 			ui.tableWidget_map->insertRow(i);
 		}
@@ -140,14 +140,14 @@ void MapForm::resizeTableWidgetRow(qint64 max)
 	else if (current < max)
 	{
 		//remove till max
-		for (qint64 i = current; i > max; --i)
+		for (long long i = current; i > max; --i)
 		{
 			ui.tableWidget_map->removeRow(i);
 		}
 	}
 }
 
-void MapForm::onUpdateNpcList(qint64 floor)
+void MapForm::onUpdateNpcList(long long floor)
 {
 	npc_hash_.clear();
 	ui.tableWidget_map->clear();
@@ -156,7 +156,7 @@ void MapForm::onUpdateNpcList(qint64 floor)
 
 	QString key = util::toQString(floor);
 	QList<util::MapData> datas;
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
 		util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
@@ -165,9 +165,9 @@ void MapForm::onUpdateNpcList(qint64 floor)
 			return;
 	}
 
-	qint64 size = datas.size();
+	long long size = datas.size();
 	resizeTableWidgetRow(size);
-	for (qint64 i = 0; i < size; ++i)
+	for (long long i = 0; i < size; ++i)
 	{
 		util::MapData d = datas.value(i);
 		QPoint point(d.x, d.y);
@@ -185,7 +185,7 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	if (!npc_hash_.contains(row))
 		return;
 
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.isValid())
 		return;
@@ -193,10 +193,10 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	if (!injector.server->getOnlineFlag())
+	if (!injector.worker->getOnlineFlag())
 		return;
 
 	if (nullptr != interpreter_ && interpreter_->isRunning())

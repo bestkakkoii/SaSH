@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-ItemInfoForm::ItemInfoForm(qint64 index, QWidget* parent)
+ItemInfoForm::ItemInfoForm(long long index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -44,15 +44,15 @@ ItemInfoForm::ItemInfoForm(qint64 index, QWidget* parent)
 	onResetControlTextLanguage();
 
 	Injector& injector = Injector::getInstance(index);
-	if (!injector.server.isNull())
+	if (!injector.worker.isNull())
 	{
-		QHash<qint64, QVariant> hashItem = injector.server->itemInfoRowContents.toHash();
+		QHash<long long, QVariant> hashItem = injector.worker->itemInfoRowContents.toHash();
 		for (auto it = hashItem.begin(); it != hashItem.end(); ++it)
 		{
 			onUpdateItemInfoRowContents(it.key(), it.value());
 		}
 
-		QHash<qint64, QVariant> hashEquip = injector.server->equipInfoRowContents.toHash();
+		QHash<long long, QVariant> hashEquip = injector.worker->equipInfoRowContents.toHash();
 		for (auto it = hashEquip.begin(); it != hashEquip.end(); ++it)
 		{
 			onUpdateEquipInfoRowContents(it.key(), it.value());
@@ -62,10 +62,10 @@ ItemInfoForm::ItemInfoForm(qint64 index, QWidget* parent)
 	connect(ui.pushButton_refresh, &PushButton::clicked, this, [index]()
 		{
 			Injector& injector = Injector::getInstance(index);
-			if (!injector.server.isNull())
+			if (!injector.worker.isNull())
 			{
-				for (qint64 i = 0; i < 4; ++i)
-					injector.server->sortItem(true);
+				for (long long i = 0; i < 4; ++i)
+					injector.worker->sortItem(true);
 			}
 		});
 
@@ -85,9 +85,9 @@ void ItemInfoForm::onResetControlTextLanguage()
 	};
 
 	//put on first col
-	qint64 size = equipVHeaderList.size();
+	long long size = equipVHeaderList.size();
 
-	for (qint64 row = 0; row < size; ++row)
+	for (long long row = 0; row < size; ++row)
 	{
 		if (row >= size)
 			break;
@@ -95,13 +95,13 @@ void ItemInfoForm::onResetControlTextLanguage()
 	}
 
 	size = MAX_ITEM - CHAR_EQUIPPLACENUM;
-	for (qint64 row = 0; row < size; ++row)
+	for (long long row = 0; row < size; ++row)
 	{
 		ui.tableWidget_item->setText(row, 0, util::toQString(row + 1), util::toQString(row + 1));
 	}
 }
 
-void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, qint64 row, const QVariant& data)
+void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, long long row, const QVariant& data)
 {
 
 	// 檢查是否為 QVariantList
@@ -112,15 +112,15 @@ void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, qint64 ro
 	QVariantList list = data.toList();
 
 	// 取得 QVariantList 的大小
-	const qint64 size = list.size();
+	const long long size = list.size();
 
 	// 獲取當前表格的總行數
-	const qint64 colCount = tableWidget->rowCount();
+	const long long colCount = tableWidget->rowCount();
 	if (row < 0 || row >= colCount)
 		return;
 
 	// 開始填入內容
-	for (qint64 col = 0; col < colCount; ++col)
+	for (long long col = 0; col < colCount; ++col)
 	{
 		// 設置內容
 		if (col >= size)
@@ -136,36 +136,36 @@ void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, qint64 ro
 	}
 }
 
-void ItemInfoForm::onUpdateEquipInfoRowContents(qint64 row, const QVariant& data)
+void ItemInfoForm::onUpdateEquipInfoRowContents(long long row, const QVariant& data)
 {
 	updateItemInfoRowContents(ui.tableWidget_equip, row, data);
 }
 
-void ItemInfoForm::onUpdateItemInfoRowContents(qint64 row, const QVariant& data)
+void ItemInfoForm::onUpdateItemInfoRowContents(long long row, const QVariant& data)
 {
 	updateItemInfoRowContents(ui.tableWidget_item, row - 9, data);
 }
 
 void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	injector.server->useItem(static_cast<qint64>(row) + CHAR_EQUIPPLACENUM, 0);
+	injector.worker->useItem(static_cast<long long>(row) + CHAR_EQUIPPLACENUM, 0);
 }
 
 void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int column)
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return;
 
-	qint64 spotIndex = injector.server->getItemEmptySpotIndex();
+	long long spotIndex = injector.worker->getItemEmptySpotIndex();
 	if (spotIndex == -1)
 		return;
 
-	injector.server->swapItem(row, spotIndex);
+	injector.worker->swapItem(row, spotIndex);
 }

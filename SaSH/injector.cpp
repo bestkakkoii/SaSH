@@ -20,12 +20,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <injector.h>
 #include "model/listview.h"
 
-util::SafeHash<qint64, Injector*> Injector::instances;
+Server Injector::server;
+util::SafeHash<long long, Injector*> Injector::instances;
 
-constexpr qint64 MessageTimeout = 3000;
-constexpr qint64 MAX_TIMEOUT = 30000;
+constexpr long long MessageTimeout = 3000;
+constexpr long long MAX_TIMEOUT = 30000;
 
-Injector::Injector(qint64 index)
+Injector::Injector(long long index)
 	: Indexer(index)
 	, log(index, nullptr)
 	, autil(index)
@@ -40,21 +41,23 @@ Injector::~Injector()
 
 void Injector::reset()
 {
-	QList<qint64> keys = instances.keys();
-	for (qint64 key : keys)
+	QList<long long> keys = instances.keys();
+	for (long long key : keys)
 	{
 		reset(key);
 	}
 }
 
-void Injector::reset(qint64 index)//static
+void Injector::reset(long long index)//static
 {
 	if (!instances.contains(index))
 		return;
 
 	Injector* instance = instances.value(index);
-
-	instance->server.reset(nullptr);
+	if (!instance->worker.isNull())
+	{
+		instance->worker.reset(nullptr);
+	}
 	instance->hGameModule_ = 0ULL;
 	instance->hookdllModule_ = nullptr;
 	instance->pi_ = {};
@@ -64,20 +67,21 @@ void Injector::reset(qint64 index)//static
 	instance->currentGameExePath = "";//當前使用的遊戲進程完整路徑
 	instance->IS_SCRIPT_FLAG.store(false, std::memory_order_release);//主腳本是否運行
 	instance->IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
+	instance->IS_TCP_CONNECTION_OK_TO_USE.store(false, std::memory_order_release);
 	instance->currentServerListIndex = 0;
 	instance->scriptThreadId = 0;
 	instance->IS_INJECT_OK = false;
 #if 0
 	//紀錄當前設置
 	QHash<util::UserSetting, bool> enableHash = instance->getEnablesHash();
-	QHash<util::UserSetting, qint64> valueHash = instance->getValuesHash();
+	QHash<util::UserSetting, long long> valueHash = instance->getValuesHash();
 	QHash<util::UserSetting, QString> stringHash = instance->getStringsHash();
 
 	QStringList _serverNameList = instance->serverNameList.get();
 
 	QStringList _subServerNameList = instance->subServerNameList.get();
 
-	qint64 _currentServerListIndex = instance->currentServerListIndex;
+	long long _currentServerListIndex = instance->currentServerListIndex;
 
 	QString _currentScriptFileName = instance->currentScriptFileName;
 
@@ -115,51 +119,51 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 		return CreateProcessResult::CreateFail;
 	}
 
-	qint64 nRealBin = 138;
-	qint64 nAdrnBin = 138;
-	qint64 nSprBin = 116;
-	qint64 nSprAdrnBin = 116;
-	qint64 nRealTrue = 13;
-	qint64 nAdrnTrue = 5;
-	qint64 nEncode = 0;
+	long long nRealBin = 138;
+	long long nAdrnBin = 138;
+	long long nSprBin = 116;
+	long long nSprAdrnBin = 116;
+	long long nRealTrue = 13;
+	long long nAdrnTrue = 5;
+	long long nEncode = 0;
 
 	bool canSave = false;
 
 	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
-	qint64 tmp = config.read<qint64>("System", "Command", "realbin");
+	long long tmp = config.read<long long>("System", "Command", "realbin");
 	if (tmp)
 		nRealBin = tmp;
 	else
 		canSave = true;
 
-	tmp = config.read<qint64>("System", "Command", "adrnbin");
+	tmp = config.read<long long>("System", "Command", "adrnbin");
 	if (tmp)
 		nAdrnBin = tmp;
 	else
 		canSave = true;
 
-	tmp = config.read<qint64>("System", "Command", "sprbin");
+	tmp = config.read<long long>("System", "Command", "sprbin");
 	if (tmp)
 		nSprBin = tmp;
 	else
 		canSave = true;
 
-	tmp = config.read<qint64>("System", "Command", "spradrnbin");
+	tmp = config.read<long long>("System", "Command", "spradrnbin");
 	if (tmp)
 		nSprAdrnBin = tmp;
-	tmp = config.read<qint64>("System", "Command", "realtrue");
+	tmp = config.read<long long>("System", "Command", "realtrue");
 	if (tmp)
 		nRealTrue = tmp;
 	else
 		canSave = true;
 
-	tmp = config.read<qint64>("System", "Command", "adrntrue");
+	tmp = config.read<long long>("System", "Command", "adrntrue");
 	if (tmp)
 		nAdrnTrue = tmp;
 	else
 		canSave = true;
 
-	tmp = config.read<qint64>("System", "Command", "encode");
+	tmp = config.read<long long>("System", "Command", "encode");
 	if (tmp)
 		nEncode = tmp;
 	else
@@ -167,7 +171,7 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 
 	QString customCommand = config.read<QString>("System", "Command", "custom");
 
-	auto mkcmd = [](const QString& sec, qint64 value)->QString
+	auto mkcmd = [](const QString& sec, long long value)->QString
 		{
 			return QString("%1:%2").arg(sec).arg(value);
 		};
@@ -206,7 +210,7 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 		};
 
 	QProcess process;
-	qint64 pid = 0;
+	long long pid = 0;
 	process.setArguments(commandList);
 	process.setProgram(path);
 	process.setWorkingDirectory(QFileInfo(path).absolutePath());
@@ -224,7 +228,7 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 	return CreateProcessResult::CreateAboveWindow8Failed;
 }
 
-qint64 Injector::sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const
+long long Injector::sendMessage(long long msg, long long wParam, long long lParam) const
 {
 	if (WM_NULL == msg)
 		return 0;
@@ -232,10 +236,10 @@ qint64 Injector::sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 	DWORD_PTR dwResult = 0L;
 	SendMessageTimeoutW(pi_.hWnd, static_cast<UINT>(msg), static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam),
 		SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, static_cast<UINT>(MessageTimeout), &dwResult);
-	return static_cast<qint64>(dwResult);
+	return static_cast<long long>(dwResult);
 }
 
-bool Injector::postMessage(qint64 msg, qint64 wParam, qint64 lParam) const
+bool Injector::postMessage(long long msg, long long wParam, long long lParam) const
 {
 	if (WM_NULL == msg)
 		return false;
@@ -244,7 +248,7 @@ bool Injector::postMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 	return  ret == TRUE;
 }
 
-bool Injector::isHandleValid(qint64 pid)
+bool Injector::isHandleValid(long long pid)
 {
 	if (NULL == pid)
 		pid = pi_.dwProcessId;
@@ -285,7 +289,7 @@ DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 
 bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	if (pi.dwProcessId == 0)
@@ -381,8 +385,8 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		timer.restart();
 		for (;;)
 		{
-			if (static_cast<qint64>(mem::read<int>(processHandle_, 0x400000LL + kOffsetWorldStatus)) == 1
-				&& static_cast<qint64>(mem::read<int>(processHandle_, 0x400000LL + kOffsetGameStatus)) == 2)
+			if (static_cast<long long>(mem::read<int>(processHandle_, 0x400000LL + kOffsetWorldStatus)) == 1
+				&& static_cast<long long>(mem::read<int>(processHandle_, 0x400000LL + kOffsetGameStatus)) == 2)
 				break;
 
 			if (timer.hasExpired(MAX_TIMEOUT))
@@ -420,10 +424,10 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
 		struct InitialData
 		{
-			__int64 parentHWnd = 0i64;
-			__int64 index = 0i64;
-			__int64 port = 0i64;
-			__int64 type = 0i64;
+			long long parentHWnd = 0i64;
+			long long index = 0i64;
+			long long port = 0i64;
+			long long type = 0i64;
 		}injectdate;
 
 		enum
@@ -554,14 +558,14 @@ bool Injector::isWindowAlive() const
 	return false;
 }
 
-void Injector::mouseMove(qint64 x, qint64 y) const
+void Injector::mouseMove(long long x, long long y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
 	sendMessage(WM_MOUSEMOVE, NULL, data);
 }
 
 //滑鼠移動 + 左鍵
-void Injector::leftClick(qint64 x, qint64 y) const
+void Injector::leftClick(long long x, long long y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
 	sendMessage(WM_MOUSEMOVE, NULL, data);
@@ -572,7 +576,7 @@ void Injector::leftClick(qint64 x, qint64 y) const
 	QThread::msleep(50);
 }
 
-void Injector::leftDoubleClick(qint64 x, qint64 y) const
+void Injector::leftDoubleClick(long long x, long long y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
 	sendMessage(WM_MOUSEMOVE, NULL, data);
@@ -581,7 +585,7 @@ void Injector::leftDoubleClick(qint64 x, qint64 y) const
 	QThread::msleep(50);
 }
 
-void Injector::rightClick(qint64 x, qint64 y) const
+void Injector::rightClick(long long x, long long y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
 	sendMessage(WM_MOUSEMOVE, NULL, data);
@@ -592,7 +596,7 @@ void Injector::rightClick(qint64 x, qint64 y) const
 	QThread::msleep(50);
 }
 
-void Injector::dragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2) const
+void Injector::dragto(long long x1, long long y1, long long x2, long long y2) const
 {
 	LPARAM datafrom = MAKELPARAM(x1, y1);
 	LPARAM datato = MAKELPARAM(x2, y2);
@@ -606,7 +610,7 @@ void Injector::dragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2) const
 	QThread::msleep(50);
 }
 
-void Injector::hide(qint64 mode)
+void Injector::hide(long long mode)
 {
 	HWND hWnd = getProcessWindow();
 	if (hWnd == nullptr)

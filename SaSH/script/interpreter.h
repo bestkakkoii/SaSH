@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "parser.h"
 #include "util.h"
 
-constexpr qint64 DEFAULT_FUNCTION_TIMEOUT = 5000;
+constexpr long long DEFAULT_FUNCTION_TIMEOUT = 5000;
 
 class Interpreter : public ThreadPlugin
 {
@@ -35,7 +35,7 @@ public:
 	};
 
 public:
-	explicit Interpreter(qint64 index);
+	explicit Interpreter(long long index);
 	virtual ~Interpreter();
 
 	inline bool isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
@@ -44,9 +44,9 @@ public:
 
 	void doString(const QString& script, Interpreter* pinterpretter, VarShareMode shareMode);
 
-	void doFileWithThread(qint64 beginLine, const QString& fileName);
+	void doFileWithThread(long long beginLine, const QString& fileName);
 
-	bool doFile(qint64 beginLine, const QString& fileName, Interpreter* pinterpretter, Parser* pparser, bool issub, Parser::Mode mode);
+	bool doFile(long long beginLine, const QString& fileName, Interpreter* pinterpretter, Parser* pparser, bool issub, Parser::Mode mode);
 
 	void stop();
 
@@ -57,7 +57,7 @@ public slots:
 	void proc();
 
 private:
-	qint64 scriptCallBack(qint64 currentIndex, qint64 currentLine, const TokenMap& token);
+	long long scriptCallBack(long long currentIndex, long long currentLine, const TokenMap& token);
 
 private:
 
@@ -69,98 +69,98 @@ private:
 	bool checkBattleThenWait();
 	bool checkOnlineThenWait();
 
-	bool waitfor(qint64 timeout, std::function<bool()> exprfun);
-	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
-	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
+	bool waitfor(long long timeout, std::function<bool()> exprfun);
+	bool checkString(const TokenMap& TK, long long idx, QString* ret);
+	bool checkInteger(const TokenMap& TK, long long idx, long long* ret);
 
-	qint64 checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior);
-	bool checkRange(const TokenMap& TK, qint64 idx, qint64* min, qint64* max);
-	bool checkRelationalOperator(const TokenMap& TK, qint64 idx, RESERVE* ret) const;
+	long long checkJump(const TokenMap& TK, long long idx, bool expr, JumpBehavior behavior);
+	bool checkRange(const TokenMap& TK, long long idx, long long* min, long long* max);
+	bool checkRelationalOperator(const TokenMap& TK, long long idx, RESERVE* ret) const;
 
-	void logExport(qint64 currentIndex, qint64 currentLine, const QString& text, qint64 color = 0);
+	void logExport(long long currentIndex, long long currentLine, const QString& text, long long color = 0);
 
-	void errorExport(qint64 currentIndex, qint64 currentLine, qint64 level, const QString& text);
+	void errorExport(long long currentIndex, long long currentLine, long long level, const QString& text);
 
 private: //註冊給Parser的函數
 	//system
-	qint64 press(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 run(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 dostr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 send(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	long long press(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long run(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long dostr(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long send(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	//check
-	qint64 checkdaily(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 waitmap(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 waitdlg(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 waitsay(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 waititem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 waitpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 waitpos(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	long long checkdaily(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long waitmap(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long waitdlg(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long waitsay(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long waititem(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long waitpet(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long waitpos(long long currentIndex, long long currentLine, const TokenMap& TK);
 	//check-group
-	qint64 waitteam(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	long long waitteam(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 
 	//move
-	qint64 setdir(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 walkpos(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	long long setdir(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long walkpos(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	//action
-	qint64 useitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 dropitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 swapitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 playerrename(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 petrename(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 setpetstate(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 droppet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 buy(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 sell(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 sellpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 make(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 cook(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 usemagic(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 pickitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 depositgold(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 withdrawgold(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 addpoint(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 learn(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 trade(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 doffstone(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	long long useitem(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long dropitem(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long swapitem(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long playerrename(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long petrename(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long setpetstate(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long droppet(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long buy(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long sell(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long sellpet(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long make(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long cook(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long usemagic(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long pickitem(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long depositgold(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long withdrawgold(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long addpoint(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long learn(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long trade(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long doffstone(long long currentIndex, long long currentLine, const TokenMap& TK);
 
-	qint64 recordequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 wearequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 unwearequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 petequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 petunequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	long long recordequip(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long wearequip(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long unwearequip(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long petequip(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long petunequip(long long currentIndex, long long currentLine, const TokenMap& TK);
 
-	qint64 depositpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 deposititem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 withdrawpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 withdrawitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	long long depositpet(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long deposititem(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long withdrawpet(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long withdrawitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 
-	qint64 mail(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	long long mail(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	//action-group
-	qint64 join(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 leave(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 kick(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	long long join(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long leave(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long kick(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	//hide
-	qint64 ocr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	long long ocr(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	//battle
-	qint64 bh(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//atk
-	qint64 bj(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//magic
-	qint64 bp(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//skill
-	qint64 bs(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//switch
-	qint64 be(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//escape
-	qint64 bd(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//defense
-	qint64 bi(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//item
-	qint64 bt(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//catch
-	qint64 bn(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//nothing
-	qint64 bw(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//petskill
-	qint64 bwf(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//pet nothing
-	qint64 bwait(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//wait
-	qint64 bend(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//wait
+	long long bh(long long currentIndex, long long currentLine, const TokenMap& TK);//atk
+	long long bj(long long currentIndex, long long currentLine, const TokenMap& TK);//magic
+	long long bp(long long currentIndex, long long currentLine, const TokenMap& TK);//skill
+	long long bs(long long currentIndex, long long currentLine, const TokenMap& TK);//switch
+	long long be(long long currentIndex, long long currentLine, const TokenMap& TK);//escape
+	long long bd(long long currentIndex, long long currentLine, const TokenMap& TK);//defense
+	long long bi(long long currentIndex, long long currentLine, const TokenMap& TK);//item
+	long long bt(long long currentIndex, long long currentLine, const TokenMap& TK);//catch
+	long long bn(long long currentIndex, long long currentLine, const TokenMap& TK);//nothing
+	long long bw(long long currentIndex, long long currentLine, const TokenMap& TK);//petskill
+	long long bwf(long long currentIndex, long long currentLine, const TokenMap& TK);//pet nothing
+	long long bwait(long long currentIndex, long long currentLine, const TokenMap& TK);//wait
+	long long bend(long long currentIndex, long long currentLine, const TokenMap& TK);//wait
 
 private:
 	enum
@@ -171,7 +171,7 @@ private:
 
 	QThread* thread_ = nullptr;
 	Parser parser_;
-	qint64 beginLine_ = 0;
+	long long beginLine_ = 0;
 
 	std::atomic_bool isRunning_ = false;
 	ParserCallBack pCallback = nullptr;

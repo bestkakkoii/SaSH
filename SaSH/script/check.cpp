@@ -22,11 +22,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 
 //check
-qint64 Interpreter::checkdaily(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::checkdaily(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	QString text;
@@ -39,7 +39,7 @@ qint64 Interpreter::checkdaily(qint64 currentIndex, qint64 currentLine, const To
 		return Parser::kArgError + 1ll;
 	}
 
-	qint64 status = injector.server->checkJobDailyState(text);
+	long long status = injector.worker->checkJobDailyState(text);
 	if (status == 1)//已完成
 		return Parser::kNoChange;
 	else if (status == 2)//進行中
@@ -48,11 +48,11 @@ qint64 Interpreter::checkdaily(qint64 currentIndex, qint64 currentLine, const To
 		return checkJump(TK, 3, true, SuccessJump);//使用第3參數跳轉
 }
 
-qint64 Interpreter::waitpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::waitpet(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	QString petName;
@@ -65,7 +65,7 @@ qint64 Interpreter::waitpet(qint64 currentIndex, qint64 currentLine, const Token
 		return Parser::kArgError + 1ll;
 	}
 
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 2, &timeout);
 
 	checkOnlineThenWait();
@@ -73,42 +73,42 @@ qint64 Interpreter::waitpet(qint64 currentIndex, qint64 currentLine, const Token
 	bool bret = false;
 	if (timeout == 0)
 	{
-		QVector<qint64> v;
-		bret = injector.server->getPetIndexsByName(petName, &v);
+		QVector<long long> v;
+		bret = injector.worker->getPetIndexsByName(petName, &v);
 	}
 	else
 	{
 		bret = waitfor(timeout, [&injector, petName]()->bool
 			{
-				QVector<qint64> v;
-				return injector.server->getPetIndexsByName(petName, &v);
+				QVector<long long> v;
+				return injector.worker->getPetIndexsByName(petName, &v);
 			});
 	}
 
 	return checkJump(TK, 3, bret, FailedJump);
 }
 
-qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::waitmap(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	QElapsedTimer timer; timer.start();
 
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString mapname = "";
-	qint64 floor = 0;
+	long long floor = 0;
 	checkString(TK, 1, &mapname);
 	mapname = mapname.simplified();
 
 	QStringList mapnames = mapname.split(util::rexOR, Qt::SkipEmptyParts);
 	checkInteger(TK, 1, &floor);
 
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 2, &timeout);
 
 	if (floor == 0 && mapname.isEmpty())
@@ -120,16 +120,16 @@ qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const Token
 	auto check = [&injector, floor, mapnames]()
 	{
 		if (floor != 0)
-			return floor == injector.server->getFloor();
+			return floor == injector.worker->getFloor();
 		else
 		{
-			QString currentFloorName = injector.server->getFloorName();
-			qint64 currentFloor = injector.server->getFloor();
+			QString currentFloorName = injector.worker->getFloorName();
+			long long currentFloor = injector.worker->getFloor();
 
 			for (const QString& mapname : mapnames)
 			{
 				bool ok;
-				qint64 fr = mapname.toLongLong(&ok);
+				long long fr = mapname.toLongLong(&ok);
 				if (ok)
 				{
 					if (fr == currentFloor)
@@ -165,23 +165,23 @@ qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const Token
 	}
 
 	if (!bret && timeout > 2000)
-		injector.server->EO();
+		injector.worker->EO();
 	qDebug() << "init cost" << timer.elapsed() << "ms";
 	return checkJump(TK, 3, bret, FailedJump);
 }
 
-qint64 Interpreter::waitdlg(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::waitdlg(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString cmpStr;
-	qint64 dlgid = -1;
+	long long dlgid = -1;
 	if (!checkString(TK, 1, &cmpStr))
 	{
 		if (!checkInteger(TK, 1, &dlgid))
@@ -193,19 +193,19 @@ qint64 Interpreter::waitdlg(qint64 currentIndex, qint64 currentLine, const Token
 	bool bret = false;
 	if (dlgid != -1)
 	{
-		qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+		long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 		checkInteger(TK, 2, &timeout);
 
 		if (timeout == 0)
-			bret = injector.server->currentDialog.get().dialogid == dlgid;
+			bret = injector.worker->currentDialog.get().dialogid == dlgid;
 		else
 		{
 			bret = waitfor(timeout, [&injector, dlgid]()->bool
 				{
-					if (!injector.server->isDialogVisible())
+					if (!injector.worker->isDialogVisible())
 						return false;
 
-					return injector.server->currentDialog.get().dialogid == dlgid;
+					return injector.worker->currentDialog.get().dialogid == dlgid;
 				});
 		}
 
@@ -215,8 +215,8 @@ qint64 Interpreter::waitdlg(qint64 currentIndex, qint64 currentLine, const Token
 	{
 		QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 
-		qint64 min = 1;
-		qint64 max = MAX_DIALOG_LINE;
+		long long min = 1;
+		long long max = MAX_DIALOG_LINE;
 		if (!checkRange(TK, 2, &min, &max))
 			return Parser::kArgError + 2ll;
 		if (min == max)
@@ -225,19 +225,19 @@ qint64 Interpreter::waitdlg(qint64 currentIndex, qint64 currentLine, const Token
 			++max;
 		}
 
-		qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+		long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 		checkInteger(TK, 3, &timeout);
 
 		auto check = [&injector, min, max, cmpStrs]()->bool
 		{
-			if (!injector.server->isDialogVisible())
+			if (!injector.worker->isDialogVisible())
 				return false;
 
 			if (cmpStrs.isEmpty() || cmpStrs.front().isEmpty())
 				return true;
 
-			QStringList dialogStrList = injector.server->currentDialog.get().linedatas;
-			for (qint64 i = min; i <= max; ++i)
+			QStringList dialogStrList = injector.worker->currentDialog.get().linedatas;
+			for (long long i = min; i <= max; ++i)
 			{
 				int index = i - 1;
 				if (index < 0 || index >= dialogStrList.size())
@@ -276,17 +276,17 @@ qint64 Interpreter::waitdlg(qint64 currentIndex, qint64 currentLine, const Token
 	}
 }
 
-qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::waitsay(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 
-	qint64 min = 1;
-	qint64 max = MAX_CHAT_HISTORY;
+	long long min = 1;
+	long long max = MAX_CHAT_HISTORY;
 	if (!checkRange(TK, 1, &min, &max))
 		return Parser::kArgError + 1ll;
 	if (min == max)
@@ -307,14 +307,14 @@ qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const Token
 	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 
 	bool bret = false;
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 3, &timeout);
 
 	auto check = [&injector, min, max, cmpStrs]()->bool
 	{
-		for (qint64 i = min; i <= max; ++i)
+		for (long long i = min; i <= max; ++i)
 		{
-			QString text = injector.server->getChatHistory(i - 1).simplified();
+			QString text = injector.worker->getChatHistory(i - 1).simplified();
 			if (text.isEmpty())
 				continue;
 
@@ -327,9 +327,9 @@ qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const Token
 			}
 		}
 
-		QVector<QPair<qint64, QString>> list = injector.server->chatQueue.values();
+		QVector<QPair<long long, QString>> list = injector.worker->chatQueue.values();
 
-		for (qint64 i = min; i <= max; ++i)
+		for (long long i = min; i <= max; ++i)
 		{
 			if (i < 0)
 				continue;
@@ -366,11 +366,11 @@ qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const Token
 	return checkJump(TK, 4, bret, FailedJump);
 }
 
-qint64 Interpreter::waitpos(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::waitpos(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -379,10 +379,10 @@ qint64 Interpreter::waitpos(qint64 currentIndex, qint64 currentLine, const Token
 	QString posStrs;
 	QStringList posStrList;
 	QList<QPoint> posList;
-	qint64 x = 0, y = 0;
+	long long x = 0, y = 0;
 
-	qint64 timeoutIndex = 3;
-	qint64 jumpIndex = 4;
+	long long timeoutIndex = 3;
+	long long jumpIndex = 4;
 
 	if (checkInteger(TK, 1, &x))
 	{
@@ -409,8 +409,8 @@ qint64 Interpreter::waitpos(qint64 currentIndex, qint64 currentLine, const Token
 				continue;
 
 			bool ok1, ok2;
-			qint64 x = pos.value(0).toLongLong(&ok1);
-			qint64 y = pos.value(1).toLongLong(&ok2);
+			long long x = pos.value(0).toLongLong(&ok1);
+			long long y = pos.value(1).toLongLong(&ok2);
 			if (ok1 && ok2)
 				posList.push_back(QPoint(x, y));
 		}
@@ -426,7 +426,7 @@ qint64 Interpreter::waitpos(qint64 currentIndex, qint64 currentLine, const Token
 
 	auto check = [&injector, posList]()
 	{
-		QPoint pos = injector.server->getPoint();
+		QPoint pos = injector.worker->getPoint();
 		for (const QPoint& p : posList)
 		{
 			if (p == pos)
@@ -436,7 +436,7 @@ qint64 Interpreter::waitpos(qint64 currentIndex, qint64 currentLine, const Token
 	};
 
 	bool bret = false;
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 3, &timeout);
 
 	if (timeout == 0)
@@ -455,19 +455,19 @@ qint64 Interpreter::waitpos(qint64 currentIndex, qint64 currentLine, const Token
 }
 
 //check->group
-qint64 Interpreter::waitteam(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::waitteam(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	PC pc = injector.server->getPC();
+	PC pc = injector.worker->getPC();
 
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 1, &timeout);
 
 	bool bret = false;
@@ -486,17 +486,17 @@ qint64 Interpreter::waitteam(qint64 currentIndex, qint64 currentLine, const Toke
 	return checkJump(TK, 2, bret, FailedJump);
 }
 
-qint64 Interpreter::waititem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::waititem(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
+	long long min = 0, max = static_cast<long long>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 	bool isEquip = false;
 	if (!checkRange(TK, 1, &min, &max))
 	{
@@ -510,7 +510,7 @@ qint64 Interpreter::waititem(qint64 currentIndex, qint64 currentLine, const Toke
 		if (partStr.toLower() == "all" || partStr.toLower() == QString("全部"))
 		{
 			min = 101;
-			max = static_cast<qint64>(101 + CHAR_EQUIPPLACENUM);
+			max = static_cast<long long>(101 + CHAR_EQUIPPLACENUM);
 		}
 		else
 		{
@@ -527,7 +527,7 @@ qint64 Interpreter::waititem(qint64 currentIndex, qint64 currentLine, const Toke
 		min += CHAR_EQUIPPLACENUM;
 		max += CHAR_EQUIPPLACENUM;
 	}
-	else if (min >= 101 && max <= static_cast<qint64>(100 + CHAR_EQUIPPLACENUM))
+	else if (min >= 101 && max <= static_cast<long long>(100 + CHAR_EQUIPPLACENUM))
 	{
 		min -= 101;
 		max -= 101;
@@ -544,23 +544,23 @@ qint64 Interpreter::waititem(qint64 currentIndex, qint64 currentLine, const Toke
 	if (itemName.isEmpty() && itemMemo.isEmpty())
 		return Parser::kArgError + 1ll;
 
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 4, &timeout);
 
-	injector.server->updateItemByMemory();
+	injector.worker->updateItemByMemory();
 
 	bool bret = false;
 	if (timeout == 0)
 	{
-		QVector<qint64> vec;
-		bret = injector.server->getItemIndexsByName(itemName, itemMemo, &vec, min, max);
+		QVector<long long> vec;
+		bret = injector.worker->getItemIndexsByName(itemName, itemMemo, &vec, min, max);
 	}
 	else
 	{
 		bret = waitfor(timeout, [&injector, itemName, itemMemo, min, max]()->bool
 			{
-				QVector<qint64> vec;
-				return injector.server->getItemIndexsByName(itemName, itemMemo, &vec, min, max);
+				QVector<long long> vec;
+				return injector.worker->getItemIndexsByName(itemName, itemMemo, &vec, min, max);
 			});
 	}
 

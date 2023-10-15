@@ -56,7 +56,7 @@ namespace luadebug
 		{ ERROR_PARAM_SIZE_RANGE, QObject::tr("request param size is between %1 to %2, but import %3") },
 	};
 
-	inline Q_REQUIRED_RESULT qint64 getCurrentLine(lua_State* L)
+	inline Q_REQUIRED_RESULT long long getCurrentLine(lua_State* L)
 	{
 		if (L)
 		{
@@ -70,7 +70,7 @@ namespace luadebug
 		return -1;
 	}
 
-	inline Q_REQUIRED_RESULT qint64 getCurrentLine(const sol::this_state& s)
+	inline Q_REQUIRED_RESULT long long getCurrentLine(const sol::this_state& s)
 	{
 		lua_State* L = s.lua_state();
 		if (L)
@@ -112,7 +112,7 @@ namespace luadebug
 	bool isInterruptionRequested(const sol::this_state& s);
 
 	//根據傳入function的循環執行結果等待超時或條件滿足提早結束
-	bool waitfor(const sol::this_state& s, qint64 timeout, std::function<bool()> exprfun);
+	bool waitfor(const sol::this_state& s, long long timeout, std::function<bool()> exprfun);
 
 	//遞歸獲取每一層目錄
 	void getPackagePath(const QString base, QStringList* result);
@@ -120,31 +120,31 @@ namespace luadebug
 	//從錯誤訊息中擷取行號
 	static const QRegularExpression rexGetLine(R"(at[\s]*line[\s]*(\d+))");
 	static const QRegularExpression reGetLineEx(R"(\]:(\d+)(?=\s*:))");
-	Q_REQUIRED_RESULT QString getErrorMsgLocatedLine(const QString& str, qint64* retline);
+	Q_REQUIRED_RESULT QString getErrorMsgLocatedLine(const QString& str, long long* retline);
 
-	QPair<QString, QVariant> getVars(lua_State*& L, qint64 si, qint64& depth);
-	QString getTableVars(lua_State*& L, qint64 si, qint64& depth);
+	QPair<QString, QVariant> getVars(lua_State*& L, long long si, long long& depth);
+	QString getTableVars(lua_State*& L, long long si, long long& depth);
 
 	void hookProc(lua_State* L, lua_Debug* ar);
 
-	void logExport(const sol::this_state& s, const QStringList& datas, qint64 color, bool doNotAnnounce = false);
-	void logExport(const sol::this_state& s, const QString& data, qint64 color, bool doNotAnnounce = false);
-	void showErrorMsg(const sol::this_state& s, qint64 level, const QString& data);
+	void logExport(const sol::this_state& s, const QStringList& datas, long long color, bool doNotAnnounce = false);
+	void logExport(const sol::this_state& s, const QString& data, long long color, bool doNotAnnounce = false);
+	void showErrorMsg(const sol::this_state& s, long long level, const QString& data);
 }
 
 class CLuaTest
 {
 public:
 	CLuaTest(sol::this_state) {};
-	CLuaTest(qint64 a, sol::this_state) : a_(a) {};
+	CLuaTest(long long a, sol::this_state) : a_(a) {};
 	~CLuaTest() = default;
-	qint64 add(qint64 a, qint64 b) { return a + b; };
-	qint64 add(qint64 b) { return a_ + b; };
+	long long add(long long a, long long b) { return a + b; };
+	long long add(long long b) { return a_ + b; };
 
-	qint64 sub(qint64 a, qint64 b) { return a - b; };
+	long long sub(long long a, long long b) { return a - b; };
 
 private:
-	qint64 a_ = 0;
+	long long a_ = 0;
 };
 
 class CLuaUtil
@@ -153,15 +153,15 @@ public:
 	CLuaUtil() = default;
 	~CLuaUtil() = default;
 
-	//qint64 createDialog(qint64 currentline, sol::this_state s);
-	//qint64 regex(qint64 currentline, sol::this_state s);
-	//qint64 find(qint64 currentline, sol::this_state s);
-	//qint64 half(qint64 currentline, sol::this_state s);
-	//qint64 full(qint64 currentline, sol::this_state s);
-	//qint64 upper(qint64 currentline, sol::this_state s);
-	//qint64 lower(qint64 currentline, sol::this_state s);
-	//qint64 replace(qint64 currentline, sol::this_state s);
-	//qint64 trim(std::string str, sol::this_state s);
+	//long long createDialog(long long currentline, sol::this_state s);
+	//long long regex(long long currentline, sol::this_state s);
+	//long long find(long long currentline, sol::this_state s);
+	//long long half(long long currentline, sol::this_state s);
+	//long long full(long long currentline, sol::this_state s);
+	//long long upper(long long currentline, sol::this_state s);
+	//long long lower(long long currentline, sol::this_state s);
+	//long long replace(long long currentline, sol::this_state s);
+	//long long trim(std::string str, sol::this_state s);
 
 	bool getSys(sol::table dstTable, sol::this_state s);
 	bool getMap(sol::table dstTable, sol::this_state s);
@@ -186,43 +186,43 @@ public:
 	~CLuaSystem() = default;
 
 	//global
-	qint64 sleep(qint64 value, sol::this_state s);//ok
-	qint64 openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s);
-	qint64 print(sol::object ostr, sol::object ocolor, sol::this_state s);//ok
-	qint64 messagebox(sol::object ostr, sol::object otype, sol::this_state s);//ok
-	qint64 savesetting(const std::string& fileName, sol::this_state s);//ok
-	qint64 loadsetting(const std::string& fileName, sol::this_state s);//ok
-	qint64 set(std::string enumStr, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s);
-	qint64 leftclick(qint64 x, qint64 y, sol::this_state s);//ok
-	qint64 rightclick(qint64 x, qint64 y, sol::this_state s);//ok
-	qint64 leftdoubleclick(qint64 x, qint64 y, sol::this_state s);//ok
-	qint64 mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s);//ok
-	qint64 createch(sol::object odataplacenum
+	long long sleep(long long value, sol::this_state s);//ok
+	long long openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s);
+	long long print(sol::object ostr, sol::object ocolor, sol::this_state s);//ok
+	long long messagebox(sol::object ostr, sol::object otype, sol::this_state s);//ok
+	long long savesetting(const std::string& fileName, sol::this_state s);//ok
+	long long loadsetting(const std::string& fileName, sol::this_state s);//ok
+	long long set(std::string enumStr, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s);
+	long long leftclick(long long x, long long y, sol::this_state s);//ok
+	long long rightclick(long long x, long long y, sol::this_state s);//ok
+	long long leftdoubleclick(long long x, long long y, sol::this_state s);//ok
+	long long mousedragto(long long x1, long long y1, long long x2, long long y2, sol::this_state s);//ok
+	long long createch(sol::object odataplacenum
 		, std::string scharname
-		, qint64 imgno
-		, qint64 faceimgno
-		, qint64 vit
-		, qint64 str
-		, qint64 tgh
-		, qint64 dex
-		, qint64 earth
-		, qint64 water
-		, qint64 fire
-		, qint64 wind
+		, long long imgno
+		, long long faceimgno
+		, long long vit
+		, long long str
+		, long long tgh
+		, long long dex
+		, long long earth
+		, long long water
+		, long long fire
+		, long long wind
 		, sol::object ohometown, sol::object oforcecover, sol::this_state s);
-	qint64 delch(qint64 index, std::string spsw, sol::object option, sol::this_state s);
+	long long delch(long long index, std::string spsw, sol::object option, sol::this_state s);
 
-	qint64 menu(qint64 index, sol::object otype, sol::this_state s);
+	long long menu(long long index, sol::object otype, sol::this_state s);
 
 	//meta
-	qint64 logout(sol::this_state s);//ok
-	qint64 logback(sol::this_state s);//ok
-	qint64 eo(sol::this_state s);//ok
-	qint64 cleanchat(sol::this_state s);//ok
-	qint64 talk(sol::object ostr, sol::this_state s);
-	qint64 press(std::string buttonStr, qint64 unitid, qint64 dialogid, sol::this_state s);//ok
-	qint64 press(qint64 row, qint64 unitid, qint64 dialogid, sol::this_state s);//ok
-	qint64 input(const std::string& str, qint64 unitid, qint64 dialogid, sol::this_state s);//ok
+	long long logout(sol::this_state s);//ok
+	long long logback(sol::this_state s);//ok
+	long long eo(sol::this_state s);//ok
+	long long cleanchat(sol::this_state s);//ok
+	long long talk(sol::object ostr, sol::this_state s);
+	long long press(std::string buttonStr, long long unitid, long long dialogid, sol::this_state s);//ok
+	long long press(long long row, long long unitid, long long dialogid, sol::this_state s);//ok
+	long long input(const std::string& str, long long unitid, long long dialogid, sol::this_state s);//ok
 };
 
 class CLuaItem
@@ -231,16 +231,16 @@ public:
 	CLuaItem() = default;
 	~CLuaItem() = default;
 
-	qint64 use(qint64 itemIndex, qint64 target, sol::this_state s);
-	qint64 drop(qint64 itemIndex, sol::this_state s);
-	qint64 pick(qint64 dir, sol::this_state s);
-	qint64 swap(qint64 from, qint64 to, sol::this_state s);
-	qint64 craft(qint64 type, sol::table ingreList, sol::this_state s);
-	qint64 buy(qint64 productIndex, qint64 amount, qint64 unitid, qint64 dialogid, sol::this_state s);
-	qint64 sell(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
+	long long use(long long itemIndex, long long target, sol::this_state s);
+	long long drop(long long itemIndex, sol::this_state s);
+	long long pick(long long dir, sol::this_state s);
+	long long swap(long long from, long long to, sol::this_state s);
+	long long craft(long long type, sol::table ingreList, sol::this_state s);
+	long long buy(long long productIndex, long long amount, long long unitid, long long dialogid, sol::this_state s);
+	long long sell(long long itemIndex, long long unitid, long long dialogid, sol::this_state s);
 
-	qint64 deposit(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
-	qint64 withdraw(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
+	long long deposit(long long itemIndex, long long unitid, long long dialogid, sol::this_state s);
+	long long withdraw(long long itemIndex, long long unitid, long long dialogid, sol::this_state s);
 };
 
 class CLuaTrade
@@ -248,11 +248,11 @@ class CLuaTrade
 public:
 	CLuaTrade() = default;
 	~CLuaTrade() = default;
-	//bool start(std::string sname, qint64 timeout);
+	//bool start(std::string sname, long long timeout);
 	//void comfirm(std::string sname);
 	//void cancel();
 	//void appendItems(std::string sname, sol::table itemIndexs);
-	//void appendGold(std::string sname, qint64 gold);
+	//void appendGold(std::string sname, long long gold);
 	//void appendPets(std::string sname, sol::table petIndex);
 	//void complete(std::string sname);
 };
@@ -263,18 +263,18 @@ public:
 	CLuaChar() = default;
 	~CLuaChar() = default;
 
-	qint64 rename(std::string sfname, sol::this_state s);
-	qint64 useMagic(qint64 magicIndex, qint64 target, sol::this_state s);
-	qint64 depositGold(qint64 gold, sol::object oispublic, sol::this_state s);
-	qint64 withdrawGold(qint64 gold, sol::object oispublic, sol::this_state s);
-	qint64 dropGold(qint64 gold, sol::this_state s);
-	qint64 mail(qint64 cardIndex, std::string stext, qint64 petIndex, std::string sitemName, std::string sitemMemo, sol::this_state s);
-	qint64 mail(qint64 cardIndex, std::string stext, sol::this_state s);
-	qint64 skillUp(qint64 abilityIndex, qint64 amount, sol::this_state s);
+	long long rename(std::string sfname, sol::this_state s);
+	long long useMagic(long long magicIndex, long long target, sol::this_state s);
+	long long depositGold(long long gold, sol::object oispublic, sol::this_state s);
+	long long withdrawGold(long long gold, sol::object oispublic, sol::this_state s);
+	long long dropGold(long long gold, sol::this_state s);
+	long long mail(long long cardIndex, std::string stext, long long petIndex, std::string sitemName, std::string sitemMemo, sol::this_state s);
+	long long mail(long long cardIndex, std::string stext, sol::this_state s);
+	long long skillUp(long long abilityIndex, long long amount, sol::this_state s);
 
 	//action-group
-	qint64 setTeamState(bool join, sol::this_state s);
-	qint64 kick(qint64 teammateIndex, sol::this_state s);
+	long long setTeamState(bool join, sol::this_state s);
+	long long kick(long long teammateIndex, sol::this_state s);
 };
 
 class CLuaPet
@@ -283,13 +283,13 @@ public:
 	CLuaPet() = default;
 	~CLuaPet() = default;
 
-	qint64 setState(qint64 petIndex, qint64 state, sol::this_state s);
-	qint64 drop(qint64 petIndex, sol::this_state s);
-	qint64 rename(qint64 petIndex, std::string name, sol::this_state s);
-	qint64 learn(qint64 fromSkillIndex, qint64 petIndex, qint64 toSkillIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
-	qint64 swap(qint64 petIndex, qint64 from, qint64 to, sol::this_state s);
-	qint64 deposit(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
-	qint64 withdraw(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
+	long long setState(long long petIndex, long long state, sol::this_state s);
+	long long drop(long long petIndex, sol::this_state s);
+	long long rename(long long petIndex, std::string name, sol::this_state s);
+	long long learn(long long fromSkillIndex, long long petIndex, long long toSkillIndex, long long unitid, long long dialogid, sol::this_state s);
+	long long swap(long long petIndex, long long from, long long to, sol::this_state s);
+	long long deposit(long long petIndex, long long unitid, long long dialogid, sol::this_state s);
+	long long withdraw(long long petIndex, long long unitid, long long dialogid, sol::this_state s);
 };
 
 class CLuaMap
@@ -298,16 +298,16 @@ public:
 	CLuaMap() = default;
 	~CLuaMap() = default;
 
-	qint64 setDir(qint64 dir, sol::this_state s);
-	qint64 setDir(qint64 x, qint64 y, sol::this_state s);
-	qint64 setDir(std::string sdir, sol::this_state s);
+	long long setDir(long long dir, sol::this_state s);
+	long long setDir(long long x, long long y, sol::this_state s);
+	long long setDir(std::string sdir, sol::this_state s);
 
-	qint64 move(sol::object obj, qint64 y, sol::this_state s);
-	qint64 packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state s);
-	qint64 teleport(sol::this_state s);
-	qint64 findPath(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object ofunction, sol::object jump, sol::this_state s);
-	qint64 downLoad(sol::object floor, sol::this_state s);
-	qint64 findNPC(sol::object, sol::object, qint64 x, qint64 y, qint64 otimeout, sol::object jump, sol::this_state s);
+	long long move(sol::object obj, long long y, sol::this_state s);
+	long long packetMove(long long x, long long y, std::string sdir, sol::this_state s);
+	long long teleport(sol::this_state s);
+	long long findPath(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object ofunction, sol::object jump, sol::this_state s);
+	long long downLoad(sol::object floor, sol::this_state s);
+	long long findNPC(sol::object, sol::object, long long x, long long y, long long otimeout, sol::object jump, sol::this_state s);
 };
 
 class CLuaBattle
@@ -316,25 +316,25 @@ public:
 	CLuaBattle() = default;
 	~CLuaBattle() = default;
 
-	qint64 charUseAttack(qint64 objIndex, sol::this_state s);//atk
-	qint64 charUseMagic(qint64 magicIndex, qint64 objIndex, sol::this_state s);//magic
-	qint64 charUseSkill(qint64 skillIndex, qint64 objIndex, sol::this_state s);//skill
-	qint64 switchPet(qint64 petIndex, sol::this_state s);//switch
-	qint64 escape(sol::this_state s);//escape
-	qint64 defense(sol::this_state s);//defense
-	qint64 useItem(qint64 itemIndex, qint64 objIndex, sol::this_state s);//item
-	qint64 catchPet(qint64 objIndex, sol::this_state s);//catch
-	qint64 nothing(sol::this_state s);//nothing
-	qint64 petUseSkill(qint64 petSkillIndex, qint64 objIndex, sol::this_state s);//petskill
-	qint64 petNothing(sol::this_state s);//pet nothing
+	long long charUseAttack(long long objIndex, sol::this_state s);//atk
+	long long charUseMagic(long long magicIndex, long long objIndex, sol::this_state s);//magic
+	long long charUseSkill(long long skillIndex, long long objIndex, sol::this_state s);//skill
+	long long switchPet(long long petIndex, sol::this_state s);//switch
+	long long escape(sol::this_state s);//escape
+	long long defense(sol::this_state s);//defense
+	long long useItem(long long itemIndex, long long objIndex, sol::this_state s);//item
+	long long catchPet(long long objIndex, sol::this_state s);//catch
+	long long nothing(sol::this_state s);//nothing
+	long long petUseSkill(long long petSkillIndex, long long objIndex, sol::this_state s);//petskill
+	long long petNothing(sol::this_state s);//pet nothing
 };
 
 class CLua : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	explicit CLua(qint64 index, QObject* parent = nullptr);
-	CLua(qint64 index, const QString& content, QObject* parent = nullptr);
+	explicit CLua(long long index, QObject* parent = nullptr);
+	CLua(long long index, const QString& content, QObject* parent = nullptr);
 	virtual ~CLua();
 
 	void start();
@@ -350,7 +350,7 @@ private slots:
 public:
 	void openlibs();
 	sol::state& getLua() { return lua_; }
-	void setMax(qint64 max) { max_ = max; }
+	void setMax(long long max) { max_ = max; }
 	void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
 	void setHookForStop(bool isHookForStop) { lua_["_HOOKFORSTOP"] = isHookForStop; }
 	void setHookEnabled(bool isHookEnabled) { isHookEnabled_ = isHookEnabled; }
@@ -369,7 +369,7 @@ public:
 	sol::state lua_;
 
 private:
-	qint64 max_ = 0;
+	long long max_ = 0;
 	CLua* parent_ = nullptr;
 	QThread thread_;
 	DWORD tid_ = 0UL;

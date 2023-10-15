@@ -36,7 +36,7 @@ constexpr const char* kBackupExecuteFileTmp = "SaSH_x86.tmp";
 static const QStringList preBackupFileNames = { util::applicationName(), QString(SASH_INJECT_DLLNAME) + ".dll", "settings", "script" };
 
 QString g_etag;
-constexpr qint64 UPDATE_TIME_MIN = 5 * 60;
+constexpr long long UPDATE_TIME_MIN = 5 * 60;
 
 void setHeader(QNetworkRequest* prequest)
 {
@@ -220,10 +220,10 @@ bool compress(Downloader* d, const QString& source, const QString& destination)
 	if (hz == nullptr)
 		return false;
 
-	qint64 totalSize = list.size();
+	long long totalSize = list.size();
 	d->progressDialog_->reset();
 	d->progressDialog_->setMaximum(totalSize);
-	qint64 currentSize = 0;
+	long long currentSize = 0;
 	for (const QPair<QString, QString>& pair : list)
 	{
 		QString szFileName = pair.first;
@@ -291,7 +291,7 @@ bool uncompress(Downloader* d, const QString& source, const QString& destination
 	int numitems = ze.index;
 	d->progressDialog_->reset();
 	d->progressDialog_->setMaximum(numitems);
-	__int64 currentSize = 0;
+	long long currentSize = 0;
 	for (int zi = 0; zi < numitems; zi++)
 	{
 		ret = GetZipItem(hz, zi, &ze);
@@ -457,7 +457,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformate
 	if (current)
 		*current = exeModified.toString("yyyy-MM-dd hh:mm:ss");
 
-	qint64 timeDiffInSeconds = exeModified.secsTo(zipModified);
+	long long timeDiffInSeconds = exeModified.secsTo(zipModified);
 	QString szTimeDiff = util::formatSeconds(std::abs(timeDiffInSeconds));
 	if (pformated != nullptr)
 	{
@@ -609,7 +609,7 @@ bool Downloader::download(const QUrl& url, Mode mode)
 	return bret;
 }
 
-void Downloader::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+void Downloader::onDownloadProgress(long long bytesReceived, long long bytesTotal)
 {
 	if (bytesTotal <= 0)
 		return;
@@ -720,15 +720,11 @@ bool Downloader::start(Source sourceType, QVariant* pvar)
 		break;
 	case GiteeWiki:
 		url = QUrl(SASH_WIKI_URL);
-		progressDialog_ = new ProgressDialog;
-		callback_ = [this]() { progressDialog_->close(); };
-		connect(progressDialog_, &ProgressDialog::canceled, this, &Downloader::onCanceled);
+		mode = Sync;
 		break;
 	case GiteeMapData:
 		url = QUrl(SASH_MAPDATA_URL);
-		progressDialog_ = new ProgressDialog;
-		callback_ = [this]() { progressDialog_->close(); };
-		connect(progressDialog_, &ProgressDialog::canceled, this, &Downloader::onCanceled);
+		mode = Sync;
 		break;
 	}
 
@@ -801,7 +797,7 @@ void Downloader::overwriteCurrentExecutable()
 		//copy file and directory from szCurrentDirectory_ to rcpath/backup
 		progressDialog_->reset();
 		progressDialog_->setMaximum(preBackupFileNames.size());
-		__int64 currentSize = 0;
+		long long currentSize = 0;
 		for (const auto& fileName : preBackupFileNames)
 		{
 			QFileInfo fileInfo(szCurrentDirectory_ + fileName);
@@ -824,7 +820,7 @@ void Downloader::overwriteCurrentExecutable()
 		QString szBackup7zFileName = QString(kBackupfileName1).arg(buildDateTime());
 		QString szBackup7zFilePath = QString("%1%2").arg(rcPath_).arg(szBackup7zFileName);
 		QString szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(szBackup7zFileName);
-		qint64 n = 0;
+		long long n = 0;
 		while (QFile::exists(szBackup7zNewFilePath)) //_2 _3 _4..increase until name is not duplicate
 		{
 			szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(QString(kBackupfileName2).arg(buildDateTime()).arg(++n));
@@ -859,13 +855,13 @@ void Downloader::overwriteCurrentExecutable()
 
 	{
 		//close all .exe that has sadll.dll module
-		QVector<qint64> processes;
+		QVector<long long> processes;
 		if (mem::enumProcess(&processes, QString(SASH_INJECT_DLLNAME) + ".dll"))
 		{
 			progressDialog_->reset();
 			progressDialog_->setMaximum(processes.size());
-			__int64 currentSize = 0;
-			for (qint64 pid : processes)
+			long long currentSize = 0;
+			for (long long pid : processes)
 			{
 				ScopedHandle hProcess(pid);
 				if (hProcess.isValid())
@@ -895,7 +891,7 @@ void Downloader::overwriteCurrentExecutable()
 	QDir d(rcPath_);
 	d.removeRecursively();
 
-	constexpr qint64 delay = 1;
+	constexpr long long delay = 1;
 	{
 		// write and async run bat file
 		progressDialog_->setLabelText("setting up restart process...");
@@ -926,7 +922,7 @@ void Downloader::overwriteCurrentExecutable()
 
 	progressDialog_->onProgressReset(0);
 	progressDialog_->setMaximum(5);
-	for (__int64 i = 5; i > 0; --i)
+	for (long long i = 5; i > 0; --i)
 	{
 		progressDialog_->setLabelText(QString("restart SaSH.exe in %1 seconds...").arg(i));
 		progressDialog_->setValue(5 - i);

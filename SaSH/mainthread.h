@@ -29,7 +29,7 @@ class MainObject : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	MainObject(qint64 index, QObject* parent);
+	MainObject(long long index, QObject* parent);
 	virtual ~MainObject();
 
 signals:
@@ -47,7 +47,7 @@ private:
 
 	void setUserDatas();
 
-	qint64 checkAndRunFunctions();
+	long long checkAndRunFunctions();
 
 	void checkControl();
 	void checkEtcFlag();
@@ -111,8 +111,8 @@ private:
 	bool flagMuteEnable_ = false;
 	bool flagAutoJoinEnable_ = false;
 	bool flagLockTimeEnable_ = false;
-	qint64 flagLockTimeValue_ = 0;
-	qint64 flagSetBoostValue_ = 0;
+	long long flagLockTimeValue_ = 0;
+	long long flagSetBoostValue_ = 0;
 	bool flagAutoFreeMemoryEnable_ = false;
 	bool flagFastWalkEnable_ = false;
 	bool flagPassWallEnable_ = false;
@@ -156,19 +156,19 @@ public:
 		return instance;
 	}
 
-	void close(qint64 index);
+	void close(long long index);
 
 	inline void close()
 	{
 		QMutexLocker locker(&mutex_);
-		QList<qint64> keys = threads_.keys();
+		QList<long long> keys = threads_.keys();
 		for (auto& key : keys)
 		{
 			close(key);
 		}
 	}
 
-	inline void wait(qint64 index)
+	inline void wait(long long index)
 	{
 		QMutexLocker locker(&mutex_);
 		if (threads_.contains(index))
@@ -184,9 +184,9 @@ private:
 	ThreadManager() = default;
 
 public:
-	bool createThread(qint64 index, MainObject** ppObj, QObject* parent);
+	bool createThread(long long index, MainObject** ppObj, QObject* parent);
 
-	Q_REQUIRED_RESULT inline qint64 size() const
+	Q_REQUIRED_RESULT inline long long size() const
 	{
 		QMutexLocker locker(&mutex_);
 		return threads_.size();
@@ -194,8 +194,8 @@ public:
 
 private:
 	mutable QMutex mutex_;
-	QHash<qint64, QThread*> threads_;
-	QHash<qint64, MainObject*> objects_;
+	QHash<long long, QThread*> threads_;
+	QHash<long long, MainObject*> objects_;
 
 };
 
@@ -215,69 +215,10 @@ public:
 		return instance;
 	}
 
-	virtual ~UniqueIdManager()
-	{
-		if (sharedMemory_.isAttached())
-			sharedMemory_.detach();
-		qDebug() << "~UniqueIdManager()";
-	}
+	virtual ~UniqueIdManager();
 
 public:
-	qint64 allocateUniqueId(qint64 id)
-	{
-		if (id < 0 || id >= SASH_MAX_THREAD)
-			id = -1;
-
-		QSystemSemaphore semaphore("UniqueIdManagerSystemSemaphore", 1, QSystemSemaphore::Open);
-		semaphore.acquire();
-
-		qint64 allocatedId = -1;
-
-		// 嘗試連接到共享內存，如果不存在則創建
-		sharedMemory_.setKey("UniqueIdManagerSharedMemory");
-		if (!sharedMemory_.isAttached() && !sharedMemory_.attach())
-		{
-			qDebug() << "sharedMemory not exist, create new one now.";
-			sharedMemory_.create(totalBytes_);
-			reset();
-		}
-
-		QSet<qint64> allocatedIds;
-
-		do
-		{
-			bool bret = readSharedMemory(&allocatedIds);
-			if (!bret)
-				id = -1;
-
-			if (id >= 0 && id < SASH_MAX_THREAD)
-			{
-				// 分配指定的ID
-				if (!allocatedIds.contains(id))
-				{
-					allocatedIds.insert(id);
-					updateSharedMemory(allocatedIds);
-					allocatedId = id;
-					break;
-				}
-			}
-
-			// 分配唯一的ID
-			for (qint64 i = 0; i < SASH_MAX_THREAD; ++i)
-			{
-				if (!allocatedIds.contains(i))
-				{
-					allocatedIds.insert(i);
-					updateSharedMemory(allocatedIds);
-					allocatedId = i;
-					break;
-				}
-			}
-		} while (false);
-
-		semaphore.release();
-		return  allocatedId;
-	}
+	long long allocateUniqueId(long long id);
 
 private:
 	void reset()
@@ -285,116 +226,14 @@ private:
 		clear();
 	}
 
-	void clear()
-	{
-		memset(sharedMemory_.data(), 0, sharedMemory_.size());
-	}
+	void clear();
 
-	void write(const char* from)
-	{
-		clear();
-		_snprintf_s(reinterpret_cast<char*>(sharedMemory_.data()), sharedMemory_.size(), _TRUNCATE, "%s", from);
-	}
+	void write(const char* from);
 
-	bool readSharedMemory(QSet<qint64>* pAllocatedIds)
-	{
-		do
-		{
-			if (!sharedMemory_.lock())
-			{
-				qDebug() << "sharedMemory_.lock() == false";
-				break;
-			}
+	bool readSharedMemory(QSet<long long>* pAllocatedIds);
 
-			qDebug() << "sharedMemory_.size():" << sharedMemory_.size();
-
-			QByteArray data = QByteArray::fromRawData(static_cast<const char*>(sharedMemory_.constData()), sharedMemory_.size());
-			sharedMemory_.unlock();
-
-			if (data.isEmpty())
-			{
-				qDebug() << "data.isEmpty() == true";
-				break;
-			}
-			else if (data.front() == '\0')
-			{
-				qDebug() << "data.front() == '\\0'";
-				break;
-			}
-
-			qint64 indexEof = data.indexOf('\0');
-			if (indexEof != -1)
-			{
-				data = data.left(indexEof);
-			}
-
-			qDebug() << data;
-
-			QJsonParseError error;
-			QJsonDocument doc = QJsonDocument::fromJson(data, &error);
-			if (error.error != QJsonParseError::NoError)
-			{
-				qDebug() << "QJsonParseError:" << error.errorString();
-				break;
-			}
-
-			if (!doc.isObject())
-			{
-				qDebug() << "doc.isObject() == false";
-				break;
-			}
-
-			QJsonObject obj = doc.object();
-			QJsonValue value = obj[jsonKey_];
-			if (!value.isArray())
-			{
-				qDebug() << "!value.isArray()";
-				break;
-			}
-
-			QJsonArray idArray = value.toArray();
-			for (const QJsonValue& idValue : idArray)
-			{
-				pAllocatedIds->insert(idValue.toInt());
-			}
-
-			return true;
-		} while (false);
-
-		return false;
-	}
-
-	void updateSharedMemory(const QSet<qint64>& allocatedIds)
-	{
-		// 將分配的ID保存為JSON字符串，並寫入共享內存
-		QJsonObject obj;
-		QJsonArray idArray;
-		for (qint64 id : allocatedIds)
-		{
-			idArray.append(static_cast<int>(id));
-		}
-
-		obj[jsonKey_] = idArray;
-
-		QJsonDocument doc(obj);
-
-		// 將 JSON 文檔轉換為 UTF-8 編碼的 QByteArray
-		QByteArray data = doc.toJson(QJsonDocument::Compact);
-		QString str = QString::fromUtf8(data).simplified();
-		data = str.toUtf8();
-		data.replace(" ", "");
-
-		if (sharedMemory_.lock())
-		{
-			const char* from = data.constData();
-			write(from);
-			sharedMemory_.unlock();
-		}
-	}
+	void updateSharedMemory(const QSet<long long>& allocatedIds);
 
 private:
-
 	const QString jsonKey_ = "ids";
-	const qint64 totalBytes_ = 655360;
-	inline static QSharedMemory sharedMemory_;
 };

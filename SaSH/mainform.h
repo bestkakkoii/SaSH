@@ -54,10 +54,10 @@ class MainForm : public QMainWindow, public Indexer
 	Q_OBJECT
 
 public:
-	explicit MainForm(qint64 index, QWidget* parent);
+	explicit MainForm(long long index, QWidget* parent);
 	virtual ~MainForm();
 
-	static MainForm* createNewWindow(qint64 idToAllocate, qint64* pId = nullptr);
+	static MainForm* createNewWindow(long long idToAllocate, long long* pId = nullptr);
 
 protected:
 	void showEvent(QShowEvent* e) override;
@@ -94,19 +94,19 @@ private slots:
 	void onSaveHashSettings(const QString& name = "default", bool isFullPath = false);
 	void onLoadHashSettings(const QString& name = "default", bool isFullPath = false);
 
-	void onUpdateStatusLabelTextChanged(qint64 status);
+	void onUpdateStatusLabelTextChanged(long long status);
 	void onUpdateMapLabelTextChanged(const QString& text);
 	void onUpdateCursorLabelTextChanged(const QString& text);
 	void onUpdateCoordsPosLabelTextChanged(const QString& text);
 	void onUpdateTimeLabelTextChanged(const QString& text);
-	void onUpdateStonePosLabelTextChanged(qint64 ntext);
+	void onUpdateStonePosLabelTextChanged(long long ntext);
 	void onUpdateMainFormTitle(const QString& text);
 
-	void onMessageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr, QString topText = "", QString detail = "", void* p = nullptr);
-	void onInputBoxShow(const QString& text, qint64 type, QVariant* retvalue, void* p);
+	void onMessageBoxShow(const QString& text, long long type = 0, QString title = "", long long* pnret = nullptr, QString topText = "", QString detail = "", void* p = nullptr);
+	void onInputBoxShow(const QString& text, long long type, QVariant* retvalue, void* p);
 
-	void onAppendScriptLog(const QString& text, qint64 color = 0);
-	void onAppendChatLog(const QString& text, qint64 color = 0);
+	void onAppendScriptLog(const QString& text, long long color = 0);
+	void onAppendChatLog(const QString& text, long long color = 0);
 
 private:
 	bool markAsClose_ = false;
@@ -120,7 +120,7 @@ private:
 	OtherForm pOtherForm_;
 	ScriptForm pScriptForm_;
 
-	qint64 interfaceCount_ = 0;
+	long long interfaceCount_ = 0;
 
 	InfoForm pInfoForm_;
 	MapWidget mapWidget_;
@@ -132,7 +132,7 @@ private:
 
 	QSystemTrayIcon trayIcon_ = nullptr;
 
-	QHash<qint64, QSharedPointer<Interpreter>> interpreter_hash_;
+	QHash<long long, QSharedPointer<Interpreter>> interpreter_hash_;
 
 	QAction* hideTrayAction_ = nullptr;
 };

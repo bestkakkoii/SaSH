@@ -558,7 +558,7 @@ namespace zipper
 		int nice_match; // Stop searching when current match exceeds this
 	};
 
-	typedef __int64 lutime_t;       // define it ourselves since we don't include time.h
+	typedef long long lutime_t;       // define it ourselves since we don't include time.h
 
 	typedef struct iztimes {
 		lutime_t atime, mtime, ctime;
@@ -2187,7 +2187,7 @@ namespace zipper
 
 	lutime_t filetime2timet(const FILETIME ft)
 	{
-		__int64 i = *(__int64*)&ft;
+		long long i = *(__int64*)&ft;
 		return (lutime_t)((i - 116444736000000000) / 10000000);
 	}
 

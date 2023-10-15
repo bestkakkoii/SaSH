@@ -22,67 +22,67 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "map/mapanalyzer.h"
 
-qint64 CLuaMap::setDir(qint64 dir, sol::this_state s)
+long long CLuaMap::setDir(long long dir, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->setCharFaceDirection(--dir);
+	injector.worker->setCharFaceDirection(--dir);
 
 	return TRUE;
 }
 
-qint64 CLuaMap::setDir(qint64 x, qint64 y, sol::this_state s)
+long long CLuaMap::setDir(long long x, long long y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
 	QPoint pos(static_cast<int>(x), static_cast<int>(y));
 
-	injector.server->setCharFaceToPoint(pos);
+	injector.worker->setCharFaceToPoint(pos);
 
 	return TRUE;
 }
 
-qint64 CLuaMap::setDir(std::string sdir, sol::this_state s)
+long long CLuaMap::setDir(std::string sdir, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
 	QString qdir = util::toQString(sdir);
 
-	injector.server->setCharFaceDirection(qdir);
+	injector.worker->setCharFaceDirection(qdir);
 
 	return TRUE;
 }
 
-qint64 CLuaMap::move(sol::object obj, qint64 y, sol::this_state s)
+long long CLuaMap::move(sol::object obj, long long y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	qint64 x = 0;
+	long long x = 0;
 	QPoint p;
 	QString dirStr;
-	if (obj.is<qint64>() || obj.is<double>())
+	if (obj.is<long long>() || obj.is<double>())
 	{
-		x = obj.as<qint64>();
+		x = obj.as<long long>();
 		p = QPoint(static_cast<int>(x), static_cast<int>(y));
 	}
 	else if (obj.is<std::string>())
@@ -95,19 +95,19 @@ qint64 CLuaMap::move(sol::object obj, qint64 y, sol::this_state s)
 
 		DirType dir = dirMap.value(dirStr.toUpper().simplified());
 		//計算出往該方向10格的坐標
-		p = injector.server->getPoint() + util::fix_point.value(dir) * 10;
+		p = injector.worker->getPoint() + util::fix_point.value(dir) * 10;
 	}
 
-	injector.server->move(p);
+	injector.worker->move(p);
 	QThread::msleep(100);
 	return TRUE;
 }
 
-qint64 CLuaMap::packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state s)
+long long CLuaMap::packetMove(long long x, long long y, std::string sdir, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
@@ -116,43 +116,43 @@ qint64 CLuaMap::packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state
 
 	QString qdir = util::toQString(sdir);
 
-	injector.server->move(pos, qdir);
+	injector.worker->move(pos, qdir);
 
 	return TRUE;
 }
 
-qint64 CLuaMap::teleport(sol::this_state s)
+long long CLuaMap::teleport(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->warp();
+	injector.worker->warp();
 
 	return TRUE;
 }
 
-qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
+long long CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	qint64 floor = -1;
-	if (ofloor.is<qint64>())
+	long long floor = -1;
+	if (ofloor.is<long long>())
 	{
-		floor = ofloor.as<qint64>();
+		floor = ofloor.as<long long>();
 	}
 
 	if (floor >= 0 || floor == -1)
 	{
-		injector.server->downloadMap(floor);
+		injector.worker->downloadMap(floor);
 	}
 	else if (floor == -2)
 	{
@@ -166,8 +166,8 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 		//遍歷.dat
 		struct map
 		{
-			qint64 floor;
-			qint64 size;
+			long long floor;
+			long long size;
 		};
 
 		QList<map> list;
@@ -195,7 +195,7 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 
 		for (const map& m : list)
 		{
-			injector.server->downloadMap(m.floor);
+			injector.worker->downloadMap(m.floor);
 		}
 	}
 	else
@@ -208,32 +208,32 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 }
 
 bool __fastcall findPathProcess(
-	qint64 currentIndex,
+	long long currentIndex,
 	QPoint dst,
-	qint64 steplen,
-	qint64 step_cost,
-	qint64 timeout,
-	std::function<qint64(QPoint& dst)> callback,
+	long long steplen,
+	long long step_cost,
+	long long timeout,
+	std::function<long long(QPoint& dst)> callback,
 	sol::this_state s)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
-	qint64 hModule = injector.getProcessModule();
+	long long hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
 
 	QString output = "";
 
 	auto getPos = [hProcess, hModule, &injector]()->QPoint
 		{
-			if (!injector.server.isNull())
-				return injector.server->getPoint();
+			if (!injector.worker.isNull())
+				return injector.worker->getPoint();
 			else
 				return QPoint();
 		};
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return false;
 
-	qint64 floor = injector.server->getFloor();
+	long long floor = injector.worker->getFloor();
 	QPoint src(getPos());
 	if (src == dst)
 		return true;//已經抵達
@@ -248,16 +248,16 @@ bool __fastcall findPathProcess(
 	std::vector<QPoint> path;
 	QElapsedTimer timer; timer.start();
 	QSet<QPoint> blockList;
-	qint64 nret = -1;
+	long long nret = -1;
 
-	if (!injector.server->mapAnalyzer.calcNewRoute(astar, floor, src, dst, blockList, &path))
+	if (!injector.worker->mapAnalyzer.calcNewRoute(currentIndex, astar, floor, src, dst, blockList, &path))
 	{
 		output = QObject::tr("[error] <findpath>unable to findpath from %1, %2 to %3, %4").arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y());
 		luadebug::logExport(s, output, 6);
 		return false;
 	}
 
-	qint64 cost = static_cast<qint64>(timer.elapsed());
+	long long cost = static_cast<long long>(timer.elapsed());
 	if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 	{
 		output = QObject::tr("<findpath>path found, from %1, %2 to %3, %4 cost:%5 step:%6")
@@ -266,9 +266,9 @@ bool __fastcall findPathProcess(
 	}
 
 	QPoint point;
-	qint64 steplen_cache = -1;
-	qint64 pathsize = path.size();
-	qint64 current_floor = floor;
+	long long steplen_cache = -1;
+	long long pathsize = path.size();
+	long long current_floor = floor;
 
 	timer.restart();
 
@@ -276,14 +276,14 @@ bool __fastcall findPathProcess(
 	QElapsedTimer blockDetectTimer; blockDetectTimer.start();
 	QPoint lastPoint = src;
 	QPoint lastTryPoint;
-	qint64 recordedStep = -1;
+	long long recordedStep = -1;
 
 	for (;;)
 	{
 		luadebug::checkStopAndPause(s);
 		luadebug::checkOnlineThenWait(s);
 
-		if (injector.server.isNull())
+		if (injector.worker.isNull())
 		{
 			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 			{
@@ -316,7 +316,7 @@ bool __fastcall findPathProcess(
 			}
 
 			point = path.at(steplen_cache);
-			injector.server->move(point);
+			injector.worker->move(point);
 			lastTryPoint = point;
 			if (step_cost > 0)
 				QThread::msleep(step_cost);
@@ -333,7 +333,7 @@ bool __fastcall findPathProcess(
 					QThread::msleep(500);
 
 					luadebug::checkStopAndPause(s);
-					if (injector.server.isNull())
+					if (injector.worker.isNull())
 					{
 						if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 						{
@@ -347,7 +347,7 @@ bool __fastcall findPathProcess(
 					if (src.isNull() || src != dst)
 						continue;
 
-					injector.server->EO();
+					injector.worker->EO();
 
 					src = getPos();
 					if (src.isNull() || src != dst)
@@ -356,7 +356,7 @@ bool __fastcall findPathProcess(
 					QThread::msleep(500);
 
 					luadebug::checkStopAndPause(s);
-					if (injector.server.isNull())
+					if (injector.worker.isNull())
 					{
 						if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 						{
@@ -366,14 +366,14 @@ bool __fastcall findPathProcess(
 						break;
 					}
 
-					injector.server->EO();
+					injector.worker->EO();
 
 					src = getPos();
 					if (src.isNull() || src != dst)
 						continue;
 				}
 
-				injector.server->move(dst);
+				injector.worker->move(dst);
 
 				QThread::msleep(200);
 				src = getPos();
@@ -390,7 +390,7 @@ bool __fastcall findPathProcess(
 
 			luadebug::checkStopAndPause(s);
 
-			if (!injector.server->mapAnalyzer.calcNewRoute(astar, floor, src, dst, blockList, &path))
+			if (!injector.worker->mapAnalyzer.calcNewRoute(currentIndex, astar, floor, src, dst, blockList, &path))
 			{
 				output = QObject::tr("[error] <findpath>unable to findpath from %1, %2 to %3, %4").arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y());
 				luadebug::logExport(s, output, 6);
@@ -408,7 +408,7 @@ bool __fastcall findPathProcess(
 		{
 			blockDetectTimer.restart();
 			luadebug::checkStopAndPause(s);
-			if (injector.server.isNull())
+			if (injector.worker.isNull())
 			{
 				if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 				{
@@ -423,7 +423,7 @@ bool __fastcall findPathProcess(
 				output = QObject::tr("[warn] <findpath>detedted player ware blocked");
 				luadebug::logExport(s, output, 10);
 			}
-			injector.server->EO();
+			injector.worker->EO();
 			QThread::msleep(500);
 			luadebug::checkStopAndPause(s);
 
@@ -437,7 +437,7 @@ bool __fastcall findPathProcess(
 			for (const QPoint& it : util::fix_point)
 			{
 				blockPoint = src + it;
-				if (!injector.server->findUnit(QString("%1|%2").arg(point.x()).arg(point.y()), util::OBJ_NPC, &unit) || !unit.isVisible)
+				if (!injector.worker->findUnit(QString("%1|%2").arg(point.x()).arg(point.y()), util::OBJ_NPC, &unit) || !unit.isVisible)
 					continue;
 				hasNPCBlock = true;
 				break;
@@ -450,7 +450,7 @@ bool __fastcall findPathProcess(
 				injector.setEnableHash(util::kAutoEscapeEnable, false);
 				injector.setEnableHash(util::kKNPCEnable, true);
 				emit signalDispatcher.applyHashSettingsToUI();
-				injector.server->move(blockPoint);
+				injector.worker->move(blockPoint);
 				QThread::msleep(2000);
 				luadebug::checkBattleThenWait(s);
 				blockDetectTimer.restart();
@@ -461,7 +461,7 @@ bool __fastcall findPathProcess(
 			}
 
 			luadebug::checkStopAndPause(s);
-			if (injector.server.isNull())
+			if (injector.worker.isNull())
 			{
 				if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 				{
@@ -473,9 +473,9 @@ bool __fastcall findPathProcess(
 
 			//將正前方的坐標加入黑名單
 			src = getPos();
-			qint64 dir = injector.server->setCharFaceToPoint(lastTryPoint);
+			long long dir = injector.worker->setCharFaceToPoint(lastTryPoint);
 			if (dir == -1)
-				dir = injector.server->getDir();
+				dir = injector.worker->getDir();
 			blockPoint = src + util::fix_point.value(dir);
 			blockList.insert(blockPoint);
 			blockList.insert(lastTryPoint);
@@ -487,7 +487,7 @@ bool __fastcall findPathProcess(
 		}
 
 		luadebug::checkStopAndPause(s);
-		if (injector.server.isNull())
+		if (injector.worker.isNull())
 		{
 			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 			{
@@ -507,7 +507,7 @@ bool __fastcall findPathProcess(
 			break;
 		}
 
-		if (injector.server->getFloor() != current_floor)
+		if (injector.worker->getFloor() != current_floor)
 		{
 			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 			{
@@ -520,7 +520,7 @@ bool __fastcall findPathProcess(
 		if (callback != nullptr)
 		{
 			QThread::msleep(50);
-			qint64 r = callback(dst);
+			long long r = callback(dst);
 			if (r == 1)
 				callback = nullptr;
 			else if (r == 2)
@@ -531,34 +531,34 @@ bool __fastcall findPathProcess(
 }
 
 
-qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object ofunction, sol::object jump, sol::this_state s)
+long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object ofunction, sol::object jump, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (jump.is<qint64>() || jump.is<std::string>())
+	if (jump.is<long long>() || jump.is<std::string>())
 		lua["_JUMP"] = jump;
 	else
 		lua["_JUMP"] = sol::lua_nil;
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkStopAndPause(s);
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	qint64 x = -1;
-	qint64 y = -1;
+	long long x = -1;
+	long long y = -1;
 	QPoint p;
-	qint64 steplen = 3;
-	qint64 step_cost = 0;
-	qint64 timeout = 180000;
+	long long steplen = 3;
+	long long step_cost = 0;
+	long long timeout = 180000;
 	QString name;
 
 	sol::protected_function func;
 
-	if (p1.is<qint64>())
-		x = p1.as<qint64>();
+	if (p1.is<long long>())
+		x = p1.as<long long>();
 	else if (p1.is<std::string>())
 		name = util::toQString(p1.as<std::string>());
 	else
@@ -566,16 +566,16 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 
 	if (x != -1)
 	{
-		if (p2.is<qint64>())
-			y = p2.as<qint64>();
+		if (p2.is<long long>())
+			y = p2.as<long long>();
 		else
 			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 2, QObject::tr("invalid value type"));
-		if (p3.is<qint64>())
-			steplen = p3.as<qint64>();
-		if (p4.is<qint64>())
-			step_cost = p4.as<qint64>();
-		if (p5.is<qint64>())
-			timeout = p5.as<qint64>();
+		if (p3.is<long long>())
+			steplen = p3.as<long long>();
+		if (p4.is<long long>())
+			step_cost = p4.as<long long>();
+		if (p5.is<long long>())
+			timeout = p5.as<long long>();
 
 		if (ofunction.is<sol::protected_function>())
 			func = ofunction.as<sol::protected_function>();
@@ -584,38 +584,39 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 	}
 	else
 	{
-		if (p2.is<qint64>())
-			steplen = p2.as<qint64>();
-		if (p3.is<qint64>())
-			step_cost = p3.as<qint64>();
-		if (p4.is<qint64>())
-			timeout = p4.as<qint64>();
+		if (p2.is<long long>())
+			steplen = p2.as<long long>();
+		if (p3.is<long long>())
+			step_cost = p3.as<long long>();
+		if (p4.is<long long>())
+			timeout = p4.as<long long>();
 		if (p5.is<sol::protected_function>())
 			func = p5.as<sol::protected_function>();
 	}
 
 	CAStar astar;
-	auto findNpcCallBack = [&injector, &astar, &s](const QString& name, QPoint& dst, qint64* pdir)->bool
+	auto findNpcCallBack = [&injector, &astar, currentIndex, &s](const QString& name, QPoint& dst, long long* pdir)->bool
 		{
 			luadebug::checkStopAndPause(s);
 
 			mapunit_s unit;
-			if (!injector.server->findUnit(name, util::OBJ_NPC, &unit, ""))
+			if (!injector.worker->findUnit(name, util::OBJ_NPC, &unit, ""))
 			{
-				if (!injector.server->findUnit(name, util::OBJ_HUMAN, &unit, ""))
+				if (!injector.worker->findUnit(name, util::OBJ_HUMAN, &unit, ""))
 					return 0;//沒找到
 			}
 
-			qint64 dir = injector.server->mapAnalyzer.calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+			long long dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(
+				currentIndex, astar, injector.worker->getFloor(), injector.worker->getPoint(), unit.p, &dst, true, unit.dir);
 			if (pdir)
 				*pdir = dir;
 			return dir != -1;//找到了
 		};
 
-	qint64 dir = -1;
+	long long dir = -1;
 	if (!name.isEmpty())
 	{
-		QString key = util::toQString(injector.server->getFloor());
+		QString key = util::toQString(injector.worker->getFloor());
 		util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		QList<util::MapData> datas = config.readMapData(key);
 		if (datas.isEmpty())
@@ -670,7 +671,7 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 		if (findPathProcess(currentIndex, p, steplen, step_cost, timeout, stdfun, s))
 		{
 			if (!name.isEmpty() && (findNpcCallBack(name, p, &dir)) && dir != -1)
-				injector.server->setCharFaceDirection(dir);
+				injector.worker->setCharFaceDirection(dir);
 			lua["_JUMP"] = sol::lua_nil;
 			return TRUE;
 		}
@@ -680,7 +681,7 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 	if (findPathProcess(currentIndex, p, steplen, step_cost, timeout, nullptr, s))
 	{
 		if (!name.isEmpty() && (findNpcCallBack(name, p, &dir)) && dir != -1)
-			injector.server->setCharFaceDirection(dir);
+			injector.worker->setCharFaceDirection(dir);
 		lua["_JUMP"] = sol::lua_nil;
 		return TRUE;
 	}
@@ -688,31 +689,31 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 	return FALSE;
 }
 
-qint64 CLuaMap::findNPC(sol::object p1, sol::object nicknames, qint64 x, qint64 y, qint64 otimeout, sol::object jump, sol::this_state s)
+long long CLuaMap::findNPC(sol::object p1, sol::object nicknames, long long x, long long y, long long otimeout, sol::object jump, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (jump.is<qint64>() || jump.is<std::string>())
+	if (jump.is<long long>() || jump.is<std::string>())
 		lua["_JUMP"] = jump;
 	else
 		lua["_JUMP"] = sol::lua_nil;
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	QString cmpNpcName;
-	qint64 modelid = -1;
+	long long modelid = -1;
 	if (p1.is<std::string>())
 	{
 		cmpNpcName = util::toQString(p1.as<std::string>());
 	}
-	else if (p1.is<qint64>())
+	else if (p1.is<long long>())
 	{
-		modelid = p1.as<qint64>();
+		modelid = p1.as<long long>();
 	}
 	else
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 1, QObject::tr("invalid value type"));
@@ -727,33 +728,34 @@ qint64 CLuaMap::findNPC(sol::object p1, sol::object nicknames, qint64 x, qint64 
 
 	QPoint p(x, y);
 
-	qint64 timeout = 5000LL * 36;
+	long long timeout = 5000LL * 36;
 
 	mapunit_s unit;
-	qint64 dir = -1;
+	long long dir = -1;
 	CAStar astar;
-	auto findNpcCallBack = [&injector, &unit, cmpNpcName, cmpFreeName, modelid, &dir, &astar](QPoint& dst)->bool
+	auto findNpcCallBack = [&injector, &unit, currentIndex, cmpNpcName, cmpFreeName, modelid, &dir, &astar](QPoint& dst)->bool
 		{
 			if (modelid > 0)
 			{
-				if (!injector.server->findUnit("", util::OBJ_NPC, &unit, "", modelid))
+				if (!injector.worker->findUnit("", util::OBJ_NPC, &unit, "", modelid))
 				{
 					return 0;//沒找到
 				}
 			}
-			else if (!injector.server->findUnit(cmpNpcName, util::OBJ_NPC, &unit, cmpFreeName))
+			else if (!injector.worker->findUnit(cmpNpcName, util::OBJ_NPC, &unit, cmpFreeName))
 			{
-				if (!injector.server->findUnit(cmpNpcName, util::OBJ_HUMAN, &unit, cmpFreeName))
+				if (!injector.worker->findUnit(cmpNpcName, util::OBJ_HUMAN, &unit, cmpFreeName))
 					return 0;//沒找到
 			}
 
-			dir = injector.server->mapAnalyzer.calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+			dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(
+				currentIndex, astar, injector.worker->getFloor(), injector.worker->getPoint(), unit.p, &dst, true, unit.dir);
 			return dir != -1 ? 1 : 0;//找到了
 		};
 
 	if (findPathProcess(currentIndex, p, 1, 0, timeout, findNpcCallBack, s) && dir != -1)
 	{
-		injector.server->setCharFaceDirection(dir);
+		injector.worker->setCharFaceDirection(dir);
 		lua["_JUMP"] = sol::lua_nil;
 		return TRUE;
 	}

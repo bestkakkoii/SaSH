@@ -28,17 +28,17 @@ class SelectTargetForm : public QDialog, public Indexer
 {
 	Q_OBJECT
 public:
-	SelectTargetForm(qint64 index, qint64 type, QString* dst, QWidget* parent);
+	SelectTargetForm(long long index, long long type, QString* dst, QWidget* parent);
 
 	virtual ~SelectTargetForm();
 
-	static Q_REQUIRED_RESULT QString generateShortName(quint64 flg);
+	static Q_REQUIRED_RESULT QString generateShortName(unsigned long long flg);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override;
 
 private slots:
-	void onCheckBoxStateChanged(qint64 state);
+	void onCheckBoxStateChanged(long long state);
 
 	void onAccept();
 
@@ -49,12 +49,12 @@ private:
 
 private:
 	Ui::SelectTargetFormClass ui;
-	qint64 type_ = 0;
-	quint64 selectflag_ = 0u;
+	long long type_ = 0;
+	unsigned long long selectflag_ = 0u;
 	QString* dst_ = nullptr;
 };
 
-static bool createSelectTargetForm(qint64 index, qint64 type, QString* dst, QWidget* perent)
+static bool createSelectTargetForm(long long index, long long type, QString* dst, QWidget* perent)
 {
 	SelectTargetForm* pObjForm = q_check_ptr(new SelectTargetForm(index, type, dst, perent));
 	if (pObjForm)

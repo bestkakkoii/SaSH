@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
+long long CLuaSystem::sleep(long long t, sol::this_state s)
 {
 	if (t < 0)
 	{
@@ -31,8 +31,8 @@ qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
 
 	if (t >= 1000)
 	{
-		qint64 i = 0;
-		qint64 size = t / 1000;
+		long long i = 0;
+		long long size = t / 1000;
 		for (; i < size; ++i)
 		{
 			QThread::msleep(1000UL);
@@ -48,56 +48,56 @@ qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::logout(sol::this_state s)
+long long CLuaSystem::logout(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (!injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (!injector.worker.isNull())
 	{
-		injector.server->logOut();
+		injector.worker->logOut();
 		return TRUE;
 	}
 
 	return FALSE;
 }
 
-qint64 CLuaSystem::logback(sol::this_state s)
+long long CLuaSystem::logback(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (!injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (!injector.worker.isNull())
 	{
-		injector.server->logBack();
+		injector.worker->logBack();
 		return TRUE;
 	}
 
 	return FALSE;
 }
 
-qint64 CLuaSystem::eo(sol::this_state s)
+long long CLuaSystem::eo(sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return 0;
 
 	luadebug::checkBattleThenWait(s);
 
 	QElapsedTimer timer; timer.start();
-	injector.server->EO();
+	injector.worker->EO();
 
-	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !Injector::getInstance(currentIndex).server->isEOTTLSend.load(std::memory_order_acquire); });
+	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !Injector::getInstance(currentIndex).worker->isEOTTLSend.load(std::memory_order_acquire); });
 
-	qint64 result = bret ? injector.server->lastEOTime.load(std::memory_order_acquire) : 0;
+	long long result = bret ? injector.worker->lastEOTime.load(std::memory_order_acquire) : 0;
 
 	return result;
 }
 
-qint64 CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s)
+long long CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	QString filename = util::toQString(sfilename);
@@ -111,16 +111,16 @@ qint64 CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::obje
 	if (oformat.is<std::string>() && !oformat.as<std::string>().empty())
 		format = util::toQString(oformat);
 
-	qint64 buffersize = 1024;
-	if (obuffersize.is<qint64>())
-		buffersize = obuffersize.as<qint64>();
+	long long buffersize = 1024;
+	if (obuffersize.is<long long>())
+		buffersize = obuffersize.as<long long>();
 
 	bool bret = injector.log.initialize(filename, buffersize, format);
 	return bret;
 }
 
 //這裡還沒想好format格式怎麼設計，暫時先放著
-qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_state s)
+long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_state s)
 {
 	sol::state_view lua(s);
 	luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_SIZE_RANGE, 1, 3);
@@ -162,14 +162,14 @@ qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_sta
 	else if (ocontent.is<sol::table>())
 	{
 		//print table
-		qint64 depth = 1024;
+		long long depth = 1024;
 		raw = luadebug::getTableVars(s.L, 1, depth);
 		msg = raw;
 
 	}
 	else
 	{
-		QString pointerStr = util::toQString(reinterpret_cast<qint64>(ocontent.pointer()), 16);
+		QString pointerStr = util::toQString(reinterpret_cast<long long>(ocontent.pointer()), 16);
 		//print type name
 		switch (ocontent.get_type())
 		{
@@ -184,9 +184,9 @@ qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_sta
 	}
 
 	int color = 4;
-	if (ocolor.is<qint64>())
+	if (ocolor.is<long long>())
 	{
-		color = ocolor.as<qint64>();
+		color = ocolor.as<long long>();
 		if (color != -2 && (color < 0 || color > 10))
 			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 2, QObject::tr("invalid value of 'color'"));
 	}
@@ -195,9 +195,9 @@ qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_sta
 		color = QRandomGenerator64().bounded(0, 10);
 	}
 
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
 	bool split = false;
-	bool doNotAnnounce = color == -2 || injector.server.isNull();
+	bool doNotAnnounce = color == -2 || injector.worker.isNull();
 	QStringList l;
 	if (msg.contains("\r\n"))
 	{
@@ -219,15 +219,15 @@ qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_sta
 	return FALSE;
 }
 
-qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_state s)
+long long CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	long long currentIndex = lua["_INDEX"].get<long long>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	QString text;
-	if (ostr.is<qint64>())
-		text = util::toQString(ostr.as<qint64>());
+	if (ostr.is<long long>())
+		text = util::toQString(ostr.as<long long>());
 	else if (ostr.is<double>())
 		text = util::toQString(ostr.as<double>());
 	else if (ostr.is<std::string>())
@@ -235,13 +235,13 @@ qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_sta
 	else
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 1, QObject::tr("invalid value type"));
 
-	qint64 type = 0;
-	if (ostr.is<qint64>())
-		type = ostr.as<qint64>();
+	long long type = 0;
+	if (ostr.is<long long>())
+		type = ostr.as<long long>();
 	else if (ostr != sol::lua_nil)
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 2, QObject::tr("invalid value of 'type'"));
 
-	qint64 nret = QMessageBox::StandardButton::NoButton;
+	long long nret = QMessageBox::StandardButton::NoButton;
 	emit signalDispatcher.messageBoxShow(text, type, "", &nret);
 	if (nret != QMessageBox::StandardButton::NoButton)
 	{
@@ -250,47 +250,47 @@ qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_sta
 	return 0;
 }
 
-qint64 CLuaSystem::talk(sol::object ostr, sol::this_state s)
+long long CLuaSystem::talk(sol::object ostr, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	QString text;
-	if (ostr.is<qint64>())
-		text = util::toQString(ostr.as<qint64>());
+	if (ostr.is<long long>())
+		text = util::toQString(ostr.as<long long>());
 	else if (ostr.is<double>())
 		text = util::toQString(ostr.as<double>());
 	else if (ostr.is<std::string>())
 		text = util::toQString(ostr);
 	else if (ostr.is<sol::table>())
 	{
-		qint64 depth = 1024;
+		long long depth = 1024;
 		text = luadebug::getTableVars(s.L, 1, depth);
 	}
 	else
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 1, QObject::tr("invalid value type"));
 
 
-	injector.server->talk(text);
+	injector.worker->talk(text);
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::cleanchat(sol::this_state s)
+long long CLuaSystem::cleanchat(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->cleanChatHistory();
+	injector.worker->cleanChatHistory();
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
+long long CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
 {
 	QString fileName = util::toQString(sfileName);
 	fileName.replace("\\", "/");
@@ -306,14 +306,14 @@ qint64 CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
 		fileName.replace(suffix, "json");
 
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	long long currentIndex = lua["_INDEX"].get<long long>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.saveHashSettings(fileName, true);
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
+long long CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
 {
 	QString fileName = util::toQString(sfileName);
 	fileName.replace("\\", "/");
@@ -335,29 +335,29 @@ qint64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
 	}
 
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	long long currentIndex = lua["_INDEX"].get<long long>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.loadHashSettings(fileName, true);
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid, sol::this_state s)
+long long CLuaSystem::press(std::string sbuttonStr, long long unitid, long long dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
 	QString text = util::toQString(sbuttonStr);
-	qint64 row = -1;
+	long long row = -1;
 	BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
 	if (button == BUTTON_NOTUSED)
 	{
-		qint64 row = -1;
-		dialog_t dialog = injector.server->currentDialog;
+		long long row = -1;
+		dialog_t dialog = injector.worker->currentDialog;
 		QStringList textList = dialog.linebuttontext;
 		if (!textList.isEmpty())
 		{
@@ -369,7 +369,7 @@ qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid,
 				isExact = false;
 			}
 
-			for (qint64 i = 0; i < textList.size(); ++i)
+			for (long long i = 0; i < textList.size(); ++i)
 			{
 				if (!isExact && textList.value(i).toUpper().contains(newText))
 				{
@@ -386,96 +386,96 @@ qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid,
 	}
 
 	if (button != BUTTON_NOTUSED)
-		injector.server->press(button, dialogid, unitid);
+		injector.worker->press(button, dialogid, unitid);
 	else if (row != -1)
-		injector.server->press(row, dialogid, unitid);
+		injector.worker->press(row, dialogid, unitid);
 	else
 		return FALSE;
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::press(qint64 row, qint64 unitid, qint64 dialogid, sol::this_state s)
+long long CLuaSystem::press(long long row, long long unitid, long long dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->press(row, dialogid, unitid);
+	injector.worker->press(row, dialogid, unitid);
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::input(const std::string& str, qint64 unitid, qint64 dialogid, sol::this_state s)
+long long CLuaSystem::input(const std::string& str, long long unitid, long long dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
 	QString text = util::toQString(str);
 
-	injector.server->inputtext(text, dialogid, unitid);
+	injector.worker->inputtext(text, dialogid, unitid);
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::leftclick(qint64 x, qint64 y, sol::this_state s)
+long long CLuaSystem::leftclick(long long x, long long y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	injector.leftClick(x, y);
 	return TRUE;
 }
 
-qint64 CLuaSystem::rightclick(qint64 x, qint64 y, sol::this_state s)
+long long CLuaSystem::rightclick(long long x, long long y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	injector.rightClick(x, y);
 	return TRUE;
 }
 
-qint64 CLuaSystem::leftdoubleclick(qint64 x, qint64 y, sol::this_state s)
+long long CLuaSystem::leftdoubleclick(long long x, long long y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	injector.leftDoubleClick(x, y);
 	return TRUE;
 }
 
-qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s)
+long long CLuaSystem::mousedragto(long long x1, long long y1, long long x2, long long y2, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	injector.dragto(x1, y1, x2, y2);
 	return TRUE;
 }
 
-qint64 CLuaSystem::menu(qint64 index, sol::object otype, sol::this_state s)
+long long CLuaSystem::menu(long long index, sol::object otype, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
@@ -488,9 +488,9 @@ qint64 CLuaSystem::menu(qint64 index, sol::object otype, sol::this_state s)
 		return FALSE;
 	}
 
-	qint64 type = 1;
-	if (otype.is<qint64>())
-		type = otype.as<qint64>();
+	long long type = 1;
+	if (otype.is<long long>())
+		type = otype.as<long long>();
 
 	--type;
 	if (type < 0 || type > 1)
@@ -501,37 +501,37 @@ qint64 CLuaSystem::menu(qint64 index, sol::object otype, sol::this_state s)
 
 	if (type == 0)
 	{
-		injector.server->saMenu(index);
+		injector.worker->saMenu(index);
 	}
 	else
 	{
-		injector.server->shopOk(index);
+		injector.worker->shopOk(index);
 	}
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::createch(sol::object odataplacenum
+long long CLuaSystem::createch(sol::object odataplacenum
 	, std::string scharname
-	, qint64 imgno
-	, qint64 faceimgno
-	, qint64 vit
-	, qint64 str
-	, qint64 tgh
-	, qint64 dex
-	, qint64 earth
-	, qint64 water
-	, qint64 fire
-	, qint64 wind
+	, long long imgno
+	, long long faceimgno
+	, long long vit
+	, long long str
+	, long long tgh
+	, long long dex
+	, long long earth
+	, long long water
+	, long long fire
+	, long long wind
 	, sol::object ohometown, sol::object oforcecover, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return FALSE;
 
-	qint64 dataplacenum = 0;
+	long long dataplacenum = 0;
 	if (odataplacenum.is<std::string>())
 	{
 		QString dataplace = util::toQString(odataplacenum.as<std::string>());
@@ -545,9 +545,9 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 			return FALSE;
 		}
 	}
-	else if (odataplacenum.is<qint64>())
+	else if (odataplacenum.is<long long>())
 	{
-		dataplacenum = odataplacenum.as<qint64>();
+		dataplacenum = odataplacenum.as<long long>();
 		if (dataplacenum != 1 && dataplacenum != 2)
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("Invalid value of 'dataplacenum'"));
@@ -629,10 +629,10 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 		return FALSE;
 	}
 
-	qint64 hometown = 1;
+	long long hometown = 1;
 	if (ohometown.is<std::string>())
 	{
-		static const QHash<QString, qint64> hash = {
+		static const QHash<QString, long long> hash = {
 			{ "薩姆吉爾",0 }, { "瑪麗娜絲", 1 }, { "加加", 2 }, { "卡魯它那", 3 },
 			{ "萨姆吉尔",0 }, { "玛丽娜丝", 1 }, { "加加", 2 }, { "卡鲁它那", 3 },
 
@@ -651,9 +651,9 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 		if (hometown == -1)
 			hometown = 1;
 	}
-	else if (ohometown.is<qint64>())
+	else if (ohometown.is<long long>())
 	{
-		hometown = ohometown.as<qint64>();
+		hometown = ohometown.as<long long>();
 		if (hometown <= 0 || hometown > 4)
 			hometown = 1;
 		else
@@ -663,33 +663,33 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 	bool forcecover = false;
 	if (oforcecover.is<bool>())
 		forcecover = oforcecover.as<bool>();
-	else if (oforcecover.is<qint64>())
-		forcecover = oforcecover.as<qint64>() > 0;
+	else if (oforcecover.is<long long>())
+		forcecover = oforcecover.as<long long>() > 0;
 
-	injector.server->createCharacter(static_cast<qint64>(dataplacenum)
+	injector.worker->createCharacter(static_cast<long long>(dataplacenum)
 		, charname
-		, static_cast<qint64>(imgno)
-		, static_cast<qint64>(faceimgno)
-		, static_cast<qint64>(vit)
-		, static_cast<qint64>(str)
-		, static_cast<qint64>(tgh)
-		, static_cast<qint64>(dex)
-		, static_cast<qint64>(earth)
-		, static_cast<qint64>(water)
-		, static_cast<qint64>(fire)
-		, static_cast<qint64>(wind)
-		, static_cast<qint64>(hometown)
+		, static_cast<long long>(imgno)
+		, static_cast<long long>(faceimgno)
+		, static_cast<long long>(vit)
+		, static_cast<long long>(str)
+		, static_cast<long long>(tgh)
+		, static_cast<long long>(dex)
+		, static_cast<long long>(earth)
+		, static_cast<long long>(water)
+		, static_cast<long long>(fire)
+		, static_cast<long long>(wind)
+		, static_cast<long long>(hometown)
 		, forcecover);
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::delch(qint64 index, std::string spsw, sol::object option, sol::this_state s)
+long long CLuaSystem::delch(long long index, std::string spsw, sol::object option, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return FALSE;
 
 	--index;
@@ -709,21 +709,21 @@ qint64 CLuaSystem::delch(qint64 index, std::string spsw, sol::object option, sol
 	bool backtofirst = false;
 	if (option.is<bool>())
 		backtofirst = option.as<bool>();
-	else if (option.is<qint64>())
-		backtofirst = option.as<qint64>() > 0;
+	else if (option.is<long long>())
+		backtofirst = option.as<long long>() > 0;
 
-	injector.server->deleteCharacter(index, password, backtofirst);
+	injector.worker->deleteCharacter(index, password, backtofirst);
 
 	return TRUE;
 }
 
 
-qint64 CLuaSystem::set(std::string enumStr,
+long long CLuaSystem::set(std::string enumStr,
 	sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<long long>());
 
 	QString typeStr = util::toQString(enumStr);
 	if (typeStr.isEmpty())
@@ -758,6 +758,12 @@ qint64 CLuaSystem::set(std::string enumStr,
 			{ "自動加點", util::kAutoAbilityEnable },
 
 			//ok
+			{ "標題", util::kTitleFormatString },
+			{ "我方格式", util::kBattleAllieFormatString },
+			{ "敵方格式", util::kBattleEnemyFormatString },
+			{ "自己格式", util::kBattleSelfMarkString },
+			{ "出手格式", util::kBattleActMarkString },
+			{ "補位格式", util::kBattleSpaceMarkString },
 			{ "主機", util::kServerValue },
 			{ "副機", util::kSubServerValue },
 			{ "位置", util::kPositionValue },
@@ -887,6 +893,12 @@ qint64 CLuaSystem::set(std::string enumStr,
 
 			//ok
 			{ "EO命令", util::kEOCommandString },
+			{ "标题", util::kTitleFormatString },
+			{ "我方格式", util::kBattleAllieFormatString },
+			{ "敌方格式", util::kBattleEnemyFormatString },
+			{ "自己格式", util::kBattleSelfMarkString },
+			{ "出手格式", util::kBattleActMarkString },
+			{ "补位格式", util::kBattleSpaceMarkString },
 			{ "主机", util::kServerValue },
 			{ "副机", util::kSubServerValue },
 			{ "位置", util::kPositionValue },
@@ -1012,9 +1024,9 @@ qint64 CLuaSystem::set(std::string enumStr,
 
 	if (type == util::kScriptDebugModeEnable)
 	{
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		long long value1 = 0;
+		if (p1.is<long long>())
+			value1 = p1.as<long long>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1025,9 +1037,9 @@ qint64 CLuaSystem::set(std::string enumStr,
 
 	if (type == util::kBattleCharNormalActionTypeValue)
 	{
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		long long value1 = 0;
+		if (p1.is<long long>())
+			value1 = p1.as<long long>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1035,18 +1047,18 @@ qint64 CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		qint64 value2 = 0;
-		if (p2.is<qint64>())
-			value2 = p2.as<qint64>();
+		long long value2 = 0;
+		if (p2.is<long long>())
+			value2 = p2.as<long long>();
 		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 		--value2;
 		if (value2 < 0)
 			value2 = 0;
 
-		qint64 value3 = 0;
-		if (p3.is<qint64>())
-			value3 = p3.as<qint64>();
+		long long value3 = 0;
+		if (p3.is<long long>())
+			value3 = p3.as<long long>();
 		else if (p2.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
@@ -1063,9 +1075,9 @@ qint64 CLuaSystem::set(std::string enumStr,
 	}
 	else if (type == util::kBattlePetNormalActionTypeValue)
 	{
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		long long value1 = 0;
+		if (p1.is<long long>())
+			value1 = p1.as<long long>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1073,18 +1085,18 @@ qint64 CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		qint64 value2 = 0;
-		if (p2.is<qint64>())
-			value2 = p2.as<qint64>();
+		long long value2 = 0;
+		if (p2.is<long long>())
+			value2 = p2.as<long long>();
 		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 		--value2;
 		if (value2 < 0)
 			value2 = 0;
 
-		qint64 value3 = 0;
-		if (p3.is<qint64>())
-			value3 = p3.as<qint64>();
+		long long value3 = 0;
+		if (p3.is<long long>())
+			value3 = p3.as<long long>();
 		else if (p3.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
@@ -1109,15 +1121,15 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kPositionValue://位置
 	case util::kBattleCatchModeValue://戰鬥捕捉模式
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<long long>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		long long value1 = 0;
+		if (p1.is<long long>())
+			value1 = p1.as<long long>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1154,15 +1166,15 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kBattleMagicReviveTargetValue:
 	case util::kBattleItemReviveTargetValue:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<long long>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		long long value1 = 0;
+		if (p1.is<long long>())
+			value1 = p1.as<long long>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1225,15 +1237,15 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kSwitcherJobEnable:
 	case util::kSwitcherWorldEnable:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<long long>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		long long value1 = 0;
+		if (p1.is<long long>())
+			value1 = p1.as<long long>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1245,14 +1257,14 @@ qint64 CLuaSystem::set(std::string enumStr,
 		if (type == util::kFastBattleEnable && ok)
 		{
 			injector.setEnableHash(util::kAutoBattleEnable, !ok);
-			if (ok && !injector.server.isNull())
-				injector.server->doBattleWork(false);
+			if (ok && !injector.worker.isNull())
+				injector.worker->doBattleWork(false);
 		}
 		else if (type == util::kAutoBattleEnable && ok)
 		{
 			injector.setEnableHash(util::kFastBattleEnable, !ok);
-			if (ok && !injector.server.isNull())
-				injector.server->doBattleWork(false);
+			if (ok && !injector.worker.isNull())
+				injector.worker->doBattleWork(false);
 		}
 		else if (type == util::kAutoWalkEnable && ok)
 			injector.setEnableHash(util::kFastAutoWalkEnable, !ok);
@@ -1279,15 +1291,15 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kAutoJoinEnable:
 	case util::kLockPetScheduleEnable:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<long long>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		long long value1 = 0;
+		if (p1.is<long long>())
+			value1 = p1.as<long long>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1342,7 +1354,7 @@ qint64 CLuaSystem::set(std::string enumStr,
 		break;
 	}
 
-	//0:close >1:open qint64 value
+	//0:close >1:open long long value
 	switch (type)
 	{
 	case util::kBattleSkillMpEnable:
@@ -1353,15 +1365,15 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kLockPetEnable:
 	case util::kLockRideEnable:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<long long>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		long long value1 = 0;
+		if (p1.is<long long>())
+			value1 = p1.as<long long>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1399,20 +1411,20 @@ qint64 CLuaSystem::set(std::string enumStr,
 		break;
 	}
 
-	//0:close >1:open two qint64 value
+	//0:close >1:open two long long value
 	switch (type)
 	{
 	case util::kBattleCatchCharMagicEnable:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<long long>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		long long value1 = 0;
+		if (p1.is<long long>())
+			value1 = p1.as<long long>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1420,9 +1432,9 @@ qint64 CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		qint64 value2 = 0;
-		if (p2.is<qint64>())
-			value2 = p2.as<qint64>();
+		long long value2 = 0;
+		if (p2.is<long long>())
+			value2 = p2.as<long long>();
 
 		--value2;
 		if (value2 < 0)
@@ -1449,14 +1461,14 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kBattlePetRoundActionRoundValue:
 	case util::kBattleCharRoundActionRoundValue:
 	{
-		qint64 value1 = p1.as<qint64>();
+		long long value1 = p1.as<long long>();
 		bool ok = value1 > 0;
 		if (value1 < 0)
 			value1 = 0;
 
-		qint64 value2 = 0;
-		if (p2.is<qint64>())
-			value2 = p2.as<qint64>();
+		long long value2 = 0;
+		if (p2.is<long long>())
+			value2 = p2.as<long long>();
 		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 
@@ -1464,27 +1476,27 @@ qint64 CLuaSystem::set(std::string enumStr,
 		if (value2 < 0)
 			value2 = 0;
 
-		qint64 value3 = 0;
-		if (p3.is<qint64>())
-			value3 = p3.as<qint64>();
+		long long value3 = 0;
+		if (p3.is<long long>())
+			value3 = p3.as<long long>();
 		else if (p2.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
 		if (value3 < 0)
 			value3 = 0;
 
-		qint64 value4 = 0;
-		if (p4.is<qint64>())
-			value4 = p4.as<qint64>();
+		long long value4 = 0;
+		if (p4.is<long long>())
+			value4 = p4.as<long long>();
 		else if (p4.is<bool>())
 			value4 = p4.as<bool>() ? 1 : 0;
 		--value4;
 		if (value4 < 0)
 			value4 = 0;
 
-		qint64 value5 = 0;
-		if (p5.is<qint64>())
-			value5 = p5.as<qint64>();
+		long long value5 = 0;
+		if (p5.is<long long>())
+			value5 = p5.as<long long>();
 		else if (p5.is<bool>())
 			value5 = p5.as<bool>() ? 1 : 0;
 		if (value5 < 0)
@@ -1521,15 +1533,15 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kBattleMagicHealEnable:
 	case util::kNormalMagicHealEnable:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<long long>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		long long value1 = 0;
+		if (p1.is<long long>())
+			value1 = p1.as<long long>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1540,36 +1552,36 @@ qint64 CLuaSystem::set(std::string enumStr,
 			value1 = 0;
 		injector.setEnableHash(type, ok);
 
-		qint64 value2 = 0;
-		if (p2.is<qint64>())
-			value2 = p2.as<qint64>();
+		long long value2 = 0;
+		if (p2.is<long long>())
+			value2 = p2.as<long long>();
 		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 		--value2;
 		if (value2 < 0)
 			value2 = 0;
 
-		qint64 value3 = 0;
-		if (p3.is<qint64>())
-			value3 = p3.as<qint64>();
+		long long value3 = 0;
+		if (p3.is<long long>())
+			value3 = p3.as<long long>();
 		else if (p3.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
 		if (value3 < 0)
 			value3 = 0;
 
-		qint64 value4 = 0;
-		if (p4.is<qint64>())
-			value4 = p4.as<qint64>();
+		long long value4 = 0;
+		if (p4.is<long long>())
+			value4 = p4.as<long long>();
 		else if (p4.is<bool>())
 			value4 = p4.as<bool>() ? 1 : 0;
 		--value4;
 		if (value4 < 0)
 			value4 = 0;
 
-		qint64 value5 = util::kSelectSelf | util::kSelectPet;
-		if (p5.is<qint64>())
-			value5 = p5.as<qint64>();
+		long long value5 = util::kSelectSelf | util::kSelectPet;
+		if (p5.is<long long>())
+			value5 = p5.as<long long>();
 
 		if (type == util::kNormalMagicHealEnable && ok)
 		{
@@ -1609,6 +1621,12 @@ qint64 CLuaSystem::set(std::string enumStr,
 	//string only
 	switch (type)
 	{
+	case util::kBattleAllieFormatString:
+	case util::kBattleEnemyFormatString:
+	case util::kBattleSelfMarkString:
+	case util::kBattleActMarkString:
+	case util::kBattleSpaceMarkString:
+	case util::kTitleFormatString:
 	case util::kEOCommandString:
 	case util::kGameAccountString:
 	case util::kGamePasswordString:
@@ -1619,10 +1637,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 		QString text;
 		if (!p1.is<std::string>())
 		{
-			if (!p1.is<qint64>())
+			if (!p1.is<long long>())
 				return FALSE;
 
-			text = util::toQString(p1.as<qint64>());
+			text = util::toQString(p1.as<long long>());
 		}
 		else
 			text = util::toQString(p1);

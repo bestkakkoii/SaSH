@@ -46,8 +46,8 @@ private:
 	 */
 	struct Node
 	{
-		qint64      g;          // 與起點距離
-		qint64      h;          // 與終點距離
+		long long      g;          // 與起點距離
+		long long      h;          // 與終點距離
 		QPoint      pos;        // 節點位置
 		NodeState   state;      // 節點狀態
 		Node* parent;     // 父節點
@@ -55,7 +55,7 @@ private:
 		/**
 		 * 計算f值
 		 */
-		inline qint64 __fastcall f() const { return g + h; }
+		inline long long __fastcall f() const { return g + h; }
 
 		inline Node(const QPoint& pos)
 			: g(0), h(0), pos(pos), parent(nullptr), state(NodeState::NOTEXIST)
@@ -72,22 +72,22 @@ public:
 	/**
 	 * 獲取直行估值
 	 */
-	constexpr qint64 __fastcall get_step_value() const;
+	constexpr long long __fastcall get_step_value() const;
 
 	/**
 	 * 獲取拐角估值
 	 */
-	constexpr qint64 __fastcall get_oblique_value() const;
+	constexpr long long __fastcall get_oblique_value() const;
 
 	/**
 	 * 設置直行估值
 	 */
-	constexpr void __fastcall set_step_value(qint64 value);
+	constexpr void __fastcall set_step_value(long long value);
 
 	/**
 	 * 獲取拐角估值
 	 */
-	constexpr void __fastcall set_oblique_value(qint64 value);
+	constexpr void __fastcall set_oblique_value(long long value);
 
 	void __fastcall set_canpass(const AStarCallback& callback);
 
@@ -96,7 +96,7 @@ public:
 	/**
 	 * 初始化參數
 	 */
-	void __fastcall init(qint64 width, qint64 height);
+	void __fastcall init(long long width, long long height);
 
 
 	/**
@@ -119,22 +119,22 @@ private:
 	/**
 	 * 二叉堆上濾
 	 */
-	void __fastcall percolate_up(qint64& hole);
+	void __fastcall percolate_up(long long& hole);
 
 	/**
 	 * 獲取節點索引
 	 */
-	bool __fastcall get_node_index(Node*& node, qint64* index);
+	bool __fastcall get_node_index(Node*& node, long long* index);
 
 	/**
 	 * 計算G值
 	 */
-	__forceinline qint64 __fastcall calcul_g_value(Node*& parent, const QPoint& current);
+	__forceinline long long __fastcall calcul_g_value(Node*& parent, const QPoint& current);
 
 	/**
 	 * 計算F值
 	 */
-	__forceinline qint64 __fastcall calcul_h_value(const QPoint& current, const QPoint& end);
+	__forceinline long long __fastcall calcul_h_value(const QPoint& current, const QPoint& end);
 
 	/**
 	 * 節點是否存在於開啟列表
@@ -173,10 +173,10 @@ private:
 
 private:
 	bool					corner_ = true;
-	qint64                  step_val_;
-	qint64                  oblique_val_;
-	qint64                  height_ = 0;
-	qint64                  width_ = 0;
+	long long                  step_val_;
+	long long                  oblique_val_;
+	long long                  height_ = 0;
+	long long                  width_ = 0;
 	AStarCallback           can_pass_ = nullptr;
 	QPoint					start_;
 	QPoint					end_;

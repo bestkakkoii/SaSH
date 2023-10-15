@@ -7,6 +7,8 @@
 <br>
 <div>
     <img alt="C++" src="https://img.shields.io/badge/c++-17-%2300599C?logo=cplusplus">
+    <img alt="Qt" src="https://img.shields.io/badge/Qt-6.7.0-%23?logo=qt">
+    <img alt="Qt" src="https://img.shields.io/badge/Windows-10%7C11-%2300599C?logo=windows">
 </div>
 <div>
     <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blueviolet">

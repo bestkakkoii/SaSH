@@ -23,17 +23,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "signaldispatcher.h"
 
-qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::press(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
 	QString text;
-	qint64 row = 0;
+	long long row = 0;
 	if (!checkInteger(TK, 1, &row))
 	{
 		if (!checkString(TK, 1, &text))
@@ -43,17 +43,17 @@ qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMa
 	}
 
 	QString npcName;
-	qint64 npcId = -1;
+	long long npcId = -1;
 	checkString(TK, 2, &npcName);
 
 	mapunit_t unit;
-	if (!npcName.isEmpty() && injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
+	if (!npcName.isEmpty() && injector.worker->findUnit(npcName, util::OBJ_NPC, &unit))
 		npcId = unit.id;
 
-	qint64 dialogid = -1;
+	long long dialogid = -1;
 	checkInteger(TK, 3, &dialogid);
 
-	qint64 ext = 0;
+	long long ext = 0;
 	checkInteger(TK, 4, &ext);
 
 	if (text.isEmpty() && row == 0)
@@ -63,10 +63,10 @@ qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMa
 	{
 		BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
 		if (button != BUTTON_NOTUSED)
-			injector.server->press(button, dialogid, npcId + ext);
+			injector.worker->press(button, dialogid, npcId + ext);
 		else
 		{
-			dialog_t dialog = injector.server->currentDialog;
+			dialog_t dialog = injector.worker->currentDialog;
 			QStringList textList = dialog.linebuttontext;
 			if (!textList.isEmpty())
 			{
@@ -80,20 +80,20 @@ qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMa
 				else if (newText.startsWith("#"))
 				{
 					newText = newText.mid(1);
-					injector.server->inputtext(newText, dialogid, npcId + ext);
+					injector.worker->inputtext(newText, dialogid, npcId + ext);
 					return Parser::kNoChange;
 				}
 
-				for (qint64 i = 0; i < textList.size(); ++i)
+				for (long long i = 0; i < textList.size(); ++i)
 				{
 					if (!isExact && textList.value(i).toLower().contains(newText))
 					{
-						injector.server->press(i + 1, dialogid, npcId + ext);
+						injector.worker->press(i + 1, dialogid, npcId + ext);
 						break;
 					}
 					else if (isExact && textList.value(i).toLower() == newText)
 					{
-						injector.server->press(i + 1, dialogid, npcId + ext);
+						injector.worker->press(i + 1, dialogid, npcId + ext);
 						break;
 					}
 				}
@@ -101,21 +101,21 @@ qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMa
 		}
 	}
 	else if (row > 0)
-		injector.server->press(row, dialogid, npcId + ext);
+		injector.worker->press(row, dialogid, npcId + ext);
 
 	return Parser::kNoChange;
 }
 
 ///////////////////////////////////////////////////////////////
 
-qint64 Interpreter::ocr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::ocr(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 debugmode = 0;
+	long long debugmode = 0;
 	checkInteger(TK, 1, &debugmode);
 
 	QString key = "";
@@ -129,12 +129,12 @@ qint64 Interpreter::ocr(qint64 currentIndex, qint64 currentLine, const TokenMap&
 
 #ifdef OCR_ENABLE
 	QString ret;
-	if (injector.server->captchaOCR(&ret))
+	if (injector.worker->captchaOCR(&ret))
 	{
 		if (!ret.isEmpty())
 		{
 			if (debugmode == 0)
-				injector.server->inputtext(ret);
+				injector.worker->inputtext(ret);
 		}
 	}
 #endif
@@ -143,16 +143,16 @@ qint64 Interpreter::ocr(qint64 currentIndex, qint64 currentLine, const TokenMap&
 }
 
 #include "net/autil.h"
-qint64 Interpreter::send(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+long long Interpreter::send(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.server.isNull())
+	if (injector.worker.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 size = TK.size();
+	long long size = TK.size();
 
-	qint64 funId = -1;
+	long long funId = -1;
 	if (!checkInteger(TK, 1, &funId))
 	{
 		errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("function type must be a number"));
@@ -166,9 +166,9 @@ qint64 Interpreter::send(qint64 currentIndex, qint64 currentLine, const TokenMap
 
 	std::vector<std::variant<int, std::string>> args;
 
-	for (qint64 i = 2; i < size; ++i)
+	for (long long i = 2; i < size; ++i)
 	{
-		qint64 varIntValue;
+		long long varIntValue;
 		QString varStringValue;
 		std::variant<int, std::string> var;
 

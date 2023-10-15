@@ -15,7 +15,7 @@ class Logger : public QObject, public Indexer
 {
 	Q_OBJECT
 public:
-	explicit Logger(qint64 index, QObject* parent = nullptr)
+	explicit Logger(long long index, QObject* parent = nullptr)
 		: QObject(parent)
 		, Indexer(index)
 	{
@@ -52,7 +52,7 @@ public:
 		return openFile(logFileName);
 	}
 
-	void write(const QString& message, qint64 line = -1)
+	void write(const QString& message, long long line = -1)
 	{
 		if (!isInitialized_.load(std::memory_order_acquire))
 			return;
@@ -73,7 +73,7 @@ public:
 			nextBuffer_.setCapacity(bufferSize_);
 		}
 
-		if (static_cast<qint64>(currentBuffer_.size()) + static_cast<qint64>(message.size()) > bufferSize_)
+		if (static_cast<long long>(currentBuffer_.size()) + static_cast<long long>(message.size()) > bufferSize_)
 			swapBuffersAndWrite();
 
 		currentBuffer_.append(newMessage);
@@ -185,7 +185,7 @@ private:
 		if (!isInitialized_.load(std::memory_order_acquire))
 			return;
 		QStringList log;
-		for (qint64 i = 0; i < logText.size(); ++i)
+		for (long long i = 0; i < logText.size(); ++i)
 			emit logWritten(logText.at(i));
 
 		nextBuffer_.clear();
@@ -223,7 +223,7 @@ private:
 	mutable QMutex mutex_;
 	std::atomic<bool> isInitialized_;
 	util::ScopedFile file_;
-	qint64 bufferSize_ = 1024;
+	long long bufferSize_ = 1024;
 	QThread workerThread_;
 	QString logFormat_;
 	QContiguousCache<QString> currentBuffer_;

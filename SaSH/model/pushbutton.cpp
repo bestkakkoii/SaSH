@@ -6,22 +6,26 @@ PushButton::PushButton(QWidget* parent)
 {
 	setAttribute(Qt::WA_StyledBackground);
 
-	//setStyleSheet(R"(
-	//	QPushButton {
-	//		background-color: #F9F9F9;
-	//		border: 0px solid #000000;
-	//		padding: 3px;
-	//		border-radius: 5px;
-	//	}
-	//	
-	//	QPushButton:hover {
-	//		background-color: #3282F6;
-	//	}
-	//	
-	//	QPushButton:pressed, QPushButton:checked {
-	//		background-color: #3282F6;
-	//		border: 0px solid #ffffff;
-	//	})");
+	setStyleSheet(R"(
+		QPushButton {
+			background-color: #F1F1F1;
+			border: 1px solid #000000;
+			border-radius: 1px;
+			padding: 2px;
+			color: #000000;
+		}
+		
+		QPushButton:hover {
+			background-color: #006CD6;
+			color:#DFEBF6;
+		}
+		
+		QPushButton:pressed, QPushButton:checked {
+			background-color: #0080FF;
+			color:#DFEBF6;
+		}
+
+		)");
 
 	//setMaximumHeight(20);
 	//setFixedHeight(20);

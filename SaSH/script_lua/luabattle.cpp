@@ -21,134 +21,134 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-qint64 CLuaBattle::charUseAttack(qint64 objIndex, sol::this_state s)//atk
+long long CLuaBattle::charUseAttack(long long objIndex, sol::this_state s)//atk
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattleCharAttackAct(--objIndex);
+	injector.worker->sendBattleCharAttackAct(--objIndex);
 
 	return TRUE;
 }
 
-qint64 CLuaBattle::charUseMagic(qint64 magicIndex, qint64 objIndex, sol::this_state s)//magic
+long long CLuaBattle::charUseMagic(long long magicIndex, long long objIndex, sol::this_state s)//magic
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattleCharMagicAct(--magicIndex, --objIndex);
+	injector.worker->sendBattleCharMagicAct(--magicIndex, --objIndex);
 
 	return TRUE;
 }
 
-qint64 CLuaBattle::charUseSkill(qint64 skillIndex, qint64 objIndex, sol::this_state s)//skill
+long long CLuaBattle::charUseSkill(long long skillIndex, long long objIndex, sol::this_state s)//skill
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattleCharJobSkillAct(--skillIndex, --objIndex);
+	injector.worker->sendBattleCharJobSkillAct(--skillIndex, --objIndex);
 
 	return TRUE;
 }
 
-qint64 CLuaBattle::switchPet(qint64 petIndex, sol::this_state s)//switch
+long long CLuaBattle::switchPet(long long petIndex, sol::this_state s)//switch
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattleCharSwitchPetAct(--petIndex);
+	injector.worker->sendBattleCharSwitchPetAct(--petIndex);
 
 	return TRUE;
 }
 
-qint64 CLuaBattle::escape(sol::this_state s)//escape
+long long CLuaBattle::escape(sol::this_state s)//escape
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattleCharEscapeAct();
+	injector.worker->sendBattleCharEscapeAct();
 
 	return TRUE;
 }
 
-qint64 CLuaBattle::defense(sol::this_state s)//defense
+long long CLuaBattle::defense(sol::this_state s)//defense
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattleCharDefenseAct();
+	injector.worker->sendBattleCharDefenseAct();
 
 	return TRUE;
 }
 
-qint64 CLuaBattle::useItem(qint64 itemIndex, qint64 objIndex, sol::this_state s)//item
+long long CLuaBattle::useItem(long long itemIndex, long long objIndex, sol::this_state s)//item
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattleCharItemAct(--itemIndex, --objIndex);
+	injector.worker->sendBattleCharItemAct(--itemIndex, --objIndex);
 
 	return TRUE;
 }
 
-qint64 CLuaBattle::catchPet(qint64 objIndex, sol::this_state s)//catch
+long long CLuaBattle::catchPet(long long objIndex, sol::this_state s)//catch
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattleCharCatchPetAct(--objIndex);
+	injector.worker->sendBattleCharCatchPetAct(--objIndex);
 
 	return TRUE;
 }
 
-qint64 CLuaBattle::nothing(sol::this_state s)//nothing
+long long CLuaBattle::nothing(sol::this_state s)//nothing
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattleCharDoNothing();
+	injector.worker->sendBattleCharDoNothing();
 
 	return TRUE;
 }
 
-qint64 CLuaBattle::petUseSkill(qint64 petSkillIndex, qint64 objIndex, sol::this_state s)//petskill
+long long CLuaBattle::petUseSkill(long long petSkillIndex, long long objIndex, sol::this_state s)//petskill
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattlePetSkillAct(--petSkillIndex, --objIndex);
+	injector.worker->sendBattlePetSkillAct(--petSkillIndex, --objIndex);
 
 	return TRUE;
 }
 
-qint64 CLuaBattle::petNothing(sol::this_state s)//pet nothing
+long long CLuaBattle::petNothing(sol::this_state s)//pet nothing
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	injector.server->sendBattlePetDoNothing();
+	injector.worker->sendBattlePetDoNothing();
 
 	return TRUE;
 }

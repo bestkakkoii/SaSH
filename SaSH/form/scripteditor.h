@@ -32,7 +32,7 @@ class ScriptEditor : public QMainWindow, public Indexer
 	Q_OBJECT
 
 public:
-	ScriptEditor(qint64 index, QWidget* parent);
+	ScriptEditor(long long index, QWidget* parent);
 
 	virtual ~ScriptEditor();
 
@@ -52,7 +52,7 @@ private:
 
 	void setStepMarks();
 
-	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, qint64 liner, bool b);
+	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<long long, break_marker_t>>& hash, long long liner, bool b);
 
 	void reshowBreakMarker();
 
@@ -84,10 +84,10 @@ private slots:
 	void onActionTriggered();
 	void onWidgetModificationChanged(bool changed);
 	void onEditorCursorPositionChanged(int line, int index);
-	void onAddForwardMarker(qint64 liner, bool b);
-	void onAddErrorMarker(qint64 liner, bool b);
-	void onAddStepMarker(qint64 liner, bool b);
-	void onAddBreakMarker(qint64 liner, bool b);
+	void onAddForwardMarker(long long liner, bool b);
+	void onAddErrorMarker(long long liner, bool b);
+	void onAddStepMarker(long long liner, bool b);
+	void onAddBreakMarker(long long liner, bool b);
 	void onBreakMarkInfoImport();
 	void onScriptTreeWidgetItemChanged(QTreeWidgetItem* newitem, int column);
 
@@ -160,7 +160,7 @@ private slots:
 
 private:
 	Ui::ScriptEditorClass ui;
-	qint64 spinRecordedWidth_ = 0;
+	long long spinRecordedWidth_ = 0;
 
 	FILETIME idleTime_ = { 0, 0 };
 	FILETIME kernelTime_ = { 0, 0 };

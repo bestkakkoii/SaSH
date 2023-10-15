@@ -24,14 +24,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 bool CLuaUtil::getSys(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	dstTable.clear();
 
-	dstTable["game"] = injector.server->getGameStatus();
-	dstTable["world"] = injector.server->getWorldStatus();
+	dstTable["game"] = injector.worker->getGameStatus();
+	dstTable["world"] = injector.worker->getWorldStatus();
 
 	return TRUE;
 }
@@ -39,16 +39,16 @@ bool CLuaUtil::getSys(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getMap(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	dstTable.clear();
 
-	dstTable["floor"] = injector.server->getFloor();
-	dstTable["name"] = injector.server->getFloorName().toUtf8().constData();
+	dstTable["floor"] = injector.worker->getFloor();
+	dstTable["name"] = injector.worker->getFloorName().toUtf8().constData();
 
-	QPoint pos = injector.server->getPoint();
+	QPoint pos = injector.worker->getPoint();
 	dstTable["x"] = pos.x();
 	dstTable["y"] = pos.y();
 
@@ -58,11 +58,11 @@ bool CLuaUtil::getMap(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
-	PC pc = injector.server->getPC();
+	PC pc = injector.worker->getPC();
 
 
 	//clear table
@@ -134,8 +134,8 @@ bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getPet(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
@@ -143,7 +143,7 @@ bool CLuaUtil::getPet(sol::table dstTable, sol::this_state s)
 
 	for (int i = 0; i < MAX_PET; ++i)
 	{
-		PET pet = injector.server->getPet(i);
+		PET pet = injector.worker->getPet(i);
 
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();
@@ -184,8 +184,8 @@ bool CLuaUtil::getPet(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getTeam(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
@@ -193,7 +193,7 @@ bool CLuaUtil::getTeam(sol::table dstTable, sol::this_state s)
 
 	for (int i = 0; i < MAX_PARTY; ++i)
 	{
-		PARTY party = injector.server->getParty(i);
+		PARTY party = injector.worker->getParty(i);
 
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();
@@ -215,8 +215,8 @@ bool CLuaUtil::getTeam(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getCard(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
@@ -224,7 +224,7 @@ bool CLuaUtil::getCard(sol::table dstTable, sol::this_state s)
 
 	for (int i = 0; i < MAX_ADDRESS_BOOK; ++i)
 	{
-		ADDRESS_BOOK adrBook = injector.server->getAddressBook(i);
+		ADDRESS_BOOK adrBook = injector.worker->getAddressBook(i);
 
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();
@@ -245,8 +245,8 @@ bool CLuaUtil::getCard(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getChat(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
@@ -254,7 +254,7 @@ bool CLuaUtil::getChat(sol::table dstTable, sol::this_state s)
 
 	for (int i = 0; i < MAX_CHAT_HISTORY; ++i)
 	{
-		QString text = injector.server->getChatHistory(i);
+		QString text = injector.worker->getChatHistory(i);
 
 		dstTable[i + 1] = text.toUtf8().constData();
 	}
@@ -265,14 +265,14 @@ bool CLuaUtil::getChat(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getDialog(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
 	dstTable.clear();
 
-	QStringList dialogList = injector.server->currentDialog.get().linedatas;
+	QStringList dialogList = injector.worker->currentDialog.get().linedatas;
 
 	for (int i = 0; i < MAX_DIALOG_LINE; ++i)
 	{
@@ -282,8 +282,8 @@ bool CLuaUtil::getDialog(sol::table dstTable, sol::this_state s)
 		dstTable[i + 1] = dialogList[i].toUtf8().constData();
 	}
 
-	dstTable["id"] = injector.server->currentDialog.get().dialogid;
-	dstTable["unitid"] = injector.server->currentDialog.get().unitid;
+	dstTable["id"] = injector.worker->currentDialog.get().dialogid;
+	dstTable["unitid"] = injector.worker->currentDialog.get().unitid;
 
 	return TRUE;
 }
@@ -291,14 +291,14 @@ bool CLuaUtil::getDialog(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getUnit(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
 	dstTable.clear();
 
-	QList<mapunit_t> units = injector.server->mapUnitHash.values();
+	QList<mapunit_t> units = injector.worker->mapUnitHash.values();
 
 	int size = units.size();
 
@@ -341,14 +341,14 @@ bool CLuaUtil::getUnit(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getBattleUnit(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
 	dstTable.clear();
 
-	battledata_t battleData = injector.server->getBattleData();
+	battledata_t battleData = injector.worker->getBattleData();
 
 	QVector<battleobject_t> battleObjects = battleData.objects;
 
@@ -391,8 +391,8 @@ bool CLuaUtil::getBattleUnit(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getDaily(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
@@ -400,7 +400,7 @@ bool CLuaUtil::getDaily(sol::table dstTable, sol::this_state s)
 
 	for (int i = 0; i < MAX_MISSION; ++i)
 	{
-		JOBDAILY jobDaily = injector.server->getJobDaily(i);
+		JOBDAILY jobDaily = injector.worker->getJobDaily(i);
 
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();
@@ -417,14 +417,14 @@ bool CLuaUtil::getDaily(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
 	dstTable.clear();
 
-	QHash<qint64, ITEM> items = injector.server->getItems();
+	QHash<long long, ITEM> items = injector.worker->getItems();
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
 		ITEM item = items.value(i);
@@ -451,7 +451,7 @@ bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 		damage.replace("%", "");
 		damage.replace("％", "");
 		bool ok = false;
-		qint64 nDamage = damage.toLongLong(&ok);
+		long long nDamage = damage.toLongLong(&ok);
 		if (!ok && !damage.isEmpty())
 			nDamage = 100;
 		dstTable[i + 1]["damage"] = nDamage;
@@ -467,8 +467,8 @@ bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getSkill(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
@@ -476,7 +476,7 @@ bool CLuaUtil::getSkill(sol::table dstTable, sol::this_state s)
 
 	for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
 	{
-		PROFESSION_SKILL skill = injector.server->getSkill(i);
+		PROFESSION_SKILL skill = injector.worker->getSkill(i);
 
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();
@@ -499,8 +499,8 @@ bool CLuaUtil::getSkill(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getMagic(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
 		return FALSE;
 
 	//clear table
@@ -508,7 +508,7 @@ bool CLuaUtil::getMagic(sol::table dstTable, sol::this_state s)
 
 	for (int i = 0; i < MAX_MAGIC; ++i)
 	{
-		MAGIC magic = injector.server->getMagic(i);
+		MAGIC magic = injector.worker->getMagic(i);
 
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();

@@ -32,7 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 //char msgSlice_[sizeof(char*) * SLICE_MAX][SLICE_SIZE];
 
-Autil::Autil(qint64 index)
+Autil::Autil(long long index)
 	: Indexer(index)
 {
 }
@@ -76,7 +76,7 @@ bool Autil::util_SplitMessage(const QByteArray& source, char separator)
 
 	QByteArrayList list = source.split(separator);
 
-	qint64 count = 0;
+	long long count = 0;
 	for (const QByteArray& slice : list)
 	{
 		msgSlice_.insert(count, slice);
@@ -202,7 +202,7 @@ void Autil::util_DecodeMessage(QByteArray& dst, QByteArray src)
 //
 // arg: func=return function ID    fieldcount=return fields of the function
 // ret: 1=success  0=failed (function not complete)
-qint64 Autil::util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest)
+long long Autil::util_GetFunctionFromSlice(long long* func, long long* fieldcount, long long offest)
 {
 	QMutexLocker locker(&msgMutex_);
 	QByteArray t1(NETDATASIZE, '\0');
@@ -231,7 +231,7 @@ qint64 Autil::util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64
 	return 0;	// failed: message not complete
 
 	//QByteArray t1(NETDATASIZE, '\0');
-	//qint64 i = 0;
+	//long long i = 0;
 
 	//if (strcmp(msgSlice_[0], DEFAULTFUNCBEGIN) != 0)
 	//	util_DiscardMessage();
@@ -267,7 +267,7 @@ void Autil::util_DiscardMessage(void)
 // arg: fd=socket fd   func=function ID   buffer=data to send
 void Autil::util_SendMesg(int func, char* buffer)
 {
-	qint64 currentIndex = getIndex();
+	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.isValid())
 		return;

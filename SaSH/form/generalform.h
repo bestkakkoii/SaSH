@@ -11,7 +11,7 @@ class GeneralForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	GeneralForm(qint64 index, QWidget* parent);
+	GeneralForm(long long index, QWidget* parent);
 	virtual ~GeneralForm();
 
 signals:
@@ -48,5 +48,5 @@ private:
 private:
 	Ui::GeneralFormClass ui;
 	AfkForm pAfkForm_;
-	QHash<qint64, QHash<QString, QStringList>> serverList;
+	QHash<long long, QHash<QString, QStringList>> serverList;
 };

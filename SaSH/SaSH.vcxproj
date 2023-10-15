@@ -290,21 +290,17 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <AssemblerOutput>All</AssemblerOutput>
       <ExceptionHandling>Async</ExceptionHandling>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
-      <IntrinsicFunctions>
-      </IntrinsicFunctions>
-      <FavorSizeOrSpeed>
-      </FavorSizeOrSpeed>
-      <OmitFramePointers>
-      </OmitFramePointers>
-      <EnableFiberSafeOptimizations>
-      </EnableFiberSafeOptimizations>
-      <WholeProgramOptimization>
-      </WholeProgramOptimization>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <OmitFramePointers>false</OmitFramePointers>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
       <SupportJustMyCode>false</SupportJustMyCode>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
@@ -345,7 +341,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <QtMoc>
       <PrependInclude>stdafx.h;%(PrependInclude)</PrependInclude>

@@ -27,7 +27,7 @@ class CharInfoForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 public:
-	explicit CharInfoForm(qint64 index, QWidget* parent);
+	explicit CharInfoForm(long long index, QWidget* parent);
 
 	virtual ~CharInfoForm();
 
@@ -35,10 +35,10 @@ public slots:
 	void onResetControlTextLanguage();
 
 private slots:
-	void onUpdateCharInfoColContents(qint64 col, const QVariant& data);
-	void onUpdateCharInfoStone(qint64 stone);
-	void onHeaderClicked(qint64 logicalIndex);
-	void onUpdateCharInfoPetState(qint64 petIndex, qint64 state);
+	void onUpdateCharInfoColContents(long long col, const QVariant& data);
+	void onUpdateCharInfoStone(long long stone);
+	void onHeaderClicked(long long logicalIndex);
+	void onUpdateCharInfoPetState(long long petIndex, long long state);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override
