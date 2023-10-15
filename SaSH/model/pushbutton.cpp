@@ -25,6 +25,11 @@ PushButton::PushButton(QWidget* parent)
 			color:#DFEBF6;
 		}
 
+		QPushButton:disabled {
+			background-color: #F0F4F8;
+			color:gray;
+		}
+
 		)");
 
 	setFixedHeight(19);

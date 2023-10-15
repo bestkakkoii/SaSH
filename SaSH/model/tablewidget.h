@@ -37,6 +37,7 @@ QTableWidget {
     alternate-background-color: rgb(214,214,214);
     gridline-color: gray;
 	font-size:12px;
+	outline:0px; /*虛線框*/
 }
 
 QScrollBar:vertical {
