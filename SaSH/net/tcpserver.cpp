@@ -7212,7 +7212,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 
 			} while (false);
 
-			return true;
+			return false;
 		};
 #pragma endregion
 
