@@ -446,15 +446,7 @@ bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 		dstTable[i + 1]["name"] = item.name.toUtf8().constData();
 		dstTable[i + 1]["name2"] = item.name2.toUtf8().constData();
 		dstTable[i + 1]["memo"] = item.memo.toUtf8().constData();
-
-		QString damage = item.damage;
-		damage.replace("%", "");
-		damage.replace("％", "");
-		bool ok = false;
-		long long nDamage = damage.toLongLong(&ok);
-		if (!ok && !damage.isEmpty())
-			nDamage = 100;
-		dstTable[i + 1]["damage"] = nDamage;
+		dstTable[i + 1]["damage"] = item.damage;
 
 		dstTable[i + 1]["type"] = item.type;
 		dstTable[i + 1]["jigsaw"] = item.jigsaw.toUtf8().constData();

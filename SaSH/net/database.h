@@ -1017,14 +1017,14 @@ typedef struct tagITEM
 	long long sendFlag = 0;
 	long long itemup = 0;
 	long long counttime = 0;
-
+	long long damage = 0;
 	//custom
 	long long maxStack = -1;
 
 	QString name = "";
 	QString name2 = "";
 	QString memo = "";
-	QString damage = "";
+
 	QString alch = 0; // #ifdef _ITEMSET7_TXT_ALCHEMIST
 	QString jigsaw = "";
 

@@ -1265,13 +1265,13 @@ long long CLuaSystem::set(std::string enumStr,
 		{
 			injector.setEnableHash(util::kAutoBattleEnable, !ok);
 			if (ok && !injector.worker.isNull())
-				injector.worker->doBattleWork(false);
+				injector.worker->doBattleWork(true);
 		}
 		else if (type == util::kAutoBattleEnable && ok)
 		{
 			injector.setEnableHash(util::kFastBattleEnable, !ok);
 			if (ok && !injector.worker.isNull())
-				injector.worker->doBattleWork(false);
+				injector.worker->doBattleWork(true);
 		}
 		else if (type == util::kAutoWalkEnable && ok)
 			injector.setEnableHash(util::kFastAutoWalkEnable, !ok);

@@ -4427,18 +4427,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				}
 			}
 
-			QString damage = it.damage.simplified();
-			if (damage.contains("%"))
-				damage.replace("%", "");
-			if (damage.contains("％"))
-				damage.replace("％", "");
-
-			bool ok = false;
-			long long dura = damage.toLongLong(&ok);
-			if (!ok && !damage.isEmpty())
-				item[index]["dura"] = 100;
-			else
-				item[index]["dura"] = dura;
+			item[index]["dura"] = it.damage;
 
 			item[index]["lv"] = it.level;
 
@@ -4589,7 +4578,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				t["index"] = index;
 				t["name"] = item.name.toUtf8().constData();
 				t["memo"] = item.memo.toUtf8().constData();
-				t["dura"] = item.damage.toUtf8().constData();
+				t["dura"] = item.damage;
 				t["lv"] = item.level;
 				t["stack"] = item.stack;
 				t["field"] = item.field;
@@ -5212,14 +5201,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 				ITEM item = injector.worker->getPetEquip(i, j);
 
-				QString damage = item.damage;
-				damage = damage.replace("%", "");
-				damage = damage.replace("％", "");
-				bool ok = false;
-				long long damageValue = damage.toLongLong(&ok);
-				if (!ok)
-					damageValue = 100;
-
 				peq[petIndex][index]["valid"] = item.valid;
 				peq[petIndex][index]["index"] = index;
 				peq[petIndex][index]["lv"] = item.level;
@@ -5227,7 +5208,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				peq[petIndex][index]["target"] = item.target;
 				peq[petIndex][index]["type"] = item.type;
 				peq[petIndex][index]["modelid"] = item.modelid;
-				peq[petIndex][index]["dura"] = damageValue;
+				peq[petIndex][index]["dura"] = item.damage;
 				peq[petIndex][index]["name"] = item.name.toUtf8().constData();
 				peq[petIndex][index]["name2"] = item.name2.toUtf8().constData();
 				peq[petIndex][index]["memo"] = item.memo.toUtf8().constData();

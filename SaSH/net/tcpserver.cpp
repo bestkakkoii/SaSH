@@ -273,8 +273,8 @@ void Server::incomingConnection(qintptr socketDescriptor)
 	connect(clientSocket, &Socket::disconnected, this, [this, clientSocket]()
 		{
 			clientSockets_.removeOne(clientSocket);
-			clientSocket->thread.quit();
-			clientSocket->thread.wait();
+			clientSocket->readThread.quit();
+			clientSocket->readThread.wait();
 			clientSocket->deleteLater();
 		});
 }
@@ -292,9 +292,9 @@ Socket::Socket(qintptr socketDescriptor, QObject* parent)
 	setSocketOption(QAbstractSocket::TypeOfServiceOption, 64);
 	connect(this, &Socket::readyRead, this, &Socket::onReadyRead, Qt::QueuedConnection);
 
-	moveToThread(&thread);
+	moveToThread(&readThread);
 
-	thread.start();
+	readThread.start(QThread::InheritPriority);
 }
 
 void Socket::onReadyRead()
@@ -327,7 +327,6 @@ void Socket::onReadyRead()
 			connect(this, &Socket::read, injector.worker.get(), &Worker::onClientReadyRead, Qt::QueuedConnection);
 			qDebug() << "tcp ok";
 			injector.IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
-			emit read();
 		}
 
 		return;
@@ -338,8 +337,7 @@ void Socket::onReadyRead()
 	{
 		//封包入隊列
 		injector.worker->readQueue_.enqueue(std::move(badata));
-		//喚醒處理封包的線程
-		injector.worker->readCond_.wakeAll();
+		emit read();
 	}
 }
 
@@ -485,21 +483,8 @@ void Worker::onClientReadyRead()
 	if (readFuture_.isRunning())
 		return;
 
-	readFuture_ = QtConcurrent::run([this]()
-		{
-			for (;;)
-			{
-				QMutexLocker locker(&net_mutex);
-				readCond_.wait(&net_mutex);//等待喚醒
-				if (isInterruptionRequested())
-					break;
-
-				//一次性處理所有累積的封包
-				while (!readQueue_.isEmpty())
-					handleData(std::move(readQueue_.dequeue()));
-			}
-		});
-
+	while (!readQueue_.isEmpty())
+		handleData(std::move(readQueue_.dequeue()));
 	//QMetaObject::invokeMethod(this, "handleData", Qt::QueuedConnection, Q_ARG(QByteArray, badata));
 	//handleData(badata);
 }
@@ -2413,6 +2398,8 @@ void Worker::updateItemByMemory()
 
 	constexpr long long item_offest = 0x184;
 	QHash<long long, ITEM> items = item_.toHash();
+	QStringList itemNames;
+
 	for (long long i = 0; i < MAX_ITEM; ++i)
 	{
 		items[i].valid = mem::read<short>(hProcess, hModule + 0x422C028 + i * item_offest) > 0;
@@ -2431,7 +2418,18 @@ void Worker::updateItemByMemory()
 
 		if (items.value(i).stack == 0)
 			items[i].stack = 1;
+
+		QString damage = mem::readString(hProcess, hModule + 0x422C0B5 + i * item_offest, 12, true, false);
+		damage.remove("%");
+		damage.remove("％");
+		bool ok = false;
+		items[i].damage = damage.toLongLong(&ok);
+		if (!ok)
+			items[i].damage = 100;
+
+		itemNames.append(items[i].name);
 	}
+	injector.setUserData(util::kUserItemNames, itemNames);
 
 	item_ = items;
 }
@@ -2531,33 +2529,49 @@ void Worker::updateDatasFromMemory()
 //刷新要顯示的戰鬥時間和相關數據
 void Worker::updateBattleTimeInfo()
 {
-	double time = battleDurationTimer.elapsed() / 1000.0;
-	double cost = battle_one_round_time.load(std::memory_order_acquire) / 1000.0;
-	double total_time = battle_total_time.load(std::memory_order_acquire) / 1000.0 / 60.0;
+	QString battle_time_text;
+	double time = 0.0;
+	double cost = 0.0;
+	double total_time = 0.0;
+	long long bp = 0;
+	long long field = 0;
 
-	QString battle_time_text = QString(QObject::tr("%1 count no %2 round duration: %3 sec cost: %4 sec total time: %5 minues"))
-		.arg(battle_total.load(std::memory_order_acquire))
-		.arg(battleCurrentRound.load(std::memory_order_acquire) + 1)
-		.arg(util::toQString(time))
-		.arg(util::toQString(cost))
-		.arg(util::toQString(total_time));
-
-	long long bp = battleBpFlag.load(std::memory_order_acquire);
-	if (bp != 0 && checkAND(bp, BATTLE_BP_PLAYER_SURPRISAL))
-		battle_time_text += " " + QObject::tr("(surprise)");
-	else if (bp != 0 && checkAND(bp, BATTLE_BP_ENEMY_SURPRISAL))
-		battle_time_text += " " + QObject::tr("(be surprised)");
-	else
-		battle_time_text += " " + QObject::tr("(normal)");
-
-	long long field = battleField.load(std::memory_order_acquire);
-	if (field != 0)
+	for (;;)
 	{
-		battle_time_text += QString(" [%1]").arg(getFieldString(field));
-	}
+		if (isInterruptionRequested())
+			break;
 
-	if (battle_time_text.isEmpty() || timeLabelContents != battle_time_text)
-	{
+		if (!getOnlineFlag())
+			break;
+
+		if (!getBattleFlag())
+			break;
+
+		QThread::msleep(50);
+
+		time = battleDurationTimer.elapsed() / 1000.0;
+		cost = battle_one_round_time.load(std::memory_order_acquire) / 1000.0;
+		total_time = battle_total_time.load(std::memory_order_acquire) / 1000.0 / 60.0;
+
+		battle_time_text = QString(QObject::tr("%1 count no %2 round duration: %3 sec cost: %4 sec total time: %5 minues"))
+			.arg(battle_total.load(std::memory_order_acquire))
+			.arg(battleCurrentRound.load(std::memory_order_acquire) + 1)
+			.arg(util::toQString(time))
+			.arg(util::toQString(cost))
+			.arg(util::toQString(total_time));
+
+		bp = battleBpFlag.load(std::memory_order_acquire);
+		if (bp != 0 && checkAND(bp, BATTLE_BP_PLAYER_SURPRISAL))
+			battle_time_text += " " + QObject::tr("(surprise)");
+		else if (bp != 0 && checkAND(bp, BATTLE_BP_ENEMY_SURPRISAL))
+			battle_time_text += " " + QObject::tr("(be surprised)");
+		else
+			battle_time_text += " " + QObject::tr("(normal)");
+
+		field = battleField.load(std::memory_order_acquire);
+		if (field != 0)
+			battle_time_text += QString(" [%1]").arg(getFieldString(field));
+
 		timeLabelContents = battle_time_text;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 		emit signalDispatcher.updateBattleTimeLabelTextChanged(battle_time_text.simplified());
@@ -3265,7 +3279,7 @@ bool Worker::login(long long s)
 		{
 			injector.leftDoubleClick(315, 253);
 			config.writeArray<int>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
-		}
+	}
 #endif
 		break;
 	}
@@ -3416,10 +3430,10 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1000))
 				break;
 
-		}
+	}
 #endif
 		break;
-	}
+}
 	case util::kStatusSelectSubServer:
 	{
 		if (!input())
@@ -3568,7 +3582,7 @@ bool Worker::login(long long s)
 					break;
 
 			}
-		}
+	}
 #endif
 		break;
 	}
@@ -4592,13 +4606,351 @@ void Worker::checkAutoDropMeat()
 
 	refreshItemInfo();
 }
+
+//自動吃經驗加乘道具
+void Worker::checkAutoEatBoostExpItem()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	auto checkEnable = [this, &injector]()->bool
+		{
+			if (isInterruptionRequested())
+				return false;
+
+			if (!injector.getEnableHash(util::kAutoEatBeanEnable))
+				return false;
+
+			if (!getOnlineFlag())
+				return false;
+
+			if (getBattleFlag())
+				return false;
+
+			return true;
+		};
+
+	if (!checkEnable())
+		return;
+
+	updateItemByMemory();
+	QHash<long long, ITEM> items = getItems();
+	for (long long i = 0; i < MAX_ITEM; ++i)
+	{
+		if (!checkEnable())
+			return;
+
+		ITEM item = items.value(i);
+		if (item.name.isEmpty() || item.memo.isEmpty() || !item.valid)
+			continue;
+
+		if (item.memo.contains("經驗值上升") || item.memo.contains("经验值上升"))
+		{
+			useItem(i, 0);
+		}
+	}
+}
+
+//自動丟棄道具
+void Worker::checkAutoDropItems()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+
+	if (!injector.getEnableHash(util::kAutoDropEnable))
+		return;
+
+	auto checkEnable = [this, &injector]()->long long
+		{
+			if (isInterruptionRequested())
+				return -1;
+
+			if (!injector.getEnableHash(util::kAutoDropEnable))
+				return -1;
+
+			if (injector.worker.isNull())
+				return -1;
+
+			if (!injector.worker->getOnlineFlag())
+				return 0;
+
+			if (injector.worker->getBattleFlag())
+				return 0;
+
+			return 1;
+		};
+
+	long long state = checkEnable();
+	if (-1 == state)
+		return;
+	else if (0 == state)
+		return;
+
+	QString strDropItems = injector.getStringHash(util::kAutoDropItemString);
+	if (strDropItems.isEmpty())
+		return;
+
+	QStringList dropItems = strDropItems.split(util::rexOR, Qt::SkipEmptyParts);
+	if (dropItems.isEmpty())
+		return;
+
+	updateItemByMemory();
+
+	QHash<long long, ITEM> items = getItems();
+	for (long long i = 0; i < MAX_ITEM; ++i)
+	{
+		ITEM item = items.value(i);
+		if (item.name.isEmpty())
+			continue;
+
+		for (const QString& cmpItem : dropItems)
+		{
+			if (checkEnable() != 1)
+				break;
+
+			if (cmpItem.isEmpty())
+				continue;
+
+			if (cmpItem.startsWith("?"))//如果丟棄列表名稱前面有?則表示要模糊匹配
+			{
+				QString newCmpItem = cmpItem.mid(1);//去除問號
+				if (item.name.contains(newCmpItem))
+				{
+					dropItem(i);
+					continue;
+				}
+			}
+			else if ((item.name == cmpItem))//精確匹配
+			{
+				dropItem(i);
+			}
+		}
+	}
+}
+
+//自動補血
+void Worker::checkAutoHeal()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	if (injector.worker.isNull())
+		return;
+
+	if (!injector.getEnableHash(util::kNormalItemHealMpEnable)
+		&& !injector.getEnableHash(util::kNormalItemHealEnable)
+		&& !injector.getEnableHash(util::kNormalMagicHealEnable))
+		return;
+
+	auto checkStatus = [this, &injector]()->long long
+		{
+			//如果主線程關閉則自動退出
+			if (isInterruptionRequested())
+				return -1;
+
+			if (!getOnlineFlag())
+				return 0;
+
+			if (getBattleFlag())
+				return 0;
+
+			return 1;
+		};
+
+	long long state = checkStatus();
+	if (-1 == state)
+		return;
+	else if (0 == state)
+		return;
+
+	QStringList items;
+	long long itemIndex = -1;
+
+	//平時道具補氣
+	for (;;)
+	{
+		if (checkStatus() != 1)
+			break;
+
+		bool itemHealMpEnable = injector.getEnableHash(util::kNormalItemHealMpEnable);
+		if (!itemHealMpEnable)
+			break;
+
+		long long cmpvalue = injector.getValueHash(util::kNormalItemHealMpValue);
+		if (!checkCharMp(cmpvalue))
+			break;
+
+		QString text = injector.getStringHash(util::kNormalItemHealMpItemString).simplified();
+		if (text.isEmpty())
+			break;
+
+		items = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (items.isEmpty())
+			break;
+
+		itemIndex = -1;
+		for (const QString& str : items)
+		{
+			itemIndex = getItemIndexByName(str);
+			if (itemIndex != -1)
+				break;
+		}
+
+		if (itemIndex == -1)
+			break;
+
+		useItem(itemIndex, 0);
+		QThread::msleep(300);
+	}
+
+	//平時道具補血
+	for (;;)
+	{
+		if (checkStatus() != 1)
+			break;
+
+		bool itemHealHpEnable = injector.getEnableHash(util::kNormalItemHealEnable);
+		if (!itemHealHpEnable)
+			break;
+
+		long long charPercent = injector.getValueHash(util::kNormalItemHealCharValue);
+		long long petPercent = injector.getValueHash(util::kNormalItemHealPetValue);
+		long long alliePercent = injector.getValueHash(util::kNormalItemHealAllieValue);
+
+		if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
+			break;
+
+		long long target = -1;
+		bool ok = false;
+		if ((charPercent > 0) && checkCharHp(charPercent))
+		{
+			ok = true;
+			target = 0;
+		}
+		else if (!ok && (petPercent > 0) && checkPetHp(petPercent))
+		{
+			ok = true;
+			target = getPC().battlePetNo + 1;
+		}
+		else if (!ok && (petPercent > 0) && injector.worker->checkRideHp(petPercent))
+		{
+			ok = true;
+			target = getPC().ridePetNo + 1;
+		}
+		else if (!ok && (alliePercent > 0) && checkPartyHp(alliePercent, &target))
+		{
+			ok = true;
+			target += MAX_PET;
+		}
+
+		if (!ok || target == -1)
+			break;
+
+		itemIndex = -1;
+		bool meatProiory = injector.getEnableHash(util::kNormalItemHealMeatPriorityEnable);
+		if (meatProiory)
+		{
+			itemIndex = getItemIndexByName("?肉", false, "耐久力");
+		}
+
+		if (itemIndex == -1)
+		{
+			QString text = injector.getStringHash(util::kNormalItemHealItemString).simplified();
+
+			items = text.split(util::rexOR, Qt::SkipEmptyParts);
+			for (const QString& str : items)
+			{
+				itemIndex = getItemIndexByName(str);
+				if (itemIndex != -1)
+					break;
+			}
+		}
+
+		if (itemIndex == -1)
+			break;
+
+		long long targetType = getItem(itemIndex).target;
+		if ((targetType != ITEM_TARGET_MYSELF) && (targetType != ITEM_TARGET_OTHER))
+			break;
+
+		if ((targetType == ITEM_TARGET_MYSELF) && (target != 0))
+			break;
+
+		useItem(itemIndex, target);
+		QThread::msleep(300);
+	}
+
+	//平時精靈補血
+	for (;;)
+	{
+		if (checkStatus() != 1)
+			break;
+
+		bool magicHealHpEnable = injector.getEnableHash(util::kNormalMagicHealEnable);
+		if (!magicHealHpEnable)
+			break;
+
+		long long charPercent = injector.getValueHash(util::kNormalMagicHealCharValue);
+		long long petPercent = injector.getValueHash(util::kNormalMagicHealPetValue);
+		long long alliePercent = injector.getValueHash(util::kNormalMagicHealAllieValue);
+
+		if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
+			break;
+
+
+		long long target = -1;
+		bool ok = false;
+		if ((charPercent > 0) && checkCharHp(charPercent))
+		{
+			ok = true;
+			target = 0;
+		}
+		else if (!ok && (petPercent > 0) && checkPetHp(petPercent))
+		{
+			ok = true;
+			target = getPC().battlePetNo + 1;
+		}
+		else if (!ok && (petPercent > 0) && checkRideHp(petPercent))
+		{
+			ok = true;
+			target = getPC().ridePetNo + 1;
+		}
+		else if (!ok && (alliePercent > 0) && checkPartyHp(alliePercent, &target))
+		{
+			ok = true;
+			target += MAX_PET;
+		}
+
+		if (!ok || target == -1)
+			break;
+
+		long long magicIndex = -1;
+		{
+			QString itemNames = injector.getStringHash(util::kNormalMagicHealItemString).simplified();
+			QVector<long long> items;
+			if (getItemIndexsByName(itemNames, "", &items) && !items.isEmpty())
+				magicIndex = items.front();
+		}
+
+		if (magicIndex == -1)
+		{
+			magicIndex = injector.getValueHash(util::kNormalMagicHealMagicValue);
+			if (magicIndex >= 0 && magicIndex < CHAR_EQUIPPLACENUM)
+			{
+				long long targetType = getMagic(magicIndex).target;
+				if ((targetType != MAGIC_TARGET_MYSELF) && (targetType != MAGIC_TARGET_OTHER))
+					break;
+
+				if ((targetType == MAGIC_TARGET_MYSELF) && (target != 0))
+					break;
+			}
+		}
+
+		useMagic(magicIndex, target);
+		QThread::msleep(300);
+	}
+}
 #pragma endregion
 
 #pragma region MAP
 //下載指定坐標 24 * 24 大小的地圖塊
 void Worker::downloadMap(long long x, long long y, long long floor)
 {
-	QMutexLocker locker(&moveLock_);
 	lssproto_M_send(floor == -1 ? nowFloor_.load(std::memory_order_acquire) : floor, x, y, x + 24, y + 24);
 }
 
@@ -4694,7 +5046,6 @@ void Worker::downloadMap(long long floor)
 //轉移
 void Worker::warp()
 {
-	QMutexLocker locker(&moveLock_);
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	struct
@@ -4727,7 +5078,6 @@ QString calculateDirection(long long currentX, long long currentY, long long tar
 //移動(封包) [a-h]
 void Worker::move(const QPoint& p, const QString& dir)
 {
-	QMutexLocker locker(&moveLock_);
 	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
 		return;
 
@@ -4766,7 +5116,6 @@ long long Worker::setCharFaceToPoint(const QPoint& pos)
 //轉向 (根據方向索引自動轉換成A-H)
 void Worker::setCharFaceDirection(long long dir)
 {
-	QMutexLocker locker(&moveLock_);
 	if (dir < 0 || dir >= MAX_DIR)
 		return;
 
@@ -4798,7 +5147,6 @@ void Worker::setCharFaceDirection(long long dir)
 //轉向 使用方位字符串
 void Worker::setCharFaceDirection(const QString& dirStr)
 {
-	QMutexLocker locker(&moveLock_);
 	static const QHash<QString, QString> dirhash = {
 		{ "北", "A" }, { "東北", "B" }, { "東", "C" }, { "東南", "D" },
 		{ "南", "E" }, { "西南", "F" }, { "西", "G" }, { "西北", "H" },
@@ -5424,8 +5772,6 @@ void Worker::setBattleEnd()
 	if (battleDurationTimer.elapsed() > 0ll)
 		battle_total_time.fetch_add(battleDurationTimer.elapsed(), std::memory_order_release);
 
-	updateBattleTimeInfo();
-
 	normalDurationTimer.restart();
 	battlePetDisableList_.clear();
 
@@ -5443,8 +5789,10 @@ void Worker::setBattleEnd()
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	std::ignore = QtConcurrent::run(this, &Worker::checkAutoLockPet);
+	std::ignore = QtConcurrent::run(this, &Worker::checkAutoHeal);
 #else
 	std::ignore = QtConcurrent::run(&Worker::checkAutoLockPet, this);
+	std::ignore = QtConcurrent::run(&Worker::checkAutoHeal, this);
 #endif
 }
 
@@ -5457,24 +5805,20 @@ inline bool Worker::checkFlagState(long long pos)
 }
 
 //異步處理自動/快速戰鬥邏輯和發送封包
-void Worker::doBattleWork(bool waitforBA)
+void Worker::doBattleWork(bool canDelay)
 {
-	if (waitforBA)
+	if (canDelay)
 	{
 		//asyncBattleAction(waitforBA);
 		long long recordedRound = battleCurrentRound.load(std::memory_order_acquire);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		std::ignore = QtConcurrent::run(this, &Worker::asyncBattleAction, waitforBA);
-#else
-		std::ignore = QtConcurrent::run(&Worker::asyncBattleAction, this, waitforBA);
-#endif
+		asyncBattleAction(canDelay);
 
 		Injector& injector = Injector::getInstance(getIndex());
 		long long resendDelay = injector.getValueHash(util::kBattleResendDelayValue);
 		if (resendDelay <= 0)
 			return;
 
-		std::ignore = QtConcurrent::run([this, recordedRound, waitforBA]()
+		std::ignore = QtConcurrent::run([this, recordedRound, canDelay]()
 			{
 				//備用
 				Injector& injector = Injector::getInstance(getIndex());
@@ -5519,21 +5863,17 @@ void Worker::doBattleWork(bool waitforBA)
 				bt.charAlreadyAction = false;
 				bt.petAlreadyAction = false;
 				setBattleData(bt);
-				asyncBattleAction(waitforBA);
+				asyncBattleAction(false);
 			});
 	}
 	else
 	{
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		std::ignore = QtConcurrent::run(this, &Worker::asyncBattleAction, waitforBA);
-#else
-		std::ignore = QtConcurrent::run(&Worker::asyncBattleAction, this, waitforBA);
-#endif
+		asyncBattleAction(canDelay);
 	}
 }
 
 //異步戰鬥動作處理
-void Worker::asyncBattleAction(bool waitforBA)
+void Worker::asyncBattleAction(bool canDelay)
 {
 	if (!getOnlineFlag())
 		return;
@@ -5604,11 +5944,11 @@ void Worker::asyncBattleAction(bool waitforBA)
 
 	battledata_t bt = getBattleData();
 	//人物和寵物分開發 TODO 修正多個BA人物多次發出戰鬥指令的問題
-	//if (!bt.charAlreadyAction)
+	if (!bt.charAlreadyAction)
 	{
 		bt.charAlreadyAction = true;
-
-		delay();
+		if (canDelay)
+			delay();
 		//解析人物戰鬥邏輯並發送指令
 		playerDoBattleWork(bt);
 	}
@@ -5623,7 +5963,7 @@ void Worker::asyncBattleAction(bool waitforBA)
 	}
 
 	//TODO 修正寵物指令在多個BA時候重覆發送的問題
-	//if (!bt.petAlreadyAction)
+	if (!bt.petAlreadyAction)
 	{
 		bt.petAlreadyAction = true;
 
@@ -8560,46 +8900,80 @@ bool Worker::isCharHpEnoughForSkill(long long magicIndex) const
 
 bool compareBattleObjects(const battleobject_t& a, const battleobject_t& b) {
 	// 首先按照 hp 升序排序
-	if (a.hp != b.hp) {
+	if (a.hp != b.hp)
+	{
 		return a.hp < b.hp;
 	}
 
 	// 如果 hp 相同，按照 maxHp 升序排序
-	if (a.maxHp != b.maxHp) {
+	if (a.maxHp != b.maxHp)
+	{
 		return a.maxHp < b.maxHp;
 	}
 
 	// 如果 maxHp 也相同，按照 level 升序排序
-	return a.level < b.level;
+	if (a.level != b.level)
+	{
+		return a.level < b.level;
+	}
+
+	// 如果 level 也相同，按照 status 升序排序
+	if (hasBadStatus(a.status))
+		return true;
+	if (hasBadStatus(b.status))
+		return false;
+
+	constexpr long long order[MAX_ENEMY] = { 19, 17, 15, 16, 18, 14, 12, 10, 11, 13, 8, 6, 5, 7, 9, 3, 1, 0, 2, 4 };
+	auto ait = std::find(order, order + MAX_ENEMY, a.pos);
+	auto bit = std::find(order, order + MAX_ENEMY, b.pos);
+	long long aindex = std::distance(order, ait);
+	long long bindex = std::distance(order, bit);
+	return aindex < bindex;
 }
 
 //戰場上單位排序
 void Worker::sortBattleUnit(QVector<battleobject_t>& v) const
 {
-	QVector<battleobject_t> newv;
-	QVector<battleobject_t> dstv = v;
-	if (dstv.isEmpty())
+	if (v.isEmpty())
 		return;
 
-	constexpr long long maxorder = 20;
-	constexpr long long order[maxorder] = { 19, 17, 15, 16, 18, 14, 12, 10, 11, 13, 8, 6, 5, 7, 9, 3, 1, 0, 2, 4 };
+	QVector<battleobject_t> front;
+	QVector<battleobject_t> back;
 
-	for (const long long it : order)
+	//這裡不需要考慮我方是在左邊還右邊 只需要判斷是前排還是後排
+	long long efrontmin = 15, efrontmax = 19;
+	long long ebackmin = 10, ebackmax = 14;
+	long long afrontmin = 5, afrontmax = 9;
+	long long abackmin = 0, abackmax = 4;
+
+	for (const battleobject_t& it : v)
 	{
-		for (const battleobject_t& obj : dstv)
-		{
-			if ((obj.hp > 0) && (obj.level > 0) && (obj.maxHp > 0) && (obj.modelid > 0) && (obj.pos == it)
-				&& !checkAND(obj.status, BC_FLG_DEAD) && !checkAND(obj.status, BC_FLG_HIDE))
-			{
-				newv.append(obj);
-				break;
-			}
-		}
+		if (it.pos >= efrontmin && it.pos <= efrontmax || it.pos >= afrontmin && it.pos <= afrontmax)
+			front.append(it);
+		else if (it.pos >= ebackmin && it.pos <= ebackmax || it.pos >= abackmin && it.pos <= abackmax)
+			back.append(it);
 	}
 
-	std::sort(newv.begin(), newv.end(), compareBattleObjects);
+	//前後排分開排序
+	std::sort(front.begin(), front.end(), compareBattleObjects);
+	std::sort(back.begin(), back.end(), compareBattleObjects);
 
-	v = newv;
+	//前排優先
+	v = front;
+	v.append(back);
+
+	//for (const long long it : order)
+	//{
+	//	for (const battleobject_t& obj : dstv)
+	//	{
+	//		if ((obj.hp > 0) && (obj.level > 0) && (obj.maxHp > 0) && (obj.modelid > 0) && (obj.pos == it)
+	//			&& !checkAND(obj.status, BC_FLG_DEAD) && !checkAND(obj.status, BC_FLG_HIDE))
+	//		{
+	//			newv.append(obj);
+	//			break;
+	//		}
+	//	}
+	//}
 }
 
 //是否可直接接觸(如果目標為後排但前排還存活視為不可接觸)
@@ -9644,20 +10018,6 @@ void Worker::sendBattlePetDoNothing()
 #pragma endregion
 
 #pragma region Lssproto_Recv
-//人物刪除
-void Worker::lssproto_CharDelete_recv(char* cresult, char* cdata)
-{
-	QString data = util::toUnicode(cdata);
-	QString result = util::toUnicode(cresult);
-	if (data.isEmpty() && result.isEmpty())
-		return;
-
-	if (result == SUCCESSFULSTR || data == SUCCESSFULSTR)
-	{
-
-	}
-}
-
 //組隊變化
 void Worker::lssproto_PR_recv(int request, int result)
 {
@@ -9796,9 +10156,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
-#endif
 	}
+#endif
+}
 }
 
 //名片數據
@@ -9857,7 +10217,7 @@ void Worker::lssproto_ABI_recv(int num, char* cdata)
 				break;
 			}
 		}
-	}
+}
 #endif
 }
 
@@ -10073,11 +10433,12 @@ void Worker::lssproto_I_recv(char* cdata)
 			QString damage;
 			getStringToken(data, "|", no + 11, damage);
 			makeStringFromEscaped(damage);
-
-			if (damage.size() <= 16)
-			{
-				items[i].damage = damage;
-			}
+			damage.remove("%");
+			damage.remove("％");
+			bool ok = false;
+			items[i].damage = damage.toLongLong(&ok);
+			if (!ok)
+				items[i].damage = 100;
 
 			QString pile;
 			getStringToken(data, "|", no + 12, pile);
@@ -10121,6 +10482,10 @@ void Worker::lssproto_I_recv(char* cdata)
 	updateComboBoxList();
 	if (IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) > 0)
 		IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_sub(1, std::memory_order_release);
+
+	checkAutoEatBoostExpItem();
+
+	checkAutoDropItems();
 }
 
 //對話框
@@ -10495,8 +10860,6 @@ void Worker::lssproto_EN_recv(int result, int field)
 	//開始戰鬥為1，未開始戰鬥為0   0：不可遇到或錯誤。 1：與敵人戰鬥OK。 2：PvP戰鬥OK
 	if (result > 0)
 	{
-		QMutexLocker locker(&moveLock_);
-
 		setBattleFlag(true);
 		IS_LOCKATTACK_ESCAPE_DISABLE.store(false, std::memory_order_release);
 		battleCharEscapeFlag.store(false, std::memory_order_release);
@@ -10507,6 +10870,11 @@ void Worker::lssproto_EN_recv(int result, int field)
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
 		oneRoundDurationTimer.restart();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		std::ignore = QtConcurrent::run(this, &Worker::updateBattleTimeInfo);
+#else
+		std::ignore = QtConcurrent::run(&Worker::updateBattleTimeInfo, this);
+#endif
 	}
 }
 
@@ -10665,12 +11033,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
+			}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-				}
-			}
+		}
+	}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -10684,11 +11052,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-		}
+	}
 
 		setBattleData(bt);
 		break;
-	}
+}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -10827,6 +11195,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 						}
 
 						enemyNameListCache.set(_enemyNameListCache);
+						injector.setUserData(util::kUserEnemyNames, _enemyNameListCache);
 					}
 				}
 
@@ -10919,7 +11288,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 				}
 
 				if (pos < bt.objects.size())
-					bt.objects.insert(pos, obj);
+					bt.objects[pos] = obj;
 
 				if (valid || checkAND(obj.status, BC_FLG_HIDE))
 				{
@@ -11356,13 +11725,6 @@ void Worker::lssproto_XYD_recv(const QPoint& pos, int dir)
 	setBattleEnd();
 }
 
-void Worker::lssproto_WO_recv(int)
-{
-
-}
-
-/////////////////////////////////////////////////////////
-
 //服務端發來的ECHO 一般是30秒
 void Worker::lssproto_Echo_recv(char* test)
 {
@@ -11373,28 +11735,6 @@ void Worker::lssproto_Echo_recv(char* test)
 		isEOTTLSend.store(false, std::memory_order_release);
 		announce(QObject::tr("server response time:%1ms").arg(time));//伺服器響應時間:xxxms
 	}
-}
-
-void Worker::lssproto_NU_recv(int)
-{
-}
-
-void Worker::lssproto_CharNumGet_recv(int, int)
-{
-}
-
-void Worker::lssproto_ProcGet_recv(char*)
-{
-
-}
-
-void Worker::lssproto_R_recv(char*)
-{
-	/*
-	将雷达的内容发送到客户端。客户端不需要请求此发送。服务器将在适当的时机发送。例如，每走10步或每1分钟一次。
-
-	数据示例：此字符串不会被转义。"12|22|E|13|24|P|14|28|P"
-	*/
 }
 
 //服務端發送給客戶端用於顯示某些東西的
@@ -11650,16 +11990,6 @@ void Worker::lssproto_S2_recv(char* cdata)
 	setPC(pc);
 }
 
-//煙火
-void Worker::lssproto_Firework_recv(int, int, int)
-{
-
-}
-
-void Worker::lssproto_DENGON_recv(char*, int, int)
-{
-}
-
 //收到玩家對話或公告
 void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 {
@@ -11799,7 +12129,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -11849,7 +12179,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -11909,7 +12239,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-	}
+			}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -11918,7 +12248,6 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 //地圖數據更新，重新繪製地圖
 void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
 {
-	QMutexLocker locker(&moveLock_);
 	//QString data = util::toUnicode(cdata);
 	//if (data.isEmpty())
 	//	return;
@@ -12157,9 +12486,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
-#endif
 			}
+#endif
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -12297,7 +12626,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -12455,7 +12784,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}
@@ -13251,6 +13580,7 @@ void Worker::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePetHpProgressValue(0, 0, 0);
 		}
 
+		QStringList petNames;
 		for (long long j = 0; j < MAX_PET; ++j)
 		{
 			PET pet = pet_.value(j);
@@ -13269,6 +13599,8 @@ void Worker::lssproto_S_recv(char* cdata)
 					util::toQString(pet.growth),
 					util::toQString(pet.power)
 				};
+
+				petNames.append(pet.name);
 			}
 			else
 			{
@@ -13280,6 +13612,9 @@ void Worker::lssproto_S_recv(char* cdata)
 			playerInfoColContents.insert(j + 1, var);
 			emit signalDispatcher.updateCharInfoColContents(j + 1, var);
 		}
+
+		Injector& injector = Injector::getInstance(getIndex());
+		injector.setUserData(util::kUserPetNames, petNames);
 	}
 #pragma endregion
 #pragma region EncountPercentage
@@ -13505,8 +13840,12 @@ void Worker::lssproto_S_recv(char* cdata)
 				// 顯示物品耐久度
 				getStringToken(data, "|", no + 10, temp);
 				makeStringFromEscaped(temp);
-
-				item.damage = temp;
+				temp.remove("%");
+				temp.remove("％");
+				bool ok = false;
+				item.damage = temp.toLongLong(&ok);
+				if (!ok)
+					item.damage = 100;
 
 				getStringToken(data, "|", no + 11, temp);
 				makeStringFromEscaped(temp);
@@ -13554,6 +13893,10 @@ void Worker::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
 		if (IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) > 0)
 			IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_sub(1, std::memory_order_release);
+
+		checkAutoEatBoostExpItem();
+
+		checkAutoDropItems();
 	}
 #pragma endregion
 #pragma region PetSkill
@@ -13722,8 +14065,13 @@ void Worker::lssproto_S_recv(char* cdata)
 			// 顯示物品耐久度
 			getStringToken(data, "|", no + 10, szData);
 			makeStringFromEscaped(szData);
+			szData.remove("%");
+			szData.remove("％");
+			bool ok = false;
+			petItems[i].damage = szData.toLongLong(&ok);
+			if (!ok)
+				petItems[i].damage = 100;
 
-			petItems[i].damage = szData;
 			petItems[i].stack = getIntegerToken(data, "|", no + 11);
 			if (petItems[i].stack == 0)
 				petItems[i].stack = 1;
@@ -13845,6 +14193,20 @@ void Worker::lssproto_CreateNewChar_recv(char* cresult, char* cdata)
 	else
 	{
 		//創建人物內容提示
+	}
+}
+
+//人物刪除
+void Worker::lssproto_CharDelete_recv(char* cresult, char* cdata)
+{
+	QString data = util::toUnicode(cdata);
+	QString result = util::toUnicode(cresult);
+	if (data.isEmpty() && result.isEmpty())
+		return;
+
+	if (result == SUCCESSFULSTR || data == SUCCESSFULSTR)
+	{
+
 	}
 }
 
@@ -13970,78 +14332,56 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	if (!result.contains(SUCCESSFULSTR, Qt::CaseInsensitive) && !data.contains(SUCCESSFULSTR, Qt::CaseInsensitive))
 		return;
 
-	std::ignore = QtConcurrent::run([this]()
-		{
-			QElapsedTimer timer; timer.start();
-			for (;;)
-			{
-				if (isInterruptionRequested())
-					return;
+	setOnlineFlag(true);
 
-				if (checkWG(9, 3))
-					break;
+	long long currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSignning);
+	//重置登入計時
+	loginTimer.restart();
 
-				if (timer.hasExpired(10000))
-				{
-					return;
-				}
+	//重置戰鬥總局數
+	battle_total_time.store(0, std::memory_order_release);
 
-				QThread::msleep(100);
-			}
+	//重置掛機數據
+	PC pc = getPC();
+	recorder[0].levelrecord = pc.level;
+	recorder[0].exprecord = pc.exp;
+	recorder[0].goldearn = 0;
+	recorder[0].deadthcount = 0;
 
-			setOnlineFlag(true);
+	for (long long i = 1; i <= MAX_PET; ++i)
+	{
+		PET pet = pet_.value(i + 1);
+		recorder[i] = {};
+		recorder[i].levelrecord = pet.level;
+		recorder[i].exprecord = pet.exp;
+		recorder[i].deadthcount = 0;
+	}
 
-			long long currentIndex = getIndex();
-			Injector& injector = Injector::getInstance(currentIndex);
-			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSignning);
-			//重置登入計時
-			loginTimer.restart();
+	//讀取伺服器列表
+	QStringList list;
+	{
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
+		list = config.readArray<QString>("System", "Server", QString("List_%1").arg(injector.currentServerListIndex));
+	}
 
-			//重置戰鬥總局數
-			battle_total_time.store(0, std::memory_order_release);
+	//重置對話框開啟標誌(客製)
+	mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
 
-			//重置掛機數據
-			PC pc = getPC();
-			recorder[0].levelrecord = pc.level;
-			recorder[0].exprecord = pc.exp;
-			recorder[0].goldearn = 0;
-			recorder[0].deadthcount = 0;
+	updateComboBoxList();
+	updateItemByMemory();
+	refreshItemInfo();
 
-			for (long long i = 1; i <= MAX_PET; ++i)
-			{
-				PET pet = pet_.value(i + 1);
-				recorder[i] = {};
-				recorder[i].levelrecord = pet.level;
-				recorder[i].exprecord = pet.exp;
-				recorder[i].deadthcount = 0;
-			}
+	//標題設置為人物名稱
+	emit signalDispatcher.updateMainFormTitle(getPC().name);
+	//顯示NPC列表
+	emit signalDispatcher.updateNpcList(getFloor());
 
-			updateComboBoxList();
+	emit signalDispatcher.applyHashSettingsToUI();
 
-			//重置對話框開啟標誌(客製)
-			mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
-
-			//標題設置為人物名稱
-			emit signalDispatcher.updateMainFormTitle(getPC().name);
-			//顯示NPC列表
-			emit signalDispatcher.updateNpcList(getFloor());
-
-			emit signalDispatcher.applyHashSettingsToUI();
-
-
-			//讀取伺服器列表
-			QStringList list;
-			{
-				util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
-				list = config.readArray<QString>("System", "Server", QString("List_%1").arg(injector.currentServerListIndex));
-			}
-
-			updateItemByMemory();
-			refreshItemInfo();
-
-			mem::freeUnuseMemory(injector.getProcess());
-		});
+	mem::freeUnuseMemory(injector.getProcess());
 }
 
 //交易
@@ -14346,6 +14686,44 @@ void Worker::lssproto_CustomTK_recv(const QString& data)
 				}
 			});
 	}
+}
+
+void Worker::lssproto_WO_recv(int)
+{
+
+}
+
+void Worker::lssproto_NU_recv(int)
+{
+}
+
+void Worker::lssproto_CharNumGet_recv(int, int)
+{
+}
+
+void Worker::lssproto_ProcGet_recv(char*)
+{
+
+}
+
+void Worker::lssproto_R_recv(char*)
+{
+	/*
+	将雷达的内容发送到客户端。客户端不需要请求此发送。服务器将在适当的时机发送。例如，每走10步或每1分钟一次。
+
+	数据示例：此字符串不会被转义。"12|22|E|13|24|P|14|28|P"
+	*/
+}
+
+
+//煙火
+void Worker::lssproto_Firework_recv(int, int, int)
+{
+
+}
+
+void Worker::lssproto_DENGON_recv(char*, int, int)
+{
 }
 #pragma endregion
 

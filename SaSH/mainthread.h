@@ -45,26 +45,22 @@ private:
 
 	void __fastcall updateAfkInfos();
 
-	void __fastcall setUserDatas();
-
 	long long __fastcall checkAndRunFunctions();
 
 	void __fastcall checkControl();
 	void __fastcall checkEtcFlag();
 	void __fastcall checkAutoSortItem();
 	void __fastcall checkAutoWalk();
-	void __fastcall checkAutoDropItems();
-	//void checkAutoDropMeat();
+	//void __fastcall checkAutoDropItems();
+	//void __fastcall checkAutoDropMeat();
 	void __fastcall checkAutoJoin();
-	void __fastcall checkAutoHeal();
+	//void __fastcall checkAutoHeal();
 	void __fastcall checkAutoDropPet();
-	//void checkAutoLockPet();
-	//void checkAutoLockSchedule();
-	void __fastcall checkAutoEatBoostExpItem();
+	//void __fastcall checkAutoLockPet();
+	//void __fastcall checkAutoLockSchedule();
+	//void __fastcall checkAutoEatBoostExpItem();
 	void __fastcall checkRecordableNpcInfo();
 	//void checkAutoAbility();
-private:
-	void battleTimeThread();
 
 private:
 
@@ -76,17 +72,8 @@ private:
 	QFuture<void> autojoin_future_;
 	std::atomic_bool autojoin_future_cancel_flag_ = false;
 
-	QFuture<void> battleTime_future_;
-	std::atomic_bool battleTime_future_cancel_flag_ = false;
-
-	QFuture<void> autoheal_future_;
-	std::atomic_bool autoheal_future_cancel_flag_ = false;
-
 	QFuture<void> autodroppet_future_;
 	std::atomic_bool autodroppet_future_cancel_flag_ = false;
-
-	QFuture<void> autodropitem_future_;
-	std::atomic_bool autodropitem_future_cancel_flag_ = false;
 
 	QFuture<void> autosortitem_future_;
 	std::atomic_bool autosortitem_future_cancel_flag_ = false;

@@ -40,8 +40,6 @@ public:
 
 	virtual ~Socket();
 
-	QThread thread;
-
 signals:
 	void read();
 
@@ -49,6 +47,8 @@ private slots:
 	void onReadyRead();
 	void onWrite(QByteArray ba, long long size);
 
+public:
+	QThread readThread;
 private:
 	long long index_ = -1;
 	bool init = false;
@@ -213,9 +213,10 @@ public://actions
 
 	void __fastcall updateItemByMemory();
 	void __fastcall updateDatasFromMemory();
+	void __fastcall setUserDatas();
 
-	void __fastcall doBattleWork(bool waitforBA);
-	void asyncBattleAction(bool waitforBA);
+	void __fastcall doBattleWork(bool canDelay);
+	void asyncBattleAction(bool canDelay);
 
 	void __fastcall downloadMap(long long floor = -1);
 	void __fastcall downloadMap(long long x, long long y, long long floor = -1);
@@ -295,7 +296,7 @@ public://actions
 	void __fastcall sendBattlePetDoNothing();
 	void __fastcall setBattleEnd();
 
-	void __fastcall updateBattleTimeInfo();
+	void updateBattleTimeInfo();
 
 	inline [[nodiscard]] PC __fastcall getPC() const { /*QReadLocker locker(&charInfoLock_); */ return pc_; }
 	inline void __fastcall setPC(PC pc) { pc_ = pc; }
@@ -424,6 +425,15 @@ private:
 
 	//檢查並自動吃肉、或丟肉
 	void checkAutoDropMeat();
+
+	//自動吃經驗加乘道具
+	void __fastcall checkAutoEatBoostExpItem();
+
+	//自動丟棄道具
+	void __fastcall checkAutoDropItems();
+
+	//自動補血、氣
+	void checkAutoHeal();
 #pragma endregion
 
 #pragma region SAClientOriginal
@@ -529,7 +539,6 @@ private:
 #pragma endregion
 
 public:
-	QWaitCondition readCond_;
 	QFuture<void> readFuture_;
 	util::SafeQueue<QByteArray> readQueue_;
 
