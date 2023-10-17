@@ -25,6 +25,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 
+struct tcp_keepalive {
+	ULONG onoff;
+	ULONG keepalivetime;
+	ULONG keepaliveinterval;
+};
+
+#define SIO_KEEPALIVE_VALS                  _WSAIOW(IOC_VENDOR,4)
+
 #if _MSVC_LANG >= 201703L
 #include <memory_resource>
 #endif
@@ -144,6 +152,25 @@ public:
 				recordWSALastError(__LINE__);
 				break;
 			}
+
+			int option_value = 1; //禁用Nagle
+			setsockopt(clientSocket_, IPPROTO_TCP, TCP_NODELAY, (const char*)&option_value, sizeof(option_value));
+			BOOL keepAlive = TRUE; //Keep-Alive
+			setsockopt(clientSocket_, SOL_SOCKET, SO_KEEPALIVE, (const char*)&keepAlive, sizeof(BOOL));
+
+			struct tcp_keepalive in_keep_alive = { 0 };
+			unsigned long ul_in_len = sizeof(struct tcp_keepalive);
+			struct tcp_keepalive out_keep_alive = { 0 };
+			unsigned long ul_out_len = sizeof(struct tcp_keepalive);
+			unsigned long ul_bytes_return = 0;
+			in_keep_alive.onoff = 1; /*打开keepalive*/
+			in_keep_alive.keepaliveinterval = 5000; /*发送keepalive心跳时间间隔-单位为毫秒*/
+			in_keep_alive.keepalivetime = 1000; /*多长时间没有报文开始发送keepalive心跳包-单位为毫秒*/
+
+			WSAIoctl(clientSocket_, SIO_KEEPALIVE_VALS, (LPVOID)&in_keep_alive, ul_in_len, (LPVOID)&out_keep_alive, ul_out_len, &ul_bytes_return, NULL, NULL);
+
+			int dscpValue = 0x3F;  // 0x3F DSCP 63
+			setsockopt(clientSocket_, IPPROTO_IP, IP_TOS, (const char*)&dscpValue, sizeof(dscpValue));
 
 			std::wcout << "WSASocketW OK" << std::endl;
 

@@ -339,6 +339,11 @@ void registryInitialize()
 	//HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\SafeDllSearchMode  set to 0
 	QSettings settings4("HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager", QSettings::NativeFormat);
 	settings4.setValue("SafeDllSearchMode", 1);
+
+	//set TCP nodelay
+	QSettings settings5("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\MSMQ\\Parameters", QSettings::NativeFormat);
+	//add \\Parameters
+	settings5.setValue("TCPNoDelay", 1);
 }
 
 int main(int argc, char* argv[])

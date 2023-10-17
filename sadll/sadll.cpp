@@ -279,8 +279,25 @@ extern "C"
 //hooks
 SOCKET __fastcall GameService::New_socket(int af, int type, int protocol)
 {
-	SOCKET ret = psocket(af, type, protocol);
-	return ret;
+	SOCKET fd = psocket(af, type, protocol);
+	int option_value = 1; //禁用Nagle
+	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&option_value, sizeof(option_value));
+	BOOL keepAlive = TRUE; //Keep-Alive
+	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (const char*)&keepAlive, sizeof(BOOL));
+	struct tcp_keepalive in_keep_alive = { 0 };
+	unsigned long ul_in_len = sizeof(struct tcp_keepalive);
+	struct tcp_keepalive out_keep_alive = { 0 };
+	unsigned long ul_out_len = sizeof(struct tcp_keepalive);
+	unsigned long ul_bytes_return = 0;
+	in_keep_alive.onoff = 1; /*打开keepalive*/
+	in_keep_alive.keepaliveinterval = 5000; /*发送keepalive心跳时间间隔-单位为毫秒*/
+	in_keep_alive.keepalivetime = 1000; /*多长时间没有报文开始发送keepalive心跳包-单位为毫秒*/
+
+	WSAIoctl(fd, SIO_KEEPALIVE_VALS, (LPVOID)&in_keep_alive, ul_in_len, (LPVOID)&out_keep_alive, ul_out_len, &ul_bytes_return, NULL, NULL);
+
+	int dscpValue = 0x3F;  // 0x3F DSCP 63
+	setsockopt(fd, IPPROTO_IP, IP_TOS, (const char*)&dscpValue, sizeof(dscpValue));
+	return fd;
 }
 
 int __fastcall GameService::New_send(SOCKET s, const char* buf, int len, int flags)
@@ -1447,7 +1464,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 		SetConsoleCP(gb2312CodePage);
 		SetConsoleOutputCP(gb2312CodePage);
 		setlocale(LC_ALL, "Chinese.GB2312");
-	}
+}
 
 	g_sockfd = CONVERT_GAMEVAR<int*>(0x421B404ul);//套接字
 
