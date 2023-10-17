@@ -105,8 +105,6 @@ public:
 	inline void util_Send(int func, Args... args)
 	{
 		int iChecksum = 0;
-		//std::unique_ptr <char[]> buffer(q_check_ptr(new char[NETDATASIZE]));
-		//std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
 		char buffer[NETDATASIZE] = { 0 };
 
 		util_SendProcessArgs(iChecksum, buffer, args...);
@@ -117,8 +115,6 @@ public:
 	inline void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
 	{
 		int iChecksum = 0;
-		//std::unique_ptr <char[]> buffer(q_check_ptr(new char[NETDATASIZE]()));
-		//std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
 		char buffer[NETDATASIZE] = { 0 };
 
 		for (const std::variant<int, std::string>& arg : args)

@@ -1256,8 +1256,8 @@ QCheckBox {
 }
 
 QCheckBox::indicator {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
 }
 
 QCheckBox::indicator:unchecked {
@@ -1965,6 +1965,7 @@ QGroupBox {
 	class SafeQueue
 	{
 	public:
+		SafeQueue() = default;
 		explicit SafeQueue(long long maxSize)
 			: maxSize_(maxSize)
 		{
@@ -1999,7 +2000,7 @@ QGroupBox {
 		void enqueue(const V& value)
 		{
 			QWriteLocker locker(&lock_);
-			if (queue_.size() >= maxSize_)
+			if (queue_.size() >= maxSize_ && maxSize_ != 0)
 			{
 				queue_.dequeue();
 			}
@@ -2016,6 +2017,12 @@ QGroupBox {
 			if (pvalue)
 				*pvalue = queue_.dequeue();
 			return true;
+		}
+
+		V dequeue()
+		{
+			QWriteLocker locker(&lock_);
+			return std::move(queue_.dequeue());
 		}
 
 		V front() const
@@ -2043,7 +2050,7 @@ QGroupBox {
 
 	private:
 		QQueue<V> queue_;
-		long long maxSize_;
+		long long maxSize_ = 0;
 		mutable QReadWriteLock lock_;
 	};;
 

@@ -77,9 +77,9 @@ bool Autil::util_SplitMessage(const QByteArray& source, char separator)
 	QByteArrayList list = source.split(separator);
 
 	long long count = 0;
-	for (const QByteArray& slice : list)
+	for (QByteArray& slice : list)
 	{
-		msgSlice_.insert(count, slice);
+		msgSlice_.insert(count, std::move(slice));
 		++count;
 	}
 	SliceCount = count;

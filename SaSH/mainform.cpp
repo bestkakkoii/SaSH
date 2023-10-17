@@ -1459,8 +1459,7 @@ void MainForm::onMenuActionTriggered()
 				detail);
 		}
 
-		qDebug() << "ret:" << ret;
-		if (ret == 1)
+		if (ret != QMessageBox::Yes)
 			return;
 
 		downloader_.start(Downloader::Source::SaSHServer);
@@ -1997,6 +1996,6 @@ bool MainForm::createWinapiFileDialog(const QString& startDir, QStringList filte
 	else
 	{
 		return false; // 用戶取消了操作或發生錯誤
-}
+	}
 }
 #endif

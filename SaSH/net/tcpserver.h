@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <indexer.h>
 #include <util.h>
 #include "lssproto.h"
+#include "autil.h"
 #include "map/mapanalyzer.h"
 
 class Socket : public QTcpSocket
@@ -42,7 +43,7 @@ public:
 	QThread thread;
 
 signals:
-	void read(const QByteArray& badata);
+	void read();
 
 private slots:
 	void onReadyRead();
@@ -79,14 +80,14 @@ signals:
 	void write(QByteArray ba, long long size = 0);
 
 public slots:
-	void onClientReadyRead(const QByteArray& badata);
+	void onClientReadyRead();
 
 private:
 	long long __fastcall dispatchMessage(const QByteArray& encoded);
 
 	bool __fastcall handleCustomMessage(const QByteArray& data);
 
-	Q_INVOKABLE void handleData(QByteArray data);
+	Q_INVOKABLE void handleData(const QByteArray& data);
 
 public://actions
 	QString __fastcall battleStringFormat(const battleobject_t& obj, QString formatStr);
@@ -528,6 +529,10 @@ private:
 #pragma endregion
 
 public:
+	QWaitCondition readCond_;
+	QFuture<void> readFuture_;
+	util::SafeQueue<QByteArray> readQueue_;
+
 	std::atomic_llong nowFloor_;
 	util::SafeData<QString> nowFloorName_;
 	util::SafeData<QPoint> nowPoint_;
@@ -585,7 +590,9 @@ public:
 	util::SafeData<QString> labelPetAction;
 
 private:
-
+	char net_data[NETDATASIZE] = {};
+	char net_resultdata[SBUFSIZE] = {};
+	QByteArrayList dataList_ = {};
 	QByteArray net_readbuf_;
 	QByteArray net_raw_;
 
@@ -593,7 +600,7 @@ private:
 
 private://lssproto
 	long long __fastcall appendReadBuf(const QByteArray& data);
-	QByteArrayList __fastcall splitLinesFromReadBuf();
+	bool __fastcall splitLinesFromReadBuf(QByteArrayList& list);
 	long long __fastcall a62toi(const QString& a) const;
 	long long __fastcall getStringToken(const QString& src, const QString& delim, long long count, QString& out) const;
 	long long __fastcall getIntegerToken(const QString& src, const QString& delim, long long count) const;

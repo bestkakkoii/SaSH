@@ -104,7 +104,6 @@ public:
 		sockaddr* serverAddr = nullptr;
 		int namelen = 0;
 		wchar_t wcsServerIP[256] = {};
-		std::fill_n(wcsServerIP, 256, L'\0');
 
 		do
 		{

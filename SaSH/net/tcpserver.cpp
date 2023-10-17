@@ -18,7 +18,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "tcpserver.h"
-#include "autil.h"
 #include <injector.h>
 #include "signaldispatcher.h"
 #include "script/interpreter.h"
@@ -36,11 +35,11 @@ long long Worker::a62toi(const QString& a) const
 	{
 		ret *= 62;
 		if ('0' <= a.at(i) && a.at(i) <= '9')
-			ret += a.at(i).unicode() - '0';
+			ret += static_cast<long long>(a.at(i).unicode()) - '0';
 		else if ('a' <= a.at(i) && a.at(i) <= 'z')
-			ret += a.at(i).unicode() - 'a' + 10;
+			ret += static_cast<long long>(a.at(i).unicode()) - 'a' + 10;
 		else if ('A' <= a.at(i) && a.at(i) <= 'Z')
-			ret += a.at(i).unicode() - 'A' + 36;
+			ret += static_cast<long long>(a.at(i).unicode()) - 'A' + 36;
 		else if (a.at(i) == '-')
 			sign = -1;
 		else
@@ -169,15 +168,15 @@ long long Worker::appendReadBuf(const QByteArray& data)
 	return 0;
 }
 
-QByteArrayList Worker::splitLinesFromReadBuf()
+bool Worker::splitLinesFromReadBuf(QByteArrayList& lines)
 {
-	QByteArrayList lines = net_readbuf_.split('\n'); // Split net_readbuf into lines
+	lines = std::move(net_readbuf_.split('\n')); // Split net_readbuf into lines
 
 	if (!net_readbuf_.endsWith('\n'))
 	{
 		// The last line is incomplete, remove it from the list and keep it in net_readbuf
 		long long lastIndex = static_cast<long long>(lines.size()) - 1;
-		net_readbuf_ = lines[lastIndex];
+		net_readbuf_ = std::move(lines[lastIndex]);
 		lines.removeAt(lastIndex);
 	}
 	else
@@ -186,13 +185,13 @@ QByteArrayList Worker::splitLinesFromReadBuf()
 		net_readbuf_.clear();
 	}
 
-	for (long long i = 0; i < lines.size(); ++i)
+	for (QByteArray& it : lines)
 	{
 		// Remove '\r' from each line
-		lines[i] = lines[i].replace('\r', "");
+		it.replace('\r', "");
 	}
 
-	return lines;
+	return !lines.isEmpty();
 }
 
 #pragma endregion
@@ -285,13 +284,12 @@ Socket::Socket(qintptr socketDescriptor, QObject* parent)
 {
 	setSocketDescriptor(socketDescriptor);
 	setReadBufferSize(8191);
-	setReadBufferSize(8191);
 
-	//setSocketOption(QAbstractSocket::LowDelayOption, 1);
+	setSocketOption(QAbstractSocket::LowDelayOption, 1);
 	setSocketOption(QAbstractSocket::KeepAliveOption, 1);
-	setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 8191);//8191
-	setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 8191);
-
+	setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 0);//8191
+	setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 0);
+	setSocketOption(QAbstractSocket::TypeOfServiceOption, 64);
 	connect(this, &Socket::readyRead, this, &Socket::onReadyRead, Qt::QueuedConnection);
 
 	moveToThread(&thread);
@@ -302,6 +300,8 @@ Socket::Socket(qintptr socketDescriptor, QObject* parent)
 void Socket::onReadyRead()
 {
 	QByteArray badata = readAll();
+	if (badata.isEmpty())
+		return;
 
 	if (!init)
 	{
@@ -324,8 +324,10 @@ void Socket::onReadyRead()
 			Injector& injector = Injector::getInstance(index);
 			injector.worker.reset(new Worker(index, this, nullptr));
 			connect(injector.worker.get(), &Worker::write, this, &Socket::onWrite, Qt::QueuedConnection);
+			connect(this, &Socket::read, injector.worker.get(), &Worker::onClientReadyRead, Qt::QueuedConnection);
 			qDebug() << "tcp ok";
 			injector.IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
+			emit read();
 		}
 
 		return;
@@ -333,8 +335,10 @@ void Socket::onReadyRead()
 
 	Injector& injector = Injector::getInstance(index_);
 	if (!injector.worker.isNull())
-		injector.worker->onClientReadyRead(badata);
-	//emit read(badata);
+	{
+		injector.worker->readQueue_.enqueue(std::move(badata));
+		injector.worker->readCond_.wakeAll();
+	}
 }
 
 //異步發送數據
@@ -470,20 +474,29 @@ void Worker::clear()
 }
 
 //異步接收客戶端數據
-void Worker::onClientReadyRead(const QByteArray& badata)
+void Worker::onClientReadyRead()
 {
-	if (badata.isEmpty())
-		return;
-
 	Injector& injector = Injector::getInstance(getIndex());
 	if (!injector.IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire))
 		return;
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	std::ignore = QtConcurrent::run(this, &Worker::handleData, badata);
-#else
-	std::ignore = QtConcurrent::run(&Worker::handleData, this, badata);
-#endif
+	if (readFuture_.isRunning())
+		return;
+
+	readFuture_ = QtConcurrent::run([this]()
+		{
+			for (;;)
+			{
+				QMutexLocker locker(&net_mutex);
+				readCond_.wait(&net_mutex);
+				if (isInterruptionRequested())
+					break;
+
+				while (!readQueue_.isEmpty())
+					handleData(std::move(readQueue_.dequeue()));
+			}
+		});
+
 	//QMetaObject::invokeMethod(this, "handleData", Qt::QueuedConnection, Q_ARG(QByteArray, badata));
 	//handleData(badata);
 }
@@ -535,35 +548,31 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 }
 
 //異步處理數據
-void Worker::handleData(QByteArray badata)
+void Worker::handleData(const QByteArray& badata)
 {
-	QMutexLocker locker(&net_mutex);
 	if (handleCustomMessage(badata))
 		return;
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-
 	long long delay = injector.getValueHash(util::UserSetting::kTcpDelayValue);
 	if (delay > 0)
-		QThread::msleep(delay);//avoid to fast
+		QThread::msleep(delay);//avoid too fast
 
-	appendReadBuf(badata);
+	appendReadBuf(std::move(badata));
 
 	if (net_readbuf_.isEmpty())
 		return;
-
 
 
 	QString key = mem::readString(injector.getProcess(), injector.getProcessModule() + kOffsetPersonalKey, PERSONALKEYSIZE, true, true);
 	if (key != injector.autil.PersonalKey)
 		injector.autil.PersonalKey = key;
 
-	QByteArrayList dataList = splitLinesFromReadBuf();
-	if (dataList.isEmpty())
+	if (!splitLinesFromReadBuf(dataList_))
 		return;
 
-	for (QByteArray& ba : dataList)
+	for (QByteArray& ba : dataList_)
 	{
 		if (isInterruptionRequested())
 			break;
@@ -577,7 +586,7 @@ void Worker::handleData(QByteArray badata)
 			continue;
 		}
 
-		long long ret = dispatchMessage(ba);
+		long long ret = dispatchMessage(std::move(ba));
 
 		if (ret < 0)
 		{
@@ -619,7 +628,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 
 	Injector& injector = Injector::getInstance(getIndex());
 	net_raw_.clear();
-	injector.autil.util_DecodeMessage(net_raw_, encoded);
+	injector.autil.util_DecodeMessage(net_raw_, std::move(encoded));
 	injector.autil.util_SplitMessage(net_raw_, SEPARATOR);
 	if (injector.autil.util_GetFunctionFromSlice(&func, &fieldcount) != 1)
 		return BC_HAS_NEXT;
@@ -670,7 +679,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_RS_RECV: /*戰後獎勵 12*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -681,7 +689,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_RD_RECV:/*戰後經驗 13*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -693,7 +700,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_B_RECV: /*每回合開始的戰場資訊 15*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -704,7 +710,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_I_RECV: /*物品變動 22*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -729,7 +734,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	{
 		int aindex;
 		int color;
-		char net_data[NETDATASIZE] = { 0 };
+
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&aindex, net_data, &color))
 			return BC_INVALID;
@@ -747,7 +752,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		int dir;
 		int flg;
 		int no;
-		char net_data[NETDATASIZE] = { 0 };
+
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&unitid, &graphicsno, &x, &y, &dir, &flg, &no, net_data))
 			return BC_INVALID;
@@ -759,7 +764,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_AB_RECV:/* 30*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -771,7 +775,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	case LSSPROTO_ABI_RECV:/*名片數據31*/
 	{
 		int num;
-		char net_data[NETDATASIZE] = { 0 };
+
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&num, net_data))
 			return BC_INVALID;
@@ -784,7 +788,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	{
 		int index;
 		int color;
-		char net_data[NETDATASIZE] = { 0 };
+
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&index, net_data, &color))
 			return BC_INVALID;
@@ -804,7 +808,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		int objsum;
 		int eventsum;
 
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&fl, &x1, &y1, &x2, &y2, &tilesum, &objsum, &eventsum, net_data))
 			return BC_INVALID;
@@ -822,7 +825,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		int x2;
 		int y2;
 
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&fl, &x1, &y1, &x2, &y2, net_data))
 			return BC_INVALID;
@@ -833,7 +835,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_C_RECV: /*服務端發送的靜態信息，可用於顯示玩家，其它玩家，公交，寵物等信息 41*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -844,7 +845,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_CA_RECV: /*//周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位 42*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -855,7 +855,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_CD_RECV: /*刪除指定一個或多個周圍人、NPC單位 43*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -866,7 +865,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_R_RECV:
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -877,7 +875,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_S_RECV: /*更新所有基礎資訊 46*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -891,7 +888,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		int category;
 		int dx;
 		int dy;
-		char net_data[NETDATASIZE] = { 0 };
+
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&category, &dx, &dy, net_data))
 			return BC_INVALID;
@@ -977,7 +974,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		int buttontype;
 		int dialogid;
 		int unitid;
-		char net_data[NETDATASIZE] = { 0 };
+
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&windowtype, &buttontype, &dialogid, &unitid, net_data))
 			return BC_INVALID;
@@ -990,7 +987,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	{
 		int effect;
 		int level;
-		char net_data[NETDATASIZE] = { 0 };
+
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&effect, &level, net_data))
 			return BC_INVALID;
@@ -1015,7 +1012,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_CLIENTLOGIN_RECV:/*選人畫面 72*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -1027,68 +1023,62 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_CREATENEWCHAR_RECV:/*人物新增74*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
-		QByteArray result(SBUFSIZE, '\0');
-		if (!injector.autil.util_Receive(result.data(), net_data))
+		memset(net_resultdata, 0, SBUFSIZE);
+		if (!injector.autil.util_Receive(net_resultdata, net_data))
 			return BC_INVALID;
 
 		//qDebug() << "LSSPROTO_CREATENEWCHAR_RECV" << util::toUnicode(result) << util::toUnicode(data.data());
-		lssproto_CreateNewChar_recv(result.data(), net_data);
+		lssproto_CreateNewChar_recv(net_resultdata, net_data);
 		return BC_NEED_TO_CLEAN;
 	}
 	case LSSPROTO_CHARDELETE_RECV:/*人物刪除 76*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
-		QByteArray result(SBUFSIZE, '\0');
-		if (!injector.autil.util_Receive(result.data(), net_data))
+		memset(net_resultdata, 0, SBUFSIZE);
+		if (!injector.autil.util_Receive(net_resultdata, net_data))
 			return BC_INVALID;
 
 		//qDebug() << "LSSPROTO_CHARDELETE_RECV" << util::toUnicode(result) << util::toUnicode(data.data());
-		lssproto_CharDelete_recv(result.data(), net_data);
+		lssproto_CharDelete_recv(net_resultdata, net_data);
 		return BC_NEED_TO_CLEAN;
 	}
 	case LSSPROTO_CHARLOGIN_RECV: /*成功登入 78*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
-		QByteArray result(SBUFSIZE, '\0');
-		if (!injector.autil.util_Receive(result.data(), net_data))
+		memset(net_resultdata, 0, SBUFSIZE);
+		if (!injector.autil.util_Receive(net_resultdata, net_data))
 			return BC_INVALID;
 
 		//qDebug() << "LSSPROTO_CHARLOGIN_RECV" << util::toUnicode(result) << util::toUnicode(data.data());
-		lssproto_CharLogin_recv(result.data(), net_data);
+		lssproto_CharLogin_recv(net_resultdata, net_data);
 		break;
 	}
 	case LSSPROTO_CHARLIST_RECV:/*選人頁面資訊 80*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
-		QByteArray result(SBUFSIZE, '\0');
-		if (!injector.autil.util_Receive(result.data(), net_data))
+		memset(net_resultdata, 0, SBUFSIZE);
+		if (!injector.autil.util_Receive(net_resultdata, net_data))
 			return BC_INVALID;
 
 		//qDebug() << "LSSPROTO_CHARLIST_RECV" << util::toUnicode(result) << util::toUnicode(data.data());
-		lssproto_CharList_recv(result.data(), net_data);
+		lssproto_CharList_recv(net_resultdata, net_data);
 
 		return BC_NEED_TO_CLEAN;
 	}
 	case LSSPROTO_CHARLOGOUT_RECV:/*登出 82*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
-		QByteArray result(SBUFSIZE, '\0');
-		if (!injector.autil.util_Receive(result.data(), net_data))
+		memset(net_resultdata, 0, SBUFSIZE);
+		if (!injector.autil.util_Receive(net_resultdata, net_data))
 			return BC_INVALID;
 
 		//qDebug() << "LSSPROTO_CHARLOGOUT_RECV" << util::toUnicode(result) << util::toUnicode(data.data());
-		lssproto_CharLogout_recv(result.data(), net_data);
+		lssproto_CharLogout_recv(net_resultdata, net_data);
 		break;
 	}
 	case LSSPROTO_PROCGET_RECV:/*84*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -1111,7 +1101,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_ECHO_RECV: /*伺服器定時ECHO "hoge" 88*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -1133,7 +1122,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_TD_RECV:/*92*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -1144,7 +1132,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_FM_RECV:/*家族頻道93*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -1212,7 +1199,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_JOBDAILY_RECV:/*任務日誌120*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -1224,7 +1210,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_TEACHER_SYSTEM_RECV:/*導師系統123*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -1235,7 +1220,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_S2_RECV:
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -1256,7 +1240,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_CHAREFFECT_RECV:/*146*/
 	{
-		char net_data[NETDATASIZE] = { 0 };
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
@@ -1280,7 +1263,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	{
 		int coloer;
 		int num;
-		char net_data[NETDATASIZE] = { 0 };
+
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data, &coloer, &num))
 			return BC_INVALID;
@@ -9761,9 +9744,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-	}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -9822,7 +9805,7 @@ void Worker::lssproto_ABI_recv(int num, char* cdata)
 				break;
 			}
 		}
-}
+	}
 #endif
 }
 
@@ -10630,12 +10613,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-			}
+					}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-		}
-	}
+				}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -10649,11 +10632,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-	}
+		}
 
 		setBattleData(bt);
 		break;
-}
+	}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -11764,7 +11747,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -11814,7 +11797,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -11874,7 +11857,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-			}
+	}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -12122,9 +12105,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -12262,7 +12245,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -12420,7 +12403,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}

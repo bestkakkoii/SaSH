@@ -1149,9 +1149,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		//按下CTRL+V
 		if ((static_cast<char>(wParam) == 'V') && (GetKeyState(VK_CONTROL) < 0i16))
 		{
-			if ((((1 == *g_GameService.g_world_status) && (2 == *g_GameService.g_game_status))
-				|| ((1 == *g_GameService.g_world_status) && (3 == *g_GameService.g_game_status)))
-				&& (TRUE == OpenClipboard(hWnd)))
+			if (TRUE == OpenClipboard(hWnd))
 			{
 				HANDLE hClipboardData = GetClipboardData(CF_TEXT);
 				if (hClipboardData != nullptr)
@@ -1159,23 +1157,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					char* pszText = static_cast<char*>(GlobalLock(hClipboardData));
 					if (pszText != nullptr)
 					{
-						constexpr size_t inputBoxBufSize = 20u;
-
-						int index = *CONVERT_GAMEVAR<int*>(0x415EF50ul);
-
-						if ((index == 0) || (strlen(CONVERT_GAMEVAR<char*>(0x414F278ul)) == 0))
+						if ((((1 == *g_GameService.g_world_status) && (2 == *g_GameService.g_game_status))
+							|| ((1 == *g_GameService.g_world_status) && (3 == *g_GameService.g_game_status))))
 						{
-							//account
-							std::fill_n(CONVERT_GAMEVAR<char*>(0x414F278ul), inputBoxBufSize, '\0');
-							_snprintf_s(CONVERT_GAMEVAR<char*>(0x414F278ul), inputBoxBufSize, _TRUNCATE, "%s", pszText);
-						}
-						else
-						{
-							//password
-							std::fill_n(CONVERT_GAMEVAR<char*>(0x415AA58ul), inputBoxBufSize, '\0');
-							_snprintf_s(CONVERT_GAMEVAR<char*>(0x415AA58ul), inputBoxBufSize, _TRUNCATE, "%s", pszText);
-						}
+							constexpr size_t inputBoxBufSize = 20u;
 
+							int index = *CONVERT_GAMEVAR<int*>(0x415EF50ul);
+
+							if ((index == 0) || (strlen(CONVERT_GAMEVAR<char*>(0x414F278ul)) == 0))
+							{
+								//account
+								memset(CONVERT_GAMEVAR<char*>(0x414F278ul), 0, inputBoxBufSize);
+								_snprintf_s(CONVERT_GAMEVAR<char*>(0x414F278ul), inputBoxBufSize, _TRUNCATE, "%s", pszText);
+							}
+							else
+							{
+								//password
+								memset(CONVERT_GAMEVAR<char*>(0x415AA58ul), 0, inputBoxBufSize);
+								_snprintf_s(CONVERT_GAMEVAR<char*>(0x415AA58ul), inputBoxBufSize, _TRUNCATE, "%s", pszText);
+							}
+						}
 						GlobalUnlock(hClipboardData);
 					}
 				}

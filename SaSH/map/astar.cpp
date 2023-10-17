@@ -109,7 +109,7 @@ void CAStar::clear()
 	}
 	open_list_.clear();
 	record_.clear();
-	std::fill(mapping_.begin(), mapping_.end(), nullptr);
+	memset(mapping_.data(), 0, mapping_.size() * sizeof(Node*));
 }
 
 // 參數是否有效
