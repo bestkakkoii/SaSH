@@ -1471,6 +1471,7 @@ QHeaderView::section:vertical
     background-color: white;
 }
 
+/*
 QTableWidget::item {
     color: black;
     background-color: white;
@@ -1487,6 +1488,7 @@ QTableWidget::item:hover {
     color: white;
     background-color:black;
 }
+*/
 
 QScrollBar:vertical {
 	min-height: 30px;  

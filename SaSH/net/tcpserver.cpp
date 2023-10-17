@@ -1318,11 +1318,13 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma region GET
+//檢查是否在戰鬥中
 bool Worker::getBattleFlag()
 {
 	return IS_BATTLE_FLAG.load(std::memory_order_acquire) || getWorldStatus() == 10;
 }
 
+//檢查是否在線
 bool Worker::getOnlineFlag() const
 {
 	return IS_ONLINE_FLAG.load(std::memory_order_acquire);
@@ -1344,6 +1346,7 @@ long long Worker::getGameStatus()
 	return static_cast<long long>(mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffsetGameStatus));
 }
 
+//檢查W G 值是否匹配指定值
 bool Worker::checkWG(long long w, long long g)
 {
 	return getWorldStatus() == w && getGameStatus() == g;
@@ -1547,6 +1550,7 @@ void Worker::getCharMaxCarryingCapacity()
 		pc_.maxload = nowMaxload;
 }
 
+//取當前隊伍人數
 long long Worker::getPartySize() const
 {
 	PC pc = getPC();
@@ -1569,6 +1573,7 @@ long long Worker::getPartySize() const
 	return count;
 }
 
+//取對話紀錄
 QString Worker::getChatHistory(long long index)
 {
 	if (index < 0 || index >= MAX_CHAT_HISTORY)
@@ -1829,6 +1834,7 @@ long long Worker::getItemEmptySpotIndex()
 	return -1;
 }
 
+//取背包空格索引列表
 bool Worker::getItemEmptySpotIndexs(QVector<long long>* pv)
 {
 	updateItemByMemory();
@@ -1847,6 +1853,7 @@ bool Worker::getItemEmptySpotIndexs(QVector<long long>* pv)
 	return !v.isEmpty();
 }
 
+//戰鬥狀態標誌位轉狀態字符串
 QString Worker::getBadStatusString(long long status)
 {
 	QStringList temp;
@@ -1913,6 +1920,7 @@ QString Worker::getBadStatusString(long long status)
 	return temp.join(" ");
 }
 
+//戰鬥場地屬性標誌位轉場地屬性字符串
 QString Worker::getFieldString(long long field)
 {
 	switch (field)
@@ -1930,6 +1938,7 @@ QString Worker::getFieldString(long long field)
 	}
 }
 
+//取人物方位
 long long Worker::getDir()
 {
 	long long currentIndex = getIndex();
@@ -1948,6 +1957,7 @@ long long Worker::getDir()
 	return dir;
 }
 
+//取人物座標
 QPoint Worker::getPoint()
 {
 	long long currentIndex = getIndex();
@@ -1975,6 +1985,7 @@ QPoint Worker::getPoint()
 	return point;
 }
 
+//取人物當前地圖編號
 long long Worker::getFloor()
 {
 	long long currentIndex = getIndex();
@@ -1999,6 +2010,7 @@ long long Worker::getFloor()
 	return floor;
 }
 
+//取人物當前地圖名稱
 QString Worker::getFloorName()
 {
 	long long currentIndex = getIndex();
@@ -2218,6 +2230,7 @@ bool Worker::findUnit(const QString& nameSrc, long long type, mapunit_t* punit, 
 	return false;
 }
 
+//取人物當前位子地圖數據塊的數據
 QString Worker::getGround()
 {
 	return mapAnalyzer.getGround(getIndex(), getFloor(), getFloorName(), nowPoint_);
@@ -2273,6 +2286,7 @@ bool Worker::matchPetNameByIndex(long long index, const QString& cmpname)
 	return false;
 }
 
+//名稱取職業技能索引
 long long Worker::getProfessionSkillIndexByName(const QString& names) const
 {
 	long long i = 0;
@@ -2564,6 +2578,7 @@ void Worker::updateBattleTimeInfo()
 	}
 }
 
+//SASH內物品數據交換位置
 void Worker::swapItemLocal(long long from, long long to)
 {
 	if (from < 0 || to < 0)
@@ -2926,6 +2941,7 @@ void Worker::createCharacter(long long dataplacenum
 	setGameStatus(2);
 }
 
+//刪除人物
 void Worker::deleteCharacter(long long index, const QString password, bool backtofirst)
 {
 	if (index < 0 || index > MAX_CHARACTER)
@@ -2996,6 +3012,7 @@ void Worker::setSwitcher(long long flg)
 	lssproto_FS_send(flg);
 }
 
+//對話框是否存在
 bool Worker::isDialogVisible()
 {
 	long long currentIndex = getIndex();
@@ -3638,6 +3655,7 @@ void Worker::createRemoteDialog(unsigned long long type, unsigned long long butt
 	injector.sendMessage(kCreateDialog, MAKEWPARAM(type, button), ptr);
 }
 
+//按下按鈕
 void Worker::press(BUTTON_TYPE select, long long dialogid, long long unitid)
 {
 	if (select == BUTTON_CLOSE)
@@ -3697,6 +3715,7 @@ void Worker::press(BUTTON_TYPE select, long long dialogid, long long unitid)
 	injector.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
+//按下行按鈕
 void Worker::press(long long row, long long dialogid, long long unitid)
 {
 	dialog_t dialog = currentDialog;
@@ -3963,6 +3982,7 @@ void Worker::setTeamState(bool join)
 	lssproto_PR_send(nowPoint_, join ? 1 : 0);
 }
 
+//踢走隊員或隊長解散
 void Worker::kickteam(long long n)
 {
 	if (n >= MAX_PARTY)
@@ -3978,6 +3998,7 @@ void Worker::kickteam(long long n)
 		lssproto_KTEAM_send(n);
 }
 
+//郵件或寵郵
 void Worker::mail(const QVariant& card, const QString& text, long long petIndex, const QString& itemName, const QString& itemMemo)
 {
 	long long index = -1;
@@ -4292,6 +4313,7 @@ void Worker::setPetState(long long petIndex, PetState state)
 	updateDatasFromMemory();
 }
 
+//根據當前數據重設所有寵物狀態
 void Worker::setAllPetState()
 {
 	QHash <long long, PET> pet = getPets();
@@ -4590,6 +4612,7 @@ void Worker::checkAutoDropMeat()
 //下載指定坐標 24 * 24 大小的地圖塊
 void Worker::downloadMap(long long x, long long y, long long floor)
 {
+	QMutexLocker locker(&moveLock_);
 	lssproto_M_send(floor == -1 ? nowFloor_.load(std::memory_order_acquire) : floor, x, y, x + 24, y + 24);
 }
 
@@ -4685,6 +4708,7 @@ void Worker::downloadMap(long long floor)
 //轉移
 void Worker::warp()
 {
+	QMutexLocker locker(&moveLock_);
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	struct
@@ -4717,6 +4741,7 @@ QString calculateDirection(long long currentX, long long currentY, long long tar
 //移動(封包) [a-h]
 void Worker::move(const QPoint& p, const QString& dir)
 {
+	QMutexLocker locker(&moveLock_);
 	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
 		return;
 
@@ -4728,7 +4753,7 @@ void Worker::move(const QPoint& p, const QString& dir)
 //移動(記憶體)
 void Worker::move(const QPoint& p)
 {
-	QMutexLocker locker(&net_mutex);
+	QMutexLocker locker(&moveLock_);
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.isValid())
@@ -4755,6 +4780,7 @@ long long Worker::setCharFaceToPoint(const QPoint& pos)
 //轉向 (根據方向索引自動轉換成A-H)
 void Worker::setCharFaceDirection(long long dir)
 {
+	QMutexLocker locker(&moveLock_);
 	if (dir < 0 || dir >= MAX_DIR)
 		return;
 
@@ -4786,6 +4812,7 @@ void Worker::setCharFaceDirection(long long dir)
 //轉向 使用方位字符串
 void Worker::setCharFaceDirection(const QString& dirStr)
 {
+	QMutexLocker locker(&moveLock_);
 	static const QHash<QString, QString> dirhash = {
 		{ "北", "A" }, { "東北", "B" }, { "東", "C" }, { "東南", "D" },
 		{ "南", "E" }, { "西南", "F" }, { "西", "G" }, { "西北", "H" },
@@ -5014,12 +5041,14 @@ void Worker::dropItem(long long index)
 	IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 }
 
+//批量丟棄道具
 void Worker::dropItem(QVector<long long> indexs)
 {
 	for (const long long it : indexs)
 		dropItem(it);
 }
 
+//丟棄石幣
 void Worker::dropGold(long long gold)
 {
 	PC pc = getPC();
@@ -5135,6 +5164,7 @@ void Worker::withdrawGold(long long gold, bool isPublic)
 	lssproto_FM_send(const_cast<char*>(str.c_str()));
 }
 
+//交易確認
 void Worker::tradeComfirm(const QString& name)
 {
 	if (!IS_TRADING.load(std::memory_order_acquire))
@@ -5151,6 +5181,7 @@ void Worker::tradeComfirm(const QString& name)
 	lssproto_TD_send(const_cast<char*>(scmd.c_str()));
 }
 
+//交易取消
 void Worker::tradeCancel()
 {
 	if (!IS_TRADING.load(std::memory_order_acquire))
@@ -5166,6 +5197,7 @@ void Worker::tradeCancel()
 	tradeStatus = 0;
 }
 
+//交易開始
 bool Worker::tradeStart(const QString& name, long long timeout)
 {
 	if (IS_TRADING)
@@ -5194,6 +5226,7 @@ bool Worker::tradeStart(const QString& name, long long timeout)
 	return opp_name == name;
 }
 
+//批量添加交易物品
 void Worker::tradeAppendItems(const QString& name, const QVector<long long>& itemIndexs)
 {
 	if (!IS_TRADING.load(std::memory_order_acquire))
@@ -5232,6 +5265,7 @@ void Worker::tradeAppendItems(const QString& name, const QVector<long long>& ite
 	}
 }
 
+//添加交易石幣
 void Worker::tradeAppendGold(const QString& name, long long gold)
 {
 	if (!IS_TRADING.load(std::memory_order_acquire))
@@ -5256,6 +5290,7 @@ void Worker::tradeAppendGold(const QString& name, long long gold)
 	mygoldtrade = gold;
 }
 
+//批量添加交易寵物
 void Worker::tradeAppendPets(const QString& name, const QVector<long long>& petIndexs)
 {
 	if (!IS_TRADING.load(std::memory_order_acquire))
@@ -5302,6 +5337,7 @@ void Worker::tradeAppendPets(const QString& name, const QVector<long long>& petI
 	mypet_tradeList = list;
 }
 
+//完成交易
 void Worker::tradeComplete(const QString& name)
 {
 	if (!IS_TRADING.load(std::memory_order_acquire))
@@ -5352,6 +5388,7 @@ void Worker::tradeComplete(const QString& name)
 #pragma endregion
 
 #pragma region SAOriginal
+//真實時間轉SA時間
 void Worker::realTimeToSATime(LSTIME* lstime)
 {
 	constexpr long long era = 912766409LL + 5400LL;
@@ -5369,7 +5406,7 @@ void Worker::realTimeToSATime(LSTIME* lstime)
 
 	return;
 }
-
+//取SA時間區段
 LSTIME_SECTION getLSTime(LSTIME* lstime)
 {
 	if (NIGHT_TO_MORNING < lstime->hour && lstime->hour <= MORNING_TO_NOON)
@@ -5425,6 +5462,7 @@ void Worker::setBattleEnd()
 #endif
 }
 
+//戰鬥BA包標誌位檢查
 inline bool Worker::checkFlagState(long long pos)
 {
 	if (pos < 0 || pos >= MAX_ENEMY)
@@ -5508,6 +5546,7 @@ void Worker::doBattleWork(bool waitforBA)
 	}
 }
 
+//異步戰鬥動作處理
 void Worker::asyncBattleAction(bool waitforBA)
 {
 	if (!getOnlineFlag())
@@ -5819,6 +5858,7 @@ bool Worker::isPetSpotEmpty() const
 	return true;
 }
 
+//根據用戶輸入的條件式匹配戰場上的目標
 bool Worker::matchBattleTarget(const QVector<battleobject_t>& btobjs, BattleMatchType matchtype, long long firstMatchPos, QString op, QVariant cmpvar, long long* ppos)
 {
 	auto cmp = [op](QVariant a, QVariant b)
@@ -9721,9 +9761,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
-#endif
 	}
+#endif
+}
 }
 
 //名片數據
@@ -9782,7 +9822,7 @@ void Worker::lssproto_ABI_recv(int num, char* cdata)
 				break;
 			}
 		}
-	}
+}
 #endif
 }
 
@@ -10332,6 +10372,7 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 
 }
 
+//寵郵飛進來
 void Worker::lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata)
 {
 	if (flg == 0)
@@ -10419,6 +10460,8 @@ void Worker::lssproto_EN_recv(int result, int field)
 	//開始戰鬥為1，未開始戰鬥為0   0：不可遇到或錯誤。 1：與敵人戰鬥OK。 2：PvP戰鬥OK
 	if (result > 0)
 	{
+		QMutexLocker locker(&moveLock_);
+
 		setBattleFlag(true);
 		IS_LOCKATTACK_ESCAPE_DISABLE.store(false, std::memory_order_release);
 		battleCharEscapeFlag.store(false, std::memory_order_release);
@@ -10587,12 +10630,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
+			}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-				}
-			}
+		}
+	}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -10606,11 +10649,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-		}
+	}
 
 		setBattleData(bt);
 		break;
-	}
+}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -11319,6 +11362,7 @@ void Worker::lssproto_R_recv(char*)
 	*/
 }
 
+//服務端發送給客戶端用於顯示某些東西的
 void Worker::lssproto_D_recv(int, int, int, char*)
 {
 	/*
@@ -11720,7 +11764,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -11770,7 +11814,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -11830,7 +11874,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-	}
+			}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -11839,6 +11883,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 //地圖數據更新，重新繪製地圖
 void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
 {
+	QMutexLocker locker(&moveLock_);
 	//QString data = util::toUnicode(cdata);
 	//if (data.isEmpty())
 	//	return;
@@ -11863,6 +11908,7 @@ void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 //地圖數據更新，重新寫入地圖
 void Worker::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata)
 {
+	QMutexLocker locker(&moveLock_);
 	//QString data = util::toUnicode(cdata);
 	//if (data.isEmpty())
 	//	return;
@@ -12076,9 +12122,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
-#endif
 			}
+#endif
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -12216,7 +12262,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -12374,7 +12420,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}
@@ -13963,6 +14009,7 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 		});
 }
 
+//交易
 void Worker::lssproto_TD_recv(char* cdata)//交易
 {
 	QString data = util::toUnicode(cdata);
@@ -14179,14 +14226,11 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 	}
 }
 
-void Worker::lssproto_CHAREFFECT_recv(char* cdata)
+void Worker::lssproto_CHAREFFECT_recv(char*)
 {
-	QString data = util::toUnicode(cdata);
-	if (data.isEmpty())
-		return;
 }
 
-//自訂對話框收到按鈕消息
+//SASH自訂對話框收到按鈕消息
 void Worker::lssproto_CustomWN_recv(const QString& data)
 {
 	QStringList dataList = data.split(util::rexOR, Qt::SkipEmptyParts);
@@ -14217,7 +14261,7 @@ void Worker::lssproto_CustomWN_recv(const QString& data)
 	IS_WAITFOR_CUSTOM_DIALOG_FLAG.store(false, std::memory_order_release);
 }
 
-//自訂對話
+//SASH自訂對話
 void Worker::lssproto_CustomTK_recv(const QString& data)
 {
 	QStringList dataList = data.split(util::rexOR, Qt::SkipEmptyParts);

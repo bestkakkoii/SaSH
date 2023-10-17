@@ -443,6 +443,7 @@ private: //lockers
 	mutable QReadWriteLock itemInfoLock_;
 	//mutable QReadWriteLock petEquipInfoLock_;
 	//mutable QReadWriteLock teamInfoLock_;
+	mutable QMutex moveLock_;
 
 private:
 	std::atomic_bool IS_BATTLE_FLAG = false;
