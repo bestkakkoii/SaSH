@@ -352,13 +352,35 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 
 		QString fileName = util::toQString(utf8str);
-		if (!QFile::exists(fileName))
+		QFileInfo fileInfo(fileName);
+
+		if (fileInfo.isAbsolute())
 		{
-			updateStatusText(tr("file not exist"));
-			return true;
+			if (!QFile::exists(fileName))
+			{
+				updateStatusText(tr("file not exist"));
+				return true;
+			}
+		}
+		else
+		{
+			if (fileName.endsWith(".txt"))
+				fileName.remove(".txt");
+
+			QStringList files;
+			util::searchFiles(util::applicationDirPath(), fileName, ".txt", &files, false);
+			if (files.isEmpty())
+			{
+				updateStatusText(tr("file not exist"));
+				return true;
+			}
+
+			fileName = files.first();
 		}
 
+
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+		injector.currentScriptFileName = fileName;
 		emit signalDispatcher.loadFileToTable(fileName, true);
 
 		++interfaceCount_;
@@ -774,6 +796,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		MainForm* p = MainForm::createNewWindow(id, pId);
 		if (p == nullptr)
 		{
+			*result = -1;
 			updateStatusText(tr("create window failed"));
 			return true;
 		}
@@ -1029,6 +1052,7 @@ MainForm* MainForm::createNewWindow(long long idToAllocate, long long* pId)
 			MainForm* pMainForm = g_mainFormHash.value(uniqueId, nullptr);
 			if (pMainForm != nullptr)
 			{
+				pMainForm->trayIcon_.show();
 				pMainForm->show();
 				pMainForm->markAsClose_ = false;
 				if (pId != nullptr)
@@ -1181,9 +1205,11 @@ void MainForm::closeEvent(QCloseEvent* e)
 	formManager.saveSettings();
 
 	markAsClose_ = true;
+	trayIcon_.hide();
 	hide();
 
 	Injector::getInstance(getIndex()).close();
+	UniqueIdManager::getInstance().deallocateUniqueId(getIndex());
 
 	for (const auto& it : g_mainFormHash)
 	{
@@ -1481,6 +1507,7 @@ bool MainForm::onResetControlTextLanguage()
 #else
 	setWindowTitle(QString("[%1]").arg(currentIndex) + tr("SaSH - %1").arg(buildTime).simplified());
 #endif
+	trayIcon_.setToolTip(windowTitle());
 
 	if (pMenuBar_ != nullptr)
 	{
@@ -1578,6 +1605,7 @@ void MainForm::onUpdateMainFormTitle(const QString& text)
 #else
 	setWindowTitle(QString("[%1]SaSH-%2").arg(currentIndex).arg(text));
 #endif
+	trayIcon_.setToolTip(windowTitle());
 }
 
 void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)

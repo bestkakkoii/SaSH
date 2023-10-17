@@ -336,7 +336,9 @@ void Socket::onReadyRead()
 	Injector& injector = Injector::getInstance(index_);
 	if (!injector.worker.isNull())
 	{
+		//封包入隊列
 		injector.worker->readQueue_.enqueue(std::move(badata));
+		//喚醒處理封包的線程
 		injector.worker->readCond_.wakeAll();
 	}
 }
@@ -488,10 +490,11 @@ void Worker::onClientReadyRead()
 			for (;;)
 			{
 				QMutexLocker locker(&net_mutex);
-				readCond_.wait(&net_mutex);
+				readCond_.wait(&net_mutex);//等待喚醒
 				if (isInterruptionRequested())
 					break;
 
+				//一次性處理所有累積的封包
 				while (!readQueue_.isEmpty())
 					handleData(std::move(readQueue_.dequeue()));
 			}
@@ -8555,6 +8558,21 @@ bool Worker::isCharHpEnoughForSkill(long long magicIndex) const
 	return true;
 }
 
+bool compareBattleObjects(const battleobject_t& a, const battleobject_t& b) {
+	// 首先按照 hp 升序排序
+	if (a.hp != b.hp) {
+		return a.hp < b.hp;
+	}
+
+	// 如果 hp 相同，按照 maxHp 升序排序
+	if (a.maxHp != b.maxHp) {
+		return a.maxHp < b.maxHp;
+	}
+
+	// 如果 maxHp 也相同，按照 level 升序排序
+	return a.level < b.level;
+}
+
 //戰場上單位排序
 void Worker::sortBattleUnit(QVector<battleobject_t>& v) const
 {
@@ -8579,8 +8597,36 @@ void Worker::sortBattleUnit(QVector<battleobject_t>& v) const
 		}
 	}
 
+	std::sort(newv.begin(), newv.end(), compareBattleObjects);
 
 	v = newv;
+}
+
+//是否可直接接觸(如果目標為後排但前排還存活視為不可接觸)
+bool isTouchable(const QVector<battleobject_t>& obj, long long index)
+{
+	const QHash<long long, long long> hash = {
+		{ 13, 18 },
+		{ 11, 16 },
+		{ 10, 15 },
+		{ 12, 17 },
+		{ 14, 19 },
+		{ 3, 8 },
+		{ 1, 6 },
+		{ 0, 5 },
+		{ 2, 7 },
+		{ 4, 9 },
+	};
+
+	if (hash.keys().contains(index))
+	{
+		long long frontIndex = hash.value(index);
+		battleobject_t frontObj = obj.value(frontIndex);
+		//如果嘗試施放於後排但有前排存在則視為不可攻擊目標
+		return frontObj.hp <= 0 || checkAND(frontObj.status, BC_FLG_HIDE) || checkAND(frontObj.status, BC_FLG_DEAD);
+	}
+
+	return true;
 }
 
 //取戰鬥敵方可選編號
@@ -8596,9 +8642,15 @@ long long Worker::getBattleSelectableEnemyTarget(const battledata_t& bt) const
 
 	sortBattleUnit(enemies);
 	if (enemies.size())
-		return enemies[0].pos;
-	else
-		return defaultTarget;
+	{
+		for (const battleobject_t& obj : enemies)
+		{
+			if (isTouchable(enemies, obj.pos))
+				return obj.pos;
+		}
+	}
+
+	return defaultTarget;
 }
 
 //取戰鬥一排可選編號
@@ -13926,7 +13978,6 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 				if (isInterruptionRequested())
 					return;
 
-
 				if (checkWG(9, 3))
 					break;
 
@@ -13987,6 +14038,7 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 			}
 
 			updateItemByMemory();
+			refreshItemInfo();
 
 			mem::freeUnuseMemory(injector.getProcess());
 		});

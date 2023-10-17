@@ -219,6 +219,7 @@ public:
 
 public:
 	long long allocateUniqueId(long long id);
+	void deallocateUniqueId(long long id);
 
 private:
 	void reset()

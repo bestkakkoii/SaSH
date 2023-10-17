@@ -74,6 +74,11 @@ long long UniqueIdManager::allocateUniqueId(long long id)
 				allocatedId = id;
 				break;
 			}
+			else
+			{
+				allocatedId = -1;
+				break;
+			}
 		}
 
 		// 分配唯一的ID
@@ -91,6 +96,45 @@ long long UniqueIdManager::allocateUniqueId(long long id)
 
 	semaphore.release();
 	return  allocatedId;
+}
+
+void UniqueIdManager::deallocateUniqueId(long long id)
+{
+	if (id < 0 || id >= SASH_MAX_THREAD)
+		return;
+
+	QSystemSemaphore semaphore("UniqueIdManagerSystemSemaphore", 1, QSystemSemaphore::Open);
+	semaphore.acquire();
+
+	long long allocatedId = -1;
+
+	// 嘗試連接到共享內存，如果不存在則創建
+	if (g_sharedMemory.key().isEmpty())
+	{
+		g_sharedMemory.setKey("UniqueIdManagerSharedMemory");
+		if (!g_sharedMemory.isAttached() && !g_sharedMemory.attach())
+		{
+			semaphore.release();
+			return;
+		}
+	}
+
+	QSet<long long> allocatedIds;
+
+	do
+	{
+		bool bret = readSharedMemory(&allocatedIds);
+		if (!bret)
+			break;
+
+		if (allocatedIds.contains(id))
+		{
+			allocatedIds.remove(id);
+			updateSharedMemory(allocatedIds);
+		}
+	} while (false);
+
+	semaphore.release();
 }
 
 void UniqueIdManager::clear()
@@ -505,6 +549,8 @@ void MainObject::mainProc()
 		{
 			if (!isFirstLogin_)
 				QThread::msleep(800);
+			else
+				QThread::msleep(10);
 			nodelay = true;
 			continue;
 		}
@@ -1957,6 +2003,8 @@ void MainObject::checkAutoDropItems()
 					if (dropItems.isEmpty())
 						continue;
 
+					injector.worker->updateItemByMemory();
+
 					QHash<long long, ITEM> items = injector.worker->getItems();
 					for (long long i = 0; i < MAX_ITEM; ++i)
 					{
@@ -2031,6 +2079,7 @@ void MainObject::checkAutoEatBoostExpItem()
 	if (!checkEnable())
 		return;
 
+	injector.worker->updateItemByMemory();
 	QHash<long long, ITEM> items = injector.worker->getItems();
 	for (long long i = 0; i < MAX_ITEM; ++i)
 	{
@@ -2405,5 +2454,5 @@ void MainObject::checkAutoLockSchedule()
 	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
 
-}
+		}
 #endif
