@@ -1,16 +1,8 @@
 <RCC>
     <qresource prefix="/">
         <file>image/ico.png</file>
-        <file>image/icon_arrow_down.png</file>
-        <file>image/icon_arrow_up.png</file>
-        <file>image/icon_close.png</file>
-        <file>image/icon_directory.png</file>
         <file>image/icon_down_arrow.png</file>
-        <file>image/icon_lua.png</file>
-        <file>image/icon_max.png</file>
-        <file>image/icon_min.png</file>
         <file>image/icon_up_arrow.png</file>
-        <file>image/icon_txt.png</file>
         <file>image/jimmy.gif</file>
         <file>image/meat.bmp</file>
         <file>image/icon_group.png</file>
@@ -19,7 +11,6 @@
         <file>image/icon_platform-Windows-blueviolet.svg</file>
         <file>image/icon_vs-2022.svg</file>
         <file>image/icon_windows_10_11.svg</file>
-        <file>image/icon_restoredown.png</file>
         <file>image/hantapay.png</file>
         <file>image/icon_debug.png</file>
         <file>image/icon_newfile.svg</file>
@@ -70,5 +61,7 @@
         <file>image/icon_uparrow.svg</file>
         <file>image/icon_downarrow_blue.svg</file>
         <file>image/icon_uparrow_blue.svg</file>
+        <file>image/icon_txt.svg</file>
+        <file>image/icon_directory.svg</file>
     </qresource>
 </RCC>

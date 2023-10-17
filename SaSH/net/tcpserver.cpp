@@ -404,8 +404,6 @@ void Worker::clear()
 	itemInfoRowContents.clear();
 	equipInfoRowContents.clear();
 	enemyNameListCache = QStringList();
-	topInfoContents = QVariant();
-	bottomInfoContents = QVariant();
 	timeLabelContents = QString();
 	labelCharAction = QString();
 	labelPetAction = QString();
@@ -2552,6 +2550,12 @@ void Worker::updateBattleTimeInfo()
 	else
 		battle_time_text += " " + QObject::tr("(normal)");
 
+	long long field = battleField.load(std::memory_order_acquire);
+	if (field != 0)
+	{
+		battle_time_text += QString(" [%1]").arg(getFieldString(field));
+	}
+
 	if (battle_time_text.isEmpty() || timeLabelContents != battle_time_text)
 	{
 		timeLabelContents = battle_time_text;
@@ -3009,17 +3013,21 @@ bool Worker::isDialogVisible()
 //元神歸位
 void Worker::EO()
 {
-	lssproto_EO_send(0);
-	lastEOTime.store(-1, std::memory_order_release);
-	isEOTTLSend.store(true, std::memory_order_release);
-	eottlTimer.restart();
-	lssproto_Echo_send(const_cast<char*>("hoge"));
+#ifdef _DEBUG
+	//測試用區塊
+#endif
 	long long currentIndex = getIndex();
 	//石器私服SE SO專用
 	Injector& injector = Injector::getInstance(currentIndex);
 	QString cmd = injector.getStringHash(util::kEOCommandString);
 	if (!cmd.isEmpty())
 		talk(cmd);
+
+	lssproto_EO_send(0);
+	lastEOTime.store(-1, std::memory_order_release);
+	isEOTTLSend.store(true, std::memory_order_release);
+	eottlTimer.restart();
+	lssproto_Echo_send(const_cast<char*>("hoge"));
 }
 //登出
 void Worker::logOut()
@@ -3032,6 +3040,8 @@ void Worker::logOut()
 //回點
 void Worker::logBack()
 {
+	if (getBattleFlag())
+		lssproto_BU_send(0);//退出觀戰
 	lssproto_CharLogout_send(1);
 }
 
@@ -4803,7 +4813,7 @@ void Worker::setCharFaceDirection(const QString& dirStr)
 
 	std::string sdirStr = util::fromUnicode(qdirStr.toUpper());
 	lssproto_W2_send(nowPoint_, const_cast<char*>(sdirStr.c_str()));
-
+	lssproto_L_send(dir);
 	if (getBattleFlag())
 		return;
 
@@ -5398,6 +5408,8 @@ void Worker::setBattleEnd()
 
 	lssproto_EO_send(0);
 
+	battleBackupThreadFlag.store(true, std::memory_order_release);
+
 	setBattleFlag(false);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
@@ -5432,6 +5444,12 @@ void Worker::doBattleWork(bool waitforBA)
 #else
 		std::ignore = QtConcurrent::run(&Worker::asyncBattleAction, this, waitforBA);
 #endif
+
+		Injector& injector = Injector::getInstance(getIndex());
+		long long resendDelay = injector.getValueHash(util::kBattleResendDelayValue);
+		if (resendDelay <= 0)
+			return;
+
 		std::ignore = QtConcurrent::run([this, recordedRound, waitforBA]()
 			{
 				//備用
@@ -5441,14 +5459,17 @@ void Worker::doBattleWork(bool waitforBA)
 				if (resendDelay <= 0)
 					return;
 
-				bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
-				bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable);
 				QElapsedTimer timer; timer.start();
 				for (;;)
 				{
 					if (isInterruptionRequested())
 						return;
 
+					if (battleBackupThreadFlag.load(std::memory_order_acquire))
+						return;
+
+					bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
+					bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable);
 					if (!fastChecked && !normalChecked)
 						return;
 
@@ -5466,6 +5487,8 @@ void Worker::doBattleWork(bool waitforBA)
 						announce(QObject::tr("[warn]Battle command transmission timeout, initiating backup instructions."));
 						break;
 					}
+
+					QThread::msleep(10);
 				}
 
 				battledata_t bt = getBattleData();
@@ -5537,7 +5560,7 @@ void Worker::asyncBattleAction(bool waitforBA)
 
 	auto setCurrentRoundEnd = [this, &injector, normalChecked]()
 		{
-			//通知结束这一回合
+			//通知結束這一回合
 			if (normalChecked)
 			{
 				//mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
@@ -5555,13 +5578,13 @@ void Worker::asyncBattleAction(bool waitforBA)
 		};
 
 	battledata_t bt = getBattleData();
-	//人物和宠物分开发 TODO 修正多个BA人物多次发出战斗指令的问题
-	if (!bt.charAlreadyAction)//!checkFlagState(battleCharCurrentPos) &&
+	//人物和寵物分開發 TODO 修正多個BA人物多次發出戰鬥指令的問題
+	//if (!bt.charAlreadyAction)
 	{
 		bt.charAlreadyAction = true;
 
 		delay();
-		//解析人物战斗逻辑并发送指令
+		//解析人物戰鬥邏輯並發送指令
 		playerDoBattleWork(bt);
 	}
 
@@ -5574,8 +5597,8 @@ void Worker::asyncBattleAction(bool waitforBA)
 		return;
 	}
 
-	//TODO 修正宠物指令在多个BA时候重复发送的问题
-	if (!bt.petAlreadyAction)
+	//TODO 修正寵物指令在多個BA時候重覆發送的問題
+	//if (!bt.petAlreadyAction)
 	{
 		bt.petAlreadyAction = true;
 
@@ -5599,7 +5622,10 @@ long long Worker::playerDoBattleWork(const battledata_t& bt)
 	do
 	{
 		if (bt.objects.isEmpty() || bt.enemies.isEmpty() || bt.allies.isEmpty() || bt.objects.value(battleCharCurrentPos).hp <= 0)
+		{
+			sendBattleCharDoNothing();
 			break;
+		}
 
 		if (battleCharCurrentPos >= MAX_ENEMY
 			|| checkAND(battleBpFlag.load(std::memory_order_acquire), BATTLE_BP_PLAYER_MENU_NON)/*觀戰*/)
@@ -5640,7 +5666,10 @@ long long Worker::petDoBattleWork(const battledata_t& bt)
 	do
 	{
 		if (bt.objects.isEmpty() || bt.enemies.isEmpty() || bt.allies.isEmpty() || bt.objects.value(battleCharCurrentPos + 5).hp <= 0)
+		{
+			sendBattlePetDoNothing();
 			break;
+		}
 
 		//自動逃跑
 		if (hasUnMoveableStatue(bt.pet.status)
@@ -6505,7 +6534,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 					{
 						magicIndex -= MAX_MAGIC;
 
-						if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+						if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_ALL)))
 						{
 							if (isCharMpEnoughForSkill(magicIndex))
 							{
@@ -6523,7 +6552,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 					else
 					{
 
-						if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+						if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_ALL)))
 						{
 							if (isCharMpEnoughForMagic(magicIndex))
 							{
@@ -6616,7 +6645,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 				if (!isProfession) // ifMagic
 				{
 					target = -1;
-					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_SIDE_0)))
 					{
 						if (isCharMpEnoughForMagic(magicIndex))
 						{
@@ -6632,7 +6661,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 				else
 				{
 					magicIndex -= MAX_MAGIC;
-					if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+					if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_SIDE_0)))
 					{
 						if (isCharMpEnoughForSkill(magicIndex))
 						{
@@ -6734,7 +6763,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 					break;
 
 				target = -1;
-				if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+				if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_SIDE_0)))
 				{
 					sendBattleCharItemAct(itemIndex, target);
 					return true;
@@ -6935,7 +6964,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 				}
 				else if (checkAND(targetFlags, kSelectEnemyAll))
 				{
-					tempTarget = MAX_ENEMY + 1;
+					tempTarget = TARGET_SIDE_1;
 				}
 				else if (checkAND(targetFlags, kSelectEnemyFront))
 				{
@@ -7033,7 +7062,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 					{
 						magicIndex -= MAX_MAGIC;
 
-						if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+						if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_ALL)))
 						{
 							if (isCharMpEnoughForSkill(magicIndex))
 							{
@@ -7050,7 +7079,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 					else
 					{
 
-						if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+						if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_ALL)))
 						{
 							if (isCharMpEnoughForMagic(magicIndex))
 							{
@@ -7136,7 +7165,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 				if (!isProfession) // ifMagic
 				{
 					target = -1;
-					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_SIDE_0)))
 					{
 						if (isCharMpEnoughForMagic(magicIndex))
 						{
@@ -7337,7 +7366,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 						{
 							magicIndex -= MAX_MAGIC;
 							target = -1;
-							if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+							if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_ALL)))
 							{
 								if (isCharMpEnoughForSkill(magicIndex))
 								{
@@ -7376,7 +7405,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 							}
 
 							target = -1;
-							if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+							if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_ALL)))
 							{
 								if (isCharMpEnoughForMagic(magicIndex))
 								{
@@ -7408,7 +7437,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 					target = -1;
 					if (itemIndex != -1)
 					{
-						if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+						if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_SIDE_1)))
 						{
 							sendBattleCharItemAct(itemIndex, target);
 							return true;
@@ -7518,7 +7547,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 		}
 		else if (checkAND(targetFlags, kSelectEnemyAll))
 		{
-			tempTarget = MAX_ENEMY + 1;
+			tempTarget = TARGET_SIDE_1;
 		}
 		else if (checkAND(targetFlags, kSelectEnemyFront))
 		{
@@ -7616,7 +7645,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 			{
 				magicIndex -= MAX_MAGIC;
 
-				if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+				if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_ALL)))
 				{
 					if (isCharMpEnoughForSkill(magicIndex))
 					{
@@ -7633,7 +7662,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 			else
 			{
 
-				if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+				if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_ALL)))
 				{
 					if (isCharMpEnoughForMagic(magicIndex))
 					{
@@ -7779,7 +7808,7 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 			break;
 
 		long long tempTarget = tempCatchPetTargetIndex;
-		if ((tempTarget != -1) && fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+		if ((tempTarget != -1) && fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_ALL)))
 		{
 			sendBattlePetSkillAct(skillIndex, target);
 			return;
@@ -8140,7 +8169,7 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 		if (!isProfession) // ifpetAction
 		{
 			target = -1;
-			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_SIDE_0)))
 			{
 				sendBattlePetSkillAct(petActionIndex, target);
 				return;
@@ -8217,7 +8246,7 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 		if (!isProfession) // ifpetAction
 		{
 			target = -1;
-			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0 && target <= (TARGET_SIDE_0)))
 			{
 				sendBattlePetSkillAct(petActionIndex, target);
 				return;
@@ -9245,38 +9274,30 @@ void Worker::sendBattleCharAttackAct(long long target)
 	if (target < 0 || target >= MAX_ENEMY)
 		return;
 
-	const QString qcmd = QString("H|%1").arg(util::toQString(target, 16));
-	lssproto_B_send(qcmd);
-
-
 	battledata_t bt = getBattleData();
 	battleobject_t obj = bt.objects.value(target, battleobject_t{});
 
 	const QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 	const QString text(QObject::tr("use attack [%1]%2").arg(target + 1).arg(name));
-	if (labelCharAction != text)
-	{
-		labelCharAction = text;
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateLabelCharAction(text);
-		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
-	}
+
+	labelCharAction = text;
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateLabelCharAction(text);
+	emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+
+	const QString qcmd = QString("H|%1").arg(util::toQString(target, 16)).toUpper();
+	lssproto_B_send(qcmd);
 }
 
 //戰鬥人物使用精靈
 void Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 {
-	if (target < 0 || (target > (MAX_ENEMY + 2)))
+	if (target < 0 || (target > (TARGET_ALL)))
 		return;
 
 	if (magicIndex < 0 || magicIndex >= MAX_MAGIC)
 		return;
-
-
-
-	const QString qcmd = QString("J|%1|%2").arg(util::toQString(magicIndex, 16)).arg(util::toQString(target, 16));
-	lssproto_B_send(qcmd);
 
 	MAGIC magic = getMagic(magicIndex);
 	const QString magicName = magic.name;
@@ -9294,31 +9315,28 @@ void Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 		text = QObject::tr("use %1 to %2").arg(magicName).arg(getAreaString(target));
 	}
 
-	if (labelCharAction != text)
-	{
-		labelCharAction = text;
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateLabelCharAction(text);
+	labelCharAction = text;
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateLabelCharAction(text);
 
-		if (magic.memo.contains("力回"))
-			emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
-		else
-			emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
-	}
+	if (magic.memo.contains("力回"))//補血
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
+	else
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+
+	const QString qcmd = QString("J|%1|%2").arg(util::toQString(magicIndex, 16)).arg(util::toQString(target, 16)).toUpper();
+	lssproto_B_send(qcmd);
 }
 
 //戰鬥人物使用職業技能
 void Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 {
-	if (target < 0 || (target > (MAX_ENEMY + 2)))
+	if (target < 0 || (target > (TARGET_ALL)))
 		return;
 
 	if (skillIndex < 0 || skillIndex >= MAX_PROFESSION_SKILL)
 		return;
-
-	const QString qcmd = QString("P|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16));
-	lssproto_B_send(qcmd);
 
 	PROFESSION_SKILL skill = getSkill(skillIndex);
 	const QString skillName = skill.name.simplified();
@@ -9335,30 +9353,27 @@ void Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 		text = QObject::tr("use %1 to %2").arg(skillName).arg(getAreaString(target));
 	}
 
-	if (labelCharAction != text)
-	{
-		labelCharAction = text;
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateLabelCharAction(text);
-		if (skill.memo.contains("力回"))
-			emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
-		else
-			emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
-	}
+	labelCharAction = text;
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateLabelCharAction(text);
+	if (skill.memo.contains("力回"))//補血
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
+	else
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+
+	const QString qcmd = QString("P|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16)).toUpper();
+	lssproto_B_send(qcmd);
 }
 
 //戰鬥人物使用道具
 void Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 {
-	if (target < 0 || (target > (MAX_ENEMY + 2)))
+	if (target < 0 || (target > (TARGET_ALL)))
 		return;
 
 	if (itemIndex < 0 || itemIndex >= MAX_ITEM)
 		return;
-
-	const QString qcmd = QString("I|%1|%2").arg(util::toQString(itemIndex, 16)).arg(util::toQString(target, 16));
-	lssproto_B_send(qcmd);
 
 	ITEM item = getItem(itemIndex);
 	const QString itemName = item.name.simplified();
@@ -9376,50 +9391,46 @@ void Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 		text = QObject::tr("use %1 to %2").arg(itemName).arg(getAreaString(target));
 	}
 
-	if (labelCharAction != text)
-	{
-		labelCharAction = text;
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateLabelCharAction(text);
-		if (item.memo.contains("力回"))
-			emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
-		else
-			emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
-	}
+	labelCharAction = text;
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateLabelCharAction(text);
+	if (item.memo.contains("力回"))//補血
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
+	else
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+
+	const QString qcmd = QString("I|%1|%2").arg(util::toQString(itemIndex, 16)).arg(util::toQString(target, 16)).toUpper();
+	lssproto_B_send(qcmd);
 }
 
 //戰鬥人物防禦
 void Worker::sendBattleCharDefenseAct()
 {
+	const QString text = QObject::tr("defense");
+
+	labelCharAction = text;
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateLabelCharAction(text);
+	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos, QColor("#CCB157"));
+
 	const QString qcmd("G");
 	lssproto_B_send(qcmd);
-
-	const QString text = QObject::tr("defense");
-	if (labelCharAction != text)
-	{
-		labelCharAction = text;
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateLabelCharAction(text);
-		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos, QColor("#CCB157"));
-	}
 }
 
 //戰鬥人物逃跑
 void Worker::sendBattleCharEscapeAct()
 {
+	const QString text(QObject::tr("escape"));
+
+	labelCharAction = text;
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateLabelCharAction(text);
+
 	const QString qcmd("E");
 	lssproto_B_send(qcmd);
-
-	const QString text(QObject::tr("escape"));
-	if (labelCharAction != text)
-	{
-		labelCharAction = text;
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateLabelCharAction(text);
-	}
 }
 
 //戰鬥人物捉寵
@@ -9428,22 +9439,19 @@ void Worker::sendBattleCharCatchPetAct(long long target)
 	if (target < 0 || target >= MAX_ENEMY)
 		return;
 
-	const QString qcmd = QString("T|%1").arg(util::toQString(target, 16));
-	lssproto_B_send(qcmd);
-
 	battledata_t bt = getBattleData();
 	battleobject_t obj = bt.objects.value(target, battleobject_t{});
 	QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 	const QString text(QObject::tr("catch [%1]%2").arg(target).arg(name));
 
-	if (labelCharAction != text)
-	{
-		labelCharAction = text;
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateLabelCharAction(text);
-		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
-	}
+	labelCharAction = text;
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateLabelCharAction(text);
+	emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
+
+	const QString qcmd = QString("T|%1").arg(util::toQString(target, 16)).toUpper();
+	lssproto_B_send(qcmd);
 }
 
 //戰鬥人物切換戰寵
@@ -9460,38 +9468,33 @@ void Worker::sendBattleCharSwitchPetAct(long long petIndex)
 	if (pet.hp <= 0)
 		return;
 
-	const QString qcmd = QString("S|%1").arg(util::toQString(petIndex, 16));
-	lssproto_B_send(qcmd);
-
 	QString text(QObject::tr("switch pet to %1") \
 		.arg(!pet.freeName.isEmpty() ? pet.freeName : pet.name));
 
-	if (labelCharAction != text)
-	{
-		labelCharAction = text;
+	labelCharAction = text;
 
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateLabelCharAction(text);
-	}
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateLabelCharAction(text);
+
+	const QString qcmd = QString("S|%1").arg(util::toQString(petIndex, 16));
+	lssproto_B_send(qcmd);
 }
 
 //戰鬥人物什麼都不做
 void Worker::sendBattleCharDoNothing()
 {
+	QString text(QObject::tr("do nothing"));
+
+	labelCharAction = text;
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+
+	emit signalDispatcher.updateLabelCharAction(text);
+	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos, QColor("#696969"));
+
 	const QString qcmd("N");
 	lssproto_B_send(qcmd);
-
-	QString text(QObject::tr("do nothing"));
-	if (labelCharAction != text)
-	{
-		labelCharAction = text;
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-
-		emit signalDispatcher.updateLabelCharAction(text);
-		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos, QColor("#696969"));
-	}
 }
 
 //戰鬥戰寵技能
@@ -9501,14 +9504,11 @@ void Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 		return;
 
-	if (target < 0 || (target > (MAX_ENEMY + 2)))
+	if (target < 0 || (target > (TARGET_ALL)))
 		return;
 
 	if (skillIndex < 0 || skillIndex >= MAX_SKILL)
 		return;
-
-	const QString qcmd = QString("W|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16));
-	lssproto_B_send(qcmd);
 
 	QString text("");
 	PET_SKILL petSkill = getPetSkill(pc.battlePetNo, skillIndex);
@@ -9531,19 +9531,19 @@ void Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 		text = QObject::tr("use %1 to %2").arg(petSkill.name).arg(getAreaString(target));
 	}
 
-	if (labelPetAction != text)
-	{
-		labelPetAction = text;
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateLabelPetAction(text);
-		if (petSkill.name.contains("防"))
-			emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos, QColor("#CCB157"));
-		else if (petSkill.memo.contains("力回"))
-			emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
-		else
-			emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
-	}
+	labelPetAction = text;
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateLabelPetAction(text);
+	if (petSkill.name.contains("防"))//防禦
+		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos, QColor("#CCB157"));
+	else if (petSkill.memo.contains("力回"))//補血
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
+	else
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+
+	const QString qcmd = QString("W|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16)).toUpper();
+	lssproto_B_send(qcmd);
 }
 
 //戰鬥戰寵什麼都不做
@@ -9558,14 +9558,12 @@ void Worker::sendBattlePetDoNothing()
 	lssproto_B_send(qcmd);
 
 	QString text(QObject::tr("do nothing"));
-	if (labelPetAction != text)
-	{
-		labelPetAction = text;
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateLabelPetAction(text);
-		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos + 5, QColor("#696969"));
-	}
+
+	labelPetAction = text;
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateLabelPetAction(text);
+	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos + 5, QColor("#696969"));
 }
 
 #pragma endregion
@@ -9633,6 +9631,8 @@ void Worker::lssproto_PR_recv(int request, int result)
 //地圖轉移
 void Worker::lssproto_EV_recv(int dialogid, int result)
 {
+	//对客户端的EV事件进行回应。在收到此回应之前，客户端将无法执行其他动作，如行走等。
+
 	std::ignore = getFloorName();
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -9676,7 +9676,7 @@ void Worker::lssproto_AB_recv(char* cdata)
 	QString name;
 	long long flag;
 	bool valid;
-#ifdef _MAILSHOWPLANET				// (可開放) 顯示名片星球
+#ifdef _MAILSHOWPLANET				//顯示名片星球
 	QString planetid;
 	long long j;
 #endif
@@ -9906,9 +9906,11 @@ void Worker::lssproto_RS_recv(char* cdata)
 #endif
 }
 
-//戰後經驗 (逃跑或被打死不會有)
+//戰後積分改變
 void Worker::lssproto_RD_recv(char*)
 {
+	//用于在DUEL结束后通知客户端获得或失去的DUEL积分
+	//RD|得た(失った)DP(62進)|最終的なDP(62進)|
 	setBattleEnd();
 	//QString data = util::toUnicode(cdata);
 	//if (data.isEmpty())
@@ -9949,36 +9951,8 @@ void Worker::lssproto_I_recv(char* cdata)
 		QHash <long long, ITEM> items = item_.toHash();
 		for (j = 0; ; ++j)
 		{
-#ifdef _ITEM_JIGSAW
-#ifdef _NPC_ITEMUP
-#ifdef _ITEM_COUNTDOWN
-			no = j * 17;
-#else
-			no = j * 16;
-#endif
-#else
 			no = j * 15;
-#endif
-#else
-#ifdef _PET_ITEM
-			no = j * 14;
-#else
-#ifdef _ITEM_PILENUMS
-#ifdef _ALCHEMIST
-#ifdef _MAGIC_ITEM_
-			no = j * 15;
-#else
-			no = j * 13;
-#endif
-#else
-			no = j * 12;
-#endif
-#else
 
-			no = j * 11;
-#endif
-#endif//_PET_ITEM
-#endif//_ITEM_JIGSAW
 			i = getIntegerToken(data, "|", no + 1);//道具位
 			if (getStringToken(data, "|", no + 2, name) == 1)//道具名
 				break;
@@ -10442,12 +10416,13 @@ void Worker::lssproto_HL_recv(int)
 //開始戰鬥
 void Worker::lssproto_EN_recv(int result, int field)
 {
-	//開始戰鬥為1，未開始戰鬥為0
+	//開始戰鬥為1，未開始戰鬥為0   0：不可遇到或錯誤。 1：與敵人戰鬥OK。 2：PvP戰鬥OK
 	if (result > 0)
 	{
 		setBattleFlag(true);
 		IS_LOCKATTACK_ESCAPE_DISABLE.store(false, std::memory_order_release);
 		battleCharEscapeFlag.store(false, std::memory_order_release);
+		battleBackupThreadFlag.store(false, std::memory_order_release);
 		battle_total.fetch_add(1, std::memory_order_release);
 		battlePetDisableList_.clear();
 		battlePetDisableList_.resize(MAX_PET);
@@ -10477,6 +10452,7 @@ QString Worker::battleStringFormat(const battleobject_t& obj, QString formatStr)
 	formatStr.replace("%(mpp)", isself ? util::toQString(pc_.mpPercent) : "");
 
 	formatStr.replace("%(mod)", util::toQString(obj.modelid));
+
 	if (formatStr.contains("%(status)"))
 	{
 		QString statusStr = getBadStatusString(obj.status);
@@ -10492,20 +10468,22 @@ QString Worker::battleStringFormat(const battleobject_t& obj, QString formatStr)
 		formatStr.replace("%(rmaxhp)", util::toQString(obj.rideMaxHp));
 		formatStr.replace("%(rhpp)", util::toQString(obj.rideHpPercent));
 		formatStr.replace("%(rname)", obj.rideName);
+
 		formatStr.remove("%(rb)");
 		formatStr.remove("%(re)");
 	}
 	else
 	{
-		long long i = formatStr.indexOf("%(rb)");//begin remove from
-		long long j = formatStr.indexOf("%(re)");//end remove to
-		if (i != -1)
-			formatStr.remove(i, j - i + 4);
 		formatStr.remove("%(rlv)");
 		formatStr.remove("%(rhp)");
 		formatStr.remove("%(rmaxhp)");
 		formatStr.remove("%(rhpp)");
 		formatStr.remove("%(rname)");
+
+		long long i = formatStr.indexOf("%(rb)");//begin remove from
+		long long j = formatStr.indexOf("%(re)");//end remove to
+		if (i != -1)
+			formatStr.remove(i, j - i + 5);
 	}
 
 	formatStr.remove("()");
@@ -10525,11 +10503,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 	if (command.isEmpty())
 		return;
 
-	QString first = command.left(2);
+	QString first = command.left(2).toUpper();
 	if (first.startsWith("B"))
-		first.remove(0, 1);
+		first.remove(0, 1);//移除開頭的B
 
-	QString data = command.mid(3);
+	QString data = command.mid(3);//紀錄 "XX|" 後的數據
 	if (data.isEmpty())
 		return;
 
@@ -10541,8 +10519,10 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 	switch (first.at(0).unicode())
 	{
-	case 'P':
+	case 'P'://BP|自己的编号[0～19](%X)|標誌位(%X)|當前氣(%X)|???
 	{
+		//標誌位: 遭遇偷襲 出奇不意或擁有迴旋鏢
+
 		QStringList list = data.split(util::rexOR);
 		if (list.size() < 3)
 			break;
@@ -10571,7 +10551,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 		setBattleData(bt);
 		break;
 	}
-	case 'A':
+	case 'A'://BA|命令完成標誌位(%X)|回合數(%X)|
 	{
 		QStringList list = data.split(util::rexOR);
 		if (list.size() < 2)
@@ -10609,7 +10589,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
 					}
 #endif
-					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2));
+					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
 				}
 			}
@@ -10620,7 +10600,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 					break;
 				if (checkFlagState(i) && !bt.objects.value(i, empty).ready)
 				{
-					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos.load(std::memory_order_acquire) < (MAX_ENEMY / 2));
+					emit signalDispatcher.notifyBattleActionState(i); //標上敵方已出手
 					objs[i].ready = true;
 				}
 			}
@@ -10634,9 +10614,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
-
-		QVector<QStringList> topList;
-		QVector<QStringList> bottomList;
 
 		/*
 		//BC|戰場屬性（0:無屬性,1:地,2:水,3:火,4:風）|人物在組隊中的位置|人物名稱|人物稱號|人物形象編號|人物等級(16進制)|當前HP|最大HP|人物狀態（死亡，中毒等）|是否騎乘標志(0:未騎，1騎,-1落馬)|騎寵名稱|騎寵等級|騎寵HP|騎寵最大HP|戰寵在隊伍中的位置|戰寵名稱|未知|戰寵形象|戰寵等級|戰寵HP|戰寵最大HP|戰寵異常狀態（昏睡，死亡，中毒等）|0||0|0|0|
@@ -10665,7 +10642,9 @@ void Worker::lssproto_B_recv(char* ccommand)
 		long long n = 0;
 
 		QString temp;
-		QStringList tempList = {};
+		QString preOutputInfo;
+		QColor preOutputInfoColor = Qt::white;
+
 		//檢查敵我其中一方是否全部陣亡
 		bool isEnemyAllDead = true;
 		bool isAllieAllDead = true;
@@ -10675,9 +10654,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 		bool valid = false;
 
 		bt.fieldAttr = getIntegerToken(data, "|", 1);
+		battleField.store(bt.fieldAttr, std::memory_order_release);
 
 		{
 			QHash<long long, PET> pets = pet_.toHash();
+			QVector<bool> existFlags(MAX_ENEMY, false);
 
 			for (;;)
 			{
@@ -10750,6 +10731,9 @@ void Worker::lssproto_B_recv(char* ccommand)
 				obj.rideHpPercent = util::percent(obj.rideHp, obj.rideMaxHp);
 
 				valid = obj.modelid > 0 && obj.maxHp > 0 && obj.level > 0 && !checkAND(obj.status, BC_FLG_HIDE) && !checkAND(obj.status, BC_FLG_DEAD);
+
+				if (obj.pos >= 0 && obj.pos < existFlags.size())
+					existFlags[obj.pos] = obj.modelid > 0 && obj.maxHp > 0 && obj.level > 0 && !checkAND(obj.status, BC_FLG_HIDE);
 
 				if ((pos >= bt.enemymin) && (pos <= bt.enemymax) && obj.rideFlag == 0 && obj.modelid > 0 && !obj.name.isEmpty())
 				{
@@ -10867,62 +10851,30 @@ void Worker::lssproto_B_recv(char* ccommand)
 						isEnemyAllDead = false;
 				}
 
-				tempList.clear();
-				temp.clear();
-				tempList.append(util::toQString(obj.pos));
+				bool isEnemy = obj.pos >= bt.enemymin && obj.pos <= bt.enemymax;
+				preOutputInfoColor = Qt::white;
 
-				if (obj.pos >= bt.enemymin && obj.pos <= bt.enemymax)
-					temp = battleStringFormat(obj, injector.getStringHash(util::kBattleEnemyFormatString));
+				if (isEnemy)
+				{
+					preOutputInfo = battleStringFormat(obj, injector.getStringHash(util::kBattleEnemyFormatString));
+					if (obj.level == 1)//一等敵人高亮
+						preOutputInfoColor = QColor("#32A3FF");
+				}
 				else
-					temp = battleStringFormat(obj, injector.getStringHash(util::kBattleAllieFormatString));
+					preOutputInfo = battleStringFormat(obj, injector.getStringHash(util::kBattleAllieFormatString));
 
-				tempList.append(temp);
-				temp.clear();
+				emit signalDispatcher.updateBattleItemRowContents(obj.pos, preOutputInfo, preOutputInfoColor);
 
-				//if (obj.rideFlag == 1)
-				//{
-				//	temp = QString(",%1LV:%2(%3)")
-				//		.arg(QObject::tr("R"))
-				//		.arg(obj.rideLevel)
-				//		.arg(obj.rideHp);
-				//}
-
-				tempList.append(temp);
-
-				if ((obj.pos >= bt.alliemin) && (obj.pos <= bt.alliemax))
-				{
-					qDebug() << "allie pos:" << obj.pos << "value:" << tempList;
-					bottomList.append(tempList);
-				}
-				else if ((obj.pos >= bt.enemymin) && (obj.pos < bt.enemymax))
-				{
-					qDebug() << "enemy pos:" << obj.pos << "value:" << tempList;
-					topList.append(tempList);
-				}
 
 				++i;
 			}
 
-			//更新戰場動態UI
-			QVariant top = QVariant::fromValue(topList);
-			if (top.isValid())
+			for (i = 0; i < MAX_ENEMY; ++i)
 			{
-				topInfoContents = top;
-				emit signalDispatcher.updateTopInfoContents(top);
-			}
-
-			QVariant bottom = QVariant::fromValue(bottomList);
-			if (bottom.isValid())
-			{
-				bottomInfoContents = bottom;
-				emit signalDispatcher.updateBottomInfoContents(bottom);
-			}
-
-			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
-			{
-				battleobject_t obj = bt.objects.value(i, battleobject_t{});
-				if (obj.level == 1)
-					emit signalDispatcher.battleTableItemForegroundColorChanged(i, QColor("#32A3FF"));
+				if (!existFlags.value(i))
+				{
+					emit signalDispatcher.updateBattleItemRowContents(i, "", Qt::white);
+				}
 			}
 
 			//更新戰寵數據
@@ -11024,18 +10976,148 @@ void Worker::lssproto_B_recv(char* ccommand)
 	}
 	case 'U':
 	{
+		/*
+		BU|的時候，離開戰鬥動畫。
+		無參數。此命令用於在客戶端處於異常延遲的情況下，服務器將客戶端從戰鬥中強制退出後發送。
+		*/
 		battleCharEscapeFlag.store(true, std::memory_order_release);
+		setBattleEnd();
+		break;
+	}
+	case 'B':
+	{
+		/*
+		BB|的時候，遠程攻擊動畫。
+		BB|攻擊方編號|投射物類型|防禦方編號|標志|傷害|防禦方編號|???|FF|
+		除了第二個參數表示投射物類型
+		*/
 		break;
 	}
 	case 'D':
-	case 'H':
-		break;
-	case 'b':
 	{
-		if (first.at(1).unicode() == 'u')
-		{
-			setBattleEnd();
-		}
+		/*
+		BD|的時候，HP和MP更改動畫。
+		BD|將更改的角色編號|更改類型|增加還是減少|增量|
+		更改類型為0表示HP，1表示MP。增加還是減少為1表示增加，0表示減少。
+		*/
+		break;
+	}
+	case 'E':
+	{
+		/*
+		BE|的時候，逃跑動畫。
+		BE|逃跑者編號|防禦方編號|標志|
+		如果標志為1，逃跑成功。如果標志為0，逃跑失敗。在失敗的情況下，客戶端將以隨機方式確定敵人被拖拽到何處。如果玩家角色逃跑，則沒有BE用於寵物，寵物也會逃跑。
+		*/
+		break;
+	}
+	case 'F':
+	{
+		/*
+		BF|的時候，寵物隱藏動畫。
+		BF|隱藏的角色編號|
+		只有寵物可以使用此命令。客戶端將播放寵物跑到背後的效果，然後寵物消失。
+		*/
+		break;
+	}
+	case 'G':
+	{
+		/*
+		bg|的時候，防禦動畫。
+		bg|防禦的角色編號|
+		這個命令以小寫字母發送。角色沒有動作，客戶端不需要處理此命令，將其視為注釋處理。
+		*/
+		break;
+	}
+	case 'H':
+	{
+		/*
+		BH|的時候，普通攻擊動畫。
+		BH|攻擊方編號|防禦方編號|標志|傷害|防禦方編號|標志|傷害|????重覆。如果防禦方編號為FF，則視為此命令結束。
+
+		(普通攻擊示例) B|BH|攻擊_0|防禦_A|標志_2|傷害_32|防禦_B|標志_2|傷害_32|FF|
+		這表示0號(攻擊_0)對A號(防禦_A)造成0x32傷害(傷害_32)，然後對B號(防禦_B)也進行了攻擊，造成0x32傷害(傷害_32)。
+
+		(反擊示例) B|BH|攻擊_0|防禦_A|標志_2|傷害_32|反擊_0|標志_10|傷害_16|FF|
+		這表示0號(攻擊_0)對A號(防禦_A)造成0x32傷害(傷害_32)，然後0號(反擊_0)在反擊中受到0x16傷害(傷害_16)。在這種情況下，誰發動了反擊將由直前攻擊的對象確定。
+
+		(有守衛時的示例) B|BH|攻擊_0|防禦_A|標志_202|傷害_32|守衛_B|FF|
+		這表示0號(攻擊_0)對A號(防禦_A)造成了0x32傷害(傷害_32)，但由於B號成為了守衛者，所以傷害實際上被轉向了守衛者。
+		*/
+		break;
+	}
+	case 'J':
+	{
+		/*
+		BJ|的時候，咒術和物品效果動畫。
+		BJ|使用咒術的角色編號|使用咒術的效果編號|受到咒術影響的效果編號|受到效果的角色編號|受到效果的角色編號|???|FF|
+		用於物品和咒術的使用。受到影響的角色編號可以連續寫入，但最後一個必須以FF結束。
+		*/
+		break;
+	}
+	case 'M':
+	{
+		/*
+		BM|的時候，狀態異常變化動畫。
+		BM|狀態變化的角色編號|哪種狀態異常|
+		狀態異常編號為：
+		---0：無狀態異常
+		---1：中毒
+		---2：麻痹
+		---3：睡眠
+		---4：石化
+		---5：醉酒
+		---6：混亂
+		*/
+		break;
+	}
+	case 'O':
+	{
+		/*
+		BO|的時候，回旋鏢動畫。
+		BO|攻擊方編號|防禦方編號|標志|傷害|防禦方編號|???|FF|
+		除了第二個參數表示投射物類型外，其他內容與普通攻擊相同
+		*/
+		break;
+	}
+	case 'S':
+	{
+		/*
+		BS|的時候，寵物出入動畫。
+		BS|寵物編號[0～19](%X)|標志|圖像編號|級別|HP|名稱|
+		標志0表示寵物返回時，此後的文本將被忽略。
+		標志1表示寵物出現時，如果想交換寵物，則返回並再次出現寵物，這樣可以通過發送2次BS命令來交換寵物。
+		*/
+		break;
+	}
+	case 'T':
+	{
+		/*
+		BT|的時候，敵人捕獲動畫。
+		BT|攻擊方編號|防禦方編號|標志|
+		如果標志為1，捕獲成功。如果標志為0，捕獲失敗。在失敗的情況下，敵人捕獲的程度由客戶端以隨機方式確定。
+		*/
+	}
+	case 'V':
+	{
+		/*
+		BV|的時候，領域屬性更改動畫。
+		BV|更改屬性的角色編號|更改的屬性編號|
+		更改的屬性編號為：
+		---0：無屬性
+		---1：地屬性
+		---2：水屬性
+		---3：火屬性
+		---4：風屬性
+		*/
+		break;
+	}
+	case 'Y':
+	{
+		/*
+		BY|的時候，合體攻擊動畫。
+		BY|防禦方編號|攻擊方編號|標志|傷害|攻擊方編號|標志|傷害|????重覆。與普通攻擊不同的是，攻守角色發生了交換。
+		*/
 		break;
 	}
 	default:
@@ -11230,11 +11312,26 @@ void Worker::lssproto_ProcGet_recv(char*)
 
 void Worker::lssproto_R_recv(char*)
 {
+	/*
+	将雷达的内容发送到客户端。客户端不需要请求此发送。服务器将在适当的时机发送。例如，每走10步或每1分钟一次。
 
+	数据示例：此字符串不会被转义。"12|22|E|13|24|P|14|28|P"
+	*/
 }
 
 void Worker::lssproto_D_recv(int, int, int, char*)
 {
+	/*
+servertoclient D 函数用于向客户端发送显示指令，以在游戏画面上显示特定的内容。该函数接受以下参数：
+
+int category：显示内容的类别或类型。这个参数通常用于区分不同种类的显示内容。
+
+int dx 和 int dy：指定显示内容的位置坐标，即在游戏画面上的 x 和 y 坐标。这决定了内容将显示在何处。
+
+string data：包含要显示的内容的数据字符串。这可以是文本、图像或其他任何游戏中需要显示的信息或元素。
+
+通过使用 servertoclient D 函数，服务器可以向客户端发送各种类型的显示指令，以在游戏中呈现丰富的视觉和文本元素，如文本消息、物品图标、NPC 对话等。这有助于改善游戏的交互性和可玩性。
+	*/
 }
 
 //家族頻道
@@ -13285,32 +13382,8 @@ void Worker::lssproto_S_recv(char* cdata)
 
 			for (i = 0; i < MAX_ITEM; ++i)
 			{
-#ifdef _ITEM_JIGSAW
-#ifdef _NPC_ITEMUP
-#ifdef _ITEM_COUNTDOWN
-				no = i * 16;
-#else
-				no = i * 15;
-#endif
-#else
 				no = i * 14;
-#endif
-#else
-#ifdef _PET_ITEM
-				no = i * 13;
-#else
-#ifdef _ITEM_PILENUMS
-#ifdef _ALCHEMIST //#ifdef _ITEMSET7_TXT
-				no = i * 14;
-#else
-				no = i * 11;
-#endif//_ALCHEMIST
-#else
-				no = i * 10;
-				//end modified by lsh
-#endif//_ITEM_PILENUMS
-#endif//_PET_ITEM
-#endif//_ITEM_JIGSAW
+
 				getStringToken(data, "|", no + 1, temp);
 				makeStringFromEscaped(temp);
 
@@ -13528,19 +13601,8 @@ void Worker::lssproto_S_recv(char* cdata)
 		QHash<long long, ITEM> petItems = petItem_.toHash().value(nPetIndex);
 		for (i = 0; i < MAX_PET_ITEM; ++i)
 		{
-#ifdef _ITEM_JIGSAW
-#ifdef _NPC_ITEMUP
-#ifdef _ITEM_COUNTDOWN
-			no = i * 16;
-#else
-			no = i * 15;
-#endif
-#else
 			no = i * 14;
-#endif
-#else
-			no = i * 13;
-#endif
+
 			getStringToken(data, "|", no + 1, szData);
 			makeStringFromEscaped(szData);
 
@@ -13895,6 +13957,8 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 				list = config.readArray<QString>("System", "Server", QString("List_%1").arg(injector.currentServerListIndex));
 			}
 
+			updateItemByMemory();
+
 			mem::freeUnuseMemory(injector.getProcess());
 		});
 }
@@ -13935,15 +13999,15 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 			pc.trade_confirm = 1;
 			setPC(pc);
 		}
-#ifdef _COMFIRM_TRADE_REQUEST
 		else if (trade_command.startsWith("2"))
 		{
 			tradeStatus = 1;
-			MenuToggleFlag = JOY_CTRL_T;
+			//MenuToggleFlag = JOY_CTRL_T;
+			PC pc = getPC();
 			pc.trade_confirm = 1;
-			tradeWndNo = 1;
+			setPC(pc);
+			//tradeWndNo = 1;
 		}
-#endif
 	}
 	//处理物品交易资讯传递
 	else if (Head.startsWith("T"))
@@ -14215,6 +14279,7 @@ bool Worker::captchaOCR(QString* pmsg)
 	if (injector.worker.isNull())
 		return false;
 
+	//取桌面指針
 	QScreen* screen = QGuiApplication::primaryScreen();
 	if (nullptr == screen)
 	{
@@ -14222,9 +14287,14 @@ bool Worker::captchaOCR(QString* pmsg)
 		return false;
 	}
 
+	//遊戲後臺滑鼠一移動到左上
 	LPARAM data = MAKELPARAM(0, 0);
 	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
+
+	//根據HWND擷取窗口後臺圖像
 	QPixmap pixmap = screen->grabWindow(reinterpret_cast<WId>(injector.getProcessWindow()));
+
+	//轉存為QImage
 	QImage image = pixmap.toImage();
 
 	//only take middle part of the image

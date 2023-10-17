@@ -121,7 +121,7 @@ public:
 
 	void __fastcall clear(long long floor) const;
 
-	Q_REQUIRED_RESULT QPixmap __fastcall getPixmapByIndex(long long index) const;
+	[[nodiscard]] QPixmap __fastcall getPixmapByIndex(long long index) const;
 
 	bool __fastcall saveAsBinary(long long currentIndex, map_t map, const QString& fileName);
 
@@ -131,10 +131,10 @@ public:
 
 	QString __fastcall getGround(long long currentIndex, long long floor, const QString& name, const QPoint& src);
 
-	Q_REQUIRED_RESULT QString __fastcall getCurrentPreHandleMapPath(long long currentIndex, long long floor) const;
+	[[nodiscard]] QString __fastcall getCurrentPreHandleMapPath(long long currentIndex, long long floor) const;
 
 private:
-	Q_REQUIRED_RESULT QString __fastcall getCurrentMapPath(long long floor) const;
+	[[nodiscard]] QString __fastcall getCurrentMapPath(long long floor) const;
 
 
 	void __fastcall setMapDataByFloor(long long floor, const map_t& map);
@@ -142,8 +142,8 @@ private:
 
 	bool __fastcall loadFromBinary(long long currentIndex, long long floor, map_t* _map);
 
-	Q_REQUIRED_RESULT util::ObjectType __fastcall getGroundType(const unsigned short data) const;
-	Q_REQUIRED_RESULT util::ObjectType __fastcall getObjectType(const unsigned short data) const;
+	[[nodiscard]] util::ObjectType __fastcall getGroundType(const unsigned short data) const;
+	[[nodiscard]] util::ObjectType __fastcall getObjectType(const unsigned short data) const;
 
 public:
 #if 0

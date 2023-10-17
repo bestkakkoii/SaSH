@@ -1242,7 +1242,7 @@ QFileInfoList __fastcall util::loadAllFileLists(
 
 		child->setData(0, Qt::UserRole, "file");
 		child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(content.left(256)));
-		child->setIcon(0, QIcon(QPixmap(icon)));
+		child->setIcon(0, QIcon(icon));
 
 		if (root != nullptr)
 			root->addChild(child.release());
@@ -1268,7 +1268,7 @@ QFileInfoList __fastcall util::loadAllFileLists(
 
 		childroot->setToolTip(0, namepath);
 		childroot->setData(0, Qt::UserRole, "folder");
-		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
+		childroot->setIcon(0, QIcon(folderIcon));
 
 		TreeWidgetItem* item = childroot.release();
 
@@ -1318,7 +1318,7 @@ QFileInfoList __fastcall util::loadAllFileLists(
 		child->setText(0, item.fileName());
 		child->setData(0, Qt::UserRole, "file");
 		child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(content.left(256)));
-		child->setIcon(0, QIcon(QPixmap(fileIcon)));
+		child->setIcon(0, QIcon(fileIcon));
 
 		if (root != nullptr)
 			root->addChild(child.release());
@@ -1346,7 +1346,7 @@ QFileInfoList __fastcall util::loadAllFileLists(
 		childroot->setText(0, name);
 		childroot->setToolTip(0, namepath);
 		childroot->setData(0, Qt::UserRole, "folder");
-		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
+		childroot->setIcon(0, QIcon(folderIcon));
 
 		TreeWidgetItem* item = childroot.release();
 

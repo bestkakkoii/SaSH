@@ -27,6 +27,7 @@ OtherForm::OtherForm(long long index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
+	setFont(util::getFont());
 
 	connect(this, &OtherForm::resetControlTextLanguage, this, &OtherForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
@@ -38,6 +39,7 @@ OtherForm::OtherForm(long long index, QWidget* parent)
 	{
 		if (button && !nameCheckList.contains(button->objectName()))
 		{
+			util::setPushButton(button);
 			nameCheckList.append(button->objectName());
 			connect(button, &PushButton::clicked, this, &OtherForm::onButtonClicked, Qt::UniqueConnection);
 		}
@@ -80,6 +82,7 @@ OtherForm::OtherForm(long long index, QWidget* parent)
 	{
 		if (comboBox && !nameCheckList.contains(comboBox->objectName()))
 		{
+			util::setComboBox(comboBox);
 			nameCheckList.append(comboBox->objectName());
 			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
 			connect(comboBox, &ComboBox::clicked, this, &OtherForm::onComboBoxClicked, Qt::UniqueConnection);

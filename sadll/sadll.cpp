@@ -1534,12 +1534,12 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	paddr = CONVERT_GAMEVAR<DWORD>(0x79A14ul);
 	//sa_8001.exe+79A14 - E8 5777F8FF           - call sa_8001.exe+1170
 	util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5u);
-#endif
 
 	////使遊戲開頭那隻亂竄的寵物不可見
 	paddr = CONVERT_GAMEVAR<DWORD>(0x79A19ul);
 	//sa_8001.exe+79A19 - E8 224A0000           - call sa_8001.exe+7E440
 	util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5u);
+#endif
 
 	//開始下勾子
 	DetourRestoreAfterWith();

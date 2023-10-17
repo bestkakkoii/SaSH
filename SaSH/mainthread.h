@@ -186,7 +186,7 @@ private:
 public:
 	bool createThread(long long index, MainObject** ppObj, QObject* parent);
 
-	Q_REQUIRED_RESULT inline long long size() const
+	[[nodiscard]] inline long long size() const
 	{
 		QMutexLocker locker(&mutex_);
 		return threads_.size();

@@ -24,6 +24,7 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 	: QDialog(parent), type_(type)
 {
 	ui.setupUi(this);
+	setFont(util::getFont());
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowFlags(Qt::Tool | Qt::Dialog | Qt::WindowCloseButtonHint);
 	setModal(true);
@@ -68,7 +69,7 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 	QString stylesheet = R"(
 		QPushButton {
 			background-color: #F0F4F8;
-			border: 1px solid #000000;
+			border: 1px solid gray;
 			border-radius: 1px;
 			padding: 2px;
 			color: #000000;
@@ -90,8 +91,8 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 	setStyleSheet(stylesheet);
 
 
-	ui.buttonBox->button(QDialogButtonBox::Ok)->setStyleSheet(stylesheet);
-	ui.buttonBox->button(QDialogButtonBox::Cancel)->setStyleSheet(stylesheet);
+	util::setPushButton(ui.buttonBox->button(QDialogButtonBox::Ok));
+	util::setPushButton(ui.buttonBox->button(QDialogButtonBox::Cancel));
 }
 
 SelectObjectForm::~SelectObjectForm()

@@ -25,7 +25,7 @@ void ProgressBar::setProgressBarStyle(const QString& qstrcolor)
 {
 	QString styleSheet = QString(R"(
 		QProgressBar {
-			border: 1px solid black;
+			border: 0px solid gray;
 			text-align: center;
 			background-color: white;
 		}

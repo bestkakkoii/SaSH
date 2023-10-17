@@ -369,12 +369,17 @@ int main(int argc, char* argv[])
 	////format.setSwapInterval(0);
 	QSurfaceFormat::setDefaultFormat(format);
 
+	QApplication::setDesktopSettingsAware(true);
+	QApplication::setApplicationDisplayName("SaSH");
+	QApplication::setQuitOnLastWindowClosed(true);
+
 	//////// 以上必須在 QApplication a(argc, argv); 之前設置否則無效 ////////
 
 	//實例化Qt應用程序
 	QApplication a(argc, argv);
 
 	//////// 以下必須在 QApplication a(argc, argv); 之後設置否則會崩潰 ////////
+
 
 	//調試相關設置
 	//qInstallMessageHandler(qtMessageHandler);
@@ -385,7 +390,6 @@ int main(int argc, char* argv[])
 
 	//#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	//	a.setStyle(QStyleFactory::create("windows"));
-	//	a.setDesktopSettingsAware(false);
 	//#endif
 
 	//Qt全局編碼設置

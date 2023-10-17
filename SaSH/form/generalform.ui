@@ -513,7 +513,7 @@
   <widget class="QSpinBox" name="spinBox_speedboost">
    <property name="geometry">
     <rect>
-     <x>180</x>
+     <x>200</x>
      <y>0</y>
      <width>41</width>
      <height>20</height>
@@ -642,7 +642,7 @@
    <property name="geometry">
     <rect>
      <x>120</x>
-     <y>178</y>
+     <y>176</y>
      <width>20</width>
      <height>20</height>
     </rect>
@@ -744,60 +744,7 @@
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">QComboBox {
-    border: 1px solid black;
-    padding: 1px 18px 1px 3px;
-}
-
-QComboBox:hover {
-    border: 2px solid #3282F6;
-}
-
-QComboBox QAbstractItemView { 
-    min-width: 200px;
-    /*border-radius: 3px;
-    border: 0px solid #ccc;*/
-}
-
-QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
-    width: 15px;
-
-    border-left-width: 1px;
-    border-left-color: darkgray;
-    border-left-style: solid; /* just a single line */
-    border-top-right-radius: 3px; /* same radius as the QComboBox */
-    border-bottom-right-radius: 3px;
-}
-
-QComboBox::down-arrow {
-    image: url(:/image/icon_downarrow.svg);
-	width:12px;
-	height:12px;
-}
-
-
-QComboBox::down-arrow:on { /* shift the arrow when popup is open */
-    top: 1px;
-    left: 1px;
-}
-
-QScrollBar:vertical {
-	min-height: 30px;  
-    background: #F1F1F1;
-}
-
-QScrollBar::handle:vertical {
-    background: #2D74DB;
-  	border: 3px solid  #F1F1F1;
-	min-height:50px;
-}
-
-QScrollBar::handle:hover:vertical,
-QScrollBar::handle:pressed:vertical {
-    background: #3487FF;
-}</string>
+    <string notr="true"/>
    </property>
   </widget>
   <widget class="PushButton" name="pushButton_logout">
@@ -823,60 +770,7 @@ QScrollBar::handle:pressed:vertical {
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">QComboBox {
-    border: 1px solid black;
-    padding: 1px 18px 1px 3px;
-}
-
-QComboBox:hover {
-    border: 2px solid #3282F6;
-}
-
-QComboBox QAbstractItemView { 
-    min-width: 200px;
-    /*border-radius: 3px;
-    border: 0px solid #ccc;*/
-}
-
-QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
-    width: 15px;
-
-    border-left-width: 1px;
-    border-left-color: darkgray;
-    border-left-style: solid; /* just a single line */
-    border-top-right-radius: 3px; /* same radius as the QComboBox */
-    border-bottom-right-radius: 3px;
-}
-
-QComboBox::down-arrow {
-    image: url(:/image/icon_downarrow.svg);
-	width:12px;
-	height:12px;
-}
-
-
-QComboBox::down-arrow:on { /* shift the arrow when popup is open */
-    top: 1px;
-    left: 1px;
-}
-
-QScrollBar:vertical {
-	min-height: 30px;  
-    background: #F1F1F1;
-}
-
-QScrollBar::handle:vertical {
-    background: #2D74DB;
-  	border: 3px solid  #F1F1F1;
-	min-height:50px;
-}
-
-QScrollBar::handle:hover:vertical,
-QScrollBar::handle:pressed:vertical {
-    background: #3487FF;
-}</string>
+    <string notr="true"/>
    </property>
   </widget>
   <widget class="PushButton" name="pushButton_logback">
@@ -1173,23 +1067,7 @@ QScrollBar::handle:pressed:vertical {
     </size>
    </property>
    <property name="styleSheet">
-    <string notr="true">		QPushButton {
-			background-color: #F1F1F1;
-			border: 1px solid #000000;
-			border-radius: 1px;
-			padding: 2px;
-			color: #000000;
-		}
-		
-		QPushButton:hover {
-			background-color: #CF3B3B;
-			color:#DFEBF6;
-		}
-		
-		QPushButton:pressed, QPushButton:checked {
-			background-color: #FF4949;
-			color:#DFEBF6;
-		}</string>
+    <string notr="true"/>
    </property>
    <property name="text">
     <string>afk</string>
@@ -1258,14 +1136,14 @@ QScrollBar::handle:pressed:vertical {
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>ComboBox</class>
-   <extends>QComboBox</extends>
-   <header location="global">combobox.h</header>
-  </customwidget>
-  <customwidget>
    <class>PushButton</class>
    <extends>QPushButton</extends>
    <header location="global">pushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ComboBox</class>
+   <extends>QComboBox</extends>
+   <header location="global">combobox.h</header>
   </customwidget>
  </customwidgets>
  <resources>

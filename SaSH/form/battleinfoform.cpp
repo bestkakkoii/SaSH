@@ -46,28 +46,26 @@ BattleInfoForm::BattleInfoForm(long long index, QWidget* parent)
 	ui.tableWidget_bottom->verticalHeader()->setStretchLastSection(true);
 	ui.tableWidget_top->verticalHeader()->setStretchLastSection(true);
 
+	ui.tableWidget_top->setSelectionMode(QAbstractItemView::SelectionMode::NoSelection);
+	ui.tableWidget_bottom->setSelectionMode(QAbstractItemView::SelectionMode::NoSelection);
+
 	ui.tableWidget_bottom->setRowCount(max_row);
 	ui.tableWidget_top->setRowCount(max_row);
 
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.worker.isNull())
 	{
-		QVariant topInfoContents = injector.worker->topInfoContents.get();
-		QVariant bottomInfoContents = injector.worker->bottomInfoContents.get();
 		QString timeLabelContents = injector.worker->timeLabelContents.get();
 		QString labelCharAction = injector.worker->labelCharAction.get();
 		QString labelPetAction = injector.worker->labelPetAction.get();
 
-		onUpdateTopInfoContents(topInfoContents);
-		onUpdateBottomInfoContents(bottomInfoContents);
 		onUpdateTimeLabelContents(timeLabelContents);
 		onUpdateLabelCharAction(labelCharAction);
 		onUpdateLabelPetAction(labelPetAction);
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::updateTopInfoContents, this, &BattleInfoForm::onUpdateTopInfoContents, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateBottomInfoContents, this, &BattleInfoForm::onUpdateBottomInfoContents, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateBattleItemRowContents, this, &BattleInfoForm::onUpdateBattleItemRowContents, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateBattleTimeLabelTextChanged, this, &BattleInfoForm::onUpdateTimeLabelContents, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateLabelCharAction, this, &BattleInfoForm::onUpdateLabelCharAction, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateLabelPetAction, this, &BattleInfoForm::onUpdateLabelPetAction, Qt::QueuedConnection);
@@ -79,16 +77,6 @@ BattleInfoForm::BattleInfoForm(long long index, QWidget* parent)
 
 BattleInfoForm::~BattleInfoForm()
 {
-}
-
-void BattleInfoForm::onUpdateTopInfoContents(const QVariant& dat)
-{
-	updateItemInfoRowContents(ui.tableWidget_top, dat);
-}
-
-void BattleInfoForm::onUpdateBottomInfoContents(const QVariant& dat)
-{
-	updateItemInfoRowContents(ui.tableWidget_bottom, dat);
 }
 
 void BattleInfoForm::onUpdateTimeLabelContents(const QString& text)
@@ -171,27 +159,30 @@ static const QHash<long long, QPair<long long, long long>> fill_hash = {
 
 void BattleInfoForm::onBattleTableItemForegroundColorChanged(long long index, const QColor& color)
 {
-	if (index < 0 || index > MAX_ENEMY + 2)
+	if (index < 0 || index > TARGET_ALL)
 		return;
 
 	if (index == 20)
 	{
 		for (long long i = 0; i < max_row; ++i)
-			ui.tableWidget_bottom->setItemForeground(i, 0, color);
+			ui.tableWidget_bottom->setItemBackground(i, 0, color);
+		return;
 	}
 	else if (index == 21)
 	{
 		for (long long i = 0; i < max_row; ++i)
-			ui.tableWidget_top->setItemForeground(i, 0, color);
+			ui.tableWidget_top->setItemBackground(i, 0, color);
+		return;
 
 	}
 	else if (index == 22)
 	{
 		for (long long i = 0; i < max_row; ++i)
 		{
-			ui.tableWidget_top->setItemForeground(i, 0, color);
-			ui.tableWidget_bottom->setItemForeground(i, 0, color);
+			ui.tableWidget_top->setItemBackground(i, 0, color);
+			ui.tableWidget_bottom->setItemBackground(i, 0, color);
 		}
+		return;
 	}
 
 	QPair<long long, long long> pair = fill_hash.value(index, qMakePair(-1, -1));
@@ -204,11 +195,11 @@ void BattleInfoForm::onBattleTableItemForegroundColorChanged(long long index, co
 
 	if (index >= 10)
 	{
-		ui.tableWidget_top->setItemForeground(row, 0, color);
+		ui.tableWidget_top->setItemBackground(row, 0, color);
 	}
 	else if (index < 10)
 	{
-		ui.tableWidget_bottom->setItemForeground(row, 0, color);
+		ui.tableWidget_bottom->setItemBackground(row, 0, color);
 	}
 }
 
@@ -216,12 +207,12 @@ void BattleInfoForm::onBattleTableAllItemResetColor()
 {
 	for (long long i = 0; i < max_row; ++i)
 	{
-		ui.tableWidget_top->setItemForeground(i, 0, Qt::black);
-		ui.tableWidget_bottom->setItemForeground(i, 0, Qt::black);
+		ui.tableWidget_top->setItemBackground(i, 0, Qt::white);
+		ui.tableWidget_bottom->setItemBackground(i, 0, Qt::white);
 	}
 }
 
-void BattleInfoForm::onNotifyBattleActionState(long long index, bool left)
+void BattleInfoForm::onNotifyBattleActionState(long long index)
 {
 	if (!fill_hash.contains(index))
 		return;
@@ -231,7 +222,7 @@ void BattleInfoForm::onNotifyBattleActionState(long long index, bool left)
 	const QPair<long long, long long> pair = fill_hash.value(index);
 
 	QTableWidgetItem* item = nullptr;
-	if (left)
+	if (index >= 10)
 	{
 		item = ui.tableWidget_top->item(pair.first, pair.second);
 	}
@@ -268,62 +259,32 @@ void BattleInfoForm::onNotifyBattleActionState(long long index, bool left)
 	item->setToolTip(text);
 }
 
-void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const QVariant& dat)
+void BattleInfoForm::onUpdateBattleItemRowContents(long long index, const QString& text, const QColor& color)
 {
-	if (tableWidget == nullptr)
-		return;
-
-	tableWidget->setRowCount(max_row);
-
-	// 檢查是否為 QVector<QStringList>
-	if (dat.type() != QVariant::Type::UserType)
-		return;
-
-	QVector<QStringList> list = dat.value<QVector<QStringList>>();
-
-	if (list.isEmpty())
-		return;
-
-	tableWidget->clearContents();
-
-	const QString objectName = tableWidget->objectName();
-	//const bool isTop = objectName.contains("top", Qt::CaseInsensitive);
-
 	Injector& injector = Injector::getInstance(getIndex());
 	QString spaceMark = injector.getStringHash(util::kBattleSpaceMarkString);
 
-	bool ok = false;
-	for (const QStringList& l : list)
+	const QPair<long long, long long> fill = fill_hash.value(index, qMakePair(-1, -1));
+	if (fill.first == -1)
 	{
-		if (l.size() != 3)
-		{
-			continue;
-		}
+		return;
+	}
 
-		long long pos = l.value(0).toLongLong(&ok);
-		if (!ok)
-		{
-			continue;
-		}
+	QString content;
+	if (fill.first % 2)
+		content = spaceMark + text;
+	else
+		content = text;
 
-		QString text = l.value(1);
-		const QString ride = l.value(2);
-
-		const QPair<long long, long long> fill = fill_hash.value(pos, qMakePair(-1, -1));
-		if (fill.first == -1)
-		{
-			continue;
-		}
-
-		QString content;
-		if (fill.first % 2)
-			content = spaceMark + text;
-		else
-			content = text;
-
-
-		tableWidget->setText(fill.first, 0, content + ride.simplified());
-		tableWidget->setItemForeground(fill.first, 0, Qt::black);
-		//tableWidget->setText(fill.first, 0, content + "|" + ride.simplified());
+	QTableWidgetItem* item = nullptr;
+	if (index >= 10)
+	{
+		ui.tableWidget_top->setText(fill.first, 0, content);
+		ui.tableWidget_top->setItemBackground(fill.first, 0, color);
+	}
+	else
+	{
+		ui.tableWidget_bottom->setText(fill.first, 0, content);
+		ui.tableWidget_bottom->setItemBackground(fill.first, 0, color);
 	}
 }

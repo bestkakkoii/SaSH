@@ -40,6 +40,8 @@ AfkInfoForm::AfkInfoForm(long long index, QWidget* parent)
 	ui.tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 	ui.tableWidget->verticalHeader()->setDefaultSectionSize(11);
 
+	util::setPushButton(ui.pushButton);
+
 }
 
 AfkInfoForm::~AfkInfoForm()

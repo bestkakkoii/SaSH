@@ -24,7 +24,8 @@ ComboBox::ComboBox(QWidget* parent) :QComboBox(parent)
 {
 	setStyleSheet(R"(
 QComboBox {
-    border: 1px solid black;
+    border: 1px solid gray;
+	border-radius: 5px;
 }
 
 QComboBox:hover {

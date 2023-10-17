@@ -26,6 +26,7 @@ AbilityForm::AbilityForm(long long index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
+	setFont(util::getFont());
 	setWindowFlags(Qt::Dialog | Qt::Tool);
 	setFixedSize(this->width(), this->height());
 	setAttribute(Qt::WA_QuitOnClose);
@@ -33,7 +34,7 @@ AbilityForm::AbilityForm(long long index, QWidget* parent)
 	ui.tableWidget->horizontalHeader()->setStretchLastSection(true);
 	ui.tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
-	setStyleSheet("QDialog{border: 1px solid black;}");
+	setStyleSheet("QDialog{border: 1px solid gray;}");
 
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)

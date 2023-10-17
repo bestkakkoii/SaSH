@@ -91,13 +91,13 @@ private:
 public://actions
 	QString __fastcall battleStringFormat(const battleobject_t& obj, QString formatStr);
 
-	Q_REQUIRED_RESULT long long __fastcall getWorldStatus();
+	[[nodiscard]] long long __fastcall getWorldStatus();
 
-	Q_REQUIRED_RESULT long long __fastcall getGameStatus();
+	[[nodiscard]] long long __fastcall getGameStatus();
 
-	Q_REQUIRED_RESULT bool __fastcall checkWG(long long  w, long long g);
+	[[nodiscard]] bool __fastcall checkWG(long long  w, long long g);
 
-	Q_REQUIRED_RESULT long long __fastcall getUnloginStatus();
+	[[nodiscard]] long long __fastcall getUnloginStatus();
 	void __fastcall setWorldStatus(long long w);
 	void __fastcall setGameStatus(long long g);
 
@@ -228,11 +228,11 @@ public://actions
 	void __fastcall tradeComplete(const QString& name);
 
 	void __fastcall cleanChatHistory();
-	Q_REQUIRED_RESULT QString __fastcall getChatHistory(long long index);
+	[[nodiscard]] QString __fastcall getChatHistory(long long index);
 
 	bool __fastcall findUnit(const QString& name, long long type, mapunit_t* unit, const QString& freeName = "", long long modelid = -1);
 
-	Q_REQUIRED_RESULT QString __fastcall getGround();
+	[[nodiscard]] QString __fastcall getGround();
 
 	void __fastcall setTeamState(bool join);
 	void __fastcall kickteam(long long n);
@@ -241,45 +241,45 @@ public://actions
 	void __fastcall setCharFaceDirection(long long dir);
 	void __fastcall setCharFaceDirection(const QString& dirStr);
 
-	Q_REQUIRED_RESULT long long __fastcall getPartySize() const;
-	Q_REQUIRED_RESULT QStringList __fastcall getJoinableUnitList() const;
-	Q_REQUIRED_RESULT bool __fastcall getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv, long long from = 0, long long to = MAX_ITEM);
-	Q_REQUIRED_RESULT long long __fastcall getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", long long from = 0, long long to = MAX_ITEM);
-	Q_REQUIRED_RESULT long long __fastcall getPetSkillIndexByName(long long& petIndex, const QString& name) const;
-	Q_REQUIRED_RESULT long long __fastcall getSkillIndexByName(const QString& name) const;
-	Q_REQUIRED_RESULT bool __fastcall getPetIndexsByName(const QString& name, QVector<long long>* pv) const;
-	Q_REQUIRED_RESULT long long __fastcall getMagicIndexByName(const QString& name, bool isExact = true) const;
-	Q_REQUIRED_RESULT long long __fastcall getItemEmptySpotIndex();
+	[[nodiscard]] long long __fastcall getPartySize() const;
+	[[nodiscard]] QStringList __fastcall getJoinableUnitList() const;
+	[[nodiscard]] bool __fastcall getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv, long long from = 0, long long to = MAX_ITEM);
+	[[nodiscard]] long long __fastcall getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", long long from = 0, long long to = MAX_ITEM);
+	[[nodiscard]] long long __fastcall getPetSkillIndexByName(long long& petIndex, const QString& name) const;
+	[[nodiscard]] long long __fastcall getSkillIndexByName(const QString& name) const;
+	[[nodiscard]] bool __fastcall getPetIndexsByName(const QString& name, QVector<long long>* pv) const;
+	[[nodiscard]] long long __fastcall getMagicIndexByName(const QString& name, bool isExact = true) const;
+	[[nodiscard]] long long __fastcall getItemEmptySpotIndex();
 	bool __fastcall getItemEmptySpotIndexs(QVector<long long>* pv);
 	void __fastcall clear();
 
-	Q_REQUIRED_RESULT bool __fastcall checkCharMp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
-	Q_REQUIRED_RESULT bool __fastcall checkCharHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
-	Q_REQUIRED_RESULT bool __fastcall checkRideHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
-	Q_REQUIRED_RESULT bool __fastcall checkPetHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
-	Q_REQUIRED_RESULT bool __fastcall checkPartyHp(long long cmpvalue, long long* target);
+	[[nodiscard]] bool __fastcall checkCharMp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
+	[[nodiscard]] bool __fastcall checkCharHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
+	[[nodiscard]] bool __fastcall checkRideHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
+	[[nodiscard]] bool __fastcall checkPetHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
+	[[nodiscard]] bool __fastcall checkPartyHp(long long cmpvalue, long long* target);
 
-	Q_REQUIRED_RESULT bool __fastcall isPetSpotEmpty() const;
-	Q_REQUIRED_RESULT long long __fastcall checkJobDailyState(const QString& missionName);
+	[[nodiscard]] bool __fastcall isPetSpotEmpty() const;
+	[[nodiscard]] long long __fastcall checkJobDailyState(const QString& missionName);
 
-	Q_REQUIRED_RESULT bool __fastcall isDialogVisible();
+	[[nodiscard]] bool __fastcall isDialogVisible();
 
 	void __fastcall setCharFreeName(const QString& name);
 	void __fastcall setPetFreeName(long long petIndex, const QString& name);
 
-	Q_REQUIRED_RESULT bool __fastcall getBattleFlag();
-	Q_REQUIRED_RESULT bool __fastcall getOnlineFlag() const;
+	[[nodiscard]] bool __fastcall getBattleFlag();
+	[[nodiscard]] bool __fastcall getOnlineFlag() const;
 
 	void __fastcall sortItem(bool deepSort = false);
 
-	Q_REQUIRED_RESULT long long __fastcall getDir();
-	Q_REQUIRED_RESULT QPoint __fastcall getPoint();
+	[[nodiscard]] long long __fastcall getDir();
+	[[nodiscard]] QPoint __fastcall getPoint();
 	void __fastcall setPoint(const QPoint& pos);
 
-	Q_REQUIRED_RESULT long long __fastcall getFloor();
+	[[nodiscard]] long long __fastcall getFloor();
 	void __fastcall setFloor(long long floor);
 
-	Q_REQUIRED_RESULT QString __fastcall getFloorName();
+	[[nodiscard]] QString __fastcall getFloorName();
 	//battle
 	void __fastcall sendBattleCharAttackAct(long long target);
 	void __fastcall sendBattleCharMagicAct(long long magicIndex, long long target);
@@ -296,17 +296,17 @@ public://actions
 
 	void __fastcall updateBattleTimeInfo();
 
-	inline Q_REQUIRED_RESULT PC __fastcall getPC() const { /*QReadLocker locker(&charInfoLock_); */ return pc_; }
+	inline [[nodiscard]] PC __fastcall getPC() const { /*QReadLocker locker(&charInfoLock_); */ return pc_; }
 	inline void __fastcall setPC(PC pc) { pc_ = pc; }
 
-	inline Q_REQUIRED_RESULT MAGIC __fastcall getMagic(long long magicIndex) const { return magic_.value(magicIndex); }
+	inline [[nodiscard]] MAGIC __fastcall getMagic(long long magicIndex) const { return magic_.value(magicIndex); }
 
-	inline Q_REQUIRED_RESULT PROFESSION_SKILL __fastcall getSkill(long long skillIndex) const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.value(skillIndex); }
-	inline Q_REQUIRED_RESULT QHash<long long, PROFESSION_SKILL> __fastcall getSkills() const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.toHash(); }
+	inline [[nodiscard]] PROFESSION_SKILL __fastcall getSkill(long long skillIndex) const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.value(skillIndex); }
+	inline [[nodiscard]] QHash<long long, PROFESSION_SKILL> __fastcall getSkills() const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.toHash(); }
 
-	inline Q_REQUIRED_RESULT PET __fastcall getPet(long long petIndex) const { QReadLocker locker(&petInfoLock_);  return pet_.value(petIndex); }
-	inline Q_REQUIRED_RESULT QHash<long long, PET> __fastcall getPets() const { QReadLocker locker(&petInfoLock_);  return pet_.toHash(); }
-	inline Q_REQUIRED_RESULT long long __fastcall getPetSize() const
+	inline [[nodiscard]] PET __fastcall getPet(long long petIndex) const { QReadLocker locker(&petInfoLock_);  return pet_.value(petIndex); }
+	inline [[nodiscard]] QHash<long long, PET> __fastcall getPets() const { QReadLocker locker(&petInfoLock_);  return pet_.toHash(); }
+	inline [[nodiscard]] long long __fastcall getPetSize() const
 	{
 		QReadLocker locker(&petInfoLock_);
 		long long n = 0;
@@ -319,11 +319,11 @@ public://actions
 		return n;
 	}
 
-	inline Q_REQUIRED_RESULT ITEM __fastcall getItem(long long index) const { QReadLocker locker(&itemInfoLock_);  return item_.value(index); }
-	inline Q_REQUIRED_RESULT QHash<long long, ITEM> __fastcall getItems() const { QReadLocker locker(&itemInfoLock_);  return item_.toHash(); }
+	inline [[nodiscard]] ITEM __fastcall getItem(long long index) const { QReadLocker locker(&itemInfoLock_);  return item_.value(index); }
+	inline [[nodiscard]] QHash<long long, ITEM> __fastcall getItems() const { QReadLocker locker(&itemInfoLock_);  return item_.toHash(); }
 
-	inline Q_REQUIRED_RESULT PET_SKILL __fastcall getPetSkill(long long petIndex, long long skillIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex).value(skillIndex); }
-	inline Q_REQUIRED_RESULT QHash<long long, PET_SKILL> __fastcall getPetSkills(long long petIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex); }
+	inline [[nodiscard]] PET_SKILL __fastcall getPetSkill(long long petIndex, long long skillIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex).value(skillIndex); }
+	inline [[nodiscard]] QHash<long long, PET_SKILL> __fastcall getPetSkills(long long petIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex); }
 	inline void __fastcall setPetSkills(long long petIndex, const QHash<long long, PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
 	inline void __fastcall setPetSkill(long long petIndex, long long skillIndex, const PET_SKILL& skill)
 	{
@@ -332,22 +332,22 @@ public://actions
 		petSkill_.insert(petIndex, skills);
 	}
 
-	inline Q_REQUIRED_RESULT PARTY __fastcall getParty(long long partyIndex) const { /*QReadLocker locker(&teamInfoLock_); */ return party_.value(partyIndex); }
-	inline Q_REQUIRED_RESULT QHash<long long, PARTY> __fastcall getParties() const { /*QReadLocker locker(&teamInfoLock_); */ return party_.toHash(); }
+	inline [[nodiscard]] PARTY __fastcall getParty(long long partyIndex) const { /*QReadLocker locker(&teamInfoLock_); */ return party_.value(partyIndex); }
+	inline [[nodiscard]] QHash<long long, PARTY> __fastcall getParties() const { /*QReadLocker locker(&teamInfoLock_); */ return party_.toHash(); }
 
-	inline Q_REQUIRED_RESULT ITEM __fastcall getPetEquip(long long petIndex, long long equipIndex) const {/* QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex).value(equipIndex); }
-	inline Q_REQUIRED_RESULT QHash<long long, ITEM> __fastcall getPetEquips(long long petIndex) const { /*QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex); }
+	inline [[nodiscard]] ITEM __fastcall getPetEquip(long long petIndex, long long equipIndex) const {/* QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex).value(equipIndex); }
+	inline [[nodiscard]] QHash<long long, ITEM> __fastcall getPetEquips(long long petIndex) const { /*QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex); }
 
-	inline Q_REQUIRED_RESULT ADDRESS_BOOK __fastcall getAddressBook(long long index) const { return addressBook_.value(index); }
-	inline Q_REQUIRED_RESULT QHash<long long, ADDRESS_BOOK> __fastcall getAddressBooks() const { return addressBook_.toHash(); }
+	inline [[nodiscard]] ADDRESS_BOOK __fastcall getAddressBook(long long index) const { return addressBook_.value(index); }
+	inline [[nodiscard]] QHash<long long, ADDRESS_BOOK> __fastcall getAddressBooks() const { return addressBook_.toHash(); }
 
-	inline Q_REQUIRED_RESULT battledata_t __fastcall getBattleData() const { return battleData.get(); }
-	inline Q_REQUIRED_RESULT JOBDAILY __fastcall getJobDaily(long long index) const { return jobdaily_.value(index); }
-	inline Q_REQUIRED_RESULT QHash<long long, JOBDAILY> __fastcall getJobDailys() const { return jobdaily_.toHash(); }
-	inline Q_REQUIRED_RESULT CHARLISTTABLE __fastcall getCharListTable(long long index) const { return chartable_.value(index); }
-	inline Q_REQUIRED_RESULT MAIL_HISTORY __fastcall getMailHistory(long long index) const { return mailHistory_.value(index); }
+	inline [[nodiscard]] battledata_t __fastcall getBattleData() const { return battleData.get(); }
+	inline [[nodiscard]] JOBDAILY __fastcall getJobDaily(long long index) const { return jobdaily_.value(index); }
+	inline [[nodiscard]] QHash<long long, JOBDAILY> __fastcall getJobDailys() const { return jobdaily_.toHash(); }
+	inline [[nodiscard]] CHARLISTTABLE __fastcall getCharListTable(long long index) const { return chartable_.value(index); }
+	inline [[nodiscard]] MAIL_HISTORY __fastcall getMailHistory(long long index) const { return mailHistory_.value(index); }
 
-	Q_REQUIRED_RESULT long long __fastcall findInjuriedAllie();
+	[[nodiscard]] long long __fastcall findInjuriedAllie();
 
 	void __fastcall refreshItemInfo();
 
@@ -362,10 +362,10 @@ private:
 	void __fastcall setOnlineFlag(bool enable);
 
 	void __fastcall getCharMaxCarryingCapacity();
-	inline Q_REQUIRED_RESULT constexpr bool __fastcall isItemStackable(long long flg) { return ((flg >> 2) & 1); }
+	inline [[nodiscard]] constexpr bool __fastcall isItemStackable(long long flg) { return ((flg >> 2) & 1); }
 	QString __fastcall getAreaString(long long target);
-	Q_REQUIRED_RESULT bool __fastcall matchPetNameByIndex(long long index, const QString& name);
-	Q_REQUIRED_RESULT long long __fastcall getProfessionSkillIndexByName(const QString& names) const;
+	[[nodiscard]] bool __fastcall matchPetNameByIndex(long long index, const QString& name);
+	[[nodiscard]] long long __fastcall getProfessionSkillIndexByName(const QString& names) const;
 
 #pragma region BattleFunctions
 	long long __fastcall playerDoBattleWork(const battledata_t& bt);
@@ -394,17 +394,17 @@ private:
 	bool __fastcall matchBattleTarget(const QVector<battleobject_t>& btobjs, BattleMatchType matchtype, long long firstMatchPos, QString op, QVariant cmpvar, long long* ppos);
 	bool __fastcall conditionMatchTarget(QVector<battleobject_t> btobjs, const QString& conditionStr, long long* ppos);
 
-	Q_REQUIRED_RESULT long long __fastcall getBattleSelectableEnemyTarget(const battledata_t& bt) const;
+	[[nodiscard]] long long __fastcall getBattleSelectableEnemyTarget(const battledata_t& bt) const;
 
-	Q_REQUIRED_RESULT long long __fastcall getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const;
+	[[nodiscard]] long long __fastcall getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const;
 
-	Q_REQUIRED_RESULT long long __fastcall getBattleSelectableAllieTarget(const battledata_t& bt) const;
+	[[nodiscard]] long long __fastcall getBattleSelectableAllieTarget(const battledata_t& bt) const;
 
-	Q_REQUIRED_RESULT bool __fastcall matchBattleEnemyByName(const QString& name, bool isExact, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
-	Q_REQUIRED_RESULT bool __fastcall matchBattleEnemyByLevel(long long level, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
-	Q_REQUIRED_RESULT bool __fastcall matchBattleEnemyByMaxHp(long long  maxHp, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	[[nodiscard]] bool __fastcall matchBattleEnemyByName(const QString& name, bool isExact, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	[[nodiscard]] bool __fastcall matchBattleEnemyByLevel(long long level, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	[[nodiscard]] bool __fastcall matchBattleEnemyByMaxHp(long long  maxHp, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
 
-	Q_REQUIRED_RESULT long long __fastcall getGetPetSkillIndexByName(long long etIndex, const QString& name) const;
+	[[nodiscard]] long long __fastcall getGetPetSkillIndexByName(long long etIndex, const QString& name) const;
 
 	bool __fastcall fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget, long long* target) const;
 	bool __fastcall fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget, long long* target) const;
@@ -460,6 +460,8 @@ private:
 
 	std::atomic_bool IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
 
+	std::atomic_bool battleBackupThreadFlag = false;
+
 	PC pc_ = {};
 
 	util::SafeHash<long long, PARTY> party_ = {};
@@ -482,6 +484,7 @@ private:
 	//戰鬥相關
 	std::atomic_llong battleCharCurrentPos = 0;
 	std::atomic_llong battleBpFlag = 0;
+	std::atomic_llong battleField = 0;
 	std::atomic_bool battleCharEscapeFlag = 0;
 	std::atomic_llong battleCharCurrentMp = 0;
 	std::atomic_llong battleCurrentAnimeFlag = 0;
@@ -576,8 +579,6 @@ public:
 	util::SafeHash<long long, QVariant> itemInfoRowContents;
 	util::SafeHash<long long, QVariant> equipInfoRowContents;
 	util::SafeData<QStringList> enemyNameListCache;
-	util::SafeData<QVariant> topInfoContents;
-	util::SafeData<QVariant> bottomInfoContents;
 	util::SafeData<QString> timeLabelContents;
 	util::SafeData<QString> labelCharAction;
 	util::SafeData<QString> labelPetAction;

@@ -34,6 +34,24 @@ void Lssproto::lssproto_CharLogout_send(int Flg)
 	autil_->util_Send(LSSPROTO_CHARLOGOUT_SEND, Flg);
 }
 
+//往指定方向查看觸發對話的效果
+void Lssproto::lssproto_L_send(int dir)
+{
+	autil_->util_Send(LSSPROTO_L_SEND, dir);
+}
+
+//遇敵
+void Lssproto::lssproto_EN_send(const QPoint& pos)
+{
+	autil_->util_Send(LSSPROTO_EN_SEND, pos.x(), pos.y());
+}
+
+//退出觀戰
+void Lssproto::lssproto_BU_send(int dummy)
+{
+	autil_->util_Send(LSSPROTO_BU_SEND, dummy);
+}
+
 //開關封包
 void Lssproto::lssproto_FS_send(int flg)
 {

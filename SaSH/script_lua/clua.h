@@ -56,7 +56,7 @@ namespace luadebug
 		{ ERROR_PARAM_SIZE_RANGE, QObject::tr("request param size is between %1 to %2, but import %3") },
 	};
 
-	inline Q_REQUIRED_RESULT long long __fastcall getCurrentLine(lua_State* L)
+	inline [[nodiscard]] long long __fastcall getCurrentLine(lua_State* L)
 	{
 		if (L)
 		{
@@ -70,7 +70,7 @@ namespace luadebug
 		return -1;
 	}
 
-	inline Q_REQUIRED_RESULT long long __fastcall getCurrentLine(const sol::this_state& s)
+	inline [[nodiscard]] long long __fastcall getCurrentLine(const sol::this_state& s)
 	{
 		lua_State* L = s.lua_state();
 		if (L)
@@ -79,7 +79,7 @@ namespace luadebug
 			return -1;
 	}
 
-	inline Q_REQUIRED_RESULT lua_Debug __fastcall getCurrentInfo(lua_State* L)
+	inline [[nodiscard]] lua_Debug __fastcall getCurrentInfo(lua_State* L)
 	{
 		lua_Debug info = {};
 		if (L)
@@ -94,7 +94,7 @@ namespace luadebug
 		return info;
 	}
 
-	inline Q_REQUIRED_RESULT lua_Debug __fastcall getCurrentInfo(const sol::this_state& s)
+	inline [[nodiscard]] lua_Debug __fastcall getCurrentInfo(const sol::this_state& s)
 	{
 		lua_State* L = s.lua_state();
 		return getCurrentInfo(L);
@@ -120,7 +120,7 @@ namespace luadebug
 	//從錯誤訊息中擷取行號
 	static const QRegularExpression rexGetLine(R"(at[\s]*line[\s]*(\d+))");
 	static const QRegularExpression reGetLineEx(R"(\]:(\d+)(?=\s*:))");
-	Q_REQUIRED_RESULT QString __fastcall getErrorMsgLocatedLine(const QString& str, long long* retline);
+	[[nodiscard]] QString __fastcall getErrorMsgLocatedLine(const QString& str, long long* retline);
 
 	QPair<QString, QVariant> __fastcall getVars(lua_State*& L, long long si, long long& depth);
 	QString __fastcall getTableVars(lua_State*& L, long long si, long long& depth);
@@ -219,7 +219,7 @@ public:
 	long long logback(sol::this_state s);//ok
 	long long eo(sol::this_state s);//ok
 	long long cleanchat(sol::this_state s);//ok
-	long long talk(sol::object ostr, sol::this_state s);
+	long long talk(sol::object ostr, sol::object ocolor, sol::object omode, sol::this_state s);
 	long long press(std::string buttonStr, long long unitid, long long dialogid, sol::this_state s);//ok
 	long long press(long long row, long long unitid, long long dialogid, sol::this_state s);//ok
 	long long input(const std::string& str, long long unitid, long long dialogid, sol::this_state s);//ok

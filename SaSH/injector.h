@@ -91,21 +91,21 @@ public:
 
 	inline void __fastcall close() const { if (processHandle_) MINT::NtTerminateProcess(processHandle_, 0); }
 
-	Q_REQUIRED_RESULT inline HANDLE __fastcall getProcess() const { return processHandle_; }
+	[[nodiscard]] inline HANDLE __fastcall getProcess() const { return processHandle_; }
 
-	Q_REQUIRED_RESULT inline HWND __fastcall getProcessWindow() const { return pi_.hWnd; }
+	[[nodiscard]] inline HWND __fastcall getProcessWindow() const { return pi_.hWnd; }
 
-	Q_REQUIRED_RESULT inline long long __fastcall getProcessId() const { return pi_.dwProcessId; }
+	[[nodiscard]] inline long long __fastcall getProcessId() const { return pi_.dwProcessId; }
 
-	Q_REQUIRED_RESULT inline long long __fastcall getProcessModule() const { return hGameModule_; }
+	[[nodiscard]] inline long long __fastcall getProcessModule() const { return hGameModule_; }
 
-	Q_REQUIRED_RESULT inline bool __fastcall isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
+	[[nodiscard]] inline bool __fastcall isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
 
 	CreateProcessResult __fastcall createProcess(process_information_t& pi);
 
 	bool __fastcall injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
 
-	Q_REQUIRED_RESULT bool __fastcall isWindowAlive() const;
+	[[nodiscard]] bool __fastcall isWindowAlive() const;
 
 	long long __fastcall sendMessage(long long msg, long long wParam, long long lParam) const;
 
@@ -117,17 +117,17 @@ public:
 
 	inline void __fastcall setStringHash(util::UserSetting setting, const QString& string) { userSetting_string_hash_.insert(setting, string); }
 
-	Q_REQUIRED_RESULT inline long long __fastcall getValueHash(util::UserSetting setting) const { return userSetting_value_hash_.value(setting); }
+	[[nodiscard]] inline long long __fastcall getValueHash(util::UserSetting setting) const { return userSetting_value_hash_.value(setting); }
 
-	Q_REQUIRED_RESULT inline bool __fastcall getEnableHash(util::UserSetting setting) const { return userSetting_enable_hash_.value(setting); }
+	[[nodiscard]] inline bool __fastcall getEnableHash(util::UserSetting setting) const { return userSetting_enable_hash_.value(setting); }
 
-	Q_REQUIRED_RESULT inline QString __fastcall getStringHash(util::UserSetting setting) const { return userSetting_string_hash_.value(setting); }
+	[[nodiscard]] inline QString __fastcall getStringHash(util::UserSetting setting) const { return userSetting_string_hash_.value(setting); }
 
-	Q_REQUIRED_RESULT inline QHash<util::UserSetting, long long> __fastcall getValuesHash() const { return userSetting_value_hash_.toHash(); }
+	[[nodiscard]] inline QHash<util::UserSetting, long long> __fastcall getValuesHash() const { return userSetting_value_hash_.toHash(); }
 
-	Q_REQUIRED_RESULT inline QHash<util::UserSetting, bool> __fastcall getEnablesHash() const { return userSetting_enable_hash_.toHash(); }
+	[[nodiscard]] inline QHash<util::UserSetting, bool> __fastcall getEnablesHash() const { return userSetting_enable_hash_.toHash(); }
 
-	Q_REQUIRED_RESULT inline QHash<util::UserSetting, QString> __fastcall getStringsHash() const { return userSetting_string_hash_.toHash(); }
+	[[nodiscard]] inline QHash<util::UserSetting, QString> __fastcall getStringsHash() const { return userSetting_string_hash_.toHash(); }
 
 	inline void __fastcall setValuesHash(const QHash<util::UserSetting, long long>& hash) { userSetting_value_hash_ = hash; }
 
@@ -135,7 +135,7 @@ public:
 
 	inline void __fastcall setStringsHash(const QHash<util::UserSetting, QString>& hash) { userSetting_string_hash_ = hash; }
 
-	Q_REQUIRED_RESULT inline QVariant __fastcall getUserData(util::UserData type) const { return userData_hash_.value(type); }
+	[[nodiscard]] inline QVariant __fastcall getUserData(util::UserData type) const { return userData_hash_.value(type); }
 
 	inline void __fastcall setUserData(util::UserData type, const QVariant& data) { userData_hash_.insert(type, QVariant::fromValue(data)); }
 
@@ -157,7 +157,7 @@ public:
 
 	inline void __fastcall setParentWidget(HWND parentWidget) { parentWidget_ = parentWidget; }
 
-	Q_REQUIRED_RESULT inline HWND __fastcall getParentWidget() const { return parentWidget_; }
+	[[nodiscard]] inline HWND __fastcall getParentWidget() const { return parentWidget_; }
 
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
@@ -178,7 +178,7 @@ private:
 		return TRUE;
 	}
 
-	Q_REQUIRED_RESULT bool __fastcall isHandleValid(long long pid);
+	[[nodiscard]] bool __fastcall isHandleValid(long long pid);
 
 #if 0
 	DWORD WINAPI __fastcall getFunAddr(const DWORD* DllBase, const char* FunName);

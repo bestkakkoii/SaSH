@@ -24,11 +24,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 constexpr size_t LINEBUFSIZ = 8192u;
 
-#ifdef _MORECHARACTERS_
-constexpr long long MAX_CHARACTER = 4;
-#else
+//constexpr long long MAX_CHARACTER = 4;
 constexpr long long MAX_CHARACTER = 2;
-#endif
+
 constexpr long long CHAR_NAME_LEN = 16;
 constexpr long long CHAR_FREENAME_LEN = 32;
 constexpr long long MAGIC_NAME_LEN = 28;
@@ -40,13 +38,10 @@ constexpr long long PET_NAME_LEN = 16;
 constexpr long long PET_FREENAME_LEN = 32;
 constexpr long long CHAR_FMNAME_LEN = 33;     // 家族名稱
 
-#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
+//人物職業
 constexpr long long PROFESSION_MEMO_LEN = 84;
-#endif
-
-#ifdef _GM_IDENTIFY		// Rog ADD GM識別
+//GM識別
 constexpr long long GM_NAME_LEN = 32;
-#endif
 
 constexpr long long CHARNAMELEN = 256;
 
@@ -59,18 +54,14 @@ constexpr long long MAX_PETSKILL = 7;
 constexpr long long MAX_PARTY = 5;
 
 constexpr long long MAX_ADR_BOOK_COUNT = 4;
-#ifdef _EXTEND_AB
-constexpr long long MAX_ADR_BOOK_PAGE = 20;//20  //10   20050214 cyg 10 add to 20
-#else
+
+//constexpr long long MAX_ADR_BOOK_PAGE = 20;//20  //10   20050214 cyg 10 add to 20
 constexpr long long MAX_ADR_BOOK_PAGE = 10;
-#endif
+
 constexpr long long MAX_ADDRESS_BOOK = (MAX_ADR_BOOK_COUNT * MAX_ADR_BOOK_PAGE);
 
-#ifdef _PRO3_ADDSKILL
-constexpr long long MAX_PROFESSION_SKILL = 30;
-#else
+//constexpr long long MAX_PROFESSION_SKILL = 30;
 constexpr long long MAX_PROFESSION_SKILL = 26;
-#endif
 
 constexpr long long BATTLE_BUF_SIZE = 4;
 constexpr long long BATTLE_COMMAND_SIZE = 4096;
@@ -95,11 +86,8 @@ constexpr long long MAX_FMBANKGOLD = 100000000;
 
 constexpr long long MAX_PERSONAL_BANKGOLD = 50000000;
 
-#ifdef _FMVER21
 constexpr long long FAMILY_MAXMEMBER = 100;    // 家族人數
-#else
-constexpr long long FAMILY_MAXMEMBER = 50;    // 家族人數
-#endif
+//constexpr long long FAMILY_MAXMEMBER = 50;    // 家族人數
 
 constexpr long long MAP_TILE_GRID_X1 = -20;
 constexpr long long MAP_TILE_GRID_X2 = +17;
@@ -247,12 +235,8 @@ constexpr long long ITEM_FLAG_COOKING_MIX = (1LL << 2);
 constexpr long long ITEM_FLAG_METAL_MIX = (1LL << 3);	//金屬
 constexpr long long ITEM_FLAG_JEWEL_MIX = (1LL << 4);	//寶石
 constexpr long long ITEM_FLAG_FIX_MIX = (1LL << 5);	//修理
-#ifdef _ITEM_INTENSIFY
 constexpr long long ITEM_FLAG_INTENSIFY_MIX = (1LL << 6);	//強化
-#endif
-#ifdef _ITEM_UPINSLAY
 constexpr long long ITEM_FLAG_UPINSLAY_MIX = (1LL << 7);	//鑿孔
-#endif
 
 constexpr long long JOY_RIGHT = (1LL << 15);/* Right Key				*/
 constexpr long long JOY_LEFT = (1LL << 14);/*  Left Key				*/
@@ -307,22 +291,16 @@ constexpr long long LSTIME_HOURS_PER_DAY = 1024LL;
 constexpr long long LSTIME_DAYS_PER_YEAR = 100LL;
 
 #if 0
-
 constexpr long long  NIGHT_TO_MORNING = 906;
 constexpr long long  MORNING_TO_NOON = 1006;
 constexpr long long  NOON_TO_EVENING = 356;
 constexpr long long  EVENING_TO_NIGHT = 456;
-
 #else
-
 constexpr long long NIGHT_TO_MORNING = 700;
 constexpr long long MORNING_TO_NOON = 930;
 constexpr long long NOON_TO_EVENING = 200;
 constexpr long long EVENING_TO_NIGHT = 300;
-
 #endif
-
-
 #pragma endregion
 
 #pragma region Enums
@@ -441,157 +419,103 @@ enum FUNCTIONTYPE
 
 	LSSPROTO_MA_SEND = 98,
 
-#ifdef _FIX_DEL_MAP
-	LSSPROTO_DM_SEND = 99   // 玩家抽地圖送監獄,
-#endif
-#ifdef _ITEM_CRACKER
+	LSSPROTO_DM_SEND = 99,   // 玩家抽地圖送監獄,
 	LSSPROTO_IC_RECV = 100,
-#endif
-#ifdef _MAGIC_NOCAST//沈默,
 	LSSPROTO_NC_RECV = 101,
-#endif
-#ifdef _CHECK_GAMESPEED
+
 	LSSPROTO_CS_SEND = 103,
 	LSSPROTO_CS_RECV = 104,
-#endif
-#ifdef _TEAM_KICKPARTY
-	LSSPROTO_KTEAM_SEND = 106,
-#endif
 
-#ifdef _PETS_SELECTCON
+	LSSPROTO_KTEAM_SEND = 106,
+
 	LSSPROTO_PETST_RECV = 107,
-#endif
-#ifdef _NEWREQUESTPROTOCOL			// (不可開) Syu ADD 新增Protocol要求細項,
+
+	//新增Protocol要求細項,
 	LSSPROTO_RESIST_SEND = 108,
 	LSSPROTO_RESIST_RECV = 109,
-#endif
-#ifdef _OUTOFBATTLESKILL			// (不可開) Syu ADD 非戰鬥時技能Protocol,
+	//非戰鬥時技能Protocol,
 	LSSPROTO_BATTLESKILL_SEND = 110,
 	LSSPROTO_BATTLESKILL_RECV = 111,
-#endif
-#ifdef _CHATROOMPROTOCOL			// (不可開) Syu ADD 聊天室頻道,
+
 	LSSPROTO_CHATROOM_SEND = 112,
 	LSSPROTO_CHATROOM_RECV = 113,
-#endif
+
 	LSSPROTO_SPET_SEND = 114,		// Robin 待機寵,
 	LSSPROTO_SPET_RECV = 115,
-#ifdef _STREET_VENDOR
-	LSSPROTO_STREET_VENDOR_SEND = 116		// 擺攤功能,
+
+	LSSPROTO_STREET_VENDOR_SEND = 116,		// 擺攤功能,
 	LSSPROTO_STREET_VENDOR_RECV = 117,
-#endif
-#ifdef _JOBDAILY
+
 	LSSPROTO_JOBDAILY_SEND = 121,		// CYG　任務日志功能,
 	LSSPROTO_JOBDAILY_RECV = 120,
-#endif
 
-#ifdef _TEACHER_SYSTEM
 	LSSPROTO_TEACHER_SYSTEM_SEND = 122,		// 導師功能,
 	LSSPROTO_TEACHER_SYSTEM_RECV = 123,
-#endif
 
 	LSSPROTO_S2_SEND = 124,
 	LSSPROTO_S2_RECV = 125,
 
-#ifdef _ITEM_FIREWORK
 	LSSPROTO_FIREWORK_RECV = 126,
-#endif
-#ifdef _PET_ITEM
+
 	LSSPROTO_PET_ITEM_EQUIP_SEND = 127,
-#endif
-#ifdef _MOVE_SCREEN
+
 	LSSPROTO_MOVE_SCREEN_RECV = 128,
-#endif
-#ifdef _GET_HOSTNAME
+
 	LSSPROTO_HOSTNAME_SEND = 129,
 	LSSPROTO_HOSTNAME_RECV = 130,
-#endif
-#ifdef _THEATER
+
 	LSSPROTO_THEATER_DATA_RECV = 131,
 	LSSPROTO_THEATER_DATA_SEND = 132,
-#endif
 
-#ifdef _NPC_MAGICCARD
 	LSSPROTO_MAGICCARD_ACTION_RECV = 133,
 	LSSPROTO_MAGICCARD_DAMAGE_RECV = 134,
-#endif
 
-#ifdef _SECONDARY_WINDOW_DATA_
 	LSSPROTO_SECONDARY_WINDOW_RECV = 137,
-#endif
 
-#ifdef _ICONBUTTONS_
 	LSSPROTO_TRUNTABLE_RECV = 138,
-#endif
 
-#ifdef _ALCHEPLUS
 	LSSPROTO_ALCHEPLUS_SEND = 135,
 	LSSPROTO_ALCHEPLUS_RECV = 136,
-#endif
 
-#ifdef _NPC_DANCE
 	LSSPROTO_DANCEMAN_OPTION_RECV = 137,
-#endif
 
-#ifdef _HUNDRED_KILL
 	LSSPROTO_HUNDREDKILL_RECV = 138,
-#endif
 
-#ifdef _PK2007
 	LSSPROTO_PKLIST_SEND = 139,
 	LSSPROTO_PKLIST_RECV = 140,
-#endif
 
-#ifdef _CHARSIGNDAY_
 	LSSPROTO_SIGNDAY_SEND = 141,
-#endif
 
 	LSSPROTO_CHAREFFECT_RECV = 146,
-#ifdef _RED_MEMOY_
+
 	LSSPROTO_REDMEMOY_SEND = 147,
 	LSSPROTO_REDMEMOY_RECV = 148,
-#endif
 
 	LSSPROTO_IMAGE_RECV = 151,
 
-#ifdef _ANNOUNCEMENT_
 	LSSPROTO_DENGON_RECV = 200,
-#endif
-#ifdef _NEW_SYSTEM_MENU
+
 	LSSPROTO_SAMENU_RECV = 201,
 	LSSPROTO_SAMENU_SEND = 202,
-#endif
-#ifdef _NEWSHOP_
+
 	LSSPROTO_SHOPOK_SEND = 208,
 	LSSPROTO_SHOPOK_RECV = 209,
-#endif
-#ifdef _FAMILYBADGE_
+
 	LSSPROTO_FAMILYBADGE_SEND = 210,
 	LSSPROTO_FAMILYBADGE_RECV = 211,
-#endif
 
-#ifdef _CHARTITLE_
 	LSSPROTO_CHARTITLE_SEND = 212,
 	LSSPROTO_CHARTITLE_RECV = 213,
-#endif
 
-#ifdef _CHARTITLE_STR_
-	LSSPROTO_CHARTITLE_SEND = 212,
-	LSSPROTO_CHARTITLE_RECV = 213,
-#endif
-
-#ifdef _PETBLESS_
 	LSSPROTO_VB_SEND = 218,
 	LSSPROTO_VB_RECV = 219,
-#endif
 
-#ifdef _RIDEQUERY_//騎寵查詢,
+	//騎寵查詢,
 	LSSPROTO_RIDEQUERY_SEND = 220,
-#endif
 
-#ifdef _PET_SKINS
 	LSSPROTO_PETSKINS_SEND = 221,
 	LSSPROTO_PETSKINS_RECV = 222,
-#endif
+
 	LSSPROTO_JOINTEAM_SEND = 239,
 	LSSPROTO_ARRAGEITEM_SEND = 260,
 };
@@ -630,7 +554,6 @@ enum GameDataOffest
 	kOffsetChatBufferMaxCount = 0x14A4F8,
 };
 
-#ifdef _ITEM_EQUITSPACE
 typedef enum tagCHAR_EquipPlace
 {
 	CHAR_EQUIPNONE = -1,
@@ -641,17 +564,15 @@ typedef enum tagCHAR_EquipPlace
 	CHAR_DECORATION1,
 	CHAR_DECORATION2,
 
-#ifdef _ITEM_EQUITSPACE
 	CHAR_EQBELT,
 	CHAR_EQSHIELD,
 	CHAR_EQSHOES,
-#endif
 
-#ifdef _EQUIT_NEWGLOVE
+
 	CHAR_EQGLOVE,
-#endif
+
 	CHAR_EQUIPPLACENUM,
-#ifdef _PET_ITEM
+
 	PET_HEAD = 0,	// 頭
 	PET_WING,		// 翼
 	PET_TOOTH,		// 牙
@@ -660,10 +581,9 @@ typedef enum tagCHAR_EquipPlace
 	PET_CLAW,		// 爪
 	PET_FOOT,		// 腳(鰭)
 	PET_EQUIPNUM
-#endif
+
 }CHAR_EquipPlace;
 
-#ifdef _PET_ITEM
 typedef enum tagITEM_CATEGORY
 {
 	// 寵物道具,共九種
@@ -679,21 +599,16 @@ typedef enum tagITEM_CATEGORY
 	ITEM_CATEGORYNUM
 }ITEM_CATEGORY;
 constexpr long long MAX_PET_ITEM = 7;
-#endif
-
 
 constexpr long long MAX_ITEMSTART = CHAR_EQUIPPLACENUM;
 constexpr long long MAX_MAXHAVEITEM = 15;
-#ifdef _NEW_ITEM_
-constexpr long long MAX_ITEM(MAX_ITEMSTART + MAX_MAXHAVEITEM * 3);
+
+//constexpr long long MAX_ITEM(MAX_ITEMSTART + MAX_MAXHAVEITEM * 3);
 //long long 判斷玩家道具數量();
-#else
 constexpr long long MAX_ITEM = (MAX_ITEMSTART + MAX_MAXHAVEITEM);
-#endif
-#else
-constexpr long long MAX_ITEMSTART = 5;
-constexpr long long MAX_ITEM = 20;
-#endif
+
+//constexpr long long MAX_ITEMSTART = 5;
+//constexpr long long MAX_ITEM = 20;
 
 enum
 {
@@ -780,9 +695,8 @@ enum CHR_STATUS
 	CHR_STATUS_FUKIDASHI = 0x2000,
 	CHR_STATUS_WATCH = 0x4000,
 	CHR_STATUS_TRADE = 0x8000,			// 交易中
-#ifdef _ANGEL_SUMMON
+
 	CHR_STATUS_ANGEL = 0x10000			// 使者任務中
-#endif
 };
 
 enum CHAROBJ_TYPE
@@ -844,7 +758,6 @@ typedef enum
 	LS_MORNING,
 }LSTIME_SECTION;
 
-#ifdef _FMVER21
 enum
 {
 	FMMEMBER_NONE = -1,  // 未加入任何家族
@@ -857,7 +770,6 @@ enum
 	//FMMEMBER_VICELEADER, // 副族長
 	FMMEMBER_NUMBER,
 };
-#endif
 
 enum
 {
@@ -877,11 +789,10 @@ enum
 	MAGIC_TARGET_OTHERWITHOUTMYSELF,//我方任意除了自己
 	MAGIC_TARGET_WITHOUTMYSELFANDPET,//我方任意除了自己和寵物
 	MAGIC_TARGET_WHOLEOTHERSIDE,//敵方全體 或 我方全體
-#ifdef __ATTACK_MAGIC
+
 	MAGIC_TARGET_SINGLE,				// 針對敵方某一方
 	MAGIC_TARGET_ONE_ROW,				// 針對敵方某一列
 	MAGIC_TARGET_ALL_ROWS,				// 針對敵方所有人
-#endif
 };
 
 enum
@@ -900,15 +811,13 @@ enum
 	PETSKILL_TARGET_ALL,
 	PETSKILL_TARGET_NONE,
 	PETSKILL_TARGET_OTHERWITHOUTMYSELF,
-	PETSKILL_TARGET_WITHOUTMYSELFANDPET
-#ifdef _BATTLESKILL				// (不可開) Syu ADD 戰鬥技能介面
-	, PETSKILL_TARGET_ONE_ROW
-	, PETSKILL_TARGET_ONE_LINE
-	, PETSKILL_TARGER_DEATH
-#endif
-#ifdef _SKILL_ADDBARRIER
-	, PETSKILL_TARGET_ONE_ROW_ALL //選我方的單排
-#endif
+	PETSKILL_TARGET_WITHOUTMYSELFANDPET,
+	// 戰鬥技能介面
+	PETSKILL_TARGET_ONE_ROW,
+	PETSKILL_TARGET_ONE_LINE,
+	PETSKILL_TARGER_DEATH,
+
+	PETSKILL_TARGET_ONE_ROW_ALL, //選我方的單排
 };
 
 enum
@@ -928,9 +837,8 @@ enum
 	ITEM_TARGET_NONE,
 	ITEM_TARGET_OTHERWITHOUTMYSELF,
 	ITEM_TARGET_WITHOUTMYSELFANDPET,
-#ifdef _PET_ITEM
+
 	ITEM_TARGET_PET
-#endif
 };
 
 enum
@@ -1053,145 +961,6 @@ enum TalkMode
 
 #pragma region Structs
 #pragma pack(8)
-#if 0
-typedef struct action
-{
-	struct 	action* pPrev, * pNext;			//上一個及下一個action指標
-	void 	(*func)(struct action*);	//action所執行的function的指標
-	void* pYobi;							//備用的struct指標
-	void* pOther;						//其它用途struct指標
-	UCHAR 	prio;							//action處理時的優先順序
-	UCHAR 	dispPrio;						//秀圖時的優先順序
-	int 	x, y;							//圖的座標
-	int		hitDispNo;						//是否命中目標編號
-	BOOL	deathFlag;						//此action是否死亡旗標
-	int 	dx, dy;							//秀圖座標位移量
-	int 	dir;							//方向
-	int 	delta;  						//合成向量
-
-	char 	name[29];						//名字
-	char 	freeName[33];					//free name
-	int 	hp;
-#ifdef _PET_ITEM
-	int		iOldHp;
-#endif
-	int 	maxHp;
-	int 	mp;
-	int 	maxMp;
-	int 	level;
-	int 	status;
-	int 	itemNameColor;
-	int		charNameColor;
-
-	int		bmpNo;							//圖號
-	int		bmpNo_bak;							//備份圖號
-	int		atr;							//屬性
-	int		state;							//狀態
-	int		actNo;							//行動編號
-	int		damage;
-
-	int		gx, gy;							//在目前的地圖上的座標
-	int		nextGx, nextGy;					//下一個座標
-	int		bufGx[10], bufGy[10];			//從目前座標到下一個座標之間座標的buffer
-	int	bufCount;						//設定目前要走到那一個座標
-	int	walkFlag;
-	float	mx, my;							//地圖座標
-	float	vx, vy;
-
-	//屬性
-	int 	earth;
-	int 	water;
-	int 	fire;
-	int 	wind;
-	//rader使用
-	int		dirCnt;
-	//gemini使用
-	int		spd;							//移動的速度(0~63)
-	int		crs;							//方向(0~31)(正上方為0,順時鐘方向)
-	int		h_mini;
-	int		v_mini;
-	//pattern使用
-	int		anim_chr_no;					//人物的編號(anim_tbl.h的編號)
-	int		anim_chr_no_bak;				//上一次的人物編號
-	int		anim_no;						//人物的動作編號
-	int		anim_no_bak;					//上一次的人物編號
-	int		anim_ang;						//動作的方向(0~7)(下0)
-	int		anim_ang_bak;					//上一次的方向
-	int		anim_cnt;						//第幾張frame
-	int		anim_frame_cnt;					//這張frame停留時間
-	int		anim_x;							//X座標(Sprbin+Adrnbin)
-	int		anim_y;							//Y座標(Sprbin+Adrnbin)
-	int		anim_hit;
-	// shan add +1
-	char    fmname[33];			            // 家族名稱
-	// Robin 0728 ride Pet
-	int		onRide;
-	char	petName[16 + 1];
-	int		petLevel;
-	int		petHp;
-	int		petMaxHp;
-	int		petDamage;
-	int		petFall;
-#ifdef _MIND_ICON
-	unsigned int sMindIcon;
-#endif
-#ifdef _SHOWFAMILYBADGE_
-	unsigned int sFamilyIcon;
-#endif
-#ifdef FAMILY_MANOR_
-	unsigned int mFamilyIcon;
-#endif
-#ifdef _CHAR_MANOR_
-	unsigned int mManorIcon;
-#endif
-#ifdef _CHARTITLE_STR_
-	TITLE_STR TitleText;
-#endif
-#ifdef _CHARTITLE_
-	unsigned int TitleIcon;
-#endif
-#ifdef _NPC_EVENT_NOTICE
-	int noticeNo;
-#endif
-
-#ifdef _SKILL_ROAR
-	int		petRoar;		//大吼(克年獸)
-#endif
-#ifdef _SKILL_SELFEXPLODE //自爆
-	int		petSelfExplode;
-#endif
-#ifdef _MAGIC_DEEPPOISION   //劇毒
-	int		petDeepPoision;
-#endif
-
-#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
-	int		profession_class;
-#endif
-	//#ifdef _BATTLESKILL				// (不可開) Syu ADD 戰鬥技能介面
-	int		warrioreffect;
-	//#endif
-#ifdef _GM_IDENTIFY		// Rog ADD GM識別
-	char gm_name[33];
-#endif
-#ifdef _STREET_VENDOR
-	char szStreetVendorTitle[64];
-#endif
-#ifdef _NPC_PICTURE
-	int picture;
-	int picturetemp;
-#endif
-#ifdef _PETSKILL_RIDE
-	int saveride;
-#endif
-#ifdef _MOUSE_DBL_CLICK
-	int index;	// 禁斷!! Server中的charaindex
-#endif
-
-#ifdef _SFUMATO
-	int sfumato;		// 二次渲染圖層色彩
-#endif
-}ACTION;
-#endif
 
 typedef struct customdialog_s
 {
@@ -1258,9 +1027,9 @@ typedef struct tagITEM
 	QString damage = "";
 	QString alch = 0; // #ifdef _ITEMSET7_TXT_ALCHEMIST
 	QString jigsaw = "";
-#ifdef _MAGIC_ITEM_
-	long long 道具類型 = 0;
-#endif
+
+	//long long 道具類型 = 0;
+
 } ITEM;
 
 typedef struct tagPC
@@ -1342,16 +1111,14 @@ typedef struct tagPC
 
 	//ACTION* pActNPC[5];		// 記錄劇場中臨時產生出來的NPC
 
-#ifdef _NEW_ITEM_
-	long long 道具欄狀態 = 0;
-#endif
-#ifdef _CHARSIGNADY_NO_
-	long long 簽到標記 = 0;
-#endif
-#ifdef _MAGIC_ITEM_
-	long long 法寶道具狀態 = 0;
-	long long 道具光環效果 = 0;
-#endif
+
+	//long long 道具欄狀態 = 0;
+
+	//long long 簽到標記 = 0;
+
+	//long long 法寶道具狀態 = 0;
+	//long long 道具光環效果 = 0;
+
 } PC;
 
 typedef struct tagPET
@@ -1427,9 +1194,9 @@ typedef struct tagADDRESS_BOOK
 	long long dp = 0;
 	long long modelid = 0;
 	QString name = "";
-#ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
+	//顯示名片星球
 	QString planetname = "";
-#endif
+
 } ADDRESS_BOOK;
 
 typedef struct tagPET_SKILL
@@ -1442,7 +1209,7 @@ typedef struct tagPET_SKILL
 	QString memo = "";
 } PET_SKILL;
 
-#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
+//人物職業
 typedef struct tagPROFESSION_SKILL
 {
 	bool valid = false;
@@ -1456,8 +1223,6 @@ typedef struct tagPROFESSION_SKILL
 	QString name = "";
 	QString memo = "";
 } PROFESSION_SKILL;
-#endif
-
 
 typedef struct tagCHARLISTTABLE
 {
@@ -1475,20 +1240,19 @@ typedef struct tagCHARLISTTABLE
 	long long pos = -1;
 	QString name = "";
 } CHARLISTTABLE;
-#ifdef _AIDENGLU_
-typedef struct
-{
-	long long 大區 = 0;
-	long long 隊模 = 0;
-	long long 小區 = 0;
-	long long 人物 = 0;
-	long long 是否自動喊話 = 0;
-	long long 是否自動遇敵 = 0;
-	long long 人物方向 = 0;
-	long long 登陸延時時間 = 0;
-	char 登陸人物名稱[4][32] = { 0 };
-}Landed;
-#endif
+
+//typedef struct
+//{
+//	long long 大區 = 0;
+//	long long 隊模 = 0;
+//	long long 小區 = 0;
+//	long long 人物 = 0;
+//	long long 是否自動喊話 = 0;
+//	long long 是否自動遇敵 = 0;
+//	long long 人物方向 = 0;
+//	long long 登陸延時時間 = 0;
+//	char 登陸人物名稱[4][32] = { 0 };
+//}Landed;
 
 constexpr int MAX_MISSION = 300;
 typedef struct tagJOBDAILY
@@ -1538,12 +1302,10 @@ struct showpet
 	QString opp_petskill5;
 	QString opp_petskill6;
 	QString opp_petskill7;
-#ifdef _SHOW_FUSION
+
 	QString opp_fusion;
-#endif
-#ifdef _PET_ITEM
+
 	PetItemInfo oPetItemInfo[MAX_PET_ITEM];			// 宠物身上的道具
-#endif
 };
 
 typedef struct dialog_s

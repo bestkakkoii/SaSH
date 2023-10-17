@@ -35,7 +35,10 @@ static QStringList getInstalledProgramsByKeyword(const QStringList& keywords)
 	{
 		QSettings subKeySettings(regPath + "\\" + subKey, QSettings::NativeFormat);
 		QString displayName = subKeySettings.value("DisplayName").toString();
-		if (displayName.isEmpty())
+		if (displayName.isEmpty() || (!displayName.contains("C++", Qt::CaseInsensitive) && !displayName.contains("Qt", Qt::CaseInsensitive)))
+			continue;
+
+		if (displayName.contains("CRT", Qt::CaseInsensitive))
 			continue;
 
 		for (const QString& keyword : keywords)
@@ -114,7 +117,9 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	setAttribute(Qt::WA_DeleteOnClose);
 	installEventFilter(this);
 	setFixedSize(800, 800);
-
+	QFont font = util::getFont();
+	font.setFamily("Consolas");
+	setFont(font);
 	setStyleSheet("QLabel { font-family: 'Consolas';}");
 
 	ui.listWidget->addItems(getInstalledProgramsByKeyword(QStringList{ "C++", ".NET", "Net Framework" }));
@@ -158,7 +163,7 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 
 	item1->setPos(70, 0);
 	item2->setPos(8, 25);
-	item3->setPos(98, 25);
+	item3->setPos(135, 25);
 	item4->setPos(0, 50);
 	item5->setPos(121, 50);
 	item6->setPos(2, 75);
@@ -204,6 +209,31 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	ui.label_ad->setText(QString(R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;">%2</a>)")
 		.arg("https://mysa.cc").arg("盖亚石器攻略网"));
 	ui.label_ad->setOpenExternalLinks(true);
+
+
+	QString stylesheet = R"(
+		QPushButton {
+			background-color: #F0F4F8;
+			border: 1px solid gray;
+			border-radius: 1px;
+			padding: 2px;
+			color: #000000;
+		}
+		
+		QPushButton:hover {
+			background-color: #006CD6;
+			color:#DFEBF6;
+		}
+		
+		QPushButton:pressed, QPushButton:checked {
+			background-color: #0080FF;
+			color:#DFEBF6;
+		}
+
+		)";
+
+	util::setPushButton(ui.buttonBox->button(QDialogButtonBox::Ok));
+	ui.buttonBox->button(QDialogButtonBox::Ok)->setText(tr("Ok"));
 
 	connect(ui.pushButton_copyinfo, &PushButton::clicked, this, &CopyRightDialog::pushButton_copyinfo_clicked);
 	connect(ui.pushButton_sysinfo, &PushButton::clicked, this, &CopyRightDialog::pushButton_sysinfo_clicked);

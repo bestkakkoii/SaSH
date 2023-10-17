@@ -171,7 +171,7 @@ public:
 
 	virtual ~ThreadPlugin() = default;
 
-	Q_REQUIRED_RESULT inline bool __fastcall isInterruptionRequested() const
+	[[nodiscard]] inline bool __fastcall isInterruptionRequested() const
 	{
 		std::shared_lock<std::shared_mutex> lock(rwLock_);
 		return isInterruptionRequested_.load(std::memory_order_acquire);

@@ -18,7 +18,7 @@ public:
 		setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 		resizeColumnToContents(1);
 		sortItems(0, Qt::AscendingOrder);
-		setIconSize(QSize(20, 20));
+		setIconSize(QSize(24, 24));
 	}
 	virtual ~TreeWidget() = default;
 };

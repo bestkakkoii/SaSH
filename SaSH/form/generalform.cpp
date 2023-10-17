@@ -17,7 +17,7 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 	, pAfkForm_(index, nullptr)
 {
 	ui.setupUi(this);
-
+	setFont(util::getFont());
 	connect(this, &GeneralForm::resetControlTextLanguage, this, &GeneralForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
@@ -31,6 +31,7 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 	{
 		if (button && !nameCheckList.contains(button->objectName()))
 		{
+			util::setPushButton(button);
 			nameCheckList.append(button->objectName());
 			connect(button, &PushButton::clicked, this, &GeneralForm::onButtonClicked, Qt::UniqueConnection);
 		}
@@ -63,9 +64,20 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 	{
 		if (comboBox && !nameCheckList.contains(comboBox->objectName()))
 		{
+			util::setComboBox(comboBox);
 			nameCheckList.append(comboBox->objectName());
 			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
 			connect(comboBox, &ComboBox::clicked, this, &GeneralForm::onComboBoxClicked, Qt::UniqueConnection);
+		}
+	}
+
+	QList <QLabel*> labelList = util::findWidgets<QLabel>(this);
+	for (auto& label : labelList)
+	{
+		if (label && !nameCheckList.contains(label->objectName()))
+		{
+			util::setLabel(label);
+			nameCheckList.append(label->objectName());
 		}
 	}
 
@@ -114,8 +126,8 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 					isFirstInstance = true;
 				else
 					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-			});
-	}
+	});
+}
 #endif
 #endif
 

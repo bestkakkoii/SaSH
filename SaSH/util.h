@@ -54,7 +54,7 @@ namespace mem
 {
 	bool __fastcall read(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, PVOID buffer);
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
-	Q_REQUIRED_RESULT T __fastcall read(HANDLE hProcess, unsigned long long desiredAccess);
+	[[nodiscard]] T __fastcall read(HANDLE hProcess, unsigned long long desiredAccess);
 
 	template char __fastcall read<char>(HANDLE hProcess, unsigned long long desiredAccess);
 	template short __fastcall read<short>(HANDLE hProcess, unsigned long long desiredAccess);
@@ -82,17 +82,17 @@ namespace mem
 	template bool __fastcall write<unsigned long>(HANDLE hProcess, unsigned long long baseAddress, unsigned long data);
 	template bool __fastcall write<unsigned long long>(HANDLE hProcess, unsigned long long baseAddress, unsigned long long data);
 
-	Q_REQUIRED_RESULT float __fastcall readFloat(HANDLE hProcess, unsigned long long desiredAccess);
-	Q_REQUIRED_RESULT qreal __fastcall readDouble(HANDLE hProcess, unsigned long long desiredAccess);
-	Q_REQUIRED_RESULT QString __fastcall readString(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, bool enableTrim = true, bool keepOriginal = false);
+	[[nodiscard]] float __fastcall readFloat(HANDLE hProcess, unsigned long long desiredAccess);
+	[[nodiscard]] qreal __fastcall readDouble(HANDLE hProcess, unsigned long long desiredAccess);
+	[[nodiscard]] QString __fastcall readString(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, bool enableTrim = true, bool keepOriginal = false);
 	bool __fastcall write(HANDLE hProcess, unsigned long long baseAddress, PVOID buffer, unsigned long long dwSize);
 	bool __fastcall writeString(HANDLE hProcess, unsigned long long baseAddress, const QString& str);
 	bool __fastcall virtualFree(HANDLE hProcess, unsigned long long baseAddress);
-	Q_REQUIRED_RESULT unsigned long long __fastcall virtualAlloc(HANDLE hProcess, unsigned long long size);
-	Q_REQUIRED_RESULT unsigned long long __fastcall virtualAllocW(HANDLE hProcess, const QString& str);
-	Q_REQUIRED_RESULT unsigned long long __fastcall virtualAllocA(HANDLE hProcess, const QString& str);
+	[[nodiscard]] unsigned long long __fastcall virtualAlloc(HANDLE hProcess, unsigned long long size);
+	[[nodiscard]] unsigned long long __fastcall virtualAllocW(HANDLE hProcess, const QString& str);
+	[[nodiscard]] unsigned long long __fastcall virtualAllocA(HANDLE hProcess, const QString& str);
 #ifndef _WIN64
-	Q_REQUIRED_RESULT DWORD __fastcall getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
+	[[nodiscard]] DWORD __fastcall getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
 #endif
 	void __fastcall freeUnuseMemory(HANDLE hProcess);
 
@@ -889,16 +889,16 @@ namespace util
 		{-1, -1}, //西北2
 	};
 
-	Q_REQUIRED_RESULT QString __fastcall applicationFilePath();
+	[[nodiscard]] QString __fastcall applicationFilePath();
 
-	Q_REQUIRED_RESULT QString __fastcall applicationDirPath();
+	[[nodiscard]] QString __fastcall applicationDirPath();
 
-	Q_REQUIRED_RESULT QString __fastcall applicationName();
+	[[nodiscard]] QString __fastcall applicationName();
 
-	Q_REQUIRED_RESULT long long __fastcall percent(long long value, long long total);
+	[[nodiscard]] long long __fastcall percent(long long value, long long total);
 
 	template<typename T>
-	inline Q_REQUIRED_RESULT QString __fastcall toQString(T d, long long base = 10)
+	inline [[nodiscard]] QString __fastcall toQString(T d, long long base = 10)
 	{
 		if constexpr (std::is_same_v<T, double>)
 		{
@@ -969,7 +969,7 @@ namespace util
 
 	}
 
-	inline Q_REQUIRED_RESULT QString __fastcall toUnicode(const char* str, bool trim = true, bool ext = true)
+	inline [[nodiscard]] QString __fastcall toUnicode(const char* str, bool trim = true, bool ext = true)
 	{
 		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//取GB2312解碼器
 		QString qstr = codec->toUnicode(str);//先以GB2312解碼轉成UNICODE
@@ -992,7 +992,7 @@ namespace util
 			return qstr.simplified();
 	}
 
-	inline Q_REQUIRED_RESULT std::string __fastcall fromUnicode(const QString& str, bool keppOrigin = false)
+	inline [[nodiscard]] std::string __fastcall fromUnicode(const QString& str, bool keppOrigin = false)
 	{
 		QString qstr = str;
 		std::wstring wstr = qstr.toStdWString();
@@ -1013,16 +1013,191 @@ namespace util
 		return s;
 	}
 
+	template<typename T>
+	QList<T*> __fastcall findWidgets(QWidget* widget)
+	{
+		QList<T*> widgets;
+
+		if (widget)
+		{
+			// 檢查 widget 是否為指定類型的控件，如果是，則添加到結果列表中
+			T* typedWidget = qobject_cast<T*>(widget);
+			if (typedWidget != nullptr)
+			{
+				widgets.append(typedWidget);
+			}
+
+			// 遍歷 widget 的子控件並遞歸查找
+			QList<QWidget*> childWidgets = widget->findChildren<QWidget*>();
+			for (QWidget* childWidget : childWidgets)
+			{
+				// 遞歸調用 findWidgets 函數並將結果合並到 widgets 列表中
+				QList<T*> childResult = findWidgets<T>(childWidget);
+				widgets += childResult;
+			}
+		}
+
+		return widgets;
+	}
+
+	inline void __fastcall setComboBox(QComboBox* pCombo)
+	{
+		if (pCombo == nullptr)
+			return;
+
+		QString styleSheet = R"(
+QComboBox {
+	color:black;
+	background-color: white;
+    border: 1px solid gray;
+	border-radius: 5px;
+}
+
+QComboBox:hover {
+    border: 2px solid #3282F6;
+}
+
+QComboBox QAbstractItemView { 
+	color:black;
+	background-color: white;
+    min-width: 200px;
+}
+
+QComboBox::drop-down {
+	color:black;
+	background-color: white;
+
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 15px;
+
+    border-left-width: 1px;
+    border-left-color: darkgray;
+    border-left-style: solid; /* just a single line */
+    border-top-right-radius: 2px; /* same radius as the QComboBox */
+    border-bottom-right-radius: 2px;
+}
+
+QComboBox::down-arrow {
+    image: url(:/image/icon_downarrow.svg);
+	width:12px;
+	height:12px;
+}
+
+
+QComboBox::down-arrow:on { /* shift the arrow when popup is open */
+    top: 1px;
+    left: 1px;
+}
+
+QListView{
+	color:black;
+	background-color: white;
+	outline:0px;
+}
+
+QListView:item{
+	color:black;
+	background-color: white;
+}
+
+QScrollBar:vertical {
+	min-height: 30px;  
+    background-color: white;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #3282F6;
+  	border: 3px solid white;
+	min-height:30px;
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background-color: #3487FF;
+}
+		)";
+
+		pCombo->setStyleSheet(styleSheet);
+		pCombo->setAttribute(Qt::WA_StyledBackground);
+		pCombo->setView(q_check_ptr(q_check_ptr(new QListView())));
+		pCombo->view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+	}
+
+	inline void __fastcall setLabel(QLabel* pLabel)
+	{
+		if (pLabel == nullptr)
+			return;
+
+		QString styleSheet = R"(
+	QLabel {
+		background-color: white;
+		border: 0px solid gray;
+		color: black;
+	}
+		)";
+		pLabel->setStyleSheet(styleSheet);
+		pLabel->setAttribute(Qt::WA_StyledBackground);
+		pLabel->setFixedHeight(19);
+
+	}
+
+	inline void __fastcall setPushButton(QPushButton* pButton)
+	{
+		if (pButton == nullptr)
+			return;
+
+		QString styleSheet = R"(
+		QPushButton {
+			background-color: white;
+			border: 1px solid gray;
+
+			border-radius: 5px;
+			padding: 2px;
+			color: black;
+		}
+		
+		QPushButton:hover {
+			background-color: #3282F6;
+			border: 1px solid #3282F6;
+			color:white;
+		}
+		
+		QPushButton:pressed, QPushButton:checked {
+			background-color: #3282FF;
+			border: 1px solid #3282FF;
+			color:white;
+		}
+
+		QPushButton:disabled {
+			background-color: #F0F4F8;
+			border: 1px solid #F0F4F8;
+			color:gray;
+		}
+)";
+
+		pButton->setStyleSheet(styleSheet);
+		pButton->setAttribute(Qt::WA_StyledBackground);
+		pButton->setFixedHeight(19);
+	}
+
 	inline void __fastcall setSpinBox(QSpinBox* pCheck)
 	{
+		if (pCheck == nullptr)
+			return;
+
 		QString styleSheet = R"(
 QSpinBox {
-    border: 1px solid black;
+	color:black;
+	background-color: white;
+    border: 1px solid gray;
+	border-radius: 5px;
 }
 
 QSpinBox:focus { 
 	border: 2px solid #3282F6;
-	background-color:#FFFFFF;
+	background-color:white;
 }
 
 QSpinBox:hover{
@@ -1031,7 +1206,7 @@ QSpinBox:hover{
 
 QSpinBox::down-button, QSpinBox::up-button {
     width: 13px;
-    border: 0px solid black;
+    border: 0px solid gray;
 }
 
 QSpinBox::up-button:hover {
@@ -1070,8 +1245,13 @@ QSpinBox::down-arrow {
 
 	inline void __fastcall setCheckBox(QCheckBox* pCheck)
 	{
+		if (pCheck == nullptr)
+			return;
+
 		QString styleSheet = R"(
 QCheckBox {
+	color:black;
+	background-color: white;
     spacing: 1px;
 }
 
@@ -1117,23 +1297,27 @@ QCheckBox::indicator:indeterminate:pressed {
 
 	inline void __fastcall setLineEdit(QLineEdit* pEdit)
 	{
+		if (pEdit == nullptr)
+			return;
+
 		QString styleSheet = R"(
 QLineEdit {
-    border: 1px solid black;
-    border-radius: 0px;
+    border: 1px solid gray;
+	border-radius: 5px;
     padding: 0 4px;
-    background: none;
+    background-color: white;
     selection-background-color: #3A79B8;
 	height: 20px;
 }
 
 QLineEdit:focus { 
 	border: 2px solid #3282F6;
-	background-color:#FFFFFF;
+	background-color:white;
 }
 
 QLineEdit:hover{
 	border: 2px solid #3282F6;
+	background-color:white;
 }
 		)";
 
@@ -1144,19 +1328,28 @@ QLineEdit:hover{
 
 	inline void __fastcall setTab(QTabWidget* pTab)
 	{
+		if (pTab == nullptr)
+			return;
+
 		QString styleSheet = R"(
 			QTabWidget{
-				background-color:rgb(249, 249, 249);
-				background-clip:rgb(31, 31, 31);
-				background-origin:rgb(31, 31, 31);
+				color: black;
+				background-color: white;
+				border-top:2px solid gray;
+
+				background-clip:gray;
+				background-origin:gray;
 			}
 
 			QTabWidget::pane{
+				color: black;
+				background-color: white;
+				border-top:2px solid gray;
+
 				top:0px;
-				border-top:2px solid #000000;
-				border-bottom:1px solid rgb(61,61,61);
-				border-right:1px solid rgb(61,61,61);
-				border-left:1px solid rgb(61,61,61);
+				border-bottom:1px solid gray;
+				border-right:1px solid gray;
+				border-left:1px solid gray;
 			}
 
 			QTabWidget::tab-bar
@@ -1168,59 +1361,60 @@ QLineEdit:hover{
 			}
 
 			QTabBar::tab:first{
-				background:rgb(249, 249, 249);
+				color: black;
+				background-color: white;
+				border-top:2px solid gray;
 
 				padding-left:0px;
 				padding-right:0px;
-				/*width:100px;*/
 				height:18px;
 				margin-left:0px;
 				margin-right:0px;
-
-				border-top:2px solid rgb(31, 31, 31);
 			}
 
 			QTabBar::tab:middle{
-				background:rgb(249, 249, 249);
+				color: black;
+				background-color: white;
+				border-top:2px solid gray;
+
 				padding-left:0px;
 				padding-right:0px;
 				height:18px;
 				margin-left:0px;
 				margin-right:0px;
-
-				border-top:2px solid rgb(31, 31, 31);
-
 			}
 
 			QTabBar::tab:last{
-				background:rgb(249, 249, 249);
+				color: black;
+				background-color: white;
+				border-top:2px solid gray;
 
 				padding-left:0px;
 				padding-right:0px;
 				height:18px;
 				margin-left:0px;
 				margin-right:0px;
-
-				border-top:2px solid rgb(31, 31, 31);
 			}
 
 			QTabBar::tab:selected{
-				color:FFFFFF;
-				background:#3282F6;
+				color:white;
+				background-color: #398FFE;
 				border-top:2px solid #3282F6;
 
 			}
 
 			QTabBar::tab:hover{
-				coloe:FFFFFF;
-				background:#3282F6;
+				color:white;
+				background-color: #398FFE;
 				border-top:2px solid #3282F6;
+
 				padding-left:0px;
 				padding-right:0px;
 				height:18px;
 				margin-left:0px;
 				margin-right:0px;
 			}
+
 		)";
 
 		pTab->setStyleSheet(styleSheet);
@@ -1231,54 +1425,179 @@ QLineEdit:hover{
 		pTabBar->setExpanding(true);
 	}
 
+	inline void __fastcall setTableWidget(QTableWidget* pWidget)
+	{
+		if (pWidget == nullptr)
+			return;
+
+		pWidget->setAttribute(Qt::WA_StyledBackground);
+
+		QString style = R"(
+QWidget {
+    color: black;
+    background-color: white;
+}
+
+QTableWidget {
+    color: black;
+    background-color: white;
+    border: 1px solid gray;
+    alternate-background-color: white;
+    gridline-color: gray;
+	font-size:12px;
+	outline:0px; /*虛線框*/
+}
+
+QTableWidget QTableCornerButton::section {
+    background-color: white;
+    border: 1px solid gray;
+}
+
+QHeaderView::section {
+    color: black;
+    background-color: white;
+	border: 1px solid gray;
+}
+
+QHeaderView::section:horizontal
+{
+    color: black;
+    background-color: white;
+}
+
+QHeaderView::section:vertical
+{
+    color: black;
+    background-color: white;
+}
+
+QTableWidget::item {
+    color: black;
+    background-color: white;
+	min-height: 11px;
+    font-size:12px;
+}
+
+QTableWidget::item:selected {
+    color: white;
+    background-color:black;
+}
+
+QTableWidget::item:hover {
+    color: white;
+    background-color:black;
+}
+
+QScrollBar:vertical {
+	min-height: 30px;  
+    background-color: white; 
+}
+
+QScrollBar::handle:vertical {
+    background-color: white;
+  	border: 3px solid  white;
+	min-height:30px;
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background-color: #3487FF;
+}
+
+QScrollBar:horizontal {
+    background-color: white; 
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #3282F6;
+  	border: 3px solid white;
+	min-width:50px;
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background-color: #3487FF;
+}
+		)";
+
+		pWidget->setStyleSheet(style);
+	}
+
+	inline void __fastcall setWidget(QMainWindow* pWidget)
+	{
+		if (pWidget == nullptr)
+			return;
+
+		pWidget->setAttribute(Qt::WA_StyledBackground);
+
+		QString style = R"(
+QMenuBar {
+	background-color: white;
+	color: black;
+}
+
+QMenuBar::item:selected {
+	color:white;
+    background: #3282F6;
+}
+
+QMenuBar::item:pressed {
+	color:white;
+    background: #3487FF;
+}
+
+QGroupBox {
+	background-color: white;
+	color: black;
+};
+)";
+
+		pWidget->setStyleSheet(style);
+	}
+
+	inline void __fastcall setWidget(QWidget* pWidget)
+	{
+		if (pWidget == nullptr)
+			return;
+
+		pWidget->setAttribute(Qt::WA_StyledBackground);
+
+		QString style = R"(
+QWidget {
+	background-color: white;
+	color: black;
+};
+
+QGroupBox {
+	background-color: white;
+	color: black;
+};
+)";
+
+		pWidget->setStyleSheet(style);
+	}
+
 	bool __fastcall customStringCompare(const QString& str1, const QString& str2);
 
 	QFileInfoList __fastcall loadAllFileLists(
 		TreeWidgetItem* root,
 		const QString& path,
 		QStringList* list = nullptr,
-		const QString& fileIcon = ":/image/icon_txt.png",
-		const QString& folderIcon = ":/image/icon_directory.png");
+		const QString& fileIcon = ":/image/icon_txt.svg",
+		const QString& folderIcon = ":/image/icon_directory.svg");
 
 	QFileInfoList __fastcall loadAllFileLists(
 		TreeWidgetItem* root,
 		const QString& path,
 		const QString& suffix,
 		const QString& icon, QStringList* list = nullptr,
-		const QString& folderIcon = ":/image/icon_directory.png");
+		const QString& folderIcon = ":/image/icon_directory.svg");
 
 	void __fastcall searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent);
 
 	bool __fastcall enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
 
 	QString __fastcall findFileFromName(const QString& fileName, const QString& dirpath = util::applicationDirPath());
-
-	template<typename T>
-	QList<T*> __fastcall findWidgets(QWidget* widget)
-	{
-		QList<T*> widgets;
-
-		if (widget)
-		{
-			// 檢查 widget 是否為指定類型的控件，如果是，則添加到結果列表中
-			T* typedWidget = qobject_cast<T*>(widget);
-			if (typedWidget != nullptr)
-			{
-				widgets.append(typedWidget);
-			}
-
-			// 遍歷 widget 的子控件並遞歸查找
-			QList<QWidget*> childWidgets = widget->findChildren<QWidget*>();
-			for (QWidget* childWidget : childWidgets)
-			{
-				// 遞歸調用 findWidgets 函數並將結果合並到 widgets 列表中
-				QList<T*> childResult = findWidgets<T>(childWidget);
-				widgets += childResult;
-			}
-		}
-
-		return widgets;
-	}
 
 	QString __fastcall formatMilliseconds(long long milliseconds, bool noSpace = false);
 
@@ -2194,12 +2513,12 @@ QLineEdit:hover{
 			} while (false);
 		}
 
-		Q_REQUIRED_RESULT inline bool isNull() const
+		[[nodiscard]] inline bool isNull() const
 		{
 			return !lpAddress;
 		}
 
-		Q_REQUIRED_RESULT inline bool isData(BYTE* data, long long size) const
+		[[nodiscard]] inline bool isData(BYTE* data, long long size) const
 		{
 			QScopedArrayPointer <BYTE> _data(data);
 			mem::read(hProcess, lpAddress, size, _data.data());
@@ -2216,7 +2535,7 @@ QLineEdit:hover{
 			}
 		}
 
-		Q_REQUIRED_RESULT inline bool isValid()const
+		[[nodiscard]] inline bool isValid()const
 		{
 			return (this->lpAddress) != NULL;
 		}

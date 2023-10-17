@@ -32,7 +32,7 @@ public:
 
 	virtual ~SelectTargetForm();
 
-	static Q_REQUIRED_RESULT QString generateShortName(unsigned long long flg);
+	static [[nodiscard]] QString generateShortName(unsigned long long flg);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override;

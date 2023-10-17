@@ -128,6 +128,18 @@
        <property name="frameShape">
         <enum>QFrame::NoFrame</enum>
        </property>
+       <property name="renderHints">
+        <set>QPainter::Antialiasing|QPainter::SmoothPixmapTransform|QPainter::TextAntialiasing</set>
+       </property>
+       <property name="cacheMode">
+        <set>QGraphicsView::CacheBackground</set>
+       </property>
+       <property name="resizeAnchor">
+        <enum>QGraphicsView::NoAnchor</enum>
+       </property>
+       <property name="viewportUpdateMode">
+        <enum>QGraphicsView::FullViewportUpdate</enum>
+       </property>
       </widget>
      </item>
      <item>
@@ -242,7 +254,40 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QListWidget" name="listWidget"/>
+      <widget class="ListWidget" name="listWidget">
+       <property name="styleSheet">
+        <string notr="true">QScrollBar:vertical {
+	min-height: 30px;  
+    background: #F1F1F1; 
+}
+
+QScrollBar::handle:vertical {
+    background: #2D74DB;
+  	border: 3px solid  #F1F1F1;
+	min-height:50px;
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: #3487FF;
+}
+
+QScrollBar:horizontal {
+    background: #F1F1F1; 
+}
+
+QScrollBar::handle:horizontal {
+    background: #2D74DB;
+  	border: 3px solid  #F1F1F1;
+	min-width:50px;
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: #3487FF;
+}</string>
+       </property>
+      </widget>
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
@@ -400,6 +445,11 @@
    <class>PushButton</class>
    <extends>QPushButton</extends>
    <header location="global">pushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ListWidget</class>
+   <extends>QListWidget</extends>
+   <header location="global">listwidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

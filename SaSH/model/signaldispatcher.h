@@ -107,12 +107,11 @@ signals:
 
 
 	//battleForm
-	void updateTopInfoContents(const QVariant& data);
-	void updateBottomInfoContents(const QVariant& data);
+	void updateBattleItemRowContents(long long index, const QString& text, const QColor& color = Qt::white);
 	void updateBattleTimeLabelTextChanged(const QString& text);
 	void updateLabelCharAction(const QString& text);
 	void updateLabelPetAction(const QString& text);
-	void notifyBattleActionState(long long index, bool left);
+	void notifyBattleActionState(long long index);
 	void battleTableItemForegroundColorChanged(long long index, const QColor& color);
 	void battleTableAllItemResetColor();
 

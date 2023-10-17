@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "signaldispatcher.h"
 #include "injector.h"
+#include "util.h"
 
 InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 	: QWidget(parent)
@@ -35,11 +36,12 @@ InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 	, pAfkInfoForm_(index, nullptr)
 {
 	ui.setupUi(this);
+	setFont(util::getFont());
 
 	setAttribute(Qt::WA_QuitOnClose);
 	setAttribute(Qt::WA_StyledBackground, true);
 
-	setStyleSheet(R"(background-color: #F9F9F9)");
+	util::setWidget(this);
 
 	Qt::WindowFlags windowflag = this->windowFlags();
 	windowflag |= Qt::WindowType::Tool;

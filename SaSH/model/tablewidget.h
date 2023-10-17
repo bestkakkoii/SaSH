@@ -13,66 +13,91 @@ public:
 		setFont(util::getFont());
 		setAttribute(Qt::WA_StyledBackground);
 		setStyleSheet(R"(
+QWidget {
+    color: black;
+    background: white;
+}
+
+QTableWidget {
+    color: black;
+    background-color: white;
+    border: 1px solid gray;
+    alternate-background-color: white;
+    gridline-color: gray;
+	font-size:12px;
+	outline:0px; /*虛線框*/
+}
+
+QTableWidget QTableCornerButton::section {
+    background-color: white;
+    border: 1px solid gray;
+}
+
+QHeaderView::section {
+    color: black;
+    background-color: white;
+	border: 1px solid gray;
+}
+
+QHeaderView::section:horizontal
+{
+    color: black;
+    background-color: white;
+}
+
+QHeaderView::section:vertical
+{
+    color: black;
+    background-color: white;
+}
+
 QTableWidget::item {
     color: black;
-    background: #FFFFFF;
+    background-color: white;
 	min-height: 11px;
     font-size:12px;
 }
 
 QTableWidget::item:selected {
     color: white;
-    background:black;
+    background-color:black;
 }
 
 QTableWidget::item:hover {
     color: white;
-    background:black;
-}
-
-QTableWidget {
-    color: black;
-    background: #FFFFFF;
-    border: 1px solid black;
-    alternate-background-color: rgb(214,214,214);
-    gridline-color: gray;
-	font-size:12px;
-	outline:0px; /*虛線框*/
+    background-color:black;
 }
 
 QScrollBar:vertical {
 	min-height: 30px;  
-    background: #F1F1F1; 
+    background-color: white; 
 }
 
 QScrollBar::handle:vertical {
-    background: #2D74DB;
-  	border: 3px solid  #F1F1F1;
-	min-height:50px;
+    background-color: white;
+  	border: 3px solid  white;
+	min-height:30px;
 }
 
 QScrollBar::handle:hover:vertical,
 QScrollBar::handle:pressed:vertical {
-    background: #3487FF;
+    background-color: #3487FF;
 }
 
 QScrollBar:horizontal {
-    background: #F1F1F1; 
+    background-color: white; 
 }
 
 QScrollBar::handle:horizontal {
-    background: #2D74DB;
-  	border: 3px solid  #F1F1F1;
+    background-color: #3282F6;
+  	border: 3px solid white;
 	min-width:50px;
 }
 
 QScrollBar::handle:hover:horizontal,
 QScrollBar::handle:pressed:horizontal {
-    background: #3487FF;
+    background-color: #3487FF;
 }
-
-
-
 		)");
 
 		long long rowCount = this->rowCount();
@@ -120,7 +145,31 @@ QScrollBar::handle:pressed:horizontal {
 		if (item == nullptr)
 			return;
 
+		if (item->text().simplified().remove("　").isEmpty())
+		{
+			return;
+		}
+
 		item->setForeground(color);
+	}
+
+	void setItemBackground(long long row, long long column, const QColor& color)
+	{
+		QTableWidgetItem* item = QTableWidget::item(row, column);
+		if (item == nullptr)
+			return;
+
+		if (item->text().simplified().remove("　").isEmpty())
+		{
+			item->setBackground(Qt::white);
+			return;
+		}
+
+		if (color != QColor(Qt::white))
+			item->setForeground(Qt::white);
+		else
+			item->setForeground(Qt::black);
+		item->setBackground(color);
 	}
 
 	void setText(long long row, long long column, const QString& text, const QString& toolTip = "", QVariant data = QVariant())

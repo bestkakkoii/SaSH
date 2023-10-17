@@ -154,6 +154,9 @@
     </item>
     <item>
      <widget class="QGroupBox" name="groupBox_basicinfo">
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
       <property name="title">
        <string>basic info</string>
       </property>

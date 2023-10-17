@@ -77,7 +77,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>sadll</TargetName>
     <IntDir>$(SolutionDir)build\dll\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)x64\$(Configuration)\lib\</OutDir>
+    <OutDir>$(SolutionDir)Win32\$(Configuration)\lib\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>sadll</TargetName>

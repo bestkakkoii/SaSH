@@ -32,21 +32,19 @@ public:
 	virtual ~BattleInfoForm();
 
 private slots:
-	void onUpdateTopInfoContents(const QVariant& data);
-
-	void onUpdateBottomInfoContents(const QVariant& data);
-
 	void onUpdateTimeLabelContents(const QString& text);
 
 	void onUpdateLabelCharAction(const QString& text);
 
 	void onUpdateLabelPetAction(const QString& text);
 
-	void onNotifyBattleActionState(long long index, bool left);
+	void onNotifyBattleActionState(long long index);
 
 	void onBattleTableItemForegroundColorChanged(long long index, const QColor& color);
 
 	void onBattleTableAllItemResetColor();
+
+	void onUpdateBattleItemRowContents(long long index, const QString& text, const QColor& color = Qt::white);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override
@@ -54,10 +52,6 @@ protected:
 		setAttribute(Qt::WA_Mapped);
 		QWidget::showEvent(e);
 	}
-
-private:
-	void __fastcall updateItemInfoRowContents(TableWidget* tableWidget, const QVariant& data);
-
 
 private:
 	Ui::BattleInfoFormClass ui;

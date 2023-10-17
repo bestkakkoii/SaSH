@@ -31,6 +31,7 @@ AfkForm::AfkForm(long long index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
+	setFont(util::getFont());
 
 	Qt::WindowFlags windowflag = this->windowFlags();
 	windowflag |= Qt::WindowType::Tool;
@@ -52,6 +53,7 @@ AfkForm::AfkForm(long long index, QWidget* parent)
 	{
 		if (button && !nameCheckList.contains(button->objectName()))
 		{
+			util::setPushButton(button);
 			nameCheckList.append(button->objectName());
 			connect(button, &PushButton::clicked, this, &AfkForm::onButtonClicked, Qt::UniqueConnection);
 		}
@@ -95,10 +97,21 @@ AfkForm::AfkForm(long long index, QWidget* parent)
 	{
 		if (comboBox && !nameCheckList.contains(comboBox->objectName()))
 		{
+			util::setComboBox(comboBox);
 			nameCheckList.append(comboBox->objectName());
 			connect(comboBox, &ComboBox::clicked, this, &AfkForm::onComboBoxClicked, Qt::UniqueConnection);
 			connect(comboBox, &ComboBox::currentTextChanged, this, &AfkForm::onComboBoxTextChanged, Qt::UniqueConnection);
 			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
+		}
+	}
+
+	QList <QLabel*> labelList = util::findWidgets<QLabel>(this);
+	for (auto& label : labelList)
+	{
+		if (label && !nameCheckList.contains(label->objectName()))
+		{
+			util::setLabel(label);
+			nameCheckList.append(label->objectName());
 		}
 	}
 

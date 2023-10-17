@@ -250,7 +250,7 @@ long long CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_
 	return 0;
 }
 
-long long CLuaSystem::talk(sol::object ostr, sol::this_state s)
+long long CLuaSystem::talk(sol::object ostr, sol::object ocolor, sol::object omode, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
@@ -272,8 +272,15 @@ long long CLuaSystem::talk(sol::object ostr, sol::this_state s)
 	else
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 1, QObject::tr("invalid value type"));
 
+	long long color = 0;
+	if (ocolor.is<long long>())
+		color = ocolor.as<long long>();
 
-	injector.worker->talk(text);
+	TalkMode mode = kTalkNormal;
+	if (omode.is<long long>() && omode.as<long long>() < kTalkModeMax)
+		mode = static_cast<TalkMode>(omode.as<long long>());
+
+	injector.worker->talk(text, color, mode);
 
 	return TRUE;
 }

@@ -41,6 +41,8 @@ ItemInfoForm::ItemInfoForm(long long index, QWidget* parent)
 	ui.tableWidget_equip->verticalHeader()->setStretchLastSection(true);
 	ui.tableWidget_item->verticalHeader()->setStretchLastSection(true);
 
+	util::setPushButton(ui.pushButton_refresh);
+
 	onResetControlTextLanguage();
 
 	Injector& injector = Injector::getInstance(index);

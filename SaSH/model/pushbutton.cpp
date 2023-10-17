@@ -9,8 +9,8 @@ PushButton::PushButton(QWidget* parent)
 	setStyleSheet(R"(
 		QPushButton {
 			background-color: #F0F4F8;
-			border: 1px solid #000000;
-			border-radius: 1px;
+			border: 1px solid gray;
+			border-radius: 5px;
 			padding: 2px;
 			color: #000000;
 		}

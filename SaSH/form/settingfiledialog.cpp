@@ -7,6 +7,7 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 	: QDialog(parent)
 {
 	ui.setupUi(this);
+	setFont(util::getFont());
 	setWindowFlags(Qt::Tool | Qt::Dialog | Qt::WindowCloseButtonHint);
 	setModal(true);
 	setAttribute(Qt::WA_QuitOnClose);

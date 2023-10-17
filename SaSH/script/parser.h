@@ -378,24 +378,24 @@ public:
 	//解析腳本
 	void parse(long long line = 0);
 
-	inline Q_REQUIRED_RESULT long long __fastcall getBeginLine() const { return lineNumber_; }
-	inline Q_REQUIRED_RESULT QString __fastcall getScriptFileName() const { return scriptFileName_; }
-	inline Q_REQUIRED_RESULT bool __fastcall isPrivate() const { return isPrivate_; }
-	inline Q_REQUIRED_RESULT QHash<long long, TokenMap> __fastcall getTokens() const { return tokens_; }
-	inline Q_REQUIRED_RESULT QHash<QString, long long> __fastcall getLabels() const { return labels_; }
-	inline Q_REQUIRED_RESULT QList<FunctionNode> __fastcall getFunctionNodeList() const { return functionNodeList_; }
-	inline Q_REQUIRED_RESULT QList<ForNode> __fastcall getForNodeList() const { return forNodeList_; }
-	inline Q_REQUIRED_RESULT QList<LuaNode> __fastcall getLuaNodeList() const { return luaNodeList_; }
-	inline Q_REQUIRED_RESULT long long __fastcall getCurrentLine() const { return lineNumber_; }
-	inline Q_REQUIRED_RESULT bool __fastcall isSubScript() const { return isSubScript_; }
-	inline Q_REQUIRED_RESULT QHash<QString, long long> __fastcall getLabels() { return labels_; }
-	inline Q_REQUIRED_RESULT Parser::Mode __fastcall getMode() const { return mode_; }
-	inline Q_REQUIRED_RESULT QSharedPointer<QStringList> __fastcall getGlobalNameListPointer() const { return globalNames_; }
-	inline Q_REQUIRED_RESULT QSharedPointer<Counter> __fastcall getCounterPointer() const { return counter_; }
-	inline Q_REQUIRED_RESULT QSharedPointer<QStack<QVariantHash>> __fastcall getLocalVarStackPointer() const { return localVarStack_; }
-	inline Q_REQUIRED_RESULT QSharedPointer<QStringList> __fastcall getLuaLocalVarStringListPointer() const { return luaLocalVarStringList_; }
-	inline Q_REQUIRED_RESULT Parser* __fastcall getParent() const { return pparent_; }
-	inline Q_REQUIRED_RESULT Interpreter* __fastcall getInterpreter() const { return pinterpreter_; }
+	inline [[nodiscard]] long long __fastcall getBeginLine() const { return lineNumber_; }
+	inline [[nodiscard]] QString __fastcall getScriptFileName() const { return scriptFileName_; }
+	inline [[nodiscard]] bool __fastcall isPrivate() const { return isPrivate_; }
+	inline [[nodiscard]] QHash<long long, TokenMap> __fastcall getTokens() const { return tokens_; }
+	inline [[nodiscard]] QHash<QString, long long> __fastcall getLabels() const { return labels_; }
+	inline [[nodiscard]] QList<FunctionNode> __fastcall getFunctionNodeList() const { return functionNodeList_; }
+	inline [[nodiscard]] QList<ForNode> __fastcall getForNodeList() const { return forNodeList_; }
+	inline [[nodiscard]] QList<LuaNode> __fastcall getLuaNodeList() const { return luaNodeList_; }
+	inline [[nodiscard]] long long __fastcall getCurrentLine() const { return lineNumber_; }
+	inline [[nodiscard]] bool __fastcall isSubScript() const { return isSubScript_; }
+	inline [[nodiscard]] QHash<QString, long long> __fastcall getLabels() { return labels_; }
+	inline [[nodiscard]] Parser::Mode __fastcall getMode() const { return mode_; }
+	inline [[nodiscard]] QSharedPointer<QStringList> __fastcall getGlobalNameListPointer() const { return globalNames_; }
+	inline [[nodiscard]] QSharedPointer<Counter> __fastcall getCounterPointer() const { return counter_; }
+	inline [[nodiscard]] QSharedPointer<QStack<QVariantHash>> __fastcall getLocalVarStackPointer() const { return localVarStack_; }
+	inline [[nodiscard]] QSharedPointer<QStringList> __fastcall getLuaLocalVarStringListPointer() const { return luaLocalVarStringList_; }
+	inline [[nodiscard]] Parser* __fastcall getParent() const { return pparent_; }
+	inline [[nodiscard]] Interpreter* __fastcall getInterpreter() const { return pinterpreter_; }
 
 	inline void __fastcall setScriptFileName(const QString& scriptFileName) { scriptFileName_ = scriptFileName; }
 	inline void __fastcall setCurrentLine(const long long line) { lineNumber_ = line; }
@@ -445,9 +445,9 @@ public:
 	bool __fastcall loadString(const QString& content);
 
 public:
-	inline Q_REQUIRED_RESULT bool __fastcall hasToken() const { return !tokens_.isEmpty(); }
+	inline [[nodiscard]] bool __fastcall hasToken() const { return !tokens_.isEmpty(); }
 
-	inline Q_REQUIRED_RESULT const QHash<long long, TokenMap> __fastcall getToken() const { return tokens_; }
+	inline [[nodiscard]] const QHash<long long, TokenMap> __fastcall getToken() const { return tokens_; }
 
 	void __fastcall insertUserCallBack(const QString& name, const QString& type);
 
@@ -469,7 +469,7 @@ public:
 
 public:
 
-	Q_REQUIRED_RESULT bool __fastcall isGlobalVarContains(const QString& name);
+	[[nodiscard]] bool __fastcall isGlobalVarContains(const QString& name);
 
 	QVariant __fastcall getGlobalVarValue(const QString& name);
 
@@ -535,30 +535,30 @@ private:
 
 	void __fastcall checkCallArgs(long long line);
 
-	Q_REQUIRED_RESULT bool __fastcall isLocalVarContains(const QString& name);
+	[[nodiscard]] bool __fastcall isLocalVarContains(const QString& name);
 
-	Q_REQUIRED_RESULT QVariant __fastcall getLocalVarValue(const QString& name);
+	[[nodiscard]] QVariant __fastcall getLocalVarValue(const QString& name);
 
 	void __fastcall removeLocalVar(const QString& name);
 
 	void __fastcall removeGlobalVar(const QString& name);
 
-	Q_REQUIRED_RESULT QVariantHash __fastcall getLocalVars() const;
+	[[nodiscard]] QVariantHash __fastcall getLocalVars() const;
 
-	Q_REQUIRED_RESULT QVariantHash& __fastcall getLocalVarsRef();
+	[[nodiscard]] QVariantHash& __fastcall getLocalVarsRef();
 
 	inline void __fastcall next() { ++lineNumber_; }
 
-	inline Q_REQUIRED_RESULT bool __fastcall empty() const { return !tokens_.contains(lineNumber_); }
+	inline [[nodiscard]] bool __fastcall empty() const { return !tokens_.contains(lineNumber_); }
 
-	inline Q_REQUIRED_RESULT RESERVE __fastcall getCurrentFirstTokenType() const
+	inline [[nodiscard]] RESERVE __fastcall getCurrentFirstTokenType() const
 	{
 		Token token = currentLineTokens_.value(0, Token{});
 		return token.type;
 	}
 
 	template <typename T>
-	inline Q_REQUIRED_RESULT T __fastcall getToken(long long index) const
+	inline [[nodiscard]] T __fastcall getToken(long long index) const
 	{
 		if (currentLineTokens_.contains(index))
 		{
@@ -572,11 +572,11 @@ private:
 		return T();
 	}
 
-	inline Q_REQUIRED_RESULT RESERVE __fastcall getTokenType(long long index) const { return currentLineTokens_.value(index).type; }
+	inline [[nodiscard]] RESERVE __fastcall getTokenType(long long index) const { return currentLineTokens_.value(index).type; }
 
-	inline Q_REQUIRED_RESULT long long __fastcall size() const { return tokens_.size(); }
+	inline [[nodiscard]] long long __fastcall size() const { return tokens_.size(); }
 
-	inline Q_REQUIRED_RESULT TokenMap __fastcall getCurrentTokens() const { return currentLineTokens_; }
+	inline [[nodiscard]] TokenMap __fastcall getCurrentTokens() const { return currentLineTokens_; }
 
 	long long __fastcall matchLineFromLabel(const QString& label) const;
 
@@ -586,7 +586,7 @@ private:
 
 	ForNode __fastcall getForNodeByLineIndex(long long line) const;
 
-	Q_REQUIRED_RESULT QVariantList& __fastcall getArgsRef();
+	[[nodiscard]] QVariantList& __fastcall getArgsRef();
 
 public:
 	QSharedPointer<CLua> pLua_ = nullptr;

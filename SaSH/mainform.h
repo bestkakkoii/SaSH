@@ -108,6 +108,10 @@ private slots:
 	void onAppendScriptLog(const QString& text, long long color = 0);
 	void onAppendChatLog(const QString& text, long long color = 0);
 
+signals:
+	void messageBoxFinished();
+	void inputBoxFinished();
+
 private:
 	bool markAsClose_ = false;
 	Ui::MainFormClass ui;

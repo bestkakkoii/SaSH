@@ -11,17 +11,23 @@ public:
 	explicit ListWidget(QWidget* parent = nullptr)
 		: QListWidget(parent)
 	{
+		setFont(util::getFont());
 		setAttribute(Qt::WA_StyledBackground);
 		setStyleSheet(R"(
+QListWidget{
+	color:black;
+	background-color: white;
+}
+
 QScrollBar:vertical {
 	min-height: 30px;  
-    background: #F1F1F1; 
+    background: white; 
 }
 
 QScrollBar::handle:vertical {
-    background: #2D74DB;
-  	border: 3px solid  #F1F1F1;
-	min-height:50px;
+    background: white;
+  	border: 3px solid  white;
+	min-height:30px;
 }
 
 QScrollBar::handle:hover:vertical,
@@ -30,12 +36,12 @@ QScrollBar::handle:pressed:vertical {
 }
 
 QScrollBar:horizontal {
-    background: #F1F1F1; 
+    background: white; 
 }
 
 QScrollBar::handle:horizontal {
-    background: #2D74DB;
-  	border: 3px solid  #F1F1F1;
+    background: #3282F6;
+  	border: 3px solid white;
 	min-width:50px;
 }
 

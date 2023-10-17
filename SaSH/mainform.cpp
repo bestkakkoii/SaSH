@@ -37,35 +37,22 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 #pragma region StyleSheet
 	constexpr const char* styleText = R"(
 				QMenu {
-					background-color: rgb(249, 249, 249); /*整個背景*/
-					border: 0px;
-					/*item寬度*/
-					width: 150px;
-				
+					background-color: white; /*整個背景*/
 				}
 				QMenu::item {
-					font-size: 9pt;
-					/*color: rgb(225, 225, 225); 字體顏色*/
-					border: 2px; solid rgb(249, 249, 249); /*item選框*/
-					background-color: rgb(249, 249, 249);
-					padding: 10px 10px; /*設置菜單項文字上下和左右的內邊距，效果就是菜單中的條目左右上下有了間隔*/
-					margin: 2px 2px; /*設置菜單項的外邊距*/
-					/*item高度*/	
-					height: 10px;
+					background-color: white;
+
 				}
 				QMenu::item:selected {
-					background-color: rgb(240, 240, 240); /*選中的樣式*/
-					border: 2px solid rgb(249, 249, 249); /*選中狀態下的邊框*/
+
 				}
 				QMenu::item:pressed {
-					/*菜單項按下效果
-					border: 0px; /*solid rgb(60, 60, 61);*/
-					background-color: rgb(50, 130, 246);
+
 				}
 			)";
 #pragma endregion
 
-	//pMenuBar->setStyleSheet(styleText);
+	pMenuBar->setStyleSheet(styleText);
 	pMenuBar->setAttribute(Qt::WA_StyledBackground, true);
 	pMenuBar->clear();
 
@@ -1091,22 +1078,15 @@ MainForm::MainForm(long long index, QWidget* parent)
 	, pScriptEditor_(index, nullptr)
 {
 	ui.setupUi(this);
+	setFont(util::getFont());
 	setAttribute(Qt::WA_StyledBackground, true);
 	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 	setFixedWidth(290);
-	setStyleSheet(R"(
-QMenuBar::item:selected {
-	color:white;
-    background: #3282F6;
-}
 
-QMenuBar::item:pressed {
-	color:white;
-    background: #3282F6;
-}
-)");
+	util::setWidget(this);
+
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
@@ -1226,6 +1206,7 @@ void MainForm::createTrayIcon()
 
 		QIcon icon = QIcon(":/image/ico.png");
 		trayIcon_.setIcon(icon);
+		trayIcon_.setToolTip(windowTitle());
 
 		trayMenu = q_check_ptr(new QMenu(this));
 		if (trayMenu == nullptr)
@@ -1256,7 +1237,6 @@ void MainForm::createTrayIcon()
 				}
 			});
 
-		trayIcon_.setToolTip(windowTitle());
 		trayIcon_.show();
 		return;
 	} while (false);
@@ -1302,7 +1282,8 @@ void MainForm::onMenuActionTriggered()
 		}
 		else
 		{
-			trayIcon_.showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
+			trayIcon_.setToolTip(windowTitle());
+			trayIcon_.showMessage(windowTitle(), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
 			hide();
 		}
 		return;
@@ -1809,7 +1790,7 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 
 	if (pEventLoop != nullptr)
 	{
-		connect(msgBox.get(), &QMessageBox::finished, pEventLoop, &QEventLoop::quit);
+		connect(this, &MainForm::messageBoxFinished, pEventLoop, &QEventLoop::quit);
 	}
 
 	msgBox->setModal(false);
@@ -1851,6 +1832,8 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 
 	if (pnret != nullptr)
 		*pnret = ret;
+
+	emit messageBoxFinished();
 }
 
 //输入框
@@ -1880,7 +1863,7 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 
 	if (pEventLoop != nullptr)
 	{
-		connect(inputDialog.get(), &QInputDialog::finished, pEventLoop, &QEventLoop::quit);
+		connect(this, &MainForm::inputBoxFinished, pEventLoop, &QEventLoop::quit);
 	}
 
 	inputDialog->setAttribute(Qt::WA_QuitOnClose);
@@ -1926,6 +1909,8 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 		*retvalue = inputDialog->textValue();
 		break;
 	}
+
+	emit inputBoxFinished();
 }
 
 //腳本日誌
@@ -2012,6 +1997,6 @@ bool MainForm::createWinapiFileDialog(const QString& startDir, QStringList filte
 	else
 	{
 		return false; // 用戶取消了操作或發生錯誤
-	}
+}
 }
 #endif

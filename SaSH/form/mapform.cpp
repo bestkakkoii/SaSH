@@ -31,6 +31,7 @@ MapForm::MapForm(long long index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
+	setFont(util::getFont());
 
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
@@ -39,7 +40,10 @@ MapForm::MapForm(long long index, QWidget* parent)
 	for (auto& button : buttonList)
 	{
 		if (button)
+		{
+			util::setPushButton(button);
 			connect(button, &PushButton::clicked, this, &MapForm::onButtonClicked, Qt::QueuedConnection);
+		}
 	}
 
 	connect(ui.tableWidget_map, &QTableWidget::cellDoubleClicked, this, &MapForm::onTableWidgetCellDoubleClicked, Qt::QueuedConnection);
@@ -53,6 +57,8 @@ MapForm::MapForm(long long index, QWidget* parent)
 		if (spinBox)
 			util::setSpinBox(spinBox);
 	}
+
+	util::setTableWidget(ui.tableWidget_map);
 
 }
 
