@@ -520,6 +520,8 @@ namespace util
 
 		kAutoAbilityEnable,
 
+		kAutoEncodeEnable,
+
 		kSettingMaxEnable,
 
 		//////////////////
@@ -823,6 +825,8 @@ namespace util
 
 		{ kAutoAbilityEnable, "AutoAbilityEnable" },
 
+		{ kAutoEncodeEnable, "AutoEncodeEnable" },
+
 		//string
 		{ kSettingMinString, "SettingMinString" },
 
@@ -976,15 +980,12 @@ namespace util
 		UINT ACP = ::GetACP();
 		if (950 == ACP && ext)
 		{
-#ifndef _DEBUG
-			// 繁體系統要轉繁體否則遊戲視窗標題會亂碼(一堆問號字)
-			std::wstring wstr = qstr.toStdWString();
-			long long size = lstrlenW(wstr.c_str());
-			QScopedArrayPointer <wchar_t> wbuf(q_check_ptr(new wchar_t[size + 1]()));
-			//繁體字碼表映射
-			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
-			qstr = util::toQString(wbuf.data());
-#endif
+			//std::wstring wstr = qstr.toStdWString();
+			//long long size = lstrlenW(wstr.c_str());
+			//QScopedArrayPointer <wchar_t> wbuf(q_check_ptr(new wchar_t[size + 1]()));
+			////繁體字碼表映射
+			//LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
+			//qstr = util::toQString(wbuf.data());
 		}
 		if (!trim)
 			return qstr;
@@ -1265,7 +1266,9 @@ QCheckBox::indicator:unchecked {
 }
 
 QCheckBox::indicator:unchecked:hover {
-	image: url(:/image/icon_uncheck.svg);
+    width: 17px;
+    height: 17px;
+	image: url(:/image/icon_uncheck_hover.svg);
 }
 
 QCheckBox::indicator:unchecked:pressed {
@@ -1277,6 +1280,8 @@ QCheckBox::indicator:checked {
 }
 
 QCheckBox::indicator:checked:hover {
+    width: 17px;
+    height: 17px;
 	image: url(:/image/icon_check.svg);
 }
 

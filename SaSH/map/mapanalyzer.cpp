@@ -907,19 +907,42 @@ MapAnalyzer::~MapAnalyzer()
 
 void MapAnalyzer::loadHotData(Downloader& downloader)
 {
-	QSet<quint16> d = {};
+	QString fileName = util::applicationDirPath() + "/lib/map/mapdata.lua";
 	QString strdata;
-	QVariant vdata;
-	if (!downloader.start(Downloader::GiteeMapData, &vdata) && vdata.isValid())
+	QSet<quint16> d = {};
+
+	if (QFile::exists(fileName))
 	{
-		QString msg = QObject::tr("Map data download failed, please check your network connection!");
-		std::wstring wmsg = msg.toStdWString();
-		MessageBoxW(nullptr, wmsg.c_str(), L"Error", MB_OK | MB_ICONERROR);
-		MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-		return;
+		util::ScopedFile file(fileName);
+		if (file.openRead())
+		{
+			strdata = file.readAll();
+		}
 	}
 
-	strdata = vdata.toString();
+	if (strdata.isEmpty())
+	{
+		QVariant vdata;
+		if (!downloader.start(Downloader::GiteeMapData, &vdata) && vdata.isValid())
+		{
+			QString msg = QObject::tr("Map data download failed, please check your network connection!");
+			std::wstring wmsg = msg.toStdWString();
+			MessageBoxW(nullptr, wmsg.c_str(), L"Error", MB_OK | MB_ICONERROR);
+			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+			return;
+		}
+
+		strdata = vdata.toString();
+		if (strdata.isEmpty())
+			return;
+
+		util::ScopedFile file(fileName);
+		if (file.openWriteNew())
+		{
+			file.write(strdata.toUtf8());
+			file.close();
+		}
+	}
 
 	sol::state lua;
 	lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::string, sol::lib::math, sol::lib::table, sol::lib::os);

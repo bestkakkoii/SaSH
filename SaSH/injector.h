@@ -456,7 +456,7 @@ private:
 		{ util::kLockPetScheduleEnable, false },
 		{ util::kBattleNoEscapeWhileLockPetEnable, false },
 
-
+		{ util::kAutoEncodeEnable, false },
 
 		{ util::kScriptDebugModeEnable, false },
 

@@ -63,5 +63,6 @@
         <file>image/icon_uparrow_blue.svg</file>
         <file>image/icon_txt.svg</file>
         <file>image/icon_directory.svg</file>
+        <file>image/icon_uncheck_hover.svg</file>
     </qresource>
 </RCC>

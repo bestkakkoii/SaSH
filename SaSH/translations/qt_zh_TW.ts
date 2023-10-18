@@ -4535,7 +4535,7 @@ New version:%2</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../map/mapanalyzer.cpp" line="915"/>
+        <location filename="../map/mapanalyzer.cpp" line="928"/>
         <source>Map data download failed, please check your network connection!</source>
         <translation>地圖熱更新數據下載失敗，請檢查您的網路連線狀態!</translation>
     </message>
