@@ -239,6 +239,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 		return true;
 	}
+#if 0
 	case kSetMove:
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
@@ -262,6 +263,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	//	qDebug() << "tcp ok";
 	//	return true;
 	//}
+#endif
 	case InterfaceMessage::kGetCurrentId:
 	{
 		*result = currentIndex;
@@ -1309,7 +1311,7 @@ void MainForm::onMenuActionTriggered()
 		else
 		{
 			trayIcon_.setToolTip(windowTitle());
-			trayIcon_.showMessage(windowTitle(), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
+			//trayIcon_.showMessage(windowTitle(), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
 			hide();
 		}
 		return;
@@ -1855,7 +1857,10 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 
 	long long ret = msgBox->exec();
 	if (ret == QDialog::Rejected)
+	{
+		emit messageBoxFinished();
 		return;
+	}
 
 	if (pnret != nullptr)
 		*pnret = ret;
@@ -1922,7 +1927,10 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 	inputDialog->setWindowFlags(inputDialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);
 	auto ret = inputDialog->exec();
 	if (ret != QDialog::Accepted)
+	{
+		emit inputBoxFinished();
 		return;
+	}
 
 	switch (type)
 	{

@@ -431,6 +431,7 @@ void Parser::initialize(Parser* pparent)
 	lua_.set_function("dlg", [this](std::string buttonstr, std::string stext, sol::object otype, sol::object otimeout, sol::this_state s)->sol::object
 		{
 			Injector& injector = Injector::getInstance(getIndex());
+			sol::state_view lua_(s);
 
 			if (injector.worker.isNull())
 				return sol::lua_nil;
@@ -523,18 +524,36 @@ void Parser::initialize(Parser* pparent)
 
 			customdialog_t dialog = injector.worker->customDialog;
 
-			QString sbtype = big5.key(dialog.button, "");
+			QString sbtype;
+			UINT acp = GetACP();
+			//if (acp != 950)
+			//{
+			//	sbtype = gb2312.key(dialog.button, "");
+			//	if (sbtype.isEmpty())
+			//		sbtype = big5.key(dialog.button, "");
+			//}
+			//else
+			//{
+			sbtype = big5.key(dialog.button, "");
 			if (sbtype.isEmpty())
 				sbtype = gb2312.key(dialog.button, "");
+			//}
+
 			if (sbtype.isEmpty())
 				sbtype = "0x" + util::toQString(static_cast<long long>(dialog.rawbutton), 16);
 
-			insertGlobalVar("vret", (sbtype.isEmpty() && dialog.row > 0) ? QVariant(dialog.row) : QVariant(sbtype));
+			//insertGlobalVar("vret", (sbtype.isEmpty() && dialog.row > 0) ? QVariant(QString("{%1,''}").arg(dialog.row)) : QVariant(QString("{'%1','%2'}").arg(sbtype).arg(dialog.rawdata)));
 
-			if (sbtype.isEmpty() && dialog.row > 0)
-				return sol::make_object(s, dialog.row);
-			else
-				return sol::make_object(s, sbtype.toUtf8().constData());
+			sol::table t = lua_.create_table();
+
+			t["row"] = dialog.row;
+
+			QByteArray data = sbtype.toUtf8();
+			t["button"] = data.constData();
+
+			t["data"] = dialog.rawdata.toUtf8().constData();
+
+			return t;
 		});
 
 

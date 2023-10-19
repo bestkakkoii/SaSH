@@ -969,6 +969,7 @@ typedef struct customdialog_s
 	BUTTON_TYPE button = BUTTON_NOTUSED;
 	long long row = 0;
 	long long rawbutton = 0;
+	QString rawdata;
 } customdialog_t;
 
 typedef struct tagLSTIME

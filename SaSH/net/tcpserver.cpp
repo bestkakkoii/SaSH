@@ -3279,7 +3279,7 @@ bool Worker::login(long long s)
 		{
 			injector.leftDoubleClick(315, 253);
 			config.writeArray<int>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
-	}
+		}
 #endif
 		break;
 	}
@@ -3430,10 +3430,10 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1000))
 				break;
 
-	}
+		}
 #endif
 		break;
-}
+	}
 	case util::kStatusSelectSubServer:
 	{
 		if (!input())
@@ -3582,7 +3582,7 @@ bool Worker::login(long long s)
 					break;
 
 			}
-	}
+		}
 #endif
 		break;
 	}
@@ -5788,11 +5788,15 @@ void Worker::setBattleEnd()
 		setGameStatus(7);
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	std::ignore = QtConcurrent::run(this, &Worker::checkAutoLockPet);
-	std::ignore = QtConcurrent::run(this, &Worker::checkAutoHeal);
+	if (!autoLockPet_.isRunning())
+		autoLockPet_ = QtConcurrent::run(this, &Worker::checkAutoLockPet);
+	if (!autoHealFuture_.isRunning())
+		autoHealFuture_ = QtConcurrent::run(this, &Worker::checkAutoHeal);
 #else
-	std::ignore = QtConcurrent::run(&Worker::checkAutoLockPet, this);
-	std::ignore = QtConcurrent::run(&Worker::checkAutoHeal, this);
+	if (!autoLockPet_.isRunning())
+		autoLockPet_ = QtConcurrent::run(&Worker::checkAutoLockPet, this);
+	if (!autoHealFuture_.isRunning())
+		autoHealFuture_ = QtConcurrent::run(&Worker::checkAutoHeal, this);
 #endif
 }
 
@@ -5811,60 +5815,58 @@ void Worker::doBattleWork(bool canDelay)
 	{
 		//asyncBattleAction(waitforBA);
 		long long recordedRound = battleCurrentRound.load(std::memory_order_acquire);
-		asyncBattleAction(canDelay);
-
 		Injector& injector = Injector::getInstance(getIndex());
 		long long resendDelay = injector.getValueHash(util::kBattleResendDelayValue);
-		if (resendDelay <= 0)
-			return;
-
-		std::ignore = QtConcurrent::run([this, recordedRound, canDelay]()
-			{
-				//備用
-				Injector& injector = Injector::getInstance(getIndex());
-				long long delay = injector.getValueHash(util::kBattleActionDelayValue);
-				long long resendDelay = injector.getValueHash(util::kBattleResendDelayValue);
-				if (resendDelay <= 0)
-					return;
-
-				QElapsedTimer timer; timer.start();
-				for (;;)
+		if (resendDelay >= 1000 && !battleBackupFuture_.isRunning())
+			battleBackupFuture_ = QtConcurrent::run([this, recordedRound, canDelay]()
 				{
-					if (isInterruptionRequested())
+					//備用
+					Injector& injector = Injector::getInstance(getIndex());
+					long long delay = injector.getValueHash(util::kBattleActionDelayValue);
+					long long resendDelay = injector.getValueHash(util::kBattleResendDelayValue);
+					if (resendDelay <= 0)
 						return;
 
-					if (battleBackupThreadFlag.load(std::memory_order_acquire))
-						return;
-
-					bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
-					bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable);
-					if (!fastChecked && !normalChecked)
-						return;
-
-					if (recordedRound != battleCurrentRound.load(std::memory_order_acquire))
-						return;
-
-					if (!getOnlineFlag())
-						return;
-
-					if (!getBattleFlag())
-						return;
-
-					if (timer.hasExpired(resendDelay + delay))
+					QElapsedTimer timer; timer.start();
+					for (;;)
 					{
-						announce(QObject::tr("[warn]Battle command transmission timeout, initiating backup instructions."));
-						break;
+						if (isInterruptionRequested())
+							return;
+
+						if (battleBackupThreadFlag.load(std::memory_order_acquire))
+							return;
+
+						bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
+						bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable);
+						if (!fastChecked && !normalChecked)
+							return;
+
+						if (recordedRound != battleCurrentRound.load(std::memory_order_acquire))
+							return;
+
+						if (!getOnlineFlag())
+							return;
+
+						if (!getBattleFlag())
+							return;
+
+						if (timer.hasExpired(resendDelay + delay))
+						{
+							announce(QObject::tr("[warn]Battle command transmission timeout, initiating backup instructions."));
+							break;
+						}
+
+						QThread::msleep(10);
 					}
 
-					QThread::msleep(10);
-				}
+					battledata_t bt = getBattleData();
+					bt.charAlreadyAction = false;
+					bt.petAlreadyAction = false;
+					setBattleData(bt);
+					asyncBattleAction(false);
+				});
 
-				battledata_t bt = getBattleData();
-				bt.charAlreadyAction = false;
-				bt.petAlreadyAction = false;
-				setBattleData(bt);
-				asyncBattleAction(false);
-			});
+		asyncBattleAction(canDelay);
 	}
 	else
 	{
@@ -10156,9 +10158,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-	}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -10217,7 +10219,7 @@ void Worker::lssproto_ABI_recv(int num, char* cdata)
 				break;
 			}
 		}
-}
+	}
 #endif
 }
 
@@ -10332,12 +10334,18 @@ void Worker::lssproto_RS_recv(char* cdata)
 
 	setBattleEnd();
 
+
+
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	std::ignore = QtConcurrent::run(this, &Worker::checkAutoDropMeat);
-	std::ignore = QtConcurrent::run(this, &Worker::checkAutoAbility);
+	if (!dropMeatFuture_.isRunning())
+		dropMeatFuture_ = QtConcurrent::run(this, &Worker::checkAutoDropMeat);
+	if (!autoAbilityFuture_.isRunning())
+		autoAbilityFuture_ = QtConcurrent::run(this, &Worker::checkAutoAbility);
 #else
-	std::ignore = QtConcurrent::run(&Worker::checkAutoDropMeat, this);
-	std::ignore = QtConcurrent::run(&Worker::checkAutoAbility, this);
+	if (!dropMeatFuture_.isRunning())
+		dropMeatFuture_ = QtConcurrent::run(&Worker::checkAutoDropMeat, this);
+	if (!autoAbilityFuture_.isRunning())
+		autoAbilityFuture_ = QtConcurrent::run(&Worker::checkAutoAbility, this);
 #endif
 }
 
@@ -10871,9 +10879,11 @@ void Worker::lssproto_EN_recv(int result, int field)
 		battleDurationTimer.restart();
 		oneRoundDurationTimer.restart();
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		std::ignore = QtConcurrent::run(this, &Worker::updateBattleTimeInfo);
+		if (!battleTimeFuture_.isRunning())
+			battleTimeFuture_ = QtConcurrent::run(this, &Worker::updateBattleTimeInfo);
 #else
-		std::ignore = QtConcurrent::run(&Worker::updateBattleTimeInfo, this);
+		if (!battleTimeFuture_.isRunning())
+			battleTimeFuture_ = QtConcurrent::run(&Worker::updateBattleTimeInfo, this);
 #endif
 	}
 }
@@ -11033,12 +11043,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-			}
+					}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-		}
-	}
+				}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11052,11 +11062,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-	}
+		}
 
 		setBattleData(bt);
 		break;
-}
+	}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -12129,7 +12139,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12179,7 +12189,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12239,7 +12249,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-			}
+	}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -12486,9 +12496,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -12626,7 +12636,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -12784,7 +12794,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}
@@ -14632,6 +14642,7 @@ void Worker::lssproto_CustomWN_recv(const QString& data)
 	_customDialog.button = button;
 	_customDialog.row = row;
 	_customDialog.rawbutton = dataList.value(2).toLongLong();
+	_customDialog.rawdata = dataStr;
 	customDialog = _customDialog;
 	IS_WAITFOR_CUSTOM_DIALOG_FLAG.store(false, std::memory_order_release);
 }

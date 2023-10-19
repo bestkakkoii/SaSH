@@ -501,6 +501,13 @@ private:
 	std::atomic_llong battleCharCurrentMp = 0;
 	std::atomic_llong battleCurrentAnimeFlag = 0;
 
+	QFuture<void> battleBackupFuture_;
+	QFuture<void> autoLockPet_;
+	QFuture<void> dropMeatFuture_;
+	QFuture<void> autoHealFuture_;
+	QFuture<void> autoAbilityFuture_;
+	QFuture<void> battleTimeFuture_;
+
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
 	QString lastSecretChatName = "";//最後一次收到密語的發送方名稱

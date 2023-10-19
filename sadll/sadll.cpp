@@ -277,7 +277,7 @@ extern "C"
 }
 
 //hooks
-SOCKET __fastcall GameService::New_socket(int af, int type, int protocol)
+SOCKET GameService::New_socket(int af, int type, int protocol)
 {
 	SOCKET fd = psocket(af, type, protocol);
 	int option_value = 1; //禁用Nagle
@@ -300,13 +300,13 @@ SOCKET __fastcall GameService::New_socket(int af, int type, int protocol)
 	return fd;
 }
 
-int __fastcall GameService::New_send(SOCKET s, const char* buf, int len, int flags)
+int GameService::New_send(SOCKET s, const char* buf, int len, int flags)
 {
 	int ret = psend(s, buf, len, flags);
 	return ret;
 }
 
-int __fastcall GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen)
+int GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen)
 {
 	if (s && name != nullptr)
 	{
@@ -325,20 +325,20 @@ int __fastcall GameService::New_connect(SOCKET s, const struct sockaddr* name, i
 	return pconnect(s, name, namelen);
 }
 
-unsigned long __fastcall GameService::New_inet_addr(const char* cp)
+unsigned long GameService::New_inet_addr(const char* cp)
 {
 	std::cout << "inet_addr: " << std::string(cp) << std::endl;
 	return pinet_addr(cp);
 }
 
-u_short __fastcall GameService::New_ntohs(u_short netshort)
+u_short GameService::New_ntohs(u_short netshort)
 {
 	std::cout << "ntohs: " << std::to_string(netshort) << std::endl;
 	return pntohs(netshort);
 }
 
 //hook recv將封包全部轉發給外掛，本來準備完全由外掛處理好再發回來，但效果不盡人意
-int __fastcall GameService::New_recv(SOCKET s, char* buf, int len, int flags)
+int GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 {
 	int recvlen = precv(s, buf, len, flags);
 
@@ -350,7 +350,7 @@ int __fastcall GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 	return recvlen;
 }
 
-int __fastcall GameService::New_closesocket(SOCKET s)
+int GameService::New_closesocket(SOCKET s)
 {
 	if (g_sockfd != nullptr)
 	{
@@ -368,12 +368,12 @@ int __fastcall GameService::New_closesocket(SOCKET s)
 }
 
 //防止其他私服使用A類函數導致標題亂碼
-BOOL __fastcall GameService::New_SetWindowTextA(HWND, LPCSTR)
+BOOL GameService::New_SetWindowTextA(HWND, LPCSTR)
 {
 	return TRUE;
 }
 
-DWORD __fastcall GameService::New_GetTickCount()
+DWORD GameService::New_GetTickCount()
 {
 	static DWORD g_dwRealTick = pGetTickCount();
 	static DWORD g_dwHookTick = pGetTickCount();
@@ -386,7 +386,7 @@ DWORD __fastcall GameService::New_GetTickCount()
 	return g_dwHookTick;
 }
 
-BOOL __fastcall GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
+BOOL GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
 {
 	BOOL result = pQueryPerformanceCounter(lpPerformanceCount);
 
@@ -395,7 +395,7 @@ BOOL __fastcall GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerfor
 	return result;
 }
 
-DWORD __fastcall GameService::New_TimeGetTime()
+DWORD GameService::New_TimeGetTime()
 {
 	static DWORD g_dwRealTime = pTimeGetTime();
 	static DWORD g_dwHookTime = pTimeGetTime();
@@ -408,7 +408,7 @@ DWORD __fastcall GameService::New_TimeGetTime()
 	return g_dwHookTime;
 }
 
-void __fastcall GameService::New_Sleep(DWORD dwMilliseconds)
+void GameService::New_Sleep(DWORD dwMilliseconds)
 {
 	if ((TRUE == enableSleepAdjust.load(std::memory_order_acquire)) && (0UL == dwMilliseconds))
 		dwMilliseconds = 1UL;
@@ -1464,7 +1464,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 		SetConsoleCP(gb2312CodePage);
 		SetConsoleOutputCP(gb2312CodePage);
 		setlocale(LC_ALL, "Chinese.GB2312");
-}
+	}
 
 	g_sockfd = CONVERT_GAMEVAR<int*>(0x421B404ul);//套接字
 
@@ -1586,7 +1586,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	DetourAttach(&(PVOID&)pBattleProc, ::New_BattleProc);
 	DetourAttach(&(PVOID&)pTimeProc, ::New_TimeProc);
 	DetourAttach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
-	//DetourAttach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
+	DetourAttach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
 	DetourAttach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourAttach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 	DetourAttach(&(PVOID&)pLssproto_W2_send, ::New_lssproto_W2_send);
@@ -1670,7 +1670,7 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pBattleProc, ::New_BattleProc);
 	DetourDetach(&(PVOID&)pTimeProc, ::New_TimeProc);
 	DetourDetach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
-	//DetourDetach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
+	DetourDetach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
 	DetourDetach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourDetach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 	DetourDetach(&(PVOID&)pLssproto_W2_send, ::New_lssproto_W2_send);
