@@ -1829,15 +1829,6 @@ long long __fastcall util::percent(long long value, long long total)
 		return static_cast<long long>(d);
 }
 
-bool __fastcall util::customStringCompare(const QString& str1, const QString& str2)
-{
-	//中文locale
-	static const QLocale locale;
-	static const QCollator collator(locale);
-
-	return collator.compare(str1, str2) < 0;
-}
-
 QString __fastcall util::formatMilliseconds(long long milliseconds, bool noSpace)
 {
 	long long totalSeconds = milliseconds / 1000ll;

@@ -171,6 +171,8 @@ private:
 	FastLabel* indexLabel_ = nullptr;
 	FastLabel* eolLabel_ = nullptr;
 
+	QMutex varListMutex_;
+
 	QTimer usageTimer_;
 
 	bool isModified_ = false;

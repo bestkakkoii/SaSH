@@ -5291,8 +5291,7 @@ void Worker::sortItem(bool deepSort)
 	{
 		swapitemModeFlag = 0;
 
-		static const QLocale locale;
-		static const QCollator collator(locale);
+		QCollator collator = util::getCollator();
 
 		//按 items.value(i).name 名稱排序
 		for (i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; --i)
@@ -6216,8 +6215,7 @@ bool Worker::matchBattleTarget(const QVector<battleobject_t>& btobjs, BattleMatc
 					return aNum == bNum;
 			}
 
-			static const QLocale locale;
-			static const QCollator collator(locale);
+			QCollator collator = util::getCollator();
 
 			if (op == ">")
 				return collator.compare(aStr, bStr) > 0;
@@ -11201,7 +11199,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 						if (_enemyNameListCache.size() > 1)
 						{
 							_enemyNameListCache.removeDuplicates();
-							std::sort(_enemyNameListCache.begin(), _enemyNameListCache.end(), util::customStringCompare);
+							QCollator collator = util::getCollator();
+							std::sort(_enemyNameListCache.begin(), _enemyNameListCache.end(), collator);
 						}
 
 						enemyNameListCache.set(_enemyNameListCache);
@@ -12139,7 +12138,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12189,7 +12188,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12249,7 +12248,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-	}
+			}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -12496,9 +12495,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
-#endif
 			}
+#endif
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -12636,7 +12635,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -12794,7 +12793,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}

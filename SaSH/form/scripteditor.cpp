@@ -138,8 +138,6 @@ void ScriptEditor::init()
 		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
 	}
 
-	injector.isScriptEditorOpened.store(true, std::memory_order_release);
-
 	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 	if (config.isValid())
 	{
@@ -346,6 +344,9 @@ void ScriptEditor::showEvent(QShowEvent* e)
 
 	setAttribute(Qt::WA_Mapped);
 	QMainWindow::showEvent(e);
+
+	Injector& injector = Injector::getInstance(getIndex());
+	injector.isScriptEditorOpened.store(true, std::memory_order_release);
 }
 
 void ScriptEditor::closeEvent(QCloseEvent* e)
@@ -2352,6 +2353,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 	--depth;
 
 	TreeWidgetItem* pNode = nullptr;
+
 	for (const auto& pair : t)
 	{
 		long long nKey = 0;
@@ -2369,7 +2371,9 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 		if (pair.second.is<sol::table>())
 		{
 			varType = QObject::tr("Table");
-			pNode = q_check_ptr(new TreeWidgetItem({ field, key, "", QString("(%1)").arg(varType) }));
+			QStringList treeTexts = { field, key, "", QString("(%1)").arg(varType) };
+			pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
+			assert(pNode != nullptr);
 			if (pNode == nullptr)
 				continue;
 
@@ -2424,7 +2428,9 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 		if (varType.isEmpty())
 			continue;
 
-		pNode = q_check_ptr(new TreeWidgetItem({ field, key.isEmpty() ? util::toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) }));
+		QStringList treeTexts = { field, key.isEmpty() ? util::toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) };
+		pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
+		assert(pNode != nullptr);
 		if (pNode == nullptr)
 			continue;
 
@@ -2436,15 +2442,24 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 	return true;
 }
 
-void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widgetB, Parser* pparser, const QHash<QString, QVariant>& d, const QStringList& globalNames)
+void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* widgetCustom, Parser* pparser, const QHash<QString, QVariant>& d, const QStringList& globalNames)
 {
-	QList<QTreeWidgetItem*> nodesA = {};
-	QList<QTreeWidgetItem*> nodesB = {};
+	QMutexLocker locker(&varListMutex_);
 
-	widgetA->setUpdatesEnabled(false);
-	widgetA->clear();
-	widgetB->setUpdatesEnabled(false);
-	widgetB->clear();
+	if (pparser == nullptr)
+		return;
+
+	if (widgetSystem == nullptr || widgetCustom == nullptr)
+		return;
+
+	QList<QTreeWidgetItem*> nodesSystem = {};
+	QList<QTreeWidgetItem*> nodesCustom = {};
+
+	widgetSystem->blockSignals(true);
+	widgetCustom->blockSignals(true);
+
+	widgetSystem->clear();
+	widgetCustom->clear();
 
 	sol::state& lua_ = pparser->pLua_->getLua();
 
@@ -2504,7 +2519,9 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 					pparser->luaDoString(QString("_TMP = %1").arg(var.toString()));
 					if (lua_["_TMP"].is<sol::table>())
 					{
-						pNode = q_check_ptr(new TreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) }));
+						QStringList treeTexts = { field, varName, "", QString("(%1)").arg(varType) };
+						pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
+						assert(pNode != nullptr);
 						if (pNode == nullptr)
 							continue;
 
@@ -2513,7 +2530,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 							pNode->setData(0, Qt::UserRole, QString("local"));
 							pNode->setText(2, QString("(%1)").arg(pNode->childCount()));
 							pNode->setIcon(0, QIcon(":/image/icon_class.svg"));
-							nodesB.append(pNode);
+							nodesCustom.append(pNode);
 						}
 						else
 							delete pNode;
@@ -2551,13 +2568,15 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 			}
 			}
 
-			pNode = q_check_ptr(new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) }));
+			QStringList treeTexts = { field, varName, varValueStr, QString("(%1)").arg(varType) };
+			pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
+			assert(pNode != nullptr);
 			if (pNode == nullptr)
 				continue;
 
 			pNode->setData(0, Qt::UserRole, QString("local"));
 			pNode->setIcon(0, QIcon(":/image/icon_field.svg"));
-			nodesB.append(pNode);
+			nodesCustom.append(pNode);
 		}
 	}
 
@@ -2579,7 +2598,8 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 		if (o.is<sol::table>())
 		{
 			varType = QObject::tr("Table");
-			pNode = q_check_ptr(new TreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) }));
+			QStringList treeTexts = { field, varName, "", QString("(%1)").arg(varType) };
+			pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
 			if (pNode == nullptr)
 				continue;
 
@@ -2590,9 +2610,9 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 				pNode->setText(2, QString("(%1)").arg(pNode->childCount()));
 				pNode->setIcon(0, QIcon(":/image/icon_class.svg"));
 				if (g_sysConstVarName.contains(it))
-					nodesA.append(pNode);
+					nodesSystem.append(pNode);
 				else
-					nodesB.append(pNode);
+					nodesCustom.append(pNode);
 			}
 			else
 				delete pNode;
@@ -2638,22 +2658,22 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 		if (varType.isEmpty())
 			continue;
 
-		pNode = q_check_ptr(new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) }));
+		QStringList treeTexts = { field, varName, varValueStr, QString("(%1)").arg(varType) };
+		pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
 		if (pNode == nullptr)
 			continue;
 
 		pNode->setData(0, Qt::UserRole, QString("global"));
 		pNode->setIcon(0, QIcon(":/image/icon_field.svg"));
 		if (g_sysConstVarName.contains(it))
-			nodesA.append(pNode);
+			nodesSystem.append(pNode);
 		else
-			nodesB.append(pNode);
+			nodesCustom.append(pNode);
 	}
 
+	widgetSystem->addTopLevelItems(nodesSystem);
+	widgetCustom->addTopLevelItems(nodesCustom);
 
-	widgetA->addTopLevelItems(nodesA);
-	widgetB->addTopLevelItems(nodesB);
-
-	widgetA->setUpdatesEnabled(true);
-	widgetB->setUpdatesEnabled(true);
+	widgetSystem->blockSignals(false);
+	widgetCustom->blockSignals(false);
 }

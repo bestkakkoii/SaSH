@@ -2509,7 +2509,9 @@ void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 	{
 		globalNames_->append(name);
 		globalNames_->removeDuplicates();
-		std::sort(globalNames_->begin(), globalNames_->end());
+
+		QCollator collator = util::getCollator();
+		std::sort(globalNames_->begin(), globalNames_->end(), collator);
 	}
 
 	sol::state& lua_ = pLua_->getLua();
@@ -2846,12 +2848,8 @@ QString Parser::getLuaTableString(const sol::table& t, long long& depth)
 			strKeyResults.append(nowIndent + QString("%1=%2").arg(key).arg(value));
 	}
 
-	std::sort(strKeyResults.begin(), strKeyResults.end(), [](const QString& a, const QString& b)
-		{
-			static const QLocale locale;
-			static const QCollator collator(locale);
-			return collator.compare(a, b) < 0;
-		});
+	QCollator collator = util::getCollator();
+	std::sort(strKeyResults.begin(), strKeyResults.end(), collator);
 
 	results.append(strKeyResults);
 
@@ -3743,7 +3741,9 @@ bool Parser::processLuaString()
 			globalNames_->removeDuplicates();
 		}
 	}
-	std::sort(globalNames_->begin(), globalNames_->end());
+
+	QCollator collator = util::getCollator();
+	std::sort(globalNames_->begin(), globalNames_->end(), collator);
 	return bret;
 }
 
@@ -4083,7 +4083,9 @@ void Parser::exportVarInfo()
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	if (&signalDispatcher != nullptr)
+	{
 		emit signalDispatcher.varInfoImported(this, varhash, *globalNames_);
+	}
 }
 
 #pragma region SystemVariable

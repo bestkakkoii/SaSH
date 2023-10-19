@@ -37,15 +37,7 @@ public:
 	int getCharType(const QChar& ch) const
 	{
 		if (ch.isPunct() || ch.isSymbol())
-			return 0; // 全角標點和符號
-		else if (ch.isDigit())
-			return 1; // 數字
-		else if (ch.isLower())
-			return 2; // 英文小寫
-		else if (ch.isUpper())
-			return 3; // 英文大寫
-		else
-			return 4; // 中文筆畫數
+			return true; // 全角標點和符號
 	}
 
 	// 重寫 operator<() 函數
@@ -83,24 +75,12 @@ public:
 				return false;
 		}
 
-		// 按字符類型和優先級進行排序
-		for (int i = 0; i < qMin(text1.length(), text2.length()); ++i)
-		{
-			QChar char1 = text1.at(i);
-			QChar char2 = text2.at(i);
-
-			int charType1 = getCharType(char1);
-			int charType2 = getCharType(char2);
-
-			if (charType1 != charType2)
-				return charType1 < charType2;
-			else if (char1 != char2)
-				return char1 < char2;
-		}
-
-		// 如果前面的字符都相同，則按長度排序
-		return text1.length() < text2.length();
+		static const QLocale locale(QLocale::Chinese);
+		QCollator collator(locale);
+		collator.setCaseSensitivity(Qt::CaseSensitive);
+		collator.setNumericMode(true);
+		collator.setIgnorePunctuation(false);
+		return collator.compare(text1, text2) < 0;
 	}
-
 };
 #endif

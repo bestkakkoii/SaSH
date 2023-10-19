@@ -1584,8 +1584,6 @@ QGroupBox {
 		pWidget->setStyleSheet(style);
 	}
 
-	bool __fastcall customStringCompare(const QString& str1, const QString& str2);
-
 	QFileInfoList __fastcall loadAllFileLists(
 		TreeWidgetItem* root,
 		const QString& path,
@@ -1627,6 +1625,17 @@ QGroupBox {
 	void __fastcall sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
 	bool __fastcall fileDialogShow(const QString& name, long long acceptType, QString* retstring, QWidget* pparent = nullptr);
+
+	inline QCollator __fastcall getCollator()
+	{
+		static const QLocale locale(QLocale::Chinese);
+		static QCollator collator(locale);
+		collator.setCaseSensitivity(Qt::CaseSensitive);
+		collator.setNumericMode(true);
+		collator.setIgnorePunctuation(false);
+
+		return collator;
+	}
 
 	// 將二進制數據轉換為16進制字符串
 	QString __fastcall byteArrayToHexString(const QByteArray& data);

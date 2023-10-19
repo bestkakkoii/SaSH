@@ -572,6 +572,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		}
 
 		Parser parser(lua["_INDEX"].get<long long>());
+
 		emit signalDispatcher.varInfoImported(&parser, varhash, QStringList{});
 
 		luadebug::checkStopAndPause(s);
