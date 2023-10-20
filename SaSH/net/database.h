@@ -1258,9 +1258,9 @@ typedef struct tagCHARLISTTABLE
 constexpr int MAX_MISSION = 300;
 typedef struct tagJOBDAILY
 {
-	long long JobId = 0;								// 任務編號
-	QString explain = "";						// 任務說明
-	QString state = "";							// 狀態
+	long long id = 0;								// 任務編號
+	long long state = 0;							//0無 1進行中 2已完成
+	QString name = "";						// 任務說明
 }JOBDAILY;
 
 struct showitem
@@ -1343,8 +1343,8 @@ typedef struct battleobject_s
 
 typedef struct battledata_s
 {
-	bool charAlreadyAction = false;
-	bool petAlreadyAction = false;
+	bool charAlreadyAction = true;
+	bool petAlreadyAction = true;
 	long long fieldAttr = 0;
 	long long alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
 	battleobject_t player = {};

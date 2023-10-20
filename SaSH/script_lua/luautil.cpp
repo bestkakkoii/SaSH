@@ -406,9 +406,9 @@ bool CLuaUtil::getDaily(sol::table dstTable, sol::this_state s)
 			dstTable[i + 1] = lua.create_table();
 
 		dstTable[i + 1]["index"] = i + 1;
-		dstTable[i + 1]["id"] = jobDaily.JobId;
-		dstTable[i + 1]["explain"] = jobDaily.explain.toUtf8().constData();
-		dstTable[i + 1]["state"] = jobDaily.state.toUtf8().constData();
+		dstTable[i + 1]["id"] = jobDaily.id;
+		dstTable[i + 1]["name"] = jobDaily.name.toUtf8().constData();
+		dstTable[i + 1]["state"] = jobDaily.state;
 	}
 
 	return TRUE;

@@ -166,10 +166,11 @@ private:
 		DWORD dwProcessId = 0;
 		do
 		{
-			if (!handle || !lParam) break;
+			if (!handle || !lParam)
+				break;
 
 			::GetWindowThreadProcessId(handle, &dwProcessId);
-			if (data->dwProcessId == static_cast<long long>(dwProcessId) && IsWindowVisible(handle))
+			if (data->dwProcessId == static_cast<long long>(dwProcessId))
 			{
 				data->hWnd = handle;
 				return FALSE;
@@ -192,6 +193,7 @@ public:
 
 	std::atomic_bool IS_SCRIPT_FLAG = false;//主腳本是否運行
 	std::atomic_bool IS_SCRIPT_INTERRUPT = false;//主腳本是否中斷
+	std::atomic_bool IS_FINDINGPATH = false;
 
 	QString currentScriptFileName;//當前運行的主腳本完整路徑
 

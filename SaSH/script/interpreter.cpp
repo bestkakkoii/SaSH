@@ -41,10 +41,16 @@ Interpreter::~Interpreter()
 {
 	requestInterruption();
 	futureSync_.waitForFinished();
-	if (thread_)
+
+	if (thread_ != nullptr)
 	{
-		thread_->quit();
-		thread_->wait();
+		if (thread_->isRunning())
+		{
+			thread_->quit();
+			thread_->wait();
+		}
+
+		thread_->deleteLater();
 	}
 	qDebug() << "Interpreter is destroyed!";
 }
@@ -52,30 +58,21 @@ Interpreter::~Interpreter()
 //在新線程執行腳本文件
 void Interpreter::doFileWithThread(long long beginLine, const QString& fileName)
 {
-	if (thread_ != nullptr)
-		return;
-
-	thread_ = q_check_ptr(new QThread());
-	if (nullptr == thread_)
-		return;
 
 	beginLine_ = beginLine;
 
 	Injector& injector = Injector::getInstance(getIndex());
+
+	thread_ = new QThread();
 
 	moveToThread(thread_);
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	connect(this, &Interpreter::finished, thread_, &QThread::quit, Qt::QueuedConnection);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
+	connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
 	connect(thread_, &QThread::started, this, &Interpreter::proc, Qt::QueuedConnection);
-	connect(this, &Interpreter::finished, this, [this]()
-		{
-			thread_ = nullptr;
-			qDebug() << "Interpreter::finished";
-		}, Qt::QueuedConnection);
-
-	thread_->start();
+	thread_->start(QThread::TimeCriticalPriority);
 }
 
 //同線程下執行腳本文件(實例新的interpreter)
@@ -116,76 +113,43 @@ bool Interpreter::doFile(long long beginLine, const QString& fileName, Interpret
 }
 
 //新線程下執行一段腳本內容
-void Interpreter::doString(const QString& content, Interpreter* pinterpretter, VarShareMode shareMode)
+void Interpreter::doString(QString content)
 {
-	thread_ = q_check_ptr(new QThread());
-	if (nullptr == thread_)
-		return;
-
+	parser_.initialize(pParentParser_);
 	parser_.setMode(Parser::kAsync);
+	parser_.setScriptFileName("");
 	parser_.setSubScript(true);
-	parser_.setInterpreter(this);
+	parser_.setInterpreter(pParentInterpreter_);
+	parser_.setParent(pParentParser_);
 
-	QString newString = content;
-	newString.replace("\\r", "\r");
-	newString.replace("\\n", "\n");
-	newString.replace("\r\n", "\n");
-	newString.replace("\r", "\n");
+	content.replace("\\r\\n", "\r\n");
+	content.replace("\\n", "\n");
+	content.replace("\\t", "\t");
+	content.replace("\\v", "\v");
+	content.replace("\\b", "\b");
+	content.replace("\\f", "\f");
+	content.replace("\\a", "\a");
 
 	if (!parser_.loadString(content))
 		return;
 
-	isRunning_.store(true, std::memory_order_release);
-
-	parser_.setCurrentLine(0);
-	parser_.initialize(&parser_);
-
-	if (pinterpretter != nullptr)
-	{
-		pCallback = [pinterpretter, this](long long currentIndex, long long currentLine, const TokenMap& TK)->long long
-			{
-				if (pinterpretter->isInterruptionRequested())
-					return 0;
-
-				if (isInterruptionRequested())
-					return 0;
-
-				RESERVE currentType = TK.value(0).type;
-
-				bool skip = currentType == RESERVE::TK_WHITESPACE
-					|| currentType == RESERVE::TK_COMMENT
-					|| currentType == RESERVE::TK_UNK;
-
-				if (skip)
-					return 1;
-
-				if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
-				{
-					pinterpretter->paused();
-					SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-					emit signalDispatcher.scriptPaused();
-				}
-
-				pinterpretter->checkPause();
-
-				return 1;
-			};
-
-		parser_.setCallBack(pCallback);
-	}
-
 	long long currentIndex = getIndex();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-
 	openLibs();
+	thread_ = new QThread();
+	moveToThread(thread_);
+	connect(this, &Interpreter::finished, thread_, &QThread::quit, Qt::QueuedConnection);
+	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
+	connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
+	connect(thread_, &QThread::started, this, &Interpreter::onRunString, Qt::QueuedConnection);
+	thread_->start(QThread::TimeCriticalPriority);
+}
 
-	std::ignore = QtConcurrent::run([this]()
-		{
-			isRunning_.store(true, std::memory_order_release);
-			parser_.parse(0);
-			isRunning_.store(false, std::memory_order_release);
-			emit finished();
-		});
+void Interpreter::onRunString()
+{
+	isRunning_.store(true, std::memory_order_release);
+	parser_.parse(0);
+	isRunning_.store(false, std::memory_order_release);
+	emit finished();
 }
 
 //先行解析token並發送給UI顯示
@@ -388,8 +352,6 @@ void Interpreter::openLibs()
 	registerFunction("send", &Interpreter::send);
 
 	//check
-	registerFunction("checkdaily", &Interpreter::checkdaily);
-
 	registerFunction("waitmap", &Interpreter::waitmap);
 	registerFunction("waitdlg", &Interpreter::waitdlg);
 	registerFunction("waitsay", &Interpreter::waitsay);
@@ -554,7 +516,6 @@ void Interpreter::proc()
 	Injector& injector = Injector::getInstance(currentIndex);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-
 	injector.IS_SCRIPT_FLAG.store(true, std::memory_order_release);
 	injector.IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
 
@@ -568,7 +529,9 @@ void Interpreter::proc()
 			continue;
 
 		it->requestInterruption();
+		it.reset(nullptr);
 	}
+	subInterpreterList_.clear();
 	futureSync_.waitForFinished();
 
 
@@ -838,67 +801,14 @@ long long Interpreter::dostr(long long currentIndex, long long currentline, cons
 		return Parser::kArgError + 1ll;
 	}
 
-	QString script = text;
-	script.replace("\\r\\n", "\r\n");
-	script.replace("\\n", "\n");
-	script.replace("\\t", "\t");
-	script.replace("\\v", "\v");
-	script.replace("\\b", "\b");
-	script.replace("\\f", "\f");
-	script.replace("\\a", "\a");
-
-	VarShareMode varShareMode = kNotShare;
-	long long nShared = 0;
-	checkInteger(TK, 2, &nShared);
-	if (nShared > 0)
-		varShareMode = kShare;
-
-	Parser::Mode asyncMode = Parser::kSync;
-	long long nAsync = 0;
-	checkInteger(TK, 3, &nAsync);
-	if (nAsync > 0)
-		asyncMode = Parser::kAsync;
-
 	QSharedPointer<Interpreter> interpreter(QSharedPointer<Interpreter>::create(currentIndex));
 	if (interpreter.isNull())
 		return Parser::kError;
 
-	if (asyncMode == Parser::kSync)
-	{
-		if (varShareMode == kShare)
-		{
-			interpreter->parser_.setLuaMachinePointer(parser_.pLua_);
-			interpreter->parser_.setGlobalNameListPointer(parser_.getGlobalNameListPointer());
-			interpreter->parser_.setCounterPointer(parser_.getCounterPointer());
-			interpreter->parser_.setLuaLocalVarStringListPointer(parser_.getLuaLocalVarStringListPointer());
-			interpreter->parser_.setLocalVarStackPointer(parser_.getLocalVarStackPointer());
-		}
-		else
-		{
-			interpreter->parser_.initialize(&parser_);
-		}
-	}
-	else
-	{
-		subInterpreterList_.append(interpreter);
-		interpreter->parser_.initialize(nullptr);
-	}
-
-	interpreter->doString(script, this, varShareMode);
-
-	if (asyncMode == Parser::kSync)
-	{
-		for (;;)
-		{
-			if (isInterruptionRequested())
-				break;
-
-			if (!interpreter->isRunning())
-				break;
-
-			QThread::msleep(100);
-		}
-	}
+	subInterpreterList_.append(interpreter);
+	interpreter->setParentParser(&parser_);
+	interpreter->setParentInterpreter(this);
+	interpreter->doString(text);
 
 	return Parser::kNoChange;
 }

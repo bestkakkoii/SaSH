@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #if OPEN_GL_ON
 //#include "mapglwidget.h"
 #endif
-class Interpreter;
+
 class MapWidget : public QMainWindow, public Indexer
 {
 	Q_OBJECT;
@@ -49,6 +49,8 @@ protected:
 	virtual void showEvent(QShowEvent* e) override;
 
 private slots:
+	void onFindPathFinished();
+
 	void onRefreshTimeOut();
 
 	void onClear();
@@ -107,11 +109,11 @@ private:
 
 	Ui::MapWidgetClass ui;
 
-	std::unique_ptr<Interpreter> interpreter_;
-
 	QPointF curMousePos_ = { 0,0 };
 
 	static QHash<long long, QHash<QPoint, QString>> entrances_;
+
+	QFuture<void> findPathFuture_;
 
 	long long counter_ = 10;
 
@@ -120,8 +122,6 @@ private:
 	QTimer gltimer_;
 
 	const long long boundaryWidth_ = 1;
-
-	//QPoint clickPos_;
 
 #else
 	QTimer timer_;

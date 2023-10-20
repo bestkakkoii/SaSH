@@ -67,7 +67,7 @@ ItemInfoForm::ItemInfoForm(long long index, QWidget* parent)
 			if (!injector.worker.isNull())
 			{
 				for (long long i = 0; i < 4; ++i)
-					injector.worker->sortItem(true);
+					injector.worker->sortItem();
 			}
 		});
 

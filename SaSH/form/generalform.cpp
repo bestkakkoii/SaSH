@@ -109,28 +109,6 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 		ui.comboBox_setting->setCurrentIndex(defaultIndex);
 
 	ui.comboBox_setting->blockSignals(false);
-
-	//驗證
-#ifdef WEBAUTHENTICATOR_H
-#ifndef _DEBUG
-	static bool isFirstInstance = false;
-	if (!isFirstInstance)
-	{
-
-		QtConcurrent::run([this]()
-			{
-				Net::Authenticator* g_Authenticator = Net::Authenticator::getInstance(getIndex());
-				std::unique_ptr<QString> username(q_check_ptr(new QString("satester")));
-				std::unique_ptr<QString> encode_password(q_check_ptr(new QString("AwJk8DlkCUVxRMgaHDEMEHQR")));
-				if (g_Authenticator->Login(*username, *encode_password))
-					isFirstInstance = true;
-				else
-					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-	});
-}
-#endif
-#endif
-
 }
 
 GeneralForm::~GeneralForm()
@@ -355,12 +333,7 @@ void GeneralForm::onButtonClicked()
 		//bool flag = injector.getEnableHash(util::kLogOutEnable);
 		if (injector.isValid())
 		{
-			//QMessageBox::StandardButton button = QMessageBox::warning(this, tr("logout"), tr("Are you sure you want to logout now?"),
-			//	QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-			//if (button == QMessageBox::Yes)
-			//{
 			injector.setEnableHash(util::kLogOutEnable, true);
-			//}
 		}
 		return;
 	}
@@ -369,12 +342,7 @@ void GeneralForm::onButtonClicked()
 	{
 		if (injector.isValid())
 		{
-			//QMessageBox::StandardButton button = QMessageBox::warning(this, tr("logback"), tr("Are you sure you want to logback now?"),
-			//	QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-			//if (button == QMessageBox::Yes)
-			//{
 			injector.setEnableHash(util::kLogBackEnable, true);
-			//}
 		}
 
 		return;

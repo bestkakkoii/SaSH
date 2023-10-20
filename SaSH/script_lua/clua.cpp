@@ -629,7 +629,7 @@ void CLua::start()
 		});
 
 
-	thread_.start();
+	thread_.start(QThread::TimeCriticalPriority);
 }
 
 void CLua::wait()

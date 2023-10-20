@@ -22,32 +22,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 
 //check
-long long Interpreter::checkdaily(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	QString text;
-	checkString(TK, 1, &text);
-	text = text.simplified();
-
-	if (text.isEmpty())
-	{
-		errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("mission name cannot be empty"));
-		return Parser::kArgError + 1ll;
-	}
-
-	long long status = injector.worker->checkJobDailyState(text);
-	if (status == 1)//已完成
-		return Parser::kNoChange;
-	else if (status == 2)//進行中
-		return checkJump(TK, 2, true, SuccessJump);//使用第2參數跳轉
-	else//沒接過任務
-		return checkJump(TK, 3, true, SuccessJump);//使用第3參數跳轉
-}
-
 long long Interpreter::waitpet(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -118,38 +92,38 @@ long long Interpreter::waitmap(long long currentIndex, long long currentLine, co
 	}
 
 	auto check = [&injector, floor, mapnames]()
-	{
-		if (floor != 0)
-			return floor == injector.worker->getFloor();
-		else
 		{
-			QString currentFloorName = injector.worker->getFloorName();
-			long long currentFloor = injector.worker->getFloor();
-
-			for (const QString& mapname : mapnames)
+			if (floor != 0)
+				return floor == injector.worker->getFloor();
+			else
 			{
-				bool ok;
-				long long fr = mapname.toLongLong(&ok);
-				if (ok)
+				QString currentFloorName = injector.worker->getFloorName();
+				long long currentFloor = injector.worker->getFloor();
+
+				for (const QString& mapname : mapnames)
 				{
-					if (fr == currentFloor)
-						return true;
-				}
-				else
-				{
-					if (mapname.startsWith("?"))
+					bool ok;
+					long long fr = mapname.toLongLong(&ok);
+					if (ok)
 					{
-						QString newName = mapname.mid(1);
-						return currentFloorName.contains(newName);
+						if (fr == currentFloor)
+							return true;
 					}
 					else
-						return mapname == currentFloorName;
+					{
+						if (mapname.startsWith("?"))
+						{
+							QString newName = mapname.mid(1);
+							return currentFloorName.contains(newName);
+						}
+						else
+							return mapname == currentFloorName;
+					}
 				}
 			}
-		}
 
-		return false;
-	};
+			return false;
+		};
 
 	bool bret = false;
 	if (timeout == 0)
@@ -229,35 +203,35 @@ long long Interpreter::waitdlg(long long currentIndex, long long currentLine, co
 		checkInteger(TK, 3, &timeout);
 
 		auto check = [&injector, min, max, cmpStrs]()->bool
-		{
-			if (!injector.worker->isDialogVisible())
-				return false;
-
-			if (cmpStrs.isEmpty() || cmpStrs.front().isEmpty())
-				return true;
-
-			QStringList dialogStrList = injector.worker->currentDialog.get().linedatas;
-			for (long long i = min; i <= max; ++i)
 			{
-				int index = i - 1;
-				if (index < 0 || index >= dialogStrList.size())
-					break;
+				if (!injector.worker->isDialogVisible())
+					return false;
 
-				QString text = dialogStrList.value(index).simplified();
-				if (text.isEmpty())
-					continue;
+				if (cmpStrs.isEmpty() || cmpStrs.front().isEmpty())
+					return true;
 
-				for (const QString& cmpStr : cmpStrs)
+				QStringList dialogStrList = injector.worker->currentDialog.get().linedatas;
+				for (long long i = min; i <= max; ++i)
 				{
-					if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
+					int index = i - 1;
+					if (index < 0 || index >= dialogStrList.size())
+						break;
+
+					QString text = dialogStrList.value(index).simplified();
+					if (text.isEmpty())
+						continue;
+
+					for (const QString& cmpStr : cmpStrs)
 					{
-						return true;
+						if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
+						{
+							return true;
+						}
 					}
 				}
-			}
 
-			return false;
-		};
+				return false;
+			};
 
 		if (timeout == 0)
 		{
@@ -311,45 +285,45 @@ long long Interpreter::waitsay(long long currentIndex, long long currentLine, co
 	checkInteger(TK, 3, &timeout);
 
 	auto check = [&injector, min, max, cmpStrs]()->bool
-	{
-		for (long long i = min; i <= max; ++i)
 		{
-			QString text = injector.worker->getChatHistory(i - 1).simplified();
-			if (text.isEmpty())
-				continue;
-
-			for (const QString& cmpStr : cmpStrs)
+			for (long long i = min; i <= max; ++i)
 			{
-				if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
+				QString text = injector.worker->getChatHistory(i - 1).simplified();
+				if (text.isEmpty())
+					continue;
+
+				for (const QString& cmpStr : cmpStrs)
 				{
-					return true;
+					if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
+					{
+						return true;
+					}
 				}
 			}
-		}
 
-		QVector<QPair<long long, QString>> list = injector.worker->chatQueue.values();
+			QVector<QPair<long long, QString>> list = injector.worker->chatQueue.values();
 
-		for (long long i = min; i <= max; ++i)
-		{
-			if (i < 0)
-				continue;
-			if (i > list.size())
-				break;
-			QString text = list.value(i - 1).second.simplified();
-			if (text.isEmpty())
-				continue;
-
-			for (const QString& cmpStr : cmpStrs)
+			for (long long i = min; i <= max; ++i)
 			{
-				if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
+				if (i < 0)
+					continue;
+				if (i > list.size())
+					break;
+				QString text = list.value(i - 1).second.simplified();
+				if (text.isEmpty())
+					continue;
+
+				for (const QString& cmpStr : cmpStrs)
 				{
-					return true;
+					if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
+					{
+						return true;
+					}
 				}
 			}
-		}
 
-		return false;
-	};
+			return false;
+		};
 
 	if (timeout == 0)
 	{
@@ -425,15 +399,15 @@ long long Interpreter::waitpos(long long currentIndex, long long currentLine, co
 		return Parser::kArgError + 1ll;
 
 	auto check = [&injector, posList]()
-	{
-		QPoint pos = injector.worker->getPoint();
-		for (const QPoint& p : posList)
 		{
-			if (p == pos)
-				return true;
-		}
-		return false;
-	};
+			QPoint pos = injector.worker->getPoint();
+			for (const QPoint& p : posList)
+			{
+				if (p == pos)
+					return true;
+			}
+			return false;
+		};
 
 	bool bret = false;
 	long long timeout = DEFAULT_FUNCTION_TIMEOUT;

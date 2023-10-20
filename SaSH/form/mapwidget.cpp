@@ -22,7 +22,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "net/tcpserver.h"
 #include "map/mapanalyzer.h"
-#include "script/interpreter.h"
 #include "model/customtitlebar.h"
 
 constexpr long long MAP_REFRESH_TIME = 144;
@@ -141,12 +140,25 @@ void MapWidget::showEvent(QShowEvent*)
 {
 	setUpdatesEnabled(true);
 	blockSignals(false);
+
+	Injector& injector = Injector::getInstance(getIndex());
+	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	{
+		ui.pushButton_findPath->setEnabled(false);
+	}
+
+
 	gltimer_.start(MAP_REFRESH_TIME);
 
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
 	setAttribute(Qt::WA_Mapped);
 	QWidget::showEvent(nullptr);
+}
+
+void MapWidget::onFindPathFinished()
+{
+	ui.pushButton_findPath->setEnabled(true);
 }
 
 void MapWidget::closeEvent(QCloseEvent*)
@@ -527,19 +539,28 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		return;
+
 	if (injector.worker.isNull())
 		return;
 
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (nullptr != interpreter_ && interpreter_->isRunning())
+	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
 	{
-		interpreter_->stop();
+		injector.IS_FINDINGPATH.store(false, std::memory_order_acquire);
 	}
 
-	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
+	if (findPathFuture_.isRunning())
+	{
+		findPathFuture_.cancel();
+		findPathFuture_.waitForFinished();
+	}
 
+	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
 
 	const QPointF predst(pos / zoom_value_);
 	const QPoint dst(predst.toPoint());
@@ -547,10 +568,11 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	long long x = dst.x();
 	long long y = dst.y();
 
-	if (x < 0 || x > 1500 || y < 0 || y > 1500)
-		return;
 
-	interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+	QPoint point(x, y);
+	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+
+	ui.pushButton_findPath->setEnabled(false);
 }
 
 void MapWidget::on_openGLWidget_notifyLeftClick(const QPointF& gpos, const QPointF& pos)
@@ -717,31 +739,40 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
+	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+		return;
+
 	if (injector.worker.isNull())
 		return;
 
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (nullptr != interpreter_ && interpreter_->isRunning())
-		return;
+	if (findPathFuture_.isRunning())
+	{
+		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+		findPathFuture_.cancel();
+		findPathFuture_.waitForFinished();
+	}
 
-	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
+	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
 
 	long long x = ui.spinBox_findPathX->value();
 	long long y = ui.spinBox_findPathY->value();
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
 
-	interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+	QPoint point(x, y);
+	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+
+	ui.pushButton_findPath->setEnabled(false);
 }
 
 void MapWidget::onClear()
 {
-	if (nullptr != interpreter_ && interpreter_->isRunning())
-	{
-		interpreter_->stop();
-	}
+	long long currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	injector.IS_FINDINGPATH.store(false, std::memory_order_release);
 }
 
 void MapWidget::updateNpcListAllContents(const QVariant& d)
@@ -805,16 +836,16 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
+	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+		return;
+
 	if (injector.worker.isNull())
 		return;
 
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (nullptr != interpreter_ && interpreter_->isRunning())
-		return;
-
-	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
+	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
 
 	QString name(item_name->text());
 	QString text(item->text());
@@ -862,7 +893,17 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 	else
 	{
-		interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+		if (findPathFuture_.isRunning())
+		{
+			injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+			findPathFuture_.cancel();
+			findPathFuture_.waitForFinished();
+		}
+
+		QPoint point(x, y);
+		findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+
+		ui.pushButton_findPath->setEnabled(false);
 		return;
 	}
 
@@ -910,5 +951,15 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		}
 	}
 
-	interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+	if (findPathFuture_.isRunning())
+	{
+		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+		findPathFuture_.cancel();
+		findPathFuture_.waitForFinished();
+	}
+
+	point = QPoint(x, y);
+	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+
+	ui.pushButton_findPath->setEnabled(false);
 }

@@ -311,6 +311,15 @@ void Parser::initialize(Parser* pparent)
 	}
 
 #pragma region init
+	lua_.set_function("checkdaily", [this](std::string smisson)->long long
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			QString mission = util::toQString(smisson);
+
+			return injector.worker->checkJobDailyState(mission);
+		});
+
+
 	lua_.set_function("getgamestate", [this](long long id)->long long
 		{
 			Injector& injector = Injector::getInstance(getIndex());

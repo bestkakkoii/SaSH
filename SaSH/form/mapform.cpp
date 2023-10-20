@@ -23,8 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 
 #include "injector.h"
-#include "script/interpreter.h"
-
 
 MapForm::MapForm(long long index, QWidget* parent)
 	: QWidget(parent)
@@ -64,13 +62,18 @@ MapForm::MapForm(long long index, QWidget* parent)
 
 MapForm::~MapForm()
 {
-	if (nullptr != interpreter_ && interpreter_->isRunning())
-	{
-		interpreter_->stop();
-	}
+	long long currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	injector.IS_FINDINGPATH.store(false, std::memory_order_release);
 }
 
-void MapForm::onScriptFinished()
+void MapForm::showEvent(QShowEvent* e)
+{
+	setAttribute(Qt::WA_Mapped);
+	QWidget::showEvent(e);
+}
+
+void MapForm::onFindPathFinished()
 {
 	ui.pushButton_findpath_stop->setEnabled(false);
 	ui.pushButton_findpath_start->setEnabled(true);
@@ -97,6 +100,8 @@ void MapForm::onButtonClicked()
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			return;
 
+		if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+			return;
 
 		if (injector.worker.isNull())
 			return;
@@ -104,33 +109,29 @@ void MapForm::onButtonClicked()
 		if (!injector.worker->getOnlineFlag())
 			return;
 
-		if (nullptr != interpreter_ && interpreter_->isRunning())
+		if (findPathFuture_.isRunning())
 		{
-			interpreter_->stop();
-			return;
+			injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+			findPathFuture_.cancel();
+			findPathFuture_.waitForFinished();
 		}
 
-		interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
-		connect(interpreter_.get(), &Interpreter::finished, this, &MapForm::onScriptFinished);
+		connect(injector.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
 
 		long long x = ui.spinBox_findpath_x->value();
 		long long y = ui.spinBox_findpath_y->value();
 
-		interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+		QPoint point(x, y);
+		findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+
 		ui.pushButton_findpath_stop->setEnabled(true);
 		ui.pushButton_findpath_start->setEnabled(false);
 	}
 	else if (name == "pushButton_findpath_stop")
 	{
-		if (nullptr == interpreter_)
-		{
-			return;
-		}
-
-		if (!interpreter_->isRunning())
-			return;
-
-		interpreter_->stop();
+		long long currentIndex = getIndex();
+		Injector& injector = Injector::getInstance(currentIndex);
+		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
 		ui.pushButton_findpath_stop->setEnabled(false);
 		ui.pushButton_findpath_start->setEnabled(true);
 	}
@@ -206,23 +207,27 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
+	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+		return;
+
 	if (injector.worker.isNull())
 		return;
 
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (nullptr != interpreter_ && interpreter_->isRunning())
+	if (findPathFuture_.isRunning())
 	{
-		interpreter_->stop();
-		return;
+		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+		findPathFuture_.cancel();
+		findPathFuture_.waitForFinished();
 	}
 
-	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
-	connect(interpreter_.get(), &Interpreter::finished, this, &MapForm::onScriptFinished);
+	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
 
 	QPoint point = npc_hash_.value(row);
-	interpreter_->doString(QString("findpath(%1, %2, 3)").arg(point.x()).arg(point.y()), nullptr, Interpreter::kNotShare);
+	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+
 	ui.pushButton_findpath_stop->setEnabled(true);
 	ui.pushButton_findpath_start->setEnabled(false);
 }

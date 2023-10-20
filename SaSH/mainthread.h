@@ -39,7 +39,7 @@ public slots:
 	void run();
 
 private:
-	void inGameInitialize();
+	void __fastcall inGameInitialize();
 
 	void __fastcall mainProc();
 

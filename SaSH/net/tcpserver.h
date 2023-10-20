@@ -40,16 +40,17 @@ public:
 
 	virtual ~Socket();
 
+	QThread thread;
+
 signals:
-	void read();
+	void startRead();
 
 private slots:
 	void onReadyRead();
 	void onWrite(QByteArray ba, long long size);
 
-public:
-	QThread readThread;
 private:
+
 	long long index_ = -1;
 	bool init = false;
 };
@@ -62,6 +63,8 @@ public:
 	Worker(long long index, Socket* socket, QObject* parent);
 
 	virtual ~Worker();
+
+	QThread thread;
 
 private:
 	QHash<long long, QString> g_dirStrHash = {
@@ -78,9 +81,10 @@ private:
 
 signals:
 	void write(QByteArray ba, long long size = 0);
+	void findPathFinished();
 
 public slots:
-	void onClientReadyRead();
+	void processRead();
 
 private:
 	long long __fastcall dispatchMessage(const QByteArray& encoded);
@@ -204,6 +208,8 @@ public://actions
 
 	bool __fastcall captchaOCR(QString* pmsg);
 
+	void findPathAsync(const QPoint& pos);
+
 	void __fastcall setAllPetState();
 	void __fastcall setPetState(long long petIndex, PetState state);
 	void __fastcall setFightPet(long long petIndex);
@@ -216,7 +222,7 @@ public://actions
 	void __fastcall setUserDatas();
 
 	void __fastcall doBattleWork(bool canDelay);
-	void asyncBattleAction(bool canDelay);
+	bool asyncBattleAction(bool canDelay);
 
 	void __fastcall downloadMap(long long floor = -1);
 	void __fastcall downloadMap(long long x, long long y, long long floor = -1);
@@ -272,7 +278,7 @@ public://actions
 	[[nodiscard]] bool __fastcall getBattleFlag();
 	[[nodiscard]] bool __fastcall getOnlineFlag() const;
 
-	void __fastcall sortItem(bool deepSort = false);
+	void __fastcall sortItem();
 
 	[[nodiscard]] long long __fastcall getDir();
 	[[nodiscard]] QPoint __fastcall getPoint();
@@ -488,7 +494,6 @@ private:
 	util::SafeHash<long long, PROFESSION_SKILL> profession_skill_ = {};
 	util::SafeHash<long long, QHash<long long, PET_SKILL>> petSkill_ = {};
 
-	long long swapitemModeFlag = 0; //當前自動整理功能的階段
 	QHash<QString, bool>itemStackFlagHash = {};
 
 	util::SafeVector<bool> battlePetDisableList_ = {};
@@ -546,7 +551,6 @@ private:
 #pragma endregion
 
 public:
-	QFuture<void> readFuture_;
 	util::SafeQueue<QByteArray> readQueue_;
 
 	std::atomic_llong nowFloor_;
@@ -611,8 +615,6 @@ private:
 	QByteArrayList dataList_ = {};
 	QByteArray net_readbuf_;
 	QByteArray net_raw_;
-
-	QMutex net_mutex;
 
 private://lssproto
 	long long __fastcall appendReadBuf(const QByteArray& data);

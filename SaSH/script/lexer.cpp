@@ -53,8 +53,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ "dostr", TK_CMD },
 
 	//check info
-	{ "checkdaily", TK_CMD },
-
 	{ "waitmap", TK_CMD },
 	{ "waitdlg", TK_CMD },
 	{ "waitsay", TK_CMD },
@@ -334,7 +332,7 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 			"set", "print", "msg", "dlg", "findpath", "findnpc", "rex", "regex", "rexg", "format", "run",
 			"say", "sleep", "saveset", "loadset", "lclick", "rclick", "dbclick", "dragto", "chmap", "w", "download",
 			"move", "cls", "eo", "logout", "logback", "runex", "openwindow", "rungame", "closegame", "setlogin", "dostrex",
-			"getgamestate", "loadsetex", "createch", "delch", "menu"
+			"getgamestate", "loadsetex", "createch", "delch", "menu", "checkdaily"
 		};
 
 		for (const QString& it : tempReplacementList)
@@ -977,7 +975,7 @@ void Lexer::recordNode()
 		default:
 		{
 			RESERVE reserve = TK_UNK;
-			for (long long i = tk.size() - 1; i >= 0; --i)
+			for (long long i = static_cast<long long>(tk.size()) - 1; i >= 0; --i)
 			{
 				Token token = tk.value(i);
 				if (token.raw == "break")

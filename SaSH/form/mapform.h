@@ -22,7 +22,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "ui_mapform.h"
 #include <indexer.h>
 
-class Interpreter;
 class MapForm : public QWidget, public Indexer
 {
 	Q_OBJECT
@@ -39,14 +38,10 @@ private slots:
 
 	void onTableWidgetCellDoubleClicked(int row, int col);
 
-	void onScriptFinished();
+	void onFindPathFinished();
 
 protected:
-	virtual void showEvent(QShowEvent* e) override
-	{
-		setAttribute(Qt::WA_Mapped);
-		QWidget::showEvent(e);
-	}
+	virtual void showEvent(QShowEvent* e) override;
 
 private:
 	void resizeTableWidgetRow(long long max);
@@ -55,8 +50,7 @@ private:
 	Ui::MapFormClass ui;
 
 	QHash<int, QPoint> npc_hash_;
-
-	std::unique_ptr<Interpreter> interpreter_;
+	QFuture<void> findPathFuture_;
 
 	static QHash<long long, QHash<QPoint, QString>> entrances_;
 };

@@ -296,7 +296,7 @@ bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* p
 				Injector::reset(index);
 
 			}, Qt::QueuedConnection);
-		thread->start();
+		thread->start(QThread::TimeCriticalPriority);
 
 		if (ppObj != nullptr)
 			*ppObj = object;
@@ -542,8 +542,9 @@ void MainObject::mainProc()
 		{
 
 		}
-		else if (status == 3)//戰鬥中不延時
+		else if (status == 3)//戰鬥中
 		{
+			QThread::msleep(500);
 		}
 		else//錯誤
 		{
@@ -673,11 +674,7 @@ long long MainObject::checkAndRunFunctions()
 	if (login_run_once_flag_)
 	{
 		login_run_once_flag_ = false;
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		std::ignore = QtConcurrent::run(this, &MainObject::inGameInitialize);
-#else
-		std::ignore = QtConcurrent::run(&MainObject::inGameInitialize, this);
-#endif
+		inGameInitialize();
 
 		if (isFirstLogin_)
 			isFirstLogin_ = false;

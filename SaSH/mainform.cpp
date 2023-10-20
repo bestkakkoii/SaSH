@@ -239,31 +239,6 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 		return true;
 	}
-#if 0
-	case kSetMove:
-	{
-		Injector& injector = Injector::getInstance(currentIndex);
-		if (injector.isValid() && !injector.worker.isNull())
-		{
-			long long index = getIndex();
-			std::ignore = QtConcurrent::run([index]() {
-				Injector& injector = Injector::getInstance(index);
-				std::ignore = injector.worker->getPoint();
-				});
-
-		}
-		*result = 1;
-		return true;
-	}
-	//case kConnectionOK://TCP握手
-	//{
-	//	Injector& injector = Injector::getInstance(currentIndex);
-	//	injector.IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
-	//	*result = 1;
-	//	qDebug() << "tcp ok";
-	//	return true;
-	//}
-#endif
 	case InterfaceMessage::kGetCurrentId:
 	{
 		*result = currentIndex;
@@ -307,7 +282,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 		++interfaceCount_;
 		updateStatusText();
-		interpreter->doString(script, nullptr, Interpreter::kNotShare);
+		interpreter->doString(script);
 		*result = 1;
 		return true;
 	}
@@ -1131,7 +1106,7 @@ MainForm::MainForm(long long index, QWidget* parent)
 
 	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::BlockingQueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::QueuedConnection);
@@ -1194,6 +1169,9 @@ MainForm::~MainForm()
 
 void MainForm::showEvent(QShowEvent* e)
 {
+	setUpdatesEnabled(true);
+	blockSignals(false);
+
 	setAttribute(Qt::WA_Mapped);
 	QMainWindow::showEvent(e);
 }
@@ -1217,9 +1195,13 @@ void MainForm::closeEvent(QCloseEvent* e)
 	{
 		if (!it->markAsClose_)
 		{
+			setUpdatesEnabled(false);
+			blockSignals(true);
+			QMainWindow::closeEvent(e);
 			return;
 		}
 	}
+
 	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
 
@@ -1846,8 +1828,6 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 	msgBox->setDefaultButton(QMessageBox::StandardButton::Yes);
 	msgBox->setEscapeButton(QMessageBox::StandardButton::No);
 	msgBox->setStandardButtons(QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No);
-	msgBox->setButtonText(QMessageBox::Ok, tr("ok"));
-	msgBox->setButtonText(QMessageBox::Cancel, tr("cancel"));
 	msgBox->setButtonText(QMessageBox::Yes, tr("yes"));
 	msgBox->setButtonText(QMessageBox::No, tr("no"));
 #else

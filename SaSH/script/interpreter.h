@@ -42,7 +42,7 @@ public:
 
 	void __fastcall preview(const QString& fileName);
 
-	void __fastcall doString(const QString& script, Interpreter* pinterpretter, VarShareMode shareMode);
+	void __fastcall doString(QString content);
 
 	void __fastcall doFileWithThread(long long beginLine, const QString& fileName);
 
@@ -55,6 +55,7 @@ signals:
 
 public slots:
 	void proc();
+	void onRunString();
 
 private:
 	long long scriptCallBack(long long currentIndex, long long currentLine, const TokenMap& token);
@@ -81,6 +82,9 @@ private:
 
 	void __fastcall errorExport(long long currentIndex, long long currentLine, long long level, const QString& text);
 
+	void __fastcall setParentParser(Parser* pParser) { pParentParser_ = pParser; }
+	void __fastcall setParentInterpreter(Interpreter* pInterpreter) { pParentInterpreter_ = pInterpreter; }
+
 private: //註冊給Parser的函數
 	//system
 	long long press(long long currentIndex, long long currentLine, const TokenMap& TK);
@@ -89,7 +93,6 @@ private: //註冊給Parser的函數
 	long long send(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	//check
-	long long checkdaily(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long waitmap(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long waitdlg(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long waitsay(long long currentIndex, long long currentLine, const TokenMap& TK);
@@ -168,6 +171,9 @@ private:
 		WARN_LEVEL = 0,
 		ERROR_LEVEL = 1,
 	};
+
+	Parser* pParentParser_ = nullptr;
+	Interpreter* pParentInterpreter_ = nullptr;
 
 	QThread* thread_ = nullptr;
 	Parser parser_;

@@ -56,6 +56,8 @@ void Injector::reset(long long index)//static
 	Injector* instance = instances.value(index);
 	if (!instance->worker.isNull())
 	{
+		instance->worker->thread.quit();
+		instance->worker->thread.wait();
 		instance->worker.reset(nullptr);
 	}
 	instance->hGameModule_ = 0ULL;
@@ -337,26 +339,25 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		qDebug() << "file OK";
 
 		timer.restart();
-		if (nullptr == pi.hWnd)
+		//查找窗口句炳
+		for (;;)
 		{
-			//查找窗口句炳
-			for (;;)
+			::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
+			if (pi.hWnd != nullptr)
 			{
-				::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
-				if (pi.hWnd != nullptr)
-				{
-					DWORD dwProcessId = 0;
-					::GetWindowThreadProcessId(pi.hWnd, &dwProcessId);
-					if (dwProcessId == pi.dwProcessId)
-						break;
-				}
-
-				if (timer.hasExpired(MAX_TIMEOUT))
-				{
-					emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
+				DWORD dwProcessId = 0;
+				::GetWindowThreadProcessId(pi.hWnd, &dwProcessId);
+				if (dwProcessId == pi.dwProcessId)
 					break;
-				}
 			}
+
+			if (timer.hasExpired(MAX_TIMEOUT))
+			{
+				emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
+				break;
+			}
+
+			QThread::msleep(10);
 		}
 
 		if (nullptr == pi.hWnd)
