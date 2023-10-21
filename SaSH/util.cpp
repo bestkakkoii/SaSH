@@ -774,7 +774,7 @@ util::Config::Config(const QString& callBy)
 	: fileName_(QString::fromUtf8(qgetenv("JSON_PATH")))
 {
 	callby = callBy;
-	qDebug() << "============= callBy::::" << callBy;
+	//qDebug() << "============= callBy::::" << callBy;
 	tryLock(fileName_);
 	file_.setFileName(fileName_);
 	isVaild = open();
@@ -784,7 +784,7 @@ util::Config::Config(const QString& fileName, const QString& callBy)
 	: fileName_(fileName)
 {
 	callby = callBy;
-	qDebug() << "============= callBy::::" << callBy;
+	//qDebug() << "============= callBy::::" << callBy;
 	tryLock(fileName_);
 	file_.setFileName(fileName_);
 	isVaild = open();
@@ -794,7 +794,7 @@ util::Config::Config(const QByteArray& fileName, const QString& callBy)
 	: fileName_(QString::fromUtf8(fileName))
 {
 	callby = callBy;
-	qDebug() << "============= callBy::::" << callBy;
+	//qDebug() << "============= callBy::::" << callBy;
 	tryLock(fileName_);
 	file_.setFileName(fileName_);
 	isVaild = open();
@@ -803,7 +803,7 @@ util::Config::Config(const QByteArray& fileName, const QString& callBy)
 util::Config::~Config()
 {
 	sync();//同步數據
-	qDebug() << "============= callBy::::" << callby << "has unlock";
+	//qDebug() << "============= callBy::::" << callby << "has unlock";
 	releaseLock(fileName_);
 }
 

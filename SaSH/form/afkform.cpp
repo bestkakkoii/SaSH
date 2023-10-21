@@ -31,13 +31,16 @@ AfkForm::AfkForm(long long index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
+	setAttribute(Qt::WA_StyledBackground);
 	setFont(util::getFont());
 
 	Qt::WindowFlags windowflag = this->windowFlags();
 	windowflag |= Qt::WindowType::Tool;
 	setWindowFlag(Qt::WindowType::Tool);
 
+	util::setWidget(this);
 	util::setTab(ui.tabWidget);
+
 
 	connect(ui.tableWidget, &DragDropWidget::orderChanged, this, &AfkForm::onDragDropWidgetItemChanged, Qt::QueuedConnection);
 
@@ -112,6 +115,16 @@ AfkForm::AfkForm(long long index, QWidget* parent)
 		{
 			util::setLabel(label);
 			nameCheckList.append(label->objectName());
+		}
+	}
+
+	QList <TableWidget*> tableList = util::findWidgets<TableWidget>(this);
+	for (auto& table : tableList)
+	{
+		if (table && !nameCheckList.contains(table->objectName()))
+		{
+			util::setTableWidget(table);
+			nameCheckList.append(table->objectName());
 		}
 	}
 

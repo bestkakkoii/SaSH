@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>514</width>
-    <height>451</height>
+    <height>458</height>
    </rect>
   </property>
   <property name="maximumSize">
@@ -20,7 +20,8 @@
    <string>AfkForm</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-color: #F1F1F1;</string>
+   <string notr="true">	background-color: white;
+	color: black;</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">
@@ -46,8 +47,103 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="styleSheet">
+      <string notr="true">		QWidget {
+			background-color: white;
+			color: black;
+		}
+
+		QGroupBox {
+			background-color: white;
+			color: black;
+		}
+
+		QTabWidget{
+			color: black;
+			background-color: white;
+			border-top:0px solid gray;
+
+			background-clip:gray;
+			background-origin:gray;
+		}
+
+		QTabWidget::pane{
+			color: black;
+			background-color: white;
+			border-top:0px solid gray;
+
+			top:0px;
+			border-bottom:1px solid gray;
+			border-right:1px solid gray;
+			border-left:1px solid gray;
+		}
+
+		QTabWidget::tab-bar
+		{
+			alignment: left;
+			top:0px;
+			left:5px;
+			border:none;
+		}
+
+		QTabBar::tab:first{
+			color: black;
+			background-color: white;
+			border-top:0px solid gray;
+
+			padding-left:0px;
+			padding-right:0px;
+			height:18px;
+			margin-left:0px;
+			margin-right:0px;
+		}
+
+		QTabBar::tab:middle{
+			color: black;
+			background-color: white;
+			border-top:0px solid gray;
+
+			padding-left:0px;
+			padding-right:0px;
+			height:18px;
+			margin-left:0px;
+			margin-right:0px;
+		}
+
+		QTabBar::tab:last{
+			color: black;
+			background-color: white;
+			border-top:0px solid gray;
+
+			padding-left:0px;
+			padding-right:0px;
+			height:18px;
+			margin-left:0px;
+			margin-right:0px;
+		}
+
+		QTabBar::tab:selected{
+			color:white;
+			background-color: #398FFE;
+			border-top:0px solid #3282F6;
+
+		}
+
+		QTabBar::tab:hover{
+			color:white;
+			background-color: #398FFE;
+			border-top:0px solid #3282F6;
+
+			padding-left:0px;
+			padding-right:0px;
+			height:18px;
+			margin-left:0px;
+			margin-right:0px;
+		}
+</string>
+     </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -4342,6 +4438,93 @@
                <width>150</width>
                <height>16777215</height>
               </size>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QWidget {
+    color: black;
+    background: white;
+}
+
+QTableWidget {
+    color: black;
+    background-color: white;
+    border: 1px solid gray;
+    alternate-background-color: white;
+    gridline-color: gray;
+	font-size:12px;
+	outline:0px; /*虛線框*/
+}
+
+QTableWidget QTableCornerButton::section {
+    background-color: white;
+    border: 1px solid gray;
+}
+
+QHeaderView::section {
+    color: black;
+    background-color: white;
+	border: 1px solid gray;
+}
+
+QHeaderView::section:horizontal
+{
+    color: black;
+    background-color: white;
+}
+
+QHeaderView::section:vertical
+{
+    color: black;
+    background-color: white;
+}
+/*
+QTableWidget::item {
+    color: black;
+    background-color: white;
+	min-height: 11px;
+    font-size:12px;
+}
+
+QTableWidget::item:selected {
+    color: white;
+    background-color:black;
+}
+
+QTableWidget::item:hover {
+    color: white;
+    background-color:black;
+}
+*/
+QScrollBar:vertical {
+	min-height: 30px;  
+    background-color: white; 
+}
+
+QScrollBar::handle:vertical {
+    background-color: white;
+  	border: 3px solid  white;
+	min-height:30px;
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background-color: #3487FF;
+}
+
+QScrollBar:horizontal {
+    background-color: white; 
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #3282F6;
+  	border: 3px solid white;
+	min-width:50px;
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background-color: #3487FF;
+}</string>
              </property>
              <property name="editTriggers">
               <set>QAbstractItemView::NoEditTriggers</set>

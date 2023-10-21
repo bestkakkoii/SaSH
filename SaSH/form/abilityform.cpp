@@ -27,6 +27,7 @@ AbilityForm::AbilityForm(long long index, QWidget* parent)
 {
 	ui.setupUi(this);
 	setFont(util::getFont());
+	util::setWidget(this);
 	setWindowFlags(Qt::Dialog | Qt::Tool);
 	setFixedSize(this->width(), this->height());
 	setAttribute(Qt::WA_QuitOnClose);

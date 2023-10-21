@@ -760,9 +760,11 @@ void CLua::open_utillibs(sol::state& lua)
 //luasystem.cpp
 void CLua::open_syslibs(sol::state& lua)
 {
+	lua.set_function("send", &CLuaSystem::send, &luaSystem_);
 	lua.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
 	lua.set_function("openlog", &CLuaSystem::openlog, &luaSystem_);
 	lua.set_function("printf", &CLuaSystem::print, &luaSystem_);
+	//直接覆蓋print會無效,改成在腳本內中轉覆蓋
 	lua.safe_script(R"(
 		_print = print;
 		print = printf;
@@ -796,15 +798,8 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("logout", &CLuaSystem::logout, &luaSystem_);
 	lua.set_function("logback", &CLuaSystem::logback, &luaSystem_);
 	lua.set_function("eo", &CLuaSystem::eo, &luaSystem_);
+	lua.set_function("button", &CLuaSystem::eo, &luaSystem_);
 
-	lua.new_usertype<CLuaSystem>("SystemClass",
-		sol::call_constructor,
-		sol::constructors<CLuaSystem()>(),
-		"press", sol::overload(
-			sol::resolve<long long(std::string, long long, long long, sol::this_state)>(&CLuaSystem::press),
-			sol::resolve<long long(long long, long long, long long, sol::this_state)>(&CLuaSystem::press)
-		)
-	);
 }
 
 void CLua::open_itemlibs(sol::state& lua)
@@ -827,6 +822,10 @@ void CLua::open_itemlibs(sol::state& lua)
 
 void CLua::open_charlibs(sol::state& lua)
 {
+	lua.set_function("join", &CLuaChar::join, &luaChar_);
+	lua.set_function("leave", &CLuaChar::leave, &luaChar_);
+	lua.set_function("kick", &CLuaChar::kick, &luaChar_);
+
 	lua.new_usertype<CLuaChar>("CharClass",
 		sol::call_constructor,
 		sol::constructors<CLuaChar()>(),
@@ -839,10 +838,7 @@ void CLua::open_charlibs(sol::state& lua)
 			sol::resolve<long long(long long, std::string, long long, std::string, std::string, sol::this_state)>(&CLuaChar::mail),
 			sol::resolve<long long(long long, std::string, sol::this_state)>(&CLuaChar::mail)
 		),
-		"skillUp", &CLuaChar::skillUp,
-
-		"setTeamState", &CLuaChar::setTeamState,
-		"kick", &CLuaChar::kick
+		"skillUp", &CLuaChar::skillUp
 	);
 }
 

@@ -25,6 +25,7 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 {
 	ui.setupUi(this);
 	setFont(util::getFont());
+	util::setWidget(this);
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowFlags(Qt::Tool | Qt::Dialog | Qt::WindowCloseButtonHint);
 	setModal(true);
@@ -47,6 +48,7 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 
 	for (auto& button : buttonList)
 	{
+		util::setPushButton(button);
 		connect(button, &QPushButton::clicked, this, &SelectObjectForm::onButtonClicked, Qt::QueuedConnection);
 	}
 
@@ -66,33 +68,10 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 	};
 	setWindowTitle(title_hash.value(type_, tr("unknown type")));
 
-	QString stylesheet = R"(
-		QPushButton {
-			background-color: #F0F4F8;
-			border: 1px solid gray;
-			border-radius: 1px;
-			padding: 2px;
-			color: #000000;
-		}
-		
-		QPushButton:hover {
-			background-color: #006CD6;
-			color:#DFEBF6;
-		}
-		
-		QPushButton:pressed, QPushButton:checked {
-			background-color: #0080FF;
-			color:#DFEBF6;
-		}
-
-		)";
-
-
-	setStyleSheet(stylesheet);
-
-
 	util::setPushButton(ui.buttonBox->button(QDialogButtonBox::Ok));
 	util::setPushButton(ui.buttonBox->button(QDialogButtonBox::Cancel));
+
+	util::setComboBox(ui.comboBox);
 }
 
 SelectObjectForm::~SelectObjectForm()

@@ -144,7 +144,7 @@ long long CLuaChar::skillUp(long long abilityIndex, long long amount, sol::this_
 }
 
 //action-group
-long long CLuaChar::setTeamState(bool join, sol::this_state s)
+long long CLuaChar::join(sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
@@ -153,7 +153,21 @@ long long CLuaChar::setTeamState(bool join, sol::this_state s)
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->setTeamState(join);
+	injector.worker->setTeamState(true);
+
+	return TRUE;
+}
+
+long long CLuaChar::leave(sol::this_state s)
+{
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkBattleThenWait(s);
+
+	injector.worker->setTeamState(false);
 
 	return TRUE;
 }

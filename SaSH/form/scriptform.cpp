@@ -18,14 +18,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "scriptform.h"
-
 #include "util.h"
 #include "script/interpreter.h"
-
 #include "injector.h"
-
 #include "signaldispatcher.h"
-
 
 ScriptForm::ScriptForm(long long index, QWidget* parent)
 	: QWidget(parent)

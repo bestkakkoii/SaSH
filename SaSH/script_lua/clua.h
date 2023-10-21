@@ -186,6 +186,7 @@ public:
 	~CLuaSystem() = default;
 
 	//global
+	long long send(long long funId, sol::variadic_args args, sol::this_state s);
 	long long sleep(long long value, sol::this_state s);//ok
 	long long openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s);
 	long long print(sol::object ostr, sol::object ocolor, sol::this_state s);//ok
@@ -220,8 +221,7 @@ public:
 	long long eo(sol::this_state s);//ok
 	long long cleanchat(sol::this_state s);//ok
 	long long talk(sol::object ostr, sol::object ocolor, sol::object omode, sol::this_state s);
-	long long press(std::string buttonStr, long long unitid, long long dialogid, sol::this_state s);//ok
-	long long press(long long row, long long unitid, long long dialogid, sol::this_state s);//ok
+	long long press(sol::object obutton, sol::object ounitid, sol::object odialogid, sol::this_state s);//ok
 	long long input(const std::string& str, long long unitid, long long dialogid, sol::this_state s);//ok
 };
 
@@ -273,7 +273,8 @@ public:
 	long long skillUp(long long abilityIndex, long long amount, sol::this_state s);
 
 	//action-group
-	long long setTeamState(bool join, sol::this_state s);
+	long long join(sol::this_state s);
+	long long leave(sol::this_state s);
 	long long kick(long long teammateIndex, sol::this_state s);
 };
 

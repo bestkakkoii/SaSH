@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>178</width>
-    <height>237</height>
+    <width>334</width>
+    <height>252</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -19,26 +19,42 @@
   <property name="windowTitle">
    <string>SelectObjectForm</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">background-color: white;
+color: black;</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <property name="spacing">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="leftMargin">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="topMargin">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="rightMargin">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="bottomMargin">
-    <number>1</number>
+    <number>5</number>
    </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <property name="spacing">
-      <number>1</number>
+      <number>5</number>
+     </property>
+     <property name="leftMargin">
+      <number>5</number>
+     </property>
+     <property name="topMargin">
+      <number>5</number>
+     </property>
+     <property name="rightMargin">
+      <number>5</number>
+     </property>
+     <property name="bottomMargin">
+      <number>5</number>
      </property>
      <item>
       <widget class="ComboBox" name="comboBox">
@@ -105,10 +121,59 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="spacing">
-      <number>1</number>
+      <number>5</number>
+     </property>
+     <property name="leftMargin">
+      <number>5</number>
+     </property>
+     <property name="topMargin">
+      <number>5</number>
+     </property>
+     <property name="rightMargin">
+      <number>5</number>
+     </property>
+     <property name="bottomMargin">
+      <number>5</number>
      </property>
      <item>
       <widget class="ListWidget" name="listWidget">
+       <property name="styleSheet">
+        <string notr="true">QListWidget{
+	color:black;
+	background-color: white;
+}
+
+QScrollBar:vertical {
+	min-height: 30px;  
+    background: white; 
+}
+
+QScrollBar::handle:vertical {
+    background: white;
+  	border: 3px solid  white;
+	min-height:30px;
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: #3487FF;
+}
+
+QScrollBar:horizontal {
+    background: white; 
+}
+
+QScrollBar::handle:horizontal {
+    background: #3282F6;
+  	border: 3px solid white;
+	min-width:50px;
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: #3487FF;
+}</string>
+       </property>
        <property name="frameShape">
         <enum>QFrame::StyledPanel</enum>
        </property>
@@ -117,7 +182,19 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
        <property name="spacing">
-        <number>1</number>
+        <number>5</number>
+       </property>
+       <property name="leftMargin">
+        <number>5</number>
+       </property>
+       <property name="topMargin">
+        <number>5</number>
+       </property>
+       <property name="rightMargin">
+        <number>5</number>
+       </property>
+       <property name="bottomMargin">
+        <number>5</number>
        </property>
        <item>
         <widget class="PushButton" name="pushButton_up">

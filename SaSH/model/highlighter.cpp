@@ -47,7 +47,7 @@ const char* Highlighter::keywords(int set) const
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
 		return
-			"ocr dlg rnd "
+			"dlg rnd "
 			"print sleep timer msg logout logback eo button say input menu "
 			"talk cls set saveset loadset "
 			"chpet chname chpetname chmap "

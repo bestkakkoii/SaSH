@@ -119,6 +119,7 @@
     <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
     <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)x64</TargetName>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
@@ -467,7 +468,6 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <ClCompile Include="script\lexer.cpp" />
     <ClCompile Include="script\move.cpp" />
     <ClCompile Include="script\parser.cpp" />
-    <ClCompile Include="script\system.cpp" />
     <ClCompile Include="script_lua\clua.cpp" />
     <ClCompile Include="script_lua\luabattle.cpp" />
     <ClCompile Include="script_lua\luachar.cpp" />

@@ -48,8 +48,6 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//system
 	{ "run", TK_CMD },
-	{ "button", TK_CMD },
-	{ "send", TK_CMD },
 	{ "dostr", TK_CMD },
 
 	//check info
@@ -93,17 +91,9 @@ static const QHash<QString, RESERVE> keywords = {
 	{ "mail", TK_CMD },
 	{ "doffstone", TK_CMD },
 
-	//action with sub cmd
-	{ "join", TK_CMD },
-	{ "leave", TK_CMD },
-	{ "kick", TK_CMD },
-
 	//move
 	{ "walkpos", TK_CMD },
 	{ "dir", TK_CMD },
-
-	//hide
-	//{ "ocr", TK_CMD },
 
 	//battle
 	{ "bh", TK_CMD },//atk
@@ -332,7 +322,7 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 			"set", "print", "msg", "dlg", "findpath", "findnpc", "rex", "regex", "rexg", "format", "run",
 			"say", "sleep", "saveset", "loadset", "lclick", "rclick", "dbclick", "dragto", "chmap", "w", "download",
 			"move", "cls", "eo", "logout", "logback", "runex", "openwindow", "rungame", "closegame", "setlogin", "dostrex",
-			"getgamestate", "loadsetex", "createch", "delch", "menu", "checkdaily"
+			"getgamestate", "loadsetex", "createch", "delch", "menu", "checkdaily", "button", "join", "leave", "kick", "send"
 		};
 
 		for (const QString& it : tempReplacementList)
@@ -644,7 +634,7 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 				//createEmptyToken(pos, ptoken);
 				break;
 			}
-		}
+	}
 
 		if (!doNotLowerCase)
 			createToken(pos, type, QVariant::fromValue(token.toLower()), token.toLower(), ptoken);//命令必定是小寫
@@ -741,7 +731,7 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 			createToken(pos, type, data, token, ptoken);
 			++pos;
 		}
-	} while (false);
+} while (false);
 }
 
 //更新並記錄每個函數塊的開始行和結束行

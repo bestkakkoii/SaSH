@@ -344,12 +344,9 @@ void Interpreter::openLibs()
 {
 	/*註册函数*/
 
-		//system
-	registerFunction("button", &Interpreter::press);
-
+	//system
 	registerFunction("run", &Interpreter::run);
 	registerFunction("dostr", &Interpreter::dostr);
-	registerFunction("send", &Interpreter::send);
 
 	//check
 	registerFunction("waitmap", &Interpreter::waitmap);
@@ -400,14 +397,6 @@ void Interpreter::openLibs()
 	registerFunction("putitem", &Interpreter::deposititem);
 	registerFunction("getpet", &Interpreter::withdrawpet);
 	registerFunction("getitem", &Interpreter::withdrawitem);
-
-	//action->group
-	registerFunction("join", &Interpreter::join);
-	registerFunction("leave", &Interpreter::leave);
-	registerFunction("kick", &Interpreter::kick);
-
-	//hide
-	//registerFunction("ocr", &Interpreter::ocr);
 
 	//battle
 	registerFunction("bh", &Interpreter::bh);//atk

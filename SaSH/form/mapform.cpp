@@ -125,7 +125,11 @@ void MapForm::onButtonClicked()
 		long long y = ui.spinBox_findpath_y->value();
 
 		QPoint point(x, y);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+#else
+		findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), std::move(point));
+#endif
 
 		ui.pushButton_findpath_stop->setEnabled(true);
 		ui.pushButton_findpath_start->setEnabled(false);
@@ -229,7 +233,11 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
 
 	QPoint point = npc_hash_.value(row);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+#else
+	findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), std::move(point));
+#endif
 
 	ui.pushButton_findpath_stop->setEnabled(true);
 	ui.pushButton_findpath_start->setEnabled(false);

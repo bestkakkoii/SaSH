@@ -349,7 +349,7 @@ long long CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state 
 	return TRUE;
 }
 
-long long CLuaSystem::press(std::string sbuttonStr, long long unitid, long long dialogid, sol::this_state s)
+long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::object odialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
@@ -358,12 +358,34 @@ long long CLuaSystem::press(std::string sbuttonStr, long long unitid, long long 
 
 	luadebug::checkBattleThenWait(s);
 
-	QString text = util::toQString(sbuttonStr);
+	std::string sbuttonStr;
 	long long row = -1;
+	if (obutton.is<long long>())
+		row = obutton.as<long long>();
+	else if (obutton.is<std::string>())
+		sbuttonStr = obutton.as<std::string>();
+	else
+		return FALSE;
+
+	long long unitid = -1;
+	if (ounitid.is<long long>())
+		unitid = ounitid.as<long long>();
+	long long dialogid = -1;
+	if (odialogid.is<long long>())
+		dialogid = odialogid.as<long long>();
+
+	if (sbuttonStr.empty() && row > 0)
+	{
+		--row;
+
+		injector.worker->press(row, dialogid, unitid);
+		return TRUE;
+	}
+
+	QString text = util::toQString(sbuttonStr);
 	BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
 	if (button == BUTTON_NOTUSED)
 	{
-		long long row = -1;
 		dialog_t dialog = injector.worker->currentDialog;
 		QStringList textList = dialog.linebuttontext;
 		if (!textList.isEmpty())
@@ -398,20 +420,6 @@ long long CLuaSystem::press(std::string sbuttonStr, long long unitid, long long 
 		injector.worker->press(row, dialogid, unitid);
 	else
 		return FALSE;
-
-	return TRUE;
-}
-
-long long CLuaSystem::press(long long row, long long unitid, long long dialogid, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
-		return FALSE;
-
-	luadebug::checkBattleThenWait(s);
-
-	injector.worker->press(row, dialogid, unitid);
 
 	return TRUE;
 }
@@ -724,6 +732,35 @@ long long CLuaSystem::delch(long long index, std::string spsw, sol::object optio
 	return TRUE;
 }
 
+long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	std::cout << "Received " << args.size() << " arguments:" << std::endl;
+
+	std::vector<std::variant<int, std::string>> vargs;
+	for (auto arg : args)
+	{
+		std::variant<int, std::string> var;
+
+		if (arg.is<long long>() || arg.get_type() == sol::type::number)
+		{
+			vargs.emplace_back(static_cast<int>(arg.as<long long>()));
+		}
+		else if (arg.is<std::string>() || arg.get_type() == sol::type::string)
+		{
+			vargs.emplace_back(arg.as<std::string>());
+		}
+	}
+
+	injector.autil.util_SendArgs(static_cast<int>(funId), vargs);
+
+	return TRUE;
+}
 
 long long CLuaSystem::set(std::string enumStr,
 	sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)

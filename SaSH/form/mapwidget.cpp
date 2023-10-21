@@ -570,7 +570,11 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 
 
 	QPoint point(x, y);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+#else
+	findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), point);
+#endif
 
 	ui.pushButton_findPath->setEnabled(false);
 }
@@ -763,7 +767,11 @@ void MapWidget::on_pushButton_findPath_clicked()
 		return;
 
 	QPoint point(x, y);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+#else
+	findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), point);
+#endif
 
 	ui.pushButton_findPath->setEnabled(false);
 }
@@ -901,7 +909,11 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		}
 
 		QPoint point(x, y);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+#else
+		findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), point);
+#endif
 
 		ui.pushButton_findPath->setEnabled(false);
 		return;
@@ -959,7 +971,11 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 
 	point = QPoint(x, y);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
+#else
+	findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), point);
+#endif
 
 	ui.pushButton_findPath->setEnabled(false);
 }

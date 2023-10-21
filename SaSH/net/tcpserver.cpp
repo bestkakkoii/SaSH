@@ -614,7 +614,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 
 	switch (func)
 	{
-	case LSSPROTO_XYD_RECV: /*戰後刷新人物座標、方向2*/
+	case LSSPROTO_XYD_RECV: /* 戰後刷新人物座標、方向 2 */
 	{
 		int x = 0;
 		int y = 0;
@@ -627,9 +627,9 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_XYD_recv(QPoint(x, y), dir);
 		break;
 	}
-	case LSSPROTO_EV_RECV: /*WRAP 4*/
+	case LSSPROTO_EV_RECV: /* 環境改變WRAP 4 */
 	{
-		int dialogid = 0;
+		int dialogid = 0;//新地圖名稱顯示對話框ID
 		int result = 0;
 
 		if (!injector.autil.util_Receive(&dialogid, &result))
@@ -639,7 +639,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_EV_recv(dialogid, result);
 		break;
 	}
-	case LSSPROTO_EN_RECV: /*Battle EncountFlag //開始戰鬥 7*/
+	case LSSPROTO_EN_RECV: /* 開始戰鬥 7 */
 	{
 		int result = 0;
 		int field = 0;
@@ -651,28 +651,28 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_EN_recv(result, field);
 		break;
 	}
-	case LSSPROTO_RS_RECV: /*戰後獎勵 12*/
+	case LSSPROTO_RS_RECV: /* 戰後獎勵 12 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_RS_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_RS_RECV" << util::toUnicode(net_data);
 		lssproto_RS_recv(net_data);
 		break;
 	}
-	case LSSPROTO_RD_RECV:/*戰後經驗 13*/
+	case LSSPROTO_RD_RECV: /* PK獎勵 13 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
 
-		//qDebug() << "LSSPROTO_RD_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_RD_RECV" << util::toUnicode(net_data);
 		lssproto_RD_recv(net_data);
 		break;
 	}
-	case LSSPROTO_B_RECV: /*每回合開始的戰場資訊 15*/
+	case LSSPROTO_B_RECV: /* 每回合開始的戰場資訊 15 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
@@ -688,11 +688,11 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_I_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_I_RECV" << util::toUnicode(net_data);
 		lssproto_I_recv(net_data);
 		break;
 	}
-	case LSSPROTO_SI_RECV:/* 道具位置交換24*/
+	case LSSPROTO_SI_RECV: /* 道具位置交換 24 */
 	{
 		int fromindex;
 		int toindex;
@@ -704,7 +704,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_SI_recv(fromindex, toindex);
 		break;
 	}
-	case LSSPROTO_MSG_RECV:/*收到郵件26*/
+	case LSSPROTO_MSG_RECV: /* 收到郵件 26 */
 	{
 		int aindex;
 		int color;
@@ -713,11 +713,11 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&aindex, net_data, &color))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_MSG_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_MSG_RECV" << util::toUnicode(net_data);
 		lssproto_MSG_recv(aindex, net_data, color);
 		break;
 	}
-	case LSSPROTO_PME_RECV:/*28*/
+	case LSSPROTO_PME_RECV: /* 寵郵飛進來28 */
 	{
 		int unitid;
 		int graphicsno;
@@ -731,22 +731,22 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&unitid, &graphicsno, &x, &y, &dir, &flg, &no, net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_PME_RECV" << "unitid" << unitid << "graphicsno" << graphicsno <<
-			//"x" << x << "y" << y << "dir" << dir << "flg" << flg << "no" << no << "cdata" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_PME_RECV" << "unitid" << unitid << "graphicsno" << graphicsno <<
+			"x" << x << "y" << y << "dir" << dir << "flg" << flg << "no" << no << "cdata" << util::toUnicode(net_data);
 		lssproto_PME_recv(unitid, graphicsno, QPoint(x, y), dir, flg, no, net_data);
 		break;
 	}
-	case LSSPROTO_AB_RECV:/* 30*/
+	case LSSPROTO_AB_RECV: /* 名片 30 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_AB_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_AB_RECV" << util::toUnicode(net_data);
 		lssproto_AB_recv(net_data);
 		break;
 	}
-	case LSSPROTO_ABI_RECV:/*名片數據31*/
+	case LSSPROTO_ABI_RECV: /* 名片數據 31 */
 	{
 		int num;
 
@@ -754,11 +754,11 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&num, net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_ABI_RECV" << "num" << num << "data" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_ABI_RECV" << "num" << num << "data" << util::toUnicode(net_data);
 		lssproto_ABI_recv(num, net_data);
 		break;
 	}
-	case LSSPROTO_TK_RECV: /*收到對話36*/
+	case LSSPROTO_TK_RECV: /* 收到對話 36 */
 	{
 		int index;
 		int color;
@@ -767,11 +767,11 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&index, net_data, &color))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_TK_RECV" << "index" << index << "message" << util::toUnicode(data.data()) << "color" << color;
+		qDebug() << "LSSPROTO_TK_RECV" << "index" << index << "message" << util::toUnicode(net_data) << "color" << color;
 		lssproto_TK_recv(index, net_data, color);
 		break;
 	}
-	case LSSPROTO_MC_RECV: /*地圖數據更新，重新繪製地圖37*/
+	case LSSPROTO_MC_RECV: /* 重新繪製地圖 37 */
 	{
 		int fl;
 		int x1;
@@ -791,7 +791,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_MC_recv(fl, x1, y1, x2, y2, tilesum, objsum, eventsum, net_data);
 		break;
 	}
-	case LSSPROTO_M_RECV: /*地圖數據更新，重新寫入地圖2 39*/
+	case LSSPROTO_M_RECV: /* 地圖數據更新，重新寫入地圖 39 */
 	{
 		int fl;
 		int x1;
@@ -807,7 +807,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_M_recv(fl, x1, y1, x2, y2, net_data);
 		break;
 	}
-	case LSSPROTO_C_RECV: /*服務端發送的靜態信息，可用於顯示玩家，其它玩家，公交，寵物等信息 41*/
+	case LSSPROTO_C_RECV: /* 服務端發送的靜態信息，可用於顯示玩家，其它玩家，公交，寵物等信息 41 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
@@ -817,37 +817,37 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_C_recv(net_data);
 		break;
 	}
-	case LSSPROTO_CA_RECV: /*//周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位 42*/
+	case LSSPROTO_CA_RECV: /* 周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位 42 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_CA_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_CA_RECV" << util::toUnicode(net_data);
 		lssproto_CA_recv(net_data);
 		break;
 	}
-	case LSSPROTO_CD_RECV: /*刪除指定一個或多個周圍人、NPC單位 43*/
+	case LSSPROTO_CD_RECV: /* 刪除指定一個或多個周圍人、NPC單位 43 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_CD_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_CD_RECV" << util::toUnicode(net_data);
 		lssproto_CD_recv(net_data);
 		break;
 	}
-	case LSSPROTO_R_RECV:
+	case LSSPROTO_R_RECV: /* 未知 44 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_R_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_R_RECV" << util::toUnicode(net_data);
 		lssproto_R_recv(net_data);
 		break;
 	}
-	case LSSPROTO_S_RECV: /*更新所有基礎資訊 46*/
+	case LSSPROTO_S_RECV: /* 更新所有基礎資訊 46 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
@@ -857,7 +857,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_S_recv(net_data);
 		break;
 	}
-	case LSSPROTO_D_RECV:/*47*/
+	case LSSPROTO_D_RECV: /* 未知 47 */
 	{
 		int category;
 		int dx;
@@ -867,33 +867,33 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&category, &dx, &dy, net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_D_RECV" << "category" << category << "dx" << dx << "dy" << dy << "data" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_D_RECV" << "category" << category << "dx" << dx << "dy" << dy << "data" << util::toUnicode(net_data);
 		lssproto_D_recv(category, dx, dy, net_data);
 		break;
 	}
-	case LSSPROTO_FS_RECV:/*開關切換 49*/
+	case LSSPROTO_FS_RECV: /* 開關切換 49 */
 	{
 		int flg;
 
 		if (!injector.autil.util_Receive(&flg))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_FS_RECV" << "flg" << flg;
+		qDebug() << "LSSPROTO_FS_RECV" << "flg" << flg;
 		lssproto_FS_recv(flg);
 		break;
 	}
-	case LSSPROTO_HL_RECV:/*51*/
+	case LSSPROTO_HL_RECV: /* 戰鬥求救 51 */
 	{
 		int flg;
 
 		if (!injector.autil.util_Receive(&flg))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_HL_RECV" << "flg" << flg;
+		qDebug() << "LSSPROTO_HL_RECV" << "flg" << flg;
 		lssproto_HL_recv(flg);
 		break;
 	}
-	case LSSPROTO_PR_RECV:/*組隊變化 53*/
+	case LSSPROTO_PR_RECV: /* 組隊變化 53 */
 	{
 		int request;
 		int result;
@@ -901,11 +901,11 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&request, &result))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_PR_RECV" << "request" << request << "result" << result;
+		qDebug() << "LSSPROTO_PR_RECV" << "request" << request << "result" << result;
 		lssproto_PR_recv(request, result);
 		break;
 	}
-	case LSSPROTO_KS_RECV: /*寵物更換狀態55*/
+	case LSSPROTO_KS_RECV: /* 寵物更換狀態 55 */
 	{
 		int petarray;
 		int result;
@@ -913,11 +913,11 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&petarray, &result))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_KS_RECV" << "petarray" << petarray << "result" << result;
+		qDebug() << "LSSPROTO_KS_RECV" << "petarray" << petarray << "result" << result;
 		lssproto_KS_recv(petarray, result);
 		break;
 	}
-	case LSSPROTO_PS_RECV:
+	case LSSPROTO_PS_RECV: /* 收到寵郵 59 */
 	{
 		int result;
 		int havepetindex;
@@ -927,22 +927,22 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&result, &havepetindex, &havepetskill, &toindex))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_PS_RECV" << "result" << result << "havepetindex" << havepetindex << "havepetskill" << havepetskill << "toindex" << toindex;
+		qDebug() << "LSSPROTO_PS_RECV" << "result" << result << "havepetindex" << havepetindex << "havepetskill" << havepetskill << "toindex" << toindex;
 		lssproto_PS_recv(result, havepetindex, havepetskill, toindex);
 		break;
 	}
-	case LSSPROTO_SKUP_RECV: /*更新點數 63*/
+	case LSSPROTO_SKUP_RECV: /* 更新點數 63 */
 	{
 		int point;
 
 		if (!injector.autil.util_Receive(&point))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_SKUP_RECV" << "point" << point;
+		qDebug() << "LSSPROTO_SKUP_RECV" << "point" << point;
 		lssproto_SKUP_recv(point);
 		break;
 	}
-	case LSSPROTO_WN_RECV:/*NPC對話框 66*/
+	case LSSPROTO_WN_RECV: /* NPC對話框 66 */
 	{
 		int windowtype;
 		int buttontype;
@@ -953,11 +953,12 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&windowtype, &buttontype, &dialogid, &unitid, net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_WN_RECV" << "windowtype" << windowtype << "buttontype" << buttontype << "dialogid" << dialogid << "unitid" << unitid << "data" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_WN_RECV" << "windowtype" << windowtype << "buttontype" << buttontype
+			<< "dialogid" << dialogid << "unitid" << unitid << "data" << util::toUnicode(net_data);
 		lssproto_WN_recv(windowtype, buttontype, dialogid, unitid, net_data);
 		break;
 	}
-	case LSSPROTO_EF_RECV: /*天氣68*/
+	case LSSPROTO_EF_RECV: /* 天氣 68 */
 	{
 		int effect;
 		int level;
@@ -970,7 +971,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_EF_recv(effect, level, net_data);
 		break;
 	}
-	case LSSPROTO_SE_RECV:/*69*/
+	case LSSPROTO_SE_RECV: /* 未知 69 */
 	{
 		int x;
 		int y;
@@ -980,88 +981,88 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&x, &y, &senumber, &sw))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_SE_RECV" << "x" << x << "y" << y << "senumber" << senumber << "sw" << sw;
+		qDebug() << "LSSPROTO_SE_RECV" << "x" << x << "y" << y << "senumber" << senumber << "sw" << sw;
 		lssproto_SE_recv(QPoint(x, y), senumber, sw);
 		break;
 	}
-	case LSSPROTO_CLIENTLOGIN_RECV:/*選人畫面 72*/
+	case LSSPROTO_CLIENTLOGIN_RECV: /* 選人畫面 72 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_CLIENTLOGIN_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_CLIENTLOGIN_RECV" << util::toUnicode(net_data);
 		lssproto_ClientLogin_recv(net_data);
 
 		return BC_NEED_TO_CLEAN;
 	}
-	case LSSPROTO_CREATENEWCHAR_RECV:/*人物新增74*/
+	case LSSPROTO_CREATENEWCHAR_RECV: /* 人物新增 74 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		memset(net_resultdata, 0, SBUFSIZE);
 		if (!injector.autil.util_Receive(net_resultdata, net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_CREATENEWCHAR_RECV" << util::toUnicode(result) << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_CREATENEWCHAR_RECV" << util::toUnicode(net_resultdata) << util::toUnicode(net_data);
 		lssproto_CreateNewChar_recv(net_resultdata, net_data);
 		return BC_NEED_TO_CLEAN;
 	}
-	case LSSPROTO_CHARDELETE_RECV:/*人物刪除 76*/
+	case LSSPROTO_CHARDELETE_RECV: /* 人物刪除 76 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		memset(net_resultdata, 0, SBUFSIZE);
 		if (!injector.autil.util_Receive(net_resultdata, net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_CHARDELETE_RECV" << util::toUnicode(result) << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_CHARDELETE_RECV" << util::toUnicode(net_resultdata) << util::toUnicode(net_data);
 		lssproto_CharDelete_recv(net_resultdata, net_data);
 		return BC_NEED_TO_CLEAN;
 	}
-	case LSSPROTO_CHARLOGIN_RECV: /*成功登入 78*/
+	case LSSPROTO_CHARLOGIN_RECV: /* 成功登入 78 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		memset(net_resultdata, 0, SBUFSIZE);
 		if (!injector.autil.util_Receive(net_resultdata, net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_CHARLOGIN_RECV" << util::toUnicode(result) << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_CHARLOGIN_RECV" << util::toUnicode(net_resultdata) << util::toUnicode(net_data);
 		lssproto_CharLogin_recv(net_resultdata, net_data);
 		break;
 	}
-	case LSSPROTO_CHARLIST_RECV:/*選人頁面資訊 80*/
+	case LSSPROTO_CHARLIST_RECV: /* 選人頁面資訊 80 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		memset(net_resultdata, 0, SBUFSIZE);
 		if (!injector.autil.util_Receive(net_resultdata, net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_CHARLIST_RECV" << util::toUnicode(result) << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_CHARLIST_RECV" << util::toUnicode(net_resultdata) << util::toUnicode(net_data);
 		lssproto_CharList_recv(net_resultdata, net_data);
 
 		return BC_NEED_TO_CLEAN;
 	}
-	case LSSPROTO_CHARLOGOUT_RECV:/*登出 82*/
+	case LSSPROTO_CHARLOGOUT_RECV: /* 登出 82 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		memset(net_resultdata, 0, SBUFSIZE);
 		if (!injector.autil.util_Receive(net_resultdata, net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_CHARLOGOUT_RECV" << util::toUnicode(result) << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_CHARLOGOUT_RECV" << util::toUnicode(net_resultdata) << util::toUnicode(net_data);
 		lssproto_CharLogout_recv(net_resultdata, net_data);
 		break;
 	}
-	case LSSPROTO_PROCGET_RECV:/*84*/
+	case LSSPROTO_PROCGET_RECV: /* 未知 84 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//ebug() << "LSSPROTO_PROCGET_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_PROCGET_RECV" << util::toUnicode(net_data);
 		lssproto_ProcGet_recv(net_data);
 		break;
 	}
-	case LSSPROTO_PLAYERNUMGET_RECV:/*86*/
+	case LSSPROTO_PLAYERNUMGET_RECV: /* 未知 86 */
 	{
 		int logincount;
 		int player;
@@ -1069,85 +1070,94 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&logincount, &player))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_PLAYERNUMGET_RECV" << "logincount:" << logincount << "player:" << player; //"logincount:%d player:%d\n
+		qDebug() << "LSSPROTO_PLAYERNUMGET_RECV" << "logincount:" << logincount << "player:" << player; //"logincount:%d player:%d\n
 		lssproto_CharNumGet_recv(logincount, player);
 		break;
 	}
-	case LSSPROTO_ECHO_RECV: /*伺服器定時ECHO "hoge" 88*/
+	case LSSPROTO_ECHO_RECV: /* 伺服器定時ECHO "hoge" 88 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_ECHO_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_ECHO_RECV" << util::toUnicode(net_data);
 		lssproto_Echo_recv(net_data);
 		break;
 	}
-	case LSSPROTO_NU_RECV: /*不知道幹嘛的 90*/
+	case LSSPROTO_NU_RECV: /* 未知 90 */
 	{
 		int AddCount;
 
 		if (!injector.autil.util_Receive(&AddCount))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_NU_RECV" << "AddCount:" << AddCount;
+		qDebug() << "LSSPROTO_NU_RECV" << "AddCount:" << AddCount;
 		lssproto_NU_recv(AddCount);
 		break;
 	}
-	case LSSPROTO_TD_RECV:/*92*/
+	case LSSPROTO_TD_RECV: /* 交易 92 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_TD_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_TD_RECV" << util::toUnicode(net_data);
 		lssproto_TD_recv(net_data);
 		break;
 	}
-	case LSSPROTO_FM_RECV:/*家族頻道93*/
+	case LSSPROTO_FM_RECV: /* 家族頻道 93 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_FM_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_FM_RECV" << util::toUnicode(net_data);
 		lssproto_FM_recv(net_data);
 		break;
 	}
-	case LSSPROTO_WO_RECV:/*95*/
+	case LSSPROTO_WO_RECV: /* 未知 95 */
 	{
 		int effect;
 
 		if (!injector.autil.util_Receive(&effect))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_WO_RECV" << "effect:" << effect;
+		qDebug() << "LSSPROTO_WO_RECV" << "effect:" << effect;
 		lssproto_WO_recv(effect);
 		break;
 	}
-	case LSSPROTO_NC_RECV: /*沈默? 101* 戰鬥結束*/
+	case LSSPROTO_IC_RECV:/* 未知 100 */
+	{
+		int x, y;
+		if (!injector.autil.util_Receive(&x, &y))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_IC_RECV" << "x:" << x << "y:" << y;
+		break;
+	}
+	case LSSPROTO_NC_RECV: /*未知(大多是戰鬥結束才有) 101 */
 	{
 		int flg = 0;
 
 		if (!injector.autil.util_Receive(&flg))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_NC_RECV" << "flg:" << flg;
+		qDebug() << "LSSPROTO_NC_RECV" << "flg:" << flg;
 		lssproto_NC_recv(flg);
 		break;
 	}
-	case LSSPROTO_CS_RECV:/*固定客戶端的速度104*/
+	case LSSPROTO_CS_RECV: /* 固定客戶端的速度 104 */
 	{
 		int deltimes = 0;
 
 		if (!injector.autil.util_Receive(&deltimes))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_CS_RECV" << "deltimes:" << deltimes;
+		qDebug() << "LSSPROTO_CS_RECV" << "deltimes:" << deltimes;
 		lssproto_CS_recv(deltimes);
 		break;
 	}
-	case LSSPROTO_PETST_RECV: /*寵物狀態改變 107*/
+	case LSSPROTO_PETST_RECV: /* 寵物狀態改變 107 */
 	{
 		int petarray;
 		int nresult;
@@ -1155,11 +1165,11 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&petarray, &nresult))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_PETST_RECV" << "petarray:" << petarray << "result:" << result;
+		qDebug() << "LSSPROTO_PETST_RECV" << "petarray:" << petarray << "result:" << nresult;
 		lssproto_PETST_recv(petarray, nresult);
 		break;
 	}
-	case LSSPROTO_SPET_RECV: /*寵物更換狀態115*/
+	case LSSPROTO_SPET_RECV: /* 寵物更換狀態 115 */
 	{
 		int standbypet;
 		int nresult;
@@ -1171,28 +1181,37 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_SPET_recv(standbypet, nresult);
 		break;
 	}
-	case LSSPROTO_JOBDAILY_RECV:/*任務日誌120*/
+	case LSSPROTO_STREET_VENDOR_RECV: /* 擺攤 117 */
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_STREET_VENDOR_RECV" << "data:" << util::toUnicode(net_data);
+		break;
+	}
+	case LSSPROTO_JOBDAILY_RECV: /* 任務日誌 120 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
 
-		//qDebug() << "LSSPROTO_JOBDAILY_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_JOBDAILY_RECV" << util::toUnicode(net_data);
 		lssproto_JOBDAILY_recv(net_data);
 		break;
 	}
-	case LSSPROTO_TEACHER_SYSTEM_RECV:/*導師系統123*/
+	case LSSPROTO_TEACHER_SYSTEM_RECV: /* 導師系統 123 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_TEACHER_SYSTEM_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_TEACHER_SYSTEM_RECV" << util::toUnicode(net_data);
 		lssproto_TEACHER_SYSTEM_recv(net_data);
 		break;
 	}
-	case LSSPROTO_S2_RECV:
+	case LSSPROTO_S2_RECV: /* 額外基礎訊息 125 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
@@ -1201,39 +1220,136 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_S2_recv(net_data);
 		break;
 	}
-	case LSSPROTO_FIREWORK_RECV:/*煙火?126*/
+	case LSSPROTO_FIREWORK_RECV: /* 煙火? 126 */
 	{
 		int iCharaindex, iType, iActionNum;
 
 		if (!injector.autil.util_Receive(&iCharaindex, &iType, &iActionNum))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_FIREWORK_RECV" << "iCharaindex:" << iCharaindex << "iType:" << iType << "iActionNum:" << iActionNum;
+		qDebug() << "LSSPROTO_FIREWORK_RECV" << "iCharaindex:" << iCharaindex << "iType:" << iType << "iActionNum:" << iActionNum;
 		lssproto_Firework_recv(iCharaindex, iType, iActionNum);
 		break;
 	}
-	case LSSPROTO_CHAREFFECT_RECV:/*146*/
+	case LSSPROTO_MOVE_SCREEN_RECV: /* 未知 128 */
+	{
+		int	iXY;
+		int	bMoveScreenMode;
+		if (!injector.autil.util_Receive(&bMoveScreenMode, &iXY))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_MOVE_SCREEN_RECV" << "bMoveScreenMode:" << bMoveScreenMode << "dstX" << HIWORD(iXY) << "dstY" << LOWORD(iXY);
+
+		break;
+	}
+	case LSSPROTO_HOSTNAME_RECV: /* 未知 130 */
+	{
+		int	hostnametamp;
+		if (!injector.autil.util_Receive(&hostnametamp))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_HOSTNAME_RECV" << "hostnametamp:" << hostnametamp;
+		break;
+	}
+	case LSSPROTO_MAGICCARD_ACTION_RECV: /* 未知 133 */
 	{
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_CHAREFFECT_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_MAGICCARD_ACTION_RECV" << util::toUnicode(net_data);
+		break;
+	}
+	case LSSPROTO_MAGICCARD_DAMAGE_RECV: /* 未知 134 */
+	{
+		int position;
+		int damage;
+		int offsetx;
+		int offsety;
+		if (!injector.autil.util_Receive(&position, &damage, &offsetx, &offsety))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_MAGICCARD_DAMAGE_RECV" << "position:" << position << "damage:" << damage << "offsetx:" << offsetx << "offsety:" << offsety;
+		break;
+	}
+	case LSSPROTO_ALCHEPLUS_RECV: /* 未知 136 */
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_ALCHEPLUS_RECV" << util::toUnicode(net_data);
+		break;
+	}
+	case LSSPROTO_SECONDARY_WINDOW_RECV: /* 二级窗口内容 137 */
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_SECONDARY_WINDOW_RECV" << util::toUnicode(net_data);
+		break;
+	}
+	case LSSPROTO_TRUNTABLE_RECV: /* 轉盤 簽到 138 */
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_TRUNTABLE_RECV" << util::toUnicode(net_data);
+
+		break;
+	}
+	case LSSPROTO_PKLIST_RECV: /* 未知 140 */
+	{
+		int count;
+		memset(net_data, 0, NETDATASIZE);
+
+		if (!injector.autil.util_Receive(&count, net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_PKLIST_RECV" << "count:" << count << util::toUnicode(net_data);
+
+		break;
+	}
+	case LSSPROTO_CHAREFFECT_RECV: /* 未知 146 */
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_CHAREFFECT_RECV" << util::toUnicode(net_data);
 		lssproto_CHAREFFECT_recv(net_data);
 		break;
 	}
-	case LSSPROTO_IMAGE_RECV:/*151 SE SO驗證圖*/
+	case LSSPROTO_REDMEMOY_RECV: /* 未知 148 */
 	{
-		//int x = 0;
-		//int y = 0;
-		//int z = 0;
+		int type;
+		int time;
+		int vip;
+		int index;
 
-		//if (!injector.autil.util_Receive(net_data.data(), &x, &y, &z))
-		//	return BC_INVALID;
+		memset(net_data, 0, NETDATASIZE);
+
+		if (!injector.autil.util_Receive(&type, &time, &vip, net_data, &index))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_REDMEMOY_RECV" << "type:" << type << "time:" << time << "vip:" << vip << "index:" << index << util::toUnicode(net_data);
 
 		break;
 	}
-	case LSSPROTO_DENGON_RECV:/*200*/
+	case LSSPROTO_IMAGE_RECV: /* 驗證圖 151 */
+	{
+		int x = 0;
+		int y = 0;
+		int z = 0;
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data, &x, &y, &z))
+			return BC_INVALID;
+
+		break;
+	}
+	case LSSPROTO_DENGON_RECV:/* 特殊公告 200*/
 	{
 		int coloer;
 		int num;
@@ -1246,28 +1362,106 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		lssproto_DENGON_recv(net_data, coloer, num);
 		break;
 	}
-	case LSSPROTO_SAMENU_RECV:/*201*/
+	case LSSPROTO_SAMENU_RECV: /* ShellExecute 'open' 201*/
 	{
-		//int count;
+		int count;
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(&count, net_data))
+			return BC_INVALID;
 
-		//if (!injector.autil.util_Receive(&count, net_data.data()))
-		//	return BC_INVALID;
+		qDebug() << "LSSPROTO_SAMENU_RECV" << "count:" << count << util::toUnicode(net_data);
+		break;
+	}
+	case 206:
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_SAMENU_RECV" << "count:" << count << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_206_RECV" << "unknown:" << util::toUnicode(net_data);
+		break;
+	}
+	case LSSPROTO_SHOPOK_RECV: /* 伺服器控制菜單 209 */
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_SHOPOK_RECV" << "unknown:" << util::toUnicode(net_data);
+		break;
+	}
+	case LSSPROTO_FAMILYBADGE_RECV: /* 家族徽章相關數據 211 */
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_FAMILYBADGE_RECV" << "unknown:" << util::toUnicode(net_data);
+
+		break;
+	}
+	case LSSPROTO_CHARTITLE_RECV: /* 人物稱號 213 */
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_CHARTITLE_RECV" << "unknown:" << util::toUnicode(net_data);
+
+		break;
+	}
+	case 216:
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_216_RECV" << "unknown:" << util::toUnicode(net_data);
+		break;
+	}
+	case LSSPROTO_VB_RECV: /* 祝福窗口 219 */
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_VB_RECV" << "unknown:" << util::toUnicode(net_data);
 		break;
 	}
 	case 220:
 	{
+		int unknown;
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(&unknown, net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_220_RECV" << "unknown:" << unknown << util::toUnicode(net_data);
 		break;
 	}
-	case 300: //item remove?
+	case LSSPROTO_PETSKINS_RECV: /* 寵物皮膚 222 */
 	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_PETSKINS_RECV" << "unknown:" << util::toUnicode(net_data);
+
+		break;
+	}
+	case 300: /* 丟棄道具後才會出現 */
+	{
+		memset(net_data, 0, NETDATASIZE);
+		if (!injector.autil.util_Receive(net_data))
+			return BC_INVALID;
+
+		qDebug() << "LSSPROTO_300_RECV" << util::toUnicode(net_data);
+
 		//char int
 		break;
 	}
 	default:
 	{
-		qDebug() << "-------------------fun" << func << "fieldcount" << fieldcount;
+		qDebug() << "-------------------UNKNOWN fun" << func << "fieldcount" << fieldcount;
 		break;
 	}
 	}
@@ -3242,7 +3436,7 @@ bool Worker::login(long long s)
 			config.writeArray<int>("System", "Login", "LoginFailed", { 315, 255 });
 		}
 		break;
-	}
+			}
 	case util::kStatusBusy:
 	{
 		QList<int> list = config.readArray<int>("System", "Login", "Busy");
@@ -3278,7 +3472,7 @@ bool Worker::login(long long s)
 		{
 			injector.leftDoubleClick(315, 253);
 			config.writeArray<int>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
-	}
+		}
 #endif
 		break;
 	}
@@ -3394,7 +3588,7 @@ bool Worker::login(long long s)
 			13, 3, 1,
 			14, 3, 2,
 			15, 3, 3,
-		};
+	};
 
 		const long long a = table[server * 3 + 1];
 		const long long b = table[server * 3 + 2];
@@ -3429,10 +3623,10 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1000))
 				break;
 
-	}
+		}
 #endif
 		break;
-}
+		}
 	case util::kStatusSelectSubServer:
 	{
 		if (!input())
@@ -3581,7 +3775,7 @@ bool Worker::login(long long s)
 					break;
 
 			}
-	}
+		}
 #endif
 		break;
 	}
@@ -3613,7 +3807,7 @@ bool Worker::login(long long s)
 			config.writeArray<int>("System", "Login", "SelectCharacter", { 100, 300, 340 });
 		}
 
-		injector.leftDoubleClick(x, y);
+		injector.leftClick(x, y);
 		//#endif
 		break;
 	}
@@ -3636,8 +3830,8 @@ bool Worker::login(long long s)
 	{
 		break;
 	}
-	}
-	return false;
+}
+return false;
 }
 
 #pragma endregion
@@ -10079,9 +10273,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-	}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -10140,7 +10334,7 @@ void Worker::lssproto_ABI_recv(int num, char* cdata)
 				break;
 			}
 		}
-}
+	}
 #endif
 }
 
@@ -10775,7 +10969,7 @@ void Worker::lssproto_EF_recv(int effect, int level, char* coption)
 	//SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	//long long floor = getFloor();
 	//emit signalDispatcher.updateNpcList(floor);
-}
+	}
 
 //求救
 void Worker::lssproto_HL_recv(int)
@@ -10964,12 +11158,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-			}
+					}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-		}
-	}
+				}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -10983,11 +11177,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-	}
+		}
 
 		setBattleData(bt);
 		break;
-}
+	}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -11699,7 +11893,7 @@ void Worker::lssproto_FM_recv(char* cdata)
 			//getStringToken(data, "|", 3, sizeof( FMType3 ) - 1, FMType3 );
 			//ItemmanInit(data );
 			//initItemman(data );
-		}
+	}
 		if (FMType2 == "T")
 		{
 			//initFamilyTaxWN(data);
@@ -11944,8 +12138,8 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 					currency.prestige = nRep;
 					currencyData = currency;
 				}
-			}
-		}
+}
+}
 
 		if (message.contains(rexVit))
 		{
@@ -12021,7 +12215,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12071,7 +12265,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12131,11 +12325,11 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-			}
+}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 
 //地圖數據更新，重新繪製地圖
 void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -12378,9 +12572,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -12489,7 +12683,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			unit.isVisible = modelid > 0 && modelid != 9999;
 			unit.objType = util::OBJ_HUMAN;
 			mapUnitHash.insert(id, unit);
-		}
+				}
 
 #ifdef _CHAR_PROFESSION			//人物職業
 #ifdef _GM_IDENTIFY		//GM識別
@@ -12518,7 +12712,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -12676,11 +12870,11 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
+		}
 	}
-}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Worker::lssproto_CA_recv(char* cdata)
@@ -13105,8 +13299,8 @@ void Worker::lssproto_S_recv(char* cdata)
 					default:
 						break;
 					}
+					}
 				}
-			}
 
 			emit signalDispatcher.updateCharHpProgressValue(pc_.level, pc_.hp, pc_.maxHp);
 			emit signalDispatcher.updateCharMpProgressValue(pc_.level, pc_.mp, pc_.maxMp);
@@ -13136,10 +13330,10 @@ void Worker::lssproto_S_recv(char* cdata)
 
 			playerInfoColContents.insert(0, var);
 			emit signalDispatcher.updateCharInfoColContents(0, var);
-		}
+			}
 
 		getCharMaxCarryingCapacity();
-	}
+		}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -13268,7 +13462,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				pet.blessatk = getIntegerToken(data, "|", 33);
 				pet.blessdef = getIntegerToken(data, "|", 34);
 				pet.blessquick = getIntegerToken(data, "|", 35);
-			}
+		}
 			else
 			{
 				mask = 2;
@@ -13449,7 +13643,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-		}
+	}
 
 		PC pc = pc_;
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)

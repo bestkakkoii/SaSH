@@ -559,40 +559,49 @@ bool Injector::isWindowAlive() const
 
 void Injector::mouseMove(long long x, long long y) const
 {
-	LPARAM data = MAKELPARAM(x, y);
-	sendMessage(WM_MOUSEMOVE, NULL, data);
+	//LPARAM data = MAKELPARAM(x, y);
+	//sendMessage(WM_MOUSEMOVE, NULL, data);
+	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseX, x);
+	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseY, y);
 }
 
 //滑鼠移動 + 左鍵
 void Injector::leftClick(long long x, long long y) const
 {
-	LPARAM data = MAKELPARAM(x, y);
-	sendMessage(WM_MOUSEMOVE, NULL, data);
-	QThread::msleep(50);
-	sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, data);
-	QThread::msleep(50);
-	sendMessage(WM_LBUTTONUP, MK_LBUTTON, data);
-	QThread::msleep(50);
+	//LPARAM data = MAKELPARAM(x, y);
+	//sendMessage(WM_MOUSEMOVE, NULL, data);
+	//QThread::msleep(50);
+	//sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, data);
+	//QThread::msleep(50);
+	//sendMessage(WM_LBUTTONUP, MK_LBUTTON, data);
+	//QThread::msleep(50);
+	mouseMove(x, y);
+	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseClick, 1);
 }
 
 void Injector::leftDoubleClick(long long x, long long y) const
 {
+	//LPARAM data = MAKELPARAM(x, y);
+	//sendMessage(WM_MOUSEMOVE, NULL, data);
+	//QThread::msleep(50);
+	//sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
+	//QThread::msleep(50);
+	mouseMove(x, y);
 	LPARAM data = MAKELPARAM(x, y);
-	sendMessage(WM_MOUSEMOVE, NULL, data);
-	QThread::msleep(50);
 	sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
-	QThread::msleep(50);
 }
 
 void Injector::rightClick(long long x, long long y) const
 {
-	LPARAM data = MAKELPARAM(x, y);
-	sendMessage(WM_MOUSEMOVE, NULL, data);
-	QThread::msleep(50);
-	sendMessage(WM_RBUTTONDOWN, MK_RBUTTON, data);
-	QThread::msleep(50);
-	sendMessage(WM_RBUTTONUP, MK_RBUTTON, data);
-	QThread::msleep(50);
+	//LPARAM data = MAKELPARAM(x, y);
+	//sendMessage(WM_MOUSEMOVE, NULL, data);
+	//QThread::msleep(50);
+	//sendMessage(WM_RBUTTONDOWN, MK_RBUTTON, data);
+	//QThread::msleep(50);
+	//sendMessage(WM_RBUTTONUP, MK_RBUTTON, data);
+	//QThread::msleep(50);
+	mouseMove(x, y);
+	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseClick, 2);
 }
 
 void Injector::dragto(long long x1, long long y1, long long x2, long long y2) const

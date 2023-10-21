@@ -29,6 +29,7 @@ SelectTargetForm::SelectTargetForm(long long index, long long type, QString* dst
 {
 	ui.setupUi(this);
 	setFont(util::getFont());
+	util::setWidget(this);
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowFlags(Qt::Tool | Qt::Dialog | Qt::WindowCloseButtonHint);
 	setModal(true);
@@ -42,7 +43,10 @@ SelectTargetForm::SelectTargetForm(long long index, long long type, QString* dst
 	for (auto& checkBox : checkBoxList)
 	{
 		if (checkBox)
+		{
+			util::setCheckBox(checkBox);
 			connect(checkBox, &QCheckBox::stateChanged, this, &SelectTargetForm::onCheckBoxStateChanged, Qt::QueuedConnection);
+		}
 	}
 
 	Injector& injector = Injector::getInstance(index);

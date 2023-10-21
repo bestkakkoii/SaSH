@@ -87,10 +87,8 @@ private:
 
 private: //註冊給Parser的函數
 	//system
-	long long press(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long run(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long dostr(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long send(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	//check
 	long long waitmap(long long currentIndex, long long currentLine, const TokenMap& TK);
@@ -141,14 +139,6 @@ private: //註冊給Parser的函數
 	long long withdrawitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	long long mail(long long currentIndex, long long currentLine, const TokenMap& TK);
-
-	//action-group
-	long long join(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long leave(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long kick(long long currentIndex, long long currentLine, const TokenMap& TK);
-
-	//hide
-	long long ocr(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	//battle
 	long long bh(long long currentIndex, long long currentLine, const TokenMap& TK);//atk

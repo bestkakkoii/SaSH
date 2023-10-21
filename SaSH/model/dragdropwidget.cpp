@@ -57,7 +57,7 @@ void DragDropWidget::onResetControlTextLanguage()
 			continue;
 
 		item->setData(Qt::UserRole, i);
-		item->setFlags(Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled | Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsTristate);
+		item->setFlags(Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled | Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 		item->setSizeHint(QSize(0, 14));
 		setItem(count, 0, item);
 		++count;

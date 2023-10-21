@@ -552,6 +552,9 @@ enum GameDataOffest
 	kOffsetEV = 0x41602BC,
 	kOffsetChatBuffer = 0x144D88,
 	kOffsetChatBufferMaxCount = 0x14A4F8,
+	kOffestMouseClick = 0x41F1BC4,
+	kOffestMouseX = 0x41F1B98,
+	kOffestMouseY = 0x41F1B9C,
 };
 
 typedef enum tagCHAR_EquipPlace

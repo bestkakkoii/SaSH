@@ -1041,6 +1041,103 @@ namespace util
 		return widgets;
 	}
 
+	inline void __fastcall setTableWidget(QTableWidget* pTable)
+	{
+		if (pTable == nullptr)
+			return;
+
+		QString styleSheet = R"(
+QWidget {
+    color: black;
+    background: white;
+}
+
+QTableWidget {
+    color: black;
+    background-color: white;
+    border: 1px solid gray;
+    alternate-background-color: white;
+    gridline-color: gray;
+	font-size:12px;
+	outline:0px; /*虛線框*/
+}
+
+QTableWidget QTableCornerButton::section {
+    background-color: white;
+    border: 1px solid gray;
+}
+
+QHeaderView::section {
+    color: black;
+    background-color: white;
+	border: 1px solid gray;
+}
+
+QHeaderView::section:horizontal
+{
+    color: black;
+    background-color: white;
+}
+
+QHeaderView::section:vertical
+{
+    color: black;
+    background-color: white;
+}
+/*
+QTableWidget::item {
+    color: black;
+    background-color: white;
+	min-height: 11px;
+    font-size:12px;
+}
+
+QTableWidget::item:selected {
+    color: white;
+    background-color:black;
+}
+
+QTableWidget::item:hover {
+    color: white;
+    background-color:black;
+}
+*/
+QScrollBar:vertical {
+	min-height: 30px;  
+    background-color: white; 
+}
+
+QScrollBar::handle:vertical {
+    background-color: white;
+  	border: 3px solid  white;
+	min-height:30px;
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background-color: #3487FF;
+}
+
+QScrollBar:horizontal {
+    background-color: white; 
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #3282F6;
+  	border: 3px solid white;
+	min-width:50px;
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background-color: #3487FF;
+}
+)";
+
+		pTable->setStyleSheet(styleSheet);
+		pTable->setAttribute(Qt::WA_StyledBackground);
+	}
+
 	inline void __fastcall setComboBox(QComboBox* pCombo)
 	{
 		if (pCombo == nullptr)
@@ -1050,7 +1147,7 @@ namespace util
 QComboBox {
 	color:black;
 	background-color: white;
-    border: 1px solid gray;
+    border: 2px solid gray;
 	border-radius: 5px;
 }
 
@@ -1256,6 +1353,10 @@ QCheckBox {
     spacing: 1px;
 }
 
+QCheckBox:disabled {
+	color:gray;
+}
+
 QCheckBox::indicator {
     width: 16px;
     height: 16px;
@@ -1337,10 +1438,20 @@ QLineEdit:hover{
 			return;
 
 		QString styleSheet = R"(
+			QWidget {
+				background-color: white;
+				color: black;
+			}
+
+			QGroupBox {
+				background-color: white;
+				color: black;
+			}
+
 			QTabWidget{
 				color: black;
 				background-color: white;
-				border-top:2px solid gray;
+				border-top:0px solid gray;
 
 				background-clip:gray;
 				background-origin:gray;
@@ -1349,7 +1460,7 @@ QLineEdit:hover{
 			QTabWidget::pane{
 				color: black;
 				background-color: white;
-				border-top:2px solid gray;
+				border-top:0px solid gray;
 
 				top:0px;
 				border-bottom:1px solid gray;
@@ -1368,7 +1479,7 @@ QLineEdit:hover{
 			QTabBar::tab:first{
 				color: black;
 				background-color: white;
-				border-top:2px solid gray;
+				border-top:0px solid gray;
 
 				padding-left:0px;
 				padding-right:0px;
@@ -1380,7 +1491,7 @@ QLineEdit:hover{
 			QTabBar::tab:middle{
 				color: black;
 				background-color: white;
-				border-top:2px solid gray;
+				border-top:0px solid gray;
 
 				padding-left:0px;
 				padding-right:0px;
@@ -1392,7 +1503,7 @@ QLineEdit:hover{
 			QTabBar::tab:last{
 				color: black;
 				background-color: white;
-				border-top:2px solid gray;
+				border-top:0px solid gray;
 
 				padding-left:0px;
 				padding-right:0px;
@@ -1404,14 +1515,14 @@ QLineEdit:hover{
 			QTabBar::tab:selected{
 				color:white;
 				background-color: #398FFE;
-				border-top:2px solid #3282F6;
+				border-top:0px solid #3282F6;
 
 			}
 
 			QTabBar::tab:hover{
 				color:white;
 				background-color: #398FFE;
-				border-top:2px solid #3282F6;
+				border-top:0px solid #3282F6;
 
 				padding-left:0px;
 				padding-right:0px;
@@ -1428,106 +1539,6 @@ QLineEdit:hover{
 
 		pTabBar->setDocumentMode(true);
 		pTabBar->setExpanding(true);
-	}
-
-	inline void __fastcall setTableWidget(QTableWidget* pWidget)
-	{
-		if (pWidget == nullptr)
-			return;
-
-		pWidget->setAttribute(Qt::WA_StyledBackground);
-
-		QString style = R"(
-QWidget {
-    color: black;
-    background-color: white;
-}
-
-QTableWidget {
-    color: black;
-    background-color: white;
-    border: 1px solid gray;
-    alternate-background-color: white;
-    gridline-color: gray;
-	font-size:12px;
-	outline:0px; /*虛線框*/
-}
-
-QTableWidget QTableCornerButton::section {
-    background-color: white;
-    border: 1px solid gray;
-}
-
-QHeaderView::section {
-    color: black;
-    background-color: white;
-	border: 1px solid gray;
-}
-
-QHeaderView::section:horizontal
-{
-    color: black;
-    background-color: white;
-}
-
-QHeaderView::section:vertical
-{
-    color: black;
-    background-color: white;
-}
-
-/*
-QTableWidget::item {
-    color: black;
-    background-color: white;
-	min-height: 11px;
-    font-size:12px;
-}
-
-QTableWidget::item:selected {
-    color: white;
-    background-color:black;
-}
-
-QTableWidget::item:hover {
-    color: white;
-    background-color:black;
-}
-*/
-
-QScrollBar:vertical {
-	min-height: 30px;  
-    background-color: white; 
-}
-
-QScrollBar::handle:vertical {
-    background-color: white;
-  	border: 3px solid  white;
-	min-height:30px;
-}
-
-QScrollBar::handle:hover:vertical,
-QScrollBar::handle:pressed:vertical {
-    background-color: #3487FF;
-}
-
-QScrollBar:horizontal {
-    background-color: white; 
-}
-
-QScrollBar::handle:horizontal {
-    background-color: #3282F6;
-  	border: 3px solid white;
-	min-width:50px;
-}
-
-QScrollBar::handle:hover:horizontal,
-QScrollBar::handle:pressed:horizontal {
-    background-color: #3487FF;
-}
-		)";
-
-		pWidget->setStyleSheet(style);
 	}
 
 	inline void __fastcall setWidget(QMainWindow* pWidget)
@@ -1573,16 +1584,44 @@ QGroupBox {
 QWidget {
 	background-color: white;
 	color: black;
-};
+}
 
 QGroupBox {
 	background-color: white;
 	color: black;
-};
+}
 )";
 
 		pWidget->setStyleSheet(style);
 	}
+
+	inline void __fastcall setWidget(QDialog* pWidget)
+	{
+		if (pWidget == nullptr)
+			return;
+
+		pWidget->setAttribute(Qt::WA_StyledBackground);
+
+		QString style = R"(
+QDialog {
+	background-color: white;
+	color: black;
+}
+
+QWidget {
+	background-color: white;
+	color: black;
+}
+
+QGroupBox {
+	background-color: white;
+	color: black;
+}
+)";
+
+		pWidget->setStyleSheet(style);
+	}
+
 
 	QFileInfoList __fastcall loadAllFileLists(
 		TreeWidgetItem* root,
@@ -2611,7 +2650,7 @@ QGroupBox {
 				QFile::close();
 			}
 			QFile::open(ioFlags);
-		}
+			}
 
 		explicit ScopedFile(const QString& filename)
 			: QFile(filename)
@@ -2719,7 +2758,7 @@ QGroupBox {
 
 	private:
 		QSet<uchar*> m_maps;
-	};
+		};
 
 	//Json配置讀寫
 	class Config
@@ -2929,4 +2968,4 @@ QGroupBox {
 	static const QRegularExpression rexSquareBrackets(R"(\[(\d+)\])");
 	//([\w\p{Han}]+)\[(\d+)\]
 
-}
+	}
