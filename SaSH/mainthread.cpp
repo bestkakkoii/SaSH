@@ -1270,13 +1270,14 @@ void MainObject::checkAutoJoin()
 				QSet<QPoint> blockList;
 				for (;;)
 				{
-					Injector& injector = Injector::getInstance(currentIndex);
-					if (injector.worker.isNull()) return;
-					if (!injector.worker->getOnlineFlag()) return;
-					if (injector.worker->getBattleFlag()) return;
-					if (injector.worker->getWorldStatus() != 9 || injector.worker->getGameStatus() != 3) return;
+					QThread::msleep(500);
 
-					PC ch = injector.worker->getPC();
+					Injector& injector = Injector::getInstance(currentIndex);
+					if (injector.worker.isNull())
+						return;
+
+					if (autojoin_future_cancel_flag_.load(std::memory_order_acquire))
+						return;
 
 					if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
 						return;
@@ -1284,27 +1285,34 @@ void MainObject::checkAutoJoin()
 					if (!injector.getEnableHash(util::kAutoJoinEnable))
 						return;
 
-					QString leader = injector.getStringHash(util::kAutoFunNameString);
+					if (!injector.worker->getOnlineFlag())
+						return;
 
+					if (injector.worker->getBattleFlag())
+						continue;
+
+					QString leader = injector.getStringHash(util::kAutoFunNameString);
 					if (leader.isEmpty())
 						return;
 
+					PC ch = injector.worker->getPC();
 					long long actionType = injector.getValueHash(util::kAutoFunTypeValue);
 					if (actionType == 0)
 					{
-						if ((ch.status & CHR_STATUS_LEADER) || (ch.status & CHR_STATUS_PARTY))
-						{
-							QThread::msleep(500);
-							bool ok = false;
+						//檢查隊長是否正確
+						if (ch.status & CHR_STATUS_LEADER)
+							continue;
 
+						if (ch.status & CHR_STATUS_PARTY)
+						{
+							bool ok = false;
 							QString name = injector.worker->getParty(0).name;
-							if (!name.isEmpty() && leader.contains(name))
-							{
+							if ((!name.isEmpty() && leader == name)
+								|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
 								return;
-							}
 
 							injector.worker->setTeamState(false);
-							QThread::msleep(100);
+							QThread::msleep(200);
 						}
 					}
 
@@ -1333,26 +1341,25 @@ void MainObject::checkAutoJoin()
 						if (injector.worker.isNull())
 							return;
 
-						//如果人物不在線上則自動退出
-						if (!injector.worker->getOnlineFlag())
+						if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
 							return;
 
-						if (injector.worker->getBattleFlag())
+						if (!injector.getEnableHash(util::kAutoJoinEnable))
 							return;
 
 						leader = injector.getStringHash(util::kAutoFunNameString);
-
 						if (leader.isEmpty())
 							return;
 
+						//如果人物不在線上則自動退出
+						if (!injector.worker->getOnlineFlag())
+							break;
+
+						if (injector.worker->getBattleFlag())
+							continue;
+
 						ch = injector.worker->getPC();
-						if (leader == ch.name)
-							return;
-
-						if (injector.worker->getWorldStatus() != 9 || injector.worker->getGameStatus() != 3)
-							return;
-
-						if (!floor)
+						if (leader == ch.name)//隊長正確
 							return;
 
 						if (floor != injector.worker->getFloor())
@@ -1371,7 +1378,7 @@ void MainObject::checkAutoJoin()
 
 						//查找目標人物所在坐標
 						if (!injector.worker->findUnit(leader, util::OBJ_HUMAN, &unit, freeName))
-							return;
+							break;
 
 						//如果和目標人物處於同一個坐標則向隨機方向移動一格
 						current_point = injector.worker->getPoint();
@@ -1398,7 +1405,7 @@ void MainObject::checkAutoJoin()
 							}
 
 							if (!injector.worker->mapAnalyzer.calcNewRoute(currentIndex, astar, floor, current_point, newpoint, blockList, &path))
-								return;
+								break;
 
 							len = MAX_SINGLE_STEP;
 							size = static_cast<long long>(path.size()) - 1;
@@ -1945,10 +1952,10 @@ void MainObject::checkAutoLockSchedule()
 					injector.worker->setPetState(i, kRest);
 			}
 			return false;
-		};
+				};
 
 	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
 
-}
+			}
 #endif

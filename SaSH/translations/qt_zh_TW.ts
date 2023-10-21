@@ -3616,8 +3616,8 @@ New version:%2</source>
         <translation>告訴你：</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="13319"/>
-        <location filename="../net/tcpserver.cpp" line="13679"/>
+        <location filename="../net/tcpserver.cpp" line="13321"/>
+        <location filename="../net/tcpserver.cpp" line="13681"/>
         <source>%1(%2tr)</source>
         <translation>%1(%2轉)</translation>
     </message>
@@ -4697,7 +4697,7 @@ New version:%2</source>
         <translation>遠程內存空間分配失敗</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="13319"/>
+        <location filename="../net/tcpserver.cpp" line="13321"/>
         <source>L:%1</source>
         <translation>運:%1</translation>
     </message>

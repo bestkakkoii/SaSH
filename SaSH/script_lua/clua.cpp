@@ -798,7 +798,7 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("logout", &CLuaSystem::logout, &luaSystem_);
 	lua.set_function("logback", &CLuaSystem::logback, &luaSystem_);
 	lua.set_function("eo", &CLuaSystem::eo, &luaSystem_);
-	lua.set_function("button", &CLuaSystem::eo, &luaSystem_);
+	lua.set_function("button", &CLuaSystem::press, &luaSystem_);
 
 }
 

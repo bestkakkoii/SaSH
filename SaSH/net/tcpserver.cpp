@@ -13302,6 +13302,8 @@ void Worker::lssproto_S_recv(char* cdata)
 					}
 				}
 
+
+			emit signalDispatcher.updateMainFormTitle(pc_.name);//標題設置為人物名稱
 			emit signalDispatcher.updateCharHpProgressValue(pc_.level, pc_.hp, pc_.maxHp);
 			emit signalDispatcher.updateCharMpProgressValue(pc_.level, pc_.mp, pc_.maxMp);
 
@@ -13462,7 +13464,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				pet.blessatk = getIntegerToken(data, "|", 33);
 				pet.blessdef = getIntegerToken(data, "|", 34);
 				pet.blessquick = getIntegerToken(data, "|", 35);
-		}
+	}
 			else
 			{
 				mask = 2;
@@ -13701,7 +13703,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		Injector& injector = Injector::getInstance(getIndex());
 		injector.setUserData(util::kUserPetNames, petNames);
-	}
+}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -14460,8 +14462,6 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	updateItemByMemory();
 	refreshItemInfo();
 
-	//標題設置為人物名稱
-	emit signalDispatcher.updateMainFormTitle(getPC().name);
 	//顯示NPC列表
 	emit signalDispatcher.updateNpcList(getFloor());
 
