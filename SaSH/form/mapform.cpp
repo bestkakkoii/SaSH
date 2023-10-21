@@ -34,6 +34,9 @@ MapForm::MapForm(long long index, QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
+	ui.tableWidget_map->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui.tableWidget_map->horizontalHeader()->setStretchLastSection(true);
+
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{

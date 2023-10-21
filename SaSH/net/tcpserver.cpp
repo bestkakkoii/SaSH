@@ -292,7 +292,7 @@ Socket::Socket(qintptr socketDescriptor, QObject* parent)
 	setSocketOption(QAbstractSocket::TypeOfServiceOption, 64);
 	connect(this, &Socket::readyRead, this, &Socket::onReadyRead, Qt::QueuedConnection);
 	moveToThread(&thread);
-	thread.start(QThread::TimeCriticalPriority);
+	thread.start();
 }
 
 void Socket::onReadyRead()
@@ -308,6 +308,8 @@ void Socket::onReadyRead()
 		{
 			//封包入隊列
 			injector.worker->readQueue_.enqueue(std::move(badata));
+			//通知處理
+			injector.worker->processRead();
 		}
 		return;
 	}
@@ -331,10 +333,8 @@ void Socket::onReadyRead()
 		Injector& injector = Injector::getInstance(index);
 		injector.worker.reset(new Worker(index, this, nullptr));
 		connect(injector.worker.get(), &Worker::write, this, &Socket::onWrite, Qt::QueuedConnection);
-		connect(this, &Socket::startRead, injector.worker.get(), &Worker::processRead, Qt::QueuedConnection);
 		qDebug() << "tcp ok";
 		injector.IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
-		emit startRead();
 	}
 }
 
@@ -384,10 +384,6 @@ Worker::Worker(long long index, Socket* socket, QObject* parent)
 	clearNetBuffer();
 
 	injector.autil.PersonalKey.set("upupupupp");
-
-	moveToThread(&thread);
-
-	thread.start(QThread::TimeCriticalPriority);
 }
 
 Worker::~Worker()
@@ -477,20 +473,8 @@ void Worker::clear()
 //處理遊戲客戶端發來的數據
 void Worker::processRead()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	long long delay = 0;
-	for (;;)
-	{
-		if (isInterruptionRequested())
-			break;
-
-		delay = injector.getValueHash(util::UserSetting::kTcpDelayValue);
-		if (delay > 0)
-			QThread::msleep(delay);//avoid too fast
-
-		while (!readQueue_.isEmpty())
-			handleData(std::move(readQueue_.dequeue()));
-	}
+	while (!readQueue_.isEmpty())
+		handleData(std::move(readQueue_.dequeue()));
 }
 
 bool Worker::handleCustomMessage(const QByteArray& badata)
@@ -545,6 +529,9 @@ void Worker::handleData(const QByteArray& badata)
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
+	long long delay = injector.getValueHash(util::UserSetting::kTcpDelayValue);
+	if (delay > 0)
+		QThread::msleep(delay);//avoid too fast
 
 	appendReadBuf(badata);
 
@@ -1255,7 +1242,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(net_data, &coloer, &num))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_DENGON_RECV" << util::toUnicode(data.data()) << "coloer:" << coloer << "num:" << num;
+		qDebug() << "LSSPROTO_DENGON_RECV" << util::toUnicode(net_data) << "coloer:" << coloer << "num:" << num;
 		lssproto_DENGON_recv(net_data, coloer, num);
 		break;
 	}
@@ -1271,6 +1258,11 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case 220:
 	{
+		break;
+	}
+	case 300: //item remove?
+	{
+		//char int
 		break;
 	}
 	default:
@@ -2044,13 +2036,19 @@ long long Worker::checkJobDailyState(const QString& missionName)
 	}
 
 	QHash<long long, JOBDAILY> jobdaily = getJobDailys();
+	long long state = 0;
 	for (const JOBDAILY& it : jobdaily)
 	{
 		if (it.name.contains(newMissionName))
-			return it.state;
+		{
+			state = it.state;
+			//如果是完成則直接退出，如果是進行中則繼續搜索以防出現同時有兩種進度的情況
+			if (state == 2)
+				break;
+		}
 	}
 
-	return 0;
+	return state;
 }
 
 //查找指定類型和名稱的單位
@@ -2548,7 +2546,7 @@ void Worker::updateBattleTimeInfo()
 		if (!getBattleFlag())
 			break;
 
-		QThread::msleep(50);
+		QThread::msleep(10);
 
 		time = battleDurationTimer.elapsed() / 1000.0;
 		cost = battle_one_round_time.load(std::memory_order_acquire) / 1000.0;
@@ -3280,7 +3278,7 @@ bool Worker::login(long long s)
 		{
 			injector.leftDoubleClick(315, 253);
 			config.writeArray<int>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
-		}
+	}
 #endif
 		break;
 	}
@@ -3431,10 +3429,10 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1000))
 				break;
 
-		}
+	}
 #endif
 		break;
-	}
+}
 	case util::kStatusSelectSubServer:
 	{
 		if (!input())
@@ -3583,7 +3581,7 @@ bool Worker::login(long long s)
 					break;
 
 			}
-		}
+	}
 #endif
 		break;
 	}
@@ -9928,10 +9926,6 @@ void Worker::sendBattlePetDoNothing()
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 		return;
 
-	const QString qcmd("W|FF|FF");
-
-	lssproto_B_send(qcmd);
-
 	QString text(QObject::tr("do nothing"));
 
 	labelPetAction = text;
@@ -9939,6 +9933,9 @@ void Worker::sendBattlePetDoNothing()
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.updateLabelPetAction(text);
 	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos + 5, QColor("#696969"));
+
+	const QString qcmd("W|FF|FF");
+	lssproto_B_send(qcmd);
 }
 
 #pragma endregion
@@ -10082,9 +10079,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
-#endif
 	}
+#endif
+}
 }
 
 //名片數據
@@ -10143,7 +10140,7 @@ void Worker::lssproto_ABI_recv(int num, char* cdata)
 				break;
 			}
 		}
-	}
+}
 #endif
 }
 
@@ -10967,12 +10964,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
+			}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-				}
-			}
+		}
+	}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -10986,11 +10983,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-		}
+	}
 
 		setBattleData(bt);
 		break;
-	}
+}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -11352,8 +11349,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 			return;
 		}
 
-		doBattleWork(true);
-
 		break;
 	}
 	case 'U':
@@ -11626,11 +11621,6 @@ void Worker::lssproto_PS_recv(int result, int havepetindex, int havepetskill, in
 {
 }
 
-void Worker::lssproto_SE_recv(const QPoint&, int, int)
-{
-
-}
-
 //戰後坐標更新
 void Worker::lssproto_XYD_recv(const QPoint& pos, int dir)
 {
@@ -11650,22 +11640,6 @@ void Worker::lssproto_Echo_recv(char* test)
 		isEOTTLSend.store(false, std::memory_order_release);
 		announce(QObject::tr("server response time:%1ms").arg(time));//伺服器響應時間:xxxms
 	}
-}
-
-//服務端發送給客戶端用於顯示某些東西的
-void Worker::lssproto_D_recv(int, int, int, char*)
-{
-	/*
-servertoclient D 函数用于向客户端发送显示指令，以在游戏画面上显示特定的内容。该函数接受以下参数：
-
-int category：显示内容的类别或类型。这个参数通常用于区分不同种类的显示内容。
-
-int dx 和 int dy：指定显示内容的位置坐标，即在游戏画面上的 x 和 y 坐标。这决定了内容将显示在何处。
-
-string data：包含要显示的内容的数据字符串。这可以是文本、图像或其他任何游戏中需要显示的信息或元素。
-
-通过使用 servertoclient D 函数，服务器可以向客户端发送各种类型的显示指令，以在游戏中呈现丰富的视觉和文本元素，如文本消息、物品图标、NPC 对话等。这有助于改善游戏的交互性和可玩性。
-	*/
 }
 
 //家族頻道
@@ -11747,17 +11721,6 @@ void Worker::lssproto_FM_recv(char* cdata)
 			//initFamilyLeaderChange(data);
 		}
 	}
-}
-
-//服務端發來的用於固定客戶端的速度
-void Worker::lssproto_CS_recv(int)
-{
-}
-
-//戰鬥結束
-void Worker::lssproto_NC_recv(int)
-{
-
 }
 
 //任務日誌
@@ -11884,6 +11847,7 @@ void Worker::lssproto_TEACHER_SYSTEM_recv(char* cdata)
 	}
 }
 
+//其他擴增資訊(少數服才有)
 void Worker::lssproto_S2_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
@@ -12057,7 +12021,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12107,7 +12071,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12167,7 +12131,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-	}
+			}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -12414,9 +12378,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
-#endif
 			}
+#endif
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -12554,7 +12518,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -12712,7 +12676,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}
@@ -14617,6 +14581,11 @@ void Worker::lssproto_CustomTK_recv(const QString& data)
 	}
 }
 
+void Worker::lssproto_SE_recv(const QPoint&, int, int)
+{
+
+}
+
 void Worker::lssproto_WO_recv(int)
 {
 
@@ -14624,13 +14593,42 @@ void Worker::lssproto_WO_recv(int)
 
 void Worker::lssproto_NU_recv(int)
 {
+
 }
 
 void Worker::lssproto_CharNumGet_recv(int, int)
 {
+
 }
 
 void Worker::lssproto_ProcGet_recv(char*)
+{
+
+}
+
+//服務端發送給客戶端用於顯示某些東西的
+void Worker::lssproto_D_recv(int, int, int, char*)
+{
+	/*
+servertoclient D 函数用于向客户端发送显示指令，以在游戏画面上显示特定的内容。该函数接受以下参数：
+
+int category：显示内容的类别或类型。这个参数通常用于区分不同种类的显示内容。
+
+int dx 和 int dy：指定显示内容的位置坐标，即在游戏画面上的 x 和 y 坐标。这决定了内容将显示在何处。
+
+string data：包含要显示的内容的数据字符串。这可以是文本、图像或其他任何游戏中需要显示的信息或元素。
+
+通过使用 servertoclient D 函数，服务器可以向客户端发送各种类型的显示指令，以在游戏中呈现丰富的视觉和文本元素，如文本消息、物品图标、NPC 对话等。这有助于改善游戏的交互性和可玩性。
+	*/
+}
+
+//服務端發來的用於固定客戶端的速度
+void Worker::lssproto_CS_recv(int)
+{
+}
+
+//戰鬥結束?
+void Worker::lssproto_NC_recv(int)
 {
 
 }
@@ -14644,14 +14642,13 @@ void Worker::lssproto_R_recv(char*)
 	*/
 }
 
-
 //煙火
 void Worker::lssproto_Firework_recv(int, int, int)
 {
 
 }
 
-void Worker::lssproto_DENGON_recv(char*, int, int)
+void Worker::lssproto_DENGON_recv(char* data, int colors, int nums)
 {
 }
 #pragma endregion

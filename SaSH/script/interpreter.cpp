@@ -72,7 +72,7 @@ void Interpreter::doFileWithThread(long long beginLine, const QString& fileName)
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
 	connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
 	connect(thread_, &QThread::started, this, &Interpreter::proc, Qt::QueuedConnection);
-	thread_->start(QThread::TimeCriticalPriority);
+	thread_->start();
 }
 
 //同線程下執行腳本文件(實例新的interpreter)
@@ -141,7 +141,7 @@ void Interpreter::doString(QString content)
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
 	connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
 	connect(thread_, &QThread::started, this, &Interpreter::onRunString, Qt::QueuedConnection);
-	thread_->start(QThread::TimeCriticalPriority);
+	thread_->start();
 }
 
 void Interpreter::onRunString()

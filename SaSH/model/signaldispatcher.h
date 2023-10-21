@@ -72,8 +72,8 @@ signals:
 	//global
 	void nodifyAllStop();
 	void nodifyAllScriptStop();
-	void messageBoxShow(const QString& text, long long type = 0, QString title = "", long long* pnret = nullptr, QString topText = "", QString detail = "", void* p = nullptr);
-	void inputBoxShow(const QString& text, long long type, QVariant* retvalue, void* p);
+	void messageBoxShow(const QString& text, long long type = 0, QString title = "", long long* pnret = nullptr, QString topText = "", QString detail = "");
+	void inputBoxShow(const QString& text, long long type, QVariant* retvalue);
 
 	void applyHashSettingsToUI();
 	void saveHashSettings(const QString& name = "default", bool isFullPath = false);

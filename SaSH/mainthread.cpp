@@ -296,7 +296,7 @@ bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* p
 				Injector::reset(index);
 
 			}, Qt::QueuedConnection);
-		thread->start(QThread::TimeCriticalPriority);
+		thread->start();
 
 		if (ppObj != nullptr)
 			*ppObj = object;
@@ -536,7 +536,6 @@ void MainObject::mainProc()
 			else
 				QThread::msleep(10);
 			nodelay = true;
-			continue;
 		}
 		else if (status == 2)//平時
 		{
@@ -544,7 +543,8 @@ void MainObject::mainProc()
 		}
 		else if (status == 3)//戰鬥中
 		{
-			QThread::msleep(500);
+			QThread::msleep(10);
+			nodelay = true;
 		}
 		else//錯誤
 		{
@@ -720,6 +720,8 @@ long long MainObject::checkAndRunFunctions()
 		{
 			battle_run_once_flag_ = false;
 		}
+
+		injector.worker->doBattleWork(true);
 
 		return 3;
 	}

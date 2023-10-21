@@ -114,6 +114,9 @@ private slots:
 	void on_widget_cursorPositionChanged(int line, int index);
 	void on_widget_textChanged();
 	void on_lineEdit_searchFunction_textChanged(const QString& text);
+	void on_lineEdit_searchVariable_textChanged(const QString& text);
+	void on_lineEdit_searchScript_textChanged(const QString& text);
+	void on_lineEdit_searchSystemVariable_textChanged(const QString& text);
 	void on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state);
 	void on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem* item, int column);
 	void on_treeWidget_functionList_itemSelectionChanged();

@@ -56,11 +56,9 @@ void Injector::reset(long long index)//static
 	Injector* instance = instances.value(index);
 	if (!instance->worker.isNull())
 	{
-		instance->worker->thread.quit();
-		instance->worker->thread.wait();
 		instance->worker.reset(nullptr);
 	}
-	instance->hGameModule_ = 0ULL;
+	instance->hGameModule_ = 0x400000ULL;
 	instance->hookdllModule_ = nullptr;
 	instance->pi_ = {};
 	instance->processHandle_.reset();
@@ -386,8 +384,8 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		timer.restart();
 		for (;;)
 		{
-			if (static_cast<long long>(mem::read<int>(processHandle_, 0x400000LL + kOffsetWorldStatus)) == 1
-				&& static_cast<long long>(mem::read<int>(processHandle_, 0x400000LL + kOffsetGameStatus)) == 2)
+			if (static_cast<long long>(mem::read<int>(processHandle_, hGameModule_ + kOffsetWorldStatus)) == 1
+				&& static_cast<long long>(mem::read<int>(processHandle_, hGameModule_ + kOffsetGameStatus)) == 2)
 				break;
 
 			if (timer.hasExpired(MAX_TIMEOUT))

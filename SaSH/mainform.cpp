@@ -1107,7 +1107,7 @@ MainForm::MainForm(long long index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::BlockingQueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::BlockingQueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::QueuedConnection);
@@ -1757,16 +1757,8 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 }
 
 //消息框
-void MainForm::onMessageBoxShow(const QString& text, long long type, QString title, long long* pnret, QString topText, QString detail, void* p)
+void MainForm::onMessageBoxShow(const QString& text, long long type, QString title, long long* pnret, QString topText, QString detail)
 {
-	QEventLoop* pEventLoop = nullptr;
-	if (p != nullptr)
-	{
-		pEventLoop = static_cast<QEventLoop*>(p);
-	}
-
-	QMessageBox::StandardButton button = QMessageBox::StandardButton::NoButton;
-
 	QString newText = text;
 	newText.replace("\\r\\n", "\r\n");
 	newText.replace("\\n", "\n");
@@ -1795,53 +1787,42 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 	else
 		icon = QMessageBox::Icon::Information;
 
-	std::unique_ptr<QMessageBox> msgBox(q_check_ptr(new QMessageBox()));
-	if (msgBox == nullptr)
-		return;
+	QMessageBox::StandardButton button = QMessageBox::StandardButton::NoButton;
+	QMessageBox msgBox(this);
+	msgBox.setWindowFlags(msgBox.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+	msgBox.setModal(true);
+	msgBox.setAttribute(Qt::WA_QuitOnClose);
+	msgBox.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
+	msgBox.setIcon(icon);
+	msgBox.setTextFormat(Qt::TextFormat::RichText);
+	msgBox.setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard | Qt::LinksAccessibleByMouse | Qt::LinksAccessibleByKeyboard);
+	msgBox.setWindowModality(Qt::ApplicationModal);
+	msgBox.setMinimumWidth(300);
 
-	if (pEventLoop != nullptr)
-	{
-		connect(this, &MainForm::messageBoxFinished, pEventLoop, &QEventLoop::quit);
-	}
-
-	msgBox->setModal(false);
-	msgBox->setAttribute(Qt::WA_QuitOnClose);
-	msgBox->setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
-	msgBox->setIcon(icon);
-	msgBox->setTextFormat(Qt::TextFormat::RichText);
-	msgBox->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard | Qt::LinksAccessibleByMouse | Qt::LinksAccessibleByKeyboard);
-	msgBox->setWindowModality(Qt::ApplicationModal);
-
-	msgBox->setWindowTitle(title);
+	msgBox.setWindowTitle(title);
 	if (!detail.isEmpty())
-		msgBox->setDetailedText(detail);
+		msgBox.setDetailedText(detail);
 
 	if (topText.isEmpty())
-		msgBox->setText(text);
+		msgBox.setText(text);
 	else
 	{
-		msgBox->setInformativeText(text);
-		msgBox->setText(topText);
+		msgBox.setInformativeText(text);
+		msgBox.setText(topText);
 	}
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	msgBox->setDefaultButton(QMessageBox::StandardButton::Yes);
-	msgBox->setEscapeButton(QMessageBox::StandardButton::No);
-	msgBox->setStandardButtons(QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No);
-	msgBox->setButtonText(QMessageBox::Yes, tr("yes"));
-	msgBox->setButtonText(QMessageBox::No, tr("no"));
+	msgBox.setDefaultButton(QMessageBox::StandardButton::Yes);
+	msgBox.setEscapeButton(QMessageBox::StandardButton::No);
+	msgBox.setStandardButtons(QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No);
+	msgBox.setButtonText(QMessageBox::Yes, tr("yes"));
+	msgBox.setButtonText(QMessageBox::No, tr("no"));
 #else
-	msgBox->addButton(tr("yes"), QMessageBox::ButtonRole::YesRole);
-	msgBox->addButton(tr("no"), QMessageBox::ButtonRole::NoRole);
+	msgBox.addButton(tr("yes"), QMessageBox::ButtonRole::YesRole);
+	msgBox.addButton(tr("no"), QMessageBox::ButtonRole::NoRole);
 #endif
 
-	long long ret = msgBox->exec();
-	if (ret == QDialog::Rejected)
-	{
-		emit messageBoxFinished();
-		return;
-	}
-
+	long long ret = msgBox.exec();
 	if (pnret != nullptr)
 		*pnret = ret;
 
@@ -1849,16 +1830,10 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 }
 
 //输入框
-void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* retvalue, void* p)
+void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* retvalue)
 {
 	if (retvalue == nullptr)
 		return;
-
-	QEventLoop* pEventLoop = nullptr;
-	if (p != nullptr)
-	{
-		pEventLoop = static_cast<QEventLoop*>(p);
-	}
 
 	QString newText = text;
 	newText.replace("\\r\\n", "\r\n");
@@ -1869,43 +1844,37 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 	newText.replace("\\f", "\f");
 	newText.replace("\\a", "\a");
 
-	std::unique_ptr<QInputDialog> inputDialog(q_check_ptr(new QInputDialog()));
-	if (inputDialog == nullptr)
-		return;
+	QInputDialog inputDialog(this);
 
-	if (pEventLoop != nullptr)
-	{
-		connect(this, &MainForm::inputBoxFinished, pEventLoop, &QEventLoop::quit);
-	}
-
-	inputDialog->setAttribute(Qt::WA_QuitOnClose);
-
-	inputDialog->setModal(false);
-	inputDialog->setLabelText(newText);
+	inputDialog.setAttribute(Qt::WA_QuitOnClose);
+	inputDialog.setWindowFlags(inputDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+	inputDialog.setModal(true);
+	inputDialog.setMinimumWidth(300);
+	inputDialog.setLabelText(newText);
 	QInputDialog::InputMode mode = static_cast<QInputDialog::InputMode>(type);
-	inputDialog->setInputMode(mode);
+	inputDialog.setInputMode(mode);
 	if (mode == QInputDialog::IntInput)
 	{
-		inputDialog->setIntMinimum(INT_MIN);
-		inputDialog->setIntMaximum(INT_MAX);
+		inputDialog.setIntMinimum(std::numeric_limits<int>::min());
+		inputDialog.setIntMaximum(std::numeric_limits<int>::max());
 		if (retvalue->isValid())
-			inputDialog->setIntValue(retvalue->toLongLong());
+			inputDialog.setIntValue(retvalue->toLongLong());
 	}
 	else if (mode == QInputDialog::DoubleInput)
 	{
-		inputDialog->setDoubleMinimum(-DBL_MAX);
-		inputDialog->setDoubleMaximum(DBL_MAX);
+		inputDialog.setDoubleMinimum(std::numeric_limits<double>::min());
+		inputDialog.setDoubleMaximum(std::numeric_limits<double>::max());
 		if (retvalue->isValid())
-			inputDialog->setDoubleValue(retvalue->toDouble());
+			inputDialog.setDoubleValue(retvalue->toDouble());
 	}
 	else
 	{
 		if (retvalue->isValid())
-			inputDialog->setTextValue(retvalue->toString());
+			inputDialog.setTextValue(retvalue->toString());
 	}
 
-	inputDialog->setWindowFlags(inputDialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);
-	auto ret = inputDialog->exec();
+	inputDialog.setWindowFlags(inputDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+	auto ret = inputDialog.exec();
 	if (ret != QDialog::Accepted)
 	{
 		emit inputBoxFinished();
@@ -1915,13 +1884,13 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 	switch (type)
 	{
 	case QInputDialog::IntInput:
-		*retvalue = static_cast<long long>(inputDialog->intValue());
+		*retvalue = static_cast<long long>(inputDialog.intValue());
 		break;
 	case QInputDialog::DoubleInput:
-		*retvalue = static_cast<long long>(inputDialog->doubleValue());
+		*retvalue = static_cast<long long>(inputDialog.doubleValue());
 		break;
 	case QInputDialog::TextInput:
-		*retvalue = inputDialog->textValue();
+		*retvalue = inputDialog.textValue();
 		break;
 	}
 

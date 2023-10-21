@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma comment(lib, "dbghelp.lib")
 
 
+
 void CreateConsole()
 {
 	if (!AllocConsole())
@@ -529,8 +530,6 @@ int main(int argc, char* argv[])
 	{
 		uniqueIdsToAllocate.append(-1);
 	}
-
-	extern util::SafeHash<long long, MainForm*> g_mainFormHash; //mainForm.cpp
 
 	// 分配並輸出唯一ID
 	for (long long idToAllocate : uniqueIdsToAllocate)

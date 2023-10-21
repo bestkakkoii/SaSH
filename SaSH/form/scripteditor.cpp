@@ -1432,44 +1432,92 @@ void ScriptEditor::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* it
 	ui.widget->ensureLineVisible(line - 1);
 }
 
+void findTreeItem(QTreeWidget* tree, const QString& qsFilter)
+{
+	if (!tree) return;
+	QTreeWidgetItemIterator it(tree);
+	while (*it)
+	{
+		//QTreeWidgetItem是否滿足條件---這里的條件可以自己修改
+		if ((*it)->text(0).contains(qsFilter))
+		{
+			(*it)->setExpanded(true);
+			(*it)->setHidden(false);
+			TreeWidgetItem* item = reinterpret_cast<TreeWidgetItem*>(*it);
+			//顯示父節點
+			while (item->parent())
+			{
+				item->parent()->setHidden(false);
+				item = reinterpret_cast<TreeWidgetItem*>(item->parent());
+				//展開
+				item->setExpanded(true);
+			}
+		}
+		else
+		{
+			//不滿足滿足條件先隱藏，它的子項目滿足條件時會再次讓它顯示
+			(*it)->setHidden(true);
+		}
+		++it;
+	}
+}
+
 //查找命令
 void ScriptEditor::on_lineEdit_searchFunction_textChanged(const QString& text)
 {
-	auto OnFindItem = [](QTreeWidget* tree, const QString& qsFilter)->void
-		{
-			if (!tree) return;
-			QTreeWidgetItemIterator it(tree);
-			while (*it)
-			{
-				//QTreeWidgetItem是否滿足條件---這里的條件可以自己修改
-				if ((*it)->text(0).contains(qsFilter))
-				{
-					(*it)->setExpanded(true);
-					(*it)->setHidden(false);
-					TreeWidgetItem* item = reinterpret_cast<TreeWidgetItem*>(*it);
-					//顯示父節點
-					while (item->parent())
-					{
-						item->parent()->setHidden(false);
-						item = reinterpret_cast<TreeWidgetItem*>(item->parent());
-						//展開
-						item->setExpanded(true);
-					}
-				}
-				else
-				{
-					//不滿足滿足條件先隱藏，它的子項目滿足條件時會再次讓它顯示
-					(*it)->setHidden(true);
-				}
-				++it;
-			}
-		};
-
 	if (!text.isEmpty())
-		OnFindItem(ui.treeWidget_functionList, text);
+		findTreeItem(ui.treeWidget_functionList, text);
 	else
 	{
 		QTreeWidgetItemIterator it(ui.treeWidget_functionList);
+		while (*it)
+		{
+			(*it)->setHidden(false);
+			++it;
+		}
+	}
+}
+
+//查找變量
+void ScriptEditor::on_lineEdit_searchVariable_textChanged(const QString& text)
+{
+	if (!text.isEmpty())
+		findTreeItem(ui.treeWidget_debuger_custom, text);
+	else
+	{
+		QTreeWidgetItemIterator it(ui.treeWidget_debuger_custom);
+		while (*it)
+		{
+			(*it)->setHidden(false);
+			++it;
+		}
+	}
+}
+
+//查找腳本
+void ScriptEditor::on_lineEdit_searchScript_textChanged(const QString& text)
+{
+	if (!text.isEmpty())
+		findTreeItem(ui.treeWidget_scriptList, text);
+	else
+	{
+		QTreeWidgetItemIterator it(ui.treeWidget_scriptList);
+		while (*it)
+		{
+			(*it)->setHidden(false);
+			++it;
+		}
+	}
+}
+
+//查找系統變量
+void ScriptEditor::on_lineEdit_searchSystemVariable_textChanged(const QString& text)
+{
+	if (!text.isEmpty())
+		findTreeItem(ui.treeWidget_debuger_sys, text);
+	else
+	{
+		QTreeWidgetItemIterator it(ui.treeWidget_debuger_sys);
 		while (*it)
 		{
 			(*it)->setHidden(false);

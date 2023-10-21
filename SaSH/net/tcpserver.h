@@ -42,9 +42,6 @@ public:
 
 	QThread thread;
 
-signals:
-	void startRead();
-
 private slots:
 	void onReadyRead();
 	void onWrite(QByteArray ba, long long size);
@@ -63,8 +60,6 @@ public:
 	Worker(long long index, Socket* socket, QObject* parent);
 
 	virtual ~Worker();
-
-	QThread thread;
 
 private:
 	QHash<long long, QString> g_dirStrHash = {

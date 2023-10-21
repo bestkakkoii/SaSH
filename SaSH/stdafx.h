@@ -92,6 +92,9 @@ public:\
 #include <QNetworkAccessManager>
 #include <QHttpMultiPart>
 
+#include <QLocalServer>
+#include <QLocalSocket>
+
 #include <QDockWidget>
 #include <QSystemTrayIcon>
 #include <QSysInfo>

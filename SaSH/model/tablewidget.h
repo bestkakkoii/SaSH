@@ -135,9 +135,30 @@ QScrollBar::handle:pressed:horizontal {
 		horizontalHeader()->setStretchLastSection(false);
 		horizontalHeader()->setHighlightSections(false);
 		horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
+
+		QAbstractButton* button = findChild<QAbstractButton*>();
+		if (button)
+		{
+			QVBoxLayout* lay = new QVBoxLayout(button);
+			lay->setContentsMargins(0, 0, 0, 0);
+			pCornerLabel = q_check_ptr(new QLabel());
+			assert(pCornerLabel != nullptr);
+			if (pCornerLabel)
+			{
+				pCornerLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+				pCornerLabel->setContentsMargins(0, 0, 0, 0);
+				lay->addWidget(pCornerLabel);
+			}
+		}
 	}
 
 	virtual ~TableWidget() = default;
+
+	void setCornerText(const QString& text)
+	{
+		if (pCornerLabel)
+			pCornerLabel->setText(text);
+	}
 
 	void setItemForeground(long long row, long long column, const QColor& color)
 	{
@@ -241,4 +262,8 @@ private:
 
 		QTableWidget::setItem(row, column, item);
 	}
+
+private:
+	QLabel* pCornerLabel = nullptr;
+
 };

@@ -759,9 +759,7 @@ void Parser::initialize(Parser* pparent)
 					var = QVariant(argList.value(2));
 			}
 
-			QEventLoop loop;
-			emit signalDispatcher.inputBoxShow(msg, type, &var, &loop);
-			loop.exec();
+			emit signalDispatcher.inputBoxShow(msg, type, &var);
 
 			if (var.toLongLong() == 987654321ll)
 			{
@@ -4905,65 +4903,67 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if ((expr.contains("battle.") || expr.contains("battle[")) && !expr.contains("isbattle") && injector.worker->getBattleFlag())
+	if ((expr.contains("battle.") || expr.contains("battle[")) && !expr.contains("isbattle"))
 	{
 		sol::meta::unqualified_t<sol::table> battle = lua_["battle"];
 
-		battledata_t bt = injector.worker->getBattleData();
-
-		battle["playerpos"] = static_cast<long long>(bt.player.pos + 1);
-		battle["petpos"] = static_cast<long long>(bt.pet.pos + 1);
-
-		long long size = bt.objects.size();
-		battle["size"] = size;
-		battle["enemycount"] = bt.enemies.size();
-
+		battle["count"] = injector.worker->battle_total.load(std::memory_order_acquire);
+		battle["dura"] = injector.worker->battleDurationTimer.elapsed() / 1000.0;
+		battle["time"] = injector.worker->battle_total_time.load(std::memory_order_acquire) / 1000.0 / 60.0;
+		battle["cost"] = injector.worker->battle_one_round_time.load(std::memory_order_acquire) / 1000.0;
 		battle["round"] = injector.worker->battleCurrentRound.load(std::memory_order_acquire) + 1;
 
-		battle["field"] = injector.worker->getFieldString(bt.fieldAttr).toUtf8().constData();
-
-		battle["dura"] = static_cast<long long>(injector.worker->battleDurationTimer.elapsed() / 1000ll);
-
-		battle["totaldura"] = static_cast<long long>(injector.worker->battle_total_time.load(std::memory_order_acquire) / 1000 / 60);
-
-		battle["totalcombat"] = injector.worker->battle_total.load(std::memory_order_acquire);
-
-		for (long long i = 0; i < size; ++i)
+		if (injector.worker->getBattleFlag())
 		{
-			battleobject_t obj = bt.objects.value(i);
-			long long index = i + 1;
+			battledata_t bt = injector.worker->getBattleData();
 
-			battle[index]["valid"] = obj.maxHp > 0 && obj.level > 0 && obj.modelid > 0;
+			battle["field"] = injector.worker->getFieldString(bt.fieldAttr).toUtf8().constData();
 
-			battle[index]["index"] = static_cast<long long>(obj.pos + 1);
+			battle["charpos"] = static_cast<long long>(bt.player.pos + 1);
+			battle["petpos"] = static_cast<long long>(bt.pet.pos + 1);
 
-			battle[index]["name"] = obj.name.toUtf8().constData();
+			long long size = bt.objects.size();
+			battle["size"] = size;
+			battle["enemycount"] = bt.enemies.size();
+			battle["alliecount"] = bt.allies.size();
 
-			battle[index]["fname"] = obj.freeName.toUtf8().constData();
+			for (long long i = 0; i < size; ++i)
+			{
+				battleobject_t obj = bt.objects.value(i);
+				long long index = i + 1;
 
-			battle[index]["modelid"] = obj.modelid;
+				battle[index]["valid"] = obj.maxHp > 0 && obj.level > 0 && obj.modelid > 0;
 
-			battle[index]["lv"] = obj.level;
+				battle[index]["index"] = static_cast<long long>(obj.pos + 1);
 
-			battle[index]["hp"] = obj.hp;
+				battle[index]["name"] = obj.name.toUtf8().constData();
 
-			battle[index]["maxhp"] = obj.maxHp;
+				battle[index]["fname"] = obj.freeName.toUtf8().constData();
 
-			battle[index]["hpp"] = obj.hpPercent;
+				battle[index]["modelid"] = obj.modelid;
 
-			battle[index]["status"] = injector.worker->getBadStatusString(obj.status).toUtf8().constData();
+				battle[index]["lv"] = obj.level;
 
-			battle[index]["ride"] = obj.rideFlag > 0;
+				battle[index]["hp"] = obj.hp;
 
-			battle[index]["ridename"] = obj.rideName.toUtf8().constData();
+				battle[index]["maxhp"] = obj.maxHp;
 
-			battle[index]["ridelv"] = obj.rideLevel;
+				battle[index]["hpp"] = obj.hpPercent;
 
-			battle[index]["ridehp"] = obj.rideHp;
+				battle[index]["status"] = injector.worker->getBadStatusString(obj.status).toUtf8().constData();
 
-			battle[index]["ridemaxhp"] = obj.rideMaxHp;
+				battle[index]["ride"] = obj.rideFlag > 0;
 
-			battle[index]["ridehpp"] = obj.rideHpPercent;
+				battle[index]["ridename"] = obj.rideName.toUtf8().constData();
+
+				battle[index]["ridelv"] = obj.rideLevel;
+
+				battle[index]["ridehp"] = obj.rideHp;
+
+				battle[index]["ridemaxhp"] = obj.rideMaxHp;
+
+				battle[index]["ridehpp"] = obj.rideHpPercent;
+			}
 		}
 	}
 

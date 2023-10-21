@@ -166,7 +166,14 @@ private:
 		DWORD dwProcessId = 0;
 		do
 		{
-			if (!handle || !lParam)
+			if (nullptr == handle || NULL == lParam)
+				break;
+
+			if (IsWindowVisible(handle) == FALSE || IsWindow(handle) == FALSE || IsWindowEnabled(handle) == FALSE)
+				break;
+
+			// check is not console
+			if (GetWindowLongW(handle, GWL_STYLE) & WS_CHILD)
 				break;
 
 			::GetWindowThreadProcessId(handle, &dwProcessId);
@@ -225,7 +232,7 @@ public:
 	bool IS_INJECT_OK = false;//是否注入成功
 	std::atomic_bool IS_TCP_CONNECTION_OK_TO_USE = false;
 private:
-	unsigned long long hGameModule_ = NULL;
+	unsigned long long hGameModule_ = 0x400000UL;
 	HMODULE hookdllModule_ = NULL;
 	process_information_t pi_ = {};
 	ScopedHandle processHandle_;

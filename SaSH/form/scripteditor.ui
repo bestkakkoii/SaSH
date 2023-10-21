@@ -1622,7 +1622,7 @@ QSpinBox {
         <property name="bottomMargin">
          <number>0</number>
         </property>
-        <item row="0" column="0">
+        <item row="1" column="0">
          <widget class="TreeWidget" name="treeWidget_scriptList">
           <property name="font">
            <font>
@@ -1653,6 +1653,13 @@ QSpinBox {
             <string>refresh</string>
            </property>
           </column>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLineEdit" name="lineEdit_searchScript">
+          <property name="placeholderText">
+           <string>search script</string>
+          </property>
          </widget>
         </item>
        </layout>
@@ -1692,6 +1699,9 @@ QSpinBox {
         </sizepolicy>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
+        <property name="spacing">
+         <number>3</number>
+        </property>
         <property name="leftMargin">
          <number>1</number>
         </property>
@@ -1706,6 +1716,9 @@ QSpinBox {
         </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout">
+          <property name="spacing">
+           <number>3</number>
+          </property>
           <item>
            <widget class="ComboBox" name="comboBox_functions">
             <property name="sizePolicy">
@@ -1917,7 +1930,7 @@ QSpinBox {
         <property name="bottomMargin">
          <number>0</number>
         </property>
-        <item row="0" column="0">
+        <item row="1" column="0">
          <widget class="TreeWidget" name="treeWidget_debuger_custom">
           <property name="font">
            <font>
@@ -1957,6 +1970,13 @@ QSpinBox {
             <string>type</string>
            </property>
           </column>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLineEdit" name="lineEdit_searchVariable">
+          <property name="placeholderText">
+           <string>search variable</string>
+          </property>
          </widget>
         </item>
        </layout>
@@ -2168,7 +2188,7 @@ QSpinBox {
      <property name="spacing">
       <number>0</number>
      </property>
-     <item row="0" column="0">
+     <item row="1" column="0">
       <widget class="TreeWidget" name="treeWidget_debuger_sys">
        <property name="font">
         <font>
@@ -2208,6 +2228,13 @@ QSpinBox {
          <string>type</string>
         </property>
        </column>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLineEdit" name="lineEdit_searchSystemVariable">
+       <property name="placeholderText">
+        <string>search variable</string>
+       </property>
       </widget>
      </item>
     </layout>
