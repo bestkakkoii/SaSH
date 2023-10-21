@@ -374,10 +374,19 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 	if (odialogid.is<long long>())
 		dialogid = odialogid.as<long long>();
 
+	if (ounitid.is<std::string>())
+	{
+		QString searchStr = util::toQString(ounitid.as<std::string>());
+		mapunit_t unit;
+		if (injector.worker->findUnit(searchStr, util::OBJ_NPC, &unit, "", unitid))
+		{
+			injector.worker->setCharFaceToPoint(unit.p);
+			unitid = unit.id;
+		}
+	}
+
 	if (sbuttonStr.empty() && row > 0)
 	{
-		--row;
-
 		injector.worker->press(row, dialogid, unitid);
 		return TRUE;
 	}

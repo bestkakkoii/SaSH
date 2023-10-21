@@ -4892,109 +4892,109 @@ New version:%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="502"/>
+        <location filename="../script_lua/luasystem.cpp" line="511"/>
         <source>index must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="513"/>
+        <location filename="../script_lua/luasystem.cpp" line="522"/>
         <source>type must be 1 or 2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="559"/>
         <location filename="../script_lua/luasystem.cpp" line="568"/>
+        <location filename="../script_lua/luasystem.cpp" line="577"/>
         <source>Invalid value of &apos;dataplacenum&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="577"/>
+        <location filename="../script_lua/luasystem.cpp" line="586"/>
         <source>character name cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="589"/>
+        <location filename="../script_lua/luasystem.cpp" line="598"/>
         <source>vit must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="595"/>
+        <location filename="../script_lua/luasystem.cpp" line="604"/>
         <source>str must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="601"/>
+        <location filename="../script_lua/luasystem.cpp" line="610"/>
         <source>tgh must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="607"/>
+        <location filename="../script_lua/luasystem.cpp" line="616"/>
         <source>dex must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="613"/>
+        <location filename="../script_lua/luasystem.cpp" line="622"/>
         <source>vit + str + tgh + dex must equal to 20</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="619"/>
+        <location filename="../script_lua/luasystem.cpp" line="628"/>
         <source>earth must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="625"/>
+        <location filename="../script_lua/luasystem.cpp" line="634"/>
         <source>water must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="631"/>
+        <location filename="../script_lua/luasystem.cpp" line="640"/>
         <source>fire must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="637"/>
+        <location filename="../script_lua/luasystem.cpp" line="646"/>
         <source>wind must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="643"/>
+        <location filename="../script_lua/luasystem.cpp" line="652"/>
         <source>earth + water + fire + wind must equal to 10</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="661"/>
+        <location filename="../script_lua/luasystem.cpp" line="670"/>
         <source>hometown cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="713"/>
+        <location filename="../script_lua/luasystem.cpp" line="722"/>
         <source>index must between 1 and %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="720"/>
+        <location filename="../script_lua/luasystem.cpp" line="729"/>
         <source>password cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="775"/>
+        <location filename="../script_lua/luasystem.cpp" line="784"/>
         <source>type cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="1065"/>
+        <location filename="../script_lua/luasystem.cpp" line="1074"/>
         <source>unknown setting type: &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="1170"/>
-        <location filename="../script_lua/luasystem.cpp" line="1215"/>
-        <location filename="../script_lua/luasystem.cpp" line="1286"/>
-        <location filename="../script_lua/luasystem.cpp" line="1340"/>
-        <location filename="../script_lua/luasystem.cpp" line="1414"/>
-        <location filename="../script_lua/luasystem.cpp" line="1465"/>
-        <location filename="../script_lua/luasystem.cpp" line="1582"/>
+        <location filename="../script_lua/luasystem.cpp" line="1179"/>
+        <location filename="../script_lua/luasystem.cpp" line="1224"/>
+        <location filename="../script_lua/luasystem.cpp" line="1295"/>
+        <location filename="../script_lua/luasystem.cpp" line="1349"/>
+        <location filename="../script_lua/luasystem.cpp" line="1423"/>
+        <location filename="../script_lua/luasystem.cpp" line="1474"/>
+        <location filename="../script_lua/luasystem.cpp" line="1591"/>
         <source>the first parameter of the setting &apos;%1&apos; must be a number or boolean</source>
         <translation type="unfinished"></translation>
     </message>
