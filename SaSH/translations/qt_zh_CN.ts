@@ -3586,38 +3586,38 @@ New version:%2</source>
         <translation>什麽都不做</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10481"/>
+        <location filename="../net/tcpserver.cpp" line="10495"/>
         <source>player exp:</source>
         <translation>人物经验:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10482"/>
+        <location filename="../net/tcpserver.cpp" line="10496"/>
         <source>ride exp:</source>
         <translation>骑宠经验:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10483"/>
+        <location filename="../net/tcpserver.cpp" line="10497"/>
         <source>pet exp:</source>
         <translation>战宠经验:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10558"/>
+        <location filename="../net/tcpserver.cpp" line="10584"/>
         <source>rewards:</source>
         <translation>掉落物品:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="11961"/>
+        <location filename="../net/tcpserver.cpp" line="11971"/>
         <source>server response time:%1ms</source>
         <translation>伺服器响应时间:%1ms</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="12365"/>
+        <location filename="../net/tcpserver.cpp" line="12375"/>
         <source>Tell you:</source>
         <translation>告诉你：</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="13447"/>
-        <location filename="../net/tcpserver.cpp" line="13807"/>
+        <location filename="../net/tcpserver.cpp" line="13457"/>
+        <location filename="../net/tcpserver.cpp" line="13817"/>
         <source>%1(%2tr)</source>
         <translation>%1(%2转)</translation>
     </message>
@@ -4697,7 +4697,7 @@ New version:%2</source>
         <translation>远程内存空间分配失败</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="13447"/>
+        <location filename="../net/tcpserver.cpp" line="13457"/>
         <source>L:%1</source>
         <translation>运:%1</translation>
     </message>

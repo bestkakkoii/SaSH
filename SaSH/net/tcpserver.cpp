@@ -10462,6 +10462,20 @@ void Worker::lssproto_RS_recv(char* cdata)
 	if (data.isEmpty())
 		return;
 
+	setBattleEnd();
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	if (!dropMeatFuture_.isRunning())
+		dropMeatFuture_ = QtConcurrent::run(this, &Worker::checkAutoDropMeat);
+	if (!autoAbilityFuture_.isRunning())
+		autoAbilityFuture_ = QtConcurrent::run(this, &Worker::checkAutoAbility);
+#else
+	if (!dropMeatFuture_.isRunning())
+		dropMeatFuture_ = QtConcurrent::run(&Worker::checkAutoDropMeat, this);
+	if (!autoAbilityFuture_.isRunning())
+		autoAbilityFuture_ = QtConcurrent::run(&Worker::checkAutoAbility, this);
+#endif
+
 	long long i;
 	QString token;
 	QString item;
@@ -10478,9 +10492,9 @@ void Worker::lssproto_RS_recv(char* cdata)
 		//battleResultMsg.resChr[RESULT_CHR_EXP - 1].exp = -1;
 	}
 	//end cary
-	QString playerExp = QObject::tr("player exp:");
-	QString rideExp = QObject::tr("ride exp:");
-	QString petExp = QObject::tr("pet exp:");
+	const QString playerExp = QObject::tr("player exp:");
+	const QString rideExp = QObject::tr("ride exp:");
+	const QString petExp = QObject::tr("pet exp:");
 	PC pc = getPC();
 	bool petOk = false;
 	bool rideOk = false;
@@ -10488,19 +10502,23 @@ void Worker::lssproto_RS_recv(char* cdata)
 
 	for (i = 0; i < cols; ++i)
 	{
-		if (i >= 5)
+		if (i >= RESULT_CHR_EXP)
 			break;
 		getStringToken(data, ",", i + 1, token);
+		if (token.isEmpty())
+			continue;
 
 		long long index = getIntegerToken(token, "|", 1);
+		if (index == -1)
+			continue;
 
-		long long isLevelUp = getIntegerToken(token, "|", 2);
+		bool isLevelUp = getIntegerToken(token, "|", 2) > 0;
 
 		QString temp;
 		getStringToken(token, "|", 3, temp);
 		long long exp = a62toi(temp);
 
-		if (index == -2 && !charOk)
+		if (index == -2 && !charOk && exp > 0)
 		{
 			charOk = true;
 			if (isLevelUp)
@@ -10509,24 +10527,29 @@ void Worker::lssproto_RS_recv(char* cdata)
 			recorder[0].expdifference += exp;
 			texts.append(playerExp + util::toQString(exp));
 		}
-		else if (pc.ridePetNo != -1 && pc.ridePetNo == index && !petOk)
+		else if (pc.ridePetNo != -1 && pc.ridePetNo == index && !petOk && exp > 0)
 		{
-			petOk = true;
-			if (isLevelUp)
-				++recorder[index].leveldifference;
-
-			recorder[index].expdifference += exp;
-			texts.append(rideExp + util::toQString(exp));
-		}
-		else if (pc.battlePetNo != -1 && pc.battlePetNo == index && !rideOk)
-		{
-			rideOk = true;
-			if (isLevelUp)
-				++recorder[index].leveldifference;
-
 			if (index >= 0 && index < (MAX_PET + 1))
+			{
+				petOk = true;
+				if (isLevelUp)
+					++recorder[index].leveldifference;
+
 				recorder[index].expdifference += exp;
-			texts.append(petExp + util::toQString(exp));
+				texts.append(rideExp + util::toQString(exp));
+			}
+		}
+		else if (pc.battlePetNo != -1 && pc.battlePetNo == index && !rideOk && exp > 0)
+		{
+			if (index >= 0 && index < (MAX_PET + 1))
+			{
+				rideOk = true;
+				if (isLevelUp)
+					++recorder[index].leveldifference;
+
+				recorder[index].expdifference += exp;
+				texts.append(petExp + util::toQString(exp));
+			}
 		}
 	}
 
@@ -10540,6 +10563,9 @@ void Worker::lssproto_RS_recv(char* cdata)
 		};
 
 	getStringToken(data, ",", i + 1, token);
+	if (token.isEmpty())
+		return;
+
 	getStringToken(token, "|", 1, item);
 	makeStringFromEscaped(item);
 
@@ -10563,22 +10589,6 @@ void Worker::lssproto_RS_recv(char* cdata)
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (texts.size() > 1 && injector.getEnableHash(util::kShowExpEnable))
 		announce(texts.join(" "));
-
-	setBattleEnd();
-
-
-
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	if (!dropMeatFuture_.isRunning())
-		dropMeatFuture_ = QtConcurrent::run(this, &Worker::checkAutoDropMeat);
-	if (!autoAbilityFuture_.isRunning())
-		autoAbilityFuture_ = QtConcurrent::run(this, &Worker::checkAutoAbility);
-#else
-	if (!dropMeatFuture_.isRunning())
-		dropMeatFuture_ = QtConcurrent::run(&Worker::checkAutoDropMeat, this);
-	if (!autoAbilityFuture_.isRunning())
-		autoAbilityFuture_ = QtConcurrent::run(&Worker::checkAutoAbility, this);
-#endif
 }
 
 //戰後積分改變
