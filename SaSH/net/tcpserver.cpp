@@ -10479,7 +10479,6 @@ void Worker::lssproto_RS_recv(char* cdata)
 	long long i;
 	QString token;
 	QString item;
-	QStringList texts;
 
 	//cary 確定 欄位 數
 	long long cols = RESULT_CHR_EXP;
@@ -10499,11 +10498,16 @@ void Worker::lssproto_RS_recv(char* cdata)
 	bool petOk = false;
 	bool rideOk = false;
 	bool charOk = false;
+	QStringList texts = { playerExp + "0", rideExp + "0", petExp + "0" };
 
 	for (i = 0; i < cols; ++i)
 	{
 		if (i >= RESULT_CHR_EXP)
-			break;
+			continue;
+
+		if (charOk && petOk && rideOk)
+			continue;
+
 		getStringToken(data, ",", i + 1, token);
 		if (token.isEmpty())
 			continue;
@@ -10517,39 +10521,43 @@ void Worker::lssproto_RS_recv(char* cdata)
 		QString temp;
 		getStringToken(token, "|", 3, temp);
 		long long exp = a62toi(temp);
+		if (exp <= 0)
+			continue;
 
-		if (index == -2 && !charOk && exp > 0)
+		if (index == -2 && !charOk)
 		{
 			charOk = true;
 			if (isLevelUp)
 				++recorder[0].leveldifference;
 
 			recorder[0].expdifference += exp;
-			texts.append(playerExp + util::toQString(exp));
+			texts[0] = playerExp + util::toQString(exp);
+			continue;
 		}
-		else if (pc.ridePetNo != -1 && pc.ridePetNo == index && !petOk && exp > 0)
-		{
-			if (index >= 0 && index < (MAX_PET + 1))
-			{
-				petOk = true;
-				if (isLevelUp)
-					++recorder[index].leveldifference;
 
-				recorder[index].expdifference += exp;
-				texts.append(rideExp + util::toQString(exp));
-			}
+		if (index < 0 || index >= (MAX_PET + 1))
+			continue;
+
+		if (pc.ridePetNo != -1 && pc.ridePetNo == index && !petOk)
+		{
+			petOk = true;
+			if (isLevelUp)
+				++recorder[index].leveldifference;
+
+			recorder[index].expdifference += exp;
+			texts[1] = rideExp + util::toQString(exp);
+			continue;
 		}
-		else if (pc.battlePetNo != -1 && pc.battlePetNo == index && !rideOk && exp > 0)
-		{
-			if (index >= 0 && index < (MAX_PET + 1))
-			{
-				rideOk = true;
-				if (isLevelUp)
-					++recorder[index].leveldifference;
 
-				recorder[index].expdifference += exp;
-				texts.append(petExp + util::toQString(exp));
-			}
+		if (pc.battlePetNo != -1 && pc.battlePetNo == index && !rideOk)
+		{
+			rideOk = true;
+			if (isLevelUp)
+				++recorder[index].leveldifference;
+
+			recorder[index].expdifference += exp;
+			texts[2] = petExp + util::toQString(exp);
+			continue;
 		}
 	}
 
@@ -10587,7 +10595,7 @@ void Worker::lssproto_RS_recv(char* cdata)
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (texts.size() > 1 && injector.getEnableHash(util::kShowExpEnable))
+	if (!texts.isEmpty() && injector.getEnableHash(util::kShowExpEnable))
 		announce(texts.join(" "));
 }
 
