@@ -41,6 +41,8 @@ ScriptForm::ScriptForm(long long index, QWidget* parent)
 	ui.tableWidget_script->horizontalHeader()->setStretchLastSection(true);
 	ui.tableWidget_script->setCornerText(tr("row"));
 
+	ui.label_row->setAutoResize(true);
+
 	connect(ui.treeWidget_script->header(), &QHeaderView::sectionClicked, this, &ScriptForm::onScriptTreeWidgetHeaderClicked);
 	connect(ui.treeWidget_script, &QTreeWidget::itemDoubleClicked, this, &ScriptForm::onScriptTreeWidgetDoubleClicked);
 

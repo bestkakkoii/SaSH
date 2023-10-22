@@ -8,21 +8,23 @@ PushButton::PushButton(QWidget* parent)
 
 	setStyleSheet(R"(
 		QPushButton {
-			background-color: #F0F4F8;
+			background-color: white;
 			border: 1px solid gray;
 			border-radius: 5px;
 			padding: 2px;
-			color: #000000;
+			color: black;
 		}
 		
 		QPushButton:hover {
-			background-color: #006CD6;
-			color:#DFEBF6;
+			background-color: white;
+			border: 1px solid #4096FF;
+			color:#4096FF;
 		}
 		
 		QPushButton:pressed, QPushButton:checked {
-			background-color: #0080FF;
-			color:#DFEBF6;
+			background-color: white;
+			border: 1px solid #0958D9;
+			color:#0958D9;
 		}
 
 		QPushButton:disabled {

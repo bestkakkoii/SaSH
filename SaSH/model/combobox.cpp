@@ -22,30 +22,39 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 ComboBox::ComboBox(QWidget* parent) :QComboBox(parent)
 {
-	setStyleSheet(R"(
+	QString styleStr = R"(
 QComboBox {
+	color:black;
+	background-color: white;
     border: 1px solid gray;
-	border-radius: 5px;
+	border-radius: 3px;
 }
 
 QComboBox:hover {
-    border: 2px solid #3282F6;
+    border: 1px solid #4096FF;
 }
 
 QComboBox QAbstractItemView { 
+	color:black;
+	background-color: white;
+	border: 1px solid gray;
+	border-radius: 3px;
     min-width: 200px;
 }
 
 QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
+	color:black;
+	background-color: white;
     width: 15px;
-
+	/* 
+	subcontrol-origin: padding;
+    subcontrol-position: top right;
     border-left-width: 1px;
     border-left-color: darkgray;
-    border-left-style: solid; /* just a single line */
-    border-top-right-radius: 2px; /* same radius as the QComboBox */
+    border-left-style: solid;
+    border-top-right-radius: 2px;
     border-bottom-right-radius: 2px;
+	*/
 }
 
 QComboBox::down-arrow {
@@ -60,25 +69,52 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
     left: 1px;
 }
 
+QListView{
+	color:black;
+	background-color: white;
+	border: 1px solid gray;
+	border-radius: 10px;
+	outline:0px;
+}
+
+QListView:item{
+	color:black;
+	background-color: white;
+	border: 3px solid white;
+	border-radius: 10px;
+}
+
+QListView:item:hover{
+	color:black;
+	border: 3px solid white;
+	background-color: #E6F4FF;
+}
+
 QScrollBar:vertical {
 	min-height: 30px;  
-    background: #F1F1F1;
+    background-color: white;
 }
 
 QScrollBar::handle:vertical {
-    background: #2D74DB;
-  	border: 3px solid  #F1F1F1;
-	min-height:50px;
+    background-color: #3282F6;
+  	border: 3px solid white;
+	min-height:30px;
 }
 
 QScrollBar::handle:hover:vertical,
 QScrollBar::handle:pressed:vertical {
-    background: #3487FF;
+    background-color: #3487FF;
 }
-)");
+)";
+
+	setStyleSheet(styleStr);
 	setAttribute(Qt::WA_StyledBackground);
-	setView(q_check_ptr(q_check_ptr(new QListView())));
-	view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+	QListView* pview = new QListView(this);
+	pview->setStyleSheet(styleStr);
+	pview->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+	setView(pview);
+	view()->move(0, 40);
 	setFixedHeight(19);
 }
 

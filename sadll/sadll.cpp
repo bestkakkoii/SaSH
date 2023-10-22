@@ -276,10 +276,8 @@ extern "C"
 	}
 }
 
-//hooks
-SOCKET GameService::New_socket(int af, int type, int protocol)
+void setSocket(SOCKET fd)
 {
-	SOCKET fd = psocket(af, type, protocol);
 	int option_value = 1; //禁用Nagle
 	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&option_value, sizeof(option_value));
 	BOOL keepAlive = TRUE; //Keep-Alive
@@ -289,14 +287,33 @@ SOCKET GameService::New_socket(int af, int type, int protocol)
 	struct tcp_keepalive out_keep_alive = { 0 };
 	unsigned long ul_out_len = sizeof(struct tcp_keepalive);
 	unsigned long ul_bytes_return = 0;
-	in_keep_alive.onoff = 1; /*打开keepalive*/
-	in_keep_alive.keepaliveinterval = 5000; /*发送keepalive心跳时间间隔-单位为毫秒*/
-	in_keep_alive.keepalivetime = 1000; /*多长时间没有报文开始发送keepalive心跳包-单位为毫秒*/
+	in_keep_alive.onoff = 1; /*打開keepalive*/
+	in_keep_alive.keepaliveinterval = 5000; /*發送keepalive心跳時間間隔-單位為毫秒*/
+	in_keep_alive.keepalivetime = 1000; /*多長時間沒有報文開始發送keepalive心跳包-單位為毫秒*/
 
 	WSAIoctl(fd, SIO_KEEPALIVE_VALS, (LPVOID)&in_keep_alive, ul_in_len, (LPVOID)&out_keep_alive, ul_out_len, &ul_bytes_return, NULL, NULL);
 
-	int dscpValue = 0x3F;  // 0x3F DSCP 63
+	constexpr int dscpValue = 0xe0 | 0x10 | 0x04;  // 0x3F DSCP 63
 	setsockopt(fd, IPPROTO_IP, IP_TOS, (const char*)&dscpValue, sizeof(dscpValue));
+
+	//int nSendBuf = 8191;
+	//setsockopt(fd, SOL_SOCKET, SO_SNDBUF, (const char*)&nSendBuf, sizeof(int));
+
+	int nRecvBuf = 0;
+	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (const char*)&nRecvBuf, sizeof(int));
+
+	int receiveTimeout = 500;
+	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&receiveTimeout, sizeof(int));
+
+	int sendTimeout = 500;
+	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&sendTimeout, sizeof(int));
+}
+
+//hooks
+SOCKET GameService::New_socket(int af, int type, int protocol)
+{
+	SOCKET fd = psocket(af, type, protocol);
+	setSocket(fd);
 	return fd;
 }
 
@@ -308,20 +325,20 @@ int GameService::New_send(SOCKET s, const char* buf, int len, int flags)
 
 int GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen)
 {
-	if (s && name != nullptr)
-	{
-		if (AF_INET == name->sa_family)
-		{
-			struct sockaddr_in* sockaddr_ipv4 = (struct sockaddr_in*)name;
-			char ipStr[INET_ADDRSTRLEN] = {};
-			if (inet_ntop(AF_INET, &(sockaddr_ipv4->sin_addr), ipStr, sizeof(ipStr)) != nullptr)
-			{
-				unsigned short port = ntohs(sockaddr_ipv4->sin_port);
-				std::cout << "IPv4 Address: " << ipStr << " Port: " << port << std::endl;
-			}
-		}
-	}
-
+	//if (s && name != nullptr)
+	//{
+	//	if (AF_INET == name->sa_family)
+	//	{
+	//		struct sockaddr_in* sockaddr_ipv4 = (struct sockaddr_in*)name;
+	//		char ipStr[INET_ADDRSTRLEN] = {};
+	//		if (inet_ntop(AF_INET, &(sockaddr_ipv4->sin_addr), ipStr, sizeof(ipStr)) != nullptr)
+	//		{
+	//			unsigned short port = ntohs(sockaddr_ipv4->sin_port);
+	//			std::cout << "IPv4 Address: " << ipStr << " Port: " << port << std::endl;
+	//		}
+	//	}
+	//}
+	setSocket(s);
 	return pconnect(s, name, namelen);
 }
 
@@ -345,6 +362,7 @@ int GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 	if ((recvlen > 0) && (recvlen <= len))
 	{
 		sendToServer(buf, static_cast<size_t>(recvlen));
+		recvFromServer(buf, len);
 	}
 
 	return recvlen;
@@ -390,7 +408,7 @@ BOOL GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
 {
 	BOOL result = pQueryPerformanceCounter(lpPerformanceCount);
 
-	lpPerformanceCount->QuadPart *= static_cast<LONGLONG>(speedBoostValue); // 修改返回值为原始值的两倍
+	lpPerformanceCount->QuadPart *= static_cast<LONGLONG>(speedBoostValue); // 修改返回值為原始值的兩倍
 
 	return result;
 }
@@ -1568,13 +1586,10 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	//DetourAttach(&(PVOID&)psend, ::New_send);
 	DetourAttach(&(PVOID&)precv, ::New_recv);
 	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
-
 	//DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	//DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
+	DetourAttach(&(PVOID&)pconnect, ::New_connect);
 
-//#ifdef _DEBUG
-//	DetourAttach(&(PVOID&)pconnect, ::New_connect);
-//#endif
 
 	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourAttach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
@@ -1619,15 +1634,17 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	if (nullptr == syncClient_)
 	{
 		//與外掛連線
-		syncClient_.reset(new SyncClient());
+		syncClient_.reset(new SyncClient(parentHwnd, index));
 		if (nullptr == syncClient_)
-			return;
+			return FALSE;
 
-		if (FALSE == syncClient_->syncConnect(IPV6_DEFAULT, port))
-			return;
+		syncClient_->setCloseSocketFunction(pclosesocket);
+		syncClient_->setRecvFunction(precv);
 
-		syncClient_->start();
+		return syncClient_->Connect(type, port);
 	}
+
+	return FALSE;
 #endif
 }
 
@@ -1656,9 +1673,9 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
 	//DetourDetach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	//DetourDetach(&(PVOID&)pntohs, ::New_ntohs);
-//#ifdef _DEBUG
-//	DetourDetach(&(PVOID&)pconnect, ::New_connect);
-//#endif
+
+	DetourDetach(&(PVOID&)pconnect, ::New_connect);
+
 
 	DetourDetach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourDetach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
@@ -1688,7 +1705,7 @@ void GameService::sendToServer(const std::string& str)
 		asyncClient_->queueSendData(str.c_str(), str.size());
 #else
 	if (syncClient_ != nullptr)
-		syncClient_->Send(str.c_str(), str.size());
+		syncClient_->Send(str);
 #endif
 }
 
@@ -1700,6 +1717,17 @@ void GameService::sendToServer(const char* buf, size_t len)
 #else
 	if (syncClient_ != nullptr)
 		syncClient_->Send(buf, len);
+#endif
+}
+
+void GameService::recvFromServer(char* buf, size_t len)
+{
+#ifdef USE_ASYNC_TCP
+	if (asyncClient_ != nullptr)
+		asyncClient_->queueRecvData(buf, len);
+#else
+	if (syncClient_ != nullptr)
+		syncClient_->Recv(buf, len);
 #endif
 }
 

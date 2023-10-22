@@ -13,6 +13,8 @@ public:
 	{
 		setFont(util::getFont());
 		setAttribute(Qt::WA_StyledBackground);
+		setFrameShape(QFrame::NoFrame);
+
 		setStyleSheet(R"(
 QListWidget{
 	color:black;

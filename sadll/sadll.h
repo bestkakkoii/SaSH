@@ -168,6 +168,7 @@ public://g-var
 private:
 	void __fastcall sendToServer(const std::string& text);
 	void __fastcall sendToServer(const char* buf, size_t len);
+	void __fastcall recvFromServer(char* buf, size_t len);
 #if 0
 	void __fastcall hideModule(HMODULE hLibrary);
 	int __fastcall connectServer(SOCKET& rsocket, const char* ip, unsigned short port);

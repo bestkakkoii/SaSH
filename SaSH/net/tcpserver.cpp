@@ -287,7 +287,7 @@ Socket::Socket(qintptr socketDescriptor, QObject* parent)
 
 	setSocketOption(QAbstractSocket::LowDelayOption, 1);
 	setSocketOption(QAbstractSocket::KeepAliveOption, 1);
-	setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 0);//8191
+	setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 0);
 	setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 0);
 	setSocketOption(QAbstractSocket::TypeOfServiceOption, 64);
 	connect(this, &Socket::readyRead, this, &Socket::onReadyRead, Qt::QueuedConnection);
@@ -307,9 +307,13 @@ void Socket::onReadyRead()
 		if (!injector.worker.isNull())
 		{
 			//封包入隊列
-			injector.worker->readQueue_.enqueue(std::move(badata));
+			injector.worker->readQueue_.enqueue(badata);
 			//通知處理
 			injector.worker->processRead();
+
+			write(std::move(badata));
+			flush();
+			waitForBytesWritten();
 		}
 		return;
 	}
@@ -2878,40 +2882,41 @@ void Worker::setWindowTitle(QString formatStr)
 	formatStr.replace("%(pos)", positionName);
 
 	PC pc = getPC();
-	formatStr.replace("%(hp)", util::toQString(pc.hp));
-	formatStr.replace("%(maxhp)", util::toQString(pc.maxHp));
-	formatStr.replace("%(mp)", util::toQString(pc.mp));
-	formatStr.replace("%(hpp)", util::toQString(pc.hpPercent));
-	formatStr.replace("%(mpp)", util::toQString(pc.mpPercent));
-	formatStr.replace("%(lv)", util::toQString(pc.level));
-	formatStr.replace("%(exp)", util::toQString(pc.exp));
-	formatStr.replace("%(maxexp)", util::toQString(pc.maxExp));
-	formatStr.replace("%(name)", pc.name);
-	formatStr.replace("%(fname)", pc.freeName);
+	formatStr.replace("%(hp)", util::toQString(pc.hp), Qt::CaseInsensitive);
+	formatStr.replace("%(maxhp)", util::toQString(pc.maxHp), Qt::CaseInsensitive);
+	formatStr.replace("%(mp)", util::toQString(pc.mp), Qt::CaseInsensitive);
+	formatStr.replace("%(hpp)", util::toQString(pc.hpPercent), Qt::CaseInsensitive);
+	formatStr.replace("%(mpp)", util::toQString(pc.mpPercent), Qt::CaseInsensitive);
+	formatStr.replace("%(lv)", util::toQString(pc.level), Qt::CaseInsensitive);
+	formatStr.replace("%(exp)", util::toQString(pc.exp), Qt::CaseInsensitive);
+	formatStr.replace("%(maxexp)", util::toQString(pc.maxExp), Qt::CaseInsensitive);
+	formatStr.replace("%(name)", pc.name, Qt::CaseInsensitive);
+	formatStr.replace("%(fname)", pc.freeName, Qt::CaseInsensitive);
 
 	PET pet = getPet(pc.battlePetNo);
-	formatStr.replace("%(php)", util::toQString(pet.hp));
-	formatStr.replace("%(pmaxhp)", util::toQString(pet.maxHp));
-	formatStr.replace("%(phpp)", util::toQString(pet.hpPercent));
+	formatStr.replace("%(php)", util::toQString(pet.hp), Qt::CaseInsensitive);
+	formatStr.replace("%(pmaxhp)", util::toQString(pet.maxHp), Qt::CaseInsensitive);
+	formatStr.replace("%(phpp)", util::toQString(pet.hpPercent), Qt::CaseInsensitive);
 
-	if (formatStr.contains("%(floor)"))
-		formatStr.replace("%(floor)", util::toQString(getFloor()));
-	if (formatStr.contains("%(map)"))
-		formatStr.replace("%(map)", util::toQString(getFloorName()));
+	if (formatStr.contains("%(floor)", Qt::CaseInsensitive))
+		formatStr.replace("%(floor)", util::toQString(getFloor()), Qt::CaseInsensitive);
+	if (formatStr.contains("%(map)", Qt::CaseInsensitive))
+		formatStr.replace("%(map)", util::toQString(getFloorName()), Qt::CaseInsensitive);
 
-	if (formatStr.contains("%(x)") || formatStr.contains("%(x)"))
+	if (formatStr.contains("%(x)", Qt::CaseInsensitive) || formatStr.contains("%(y)", Qt::CaseInsensitive))
 	{
 		QPoint pos = getPoint();
-		formatStr.replace("%(x)", util::toQString(pos.x()));
-		formatStr.replace("%(y)", util::toQString(pos.y()));
+		formatStr.replace("%(x)", util::toQString(pos.x()), Qt::CaseInsensitive);
+		formatStr.replace("%(y)", util::toQString(pos.y()), Qt::CaseInsensitive);
 	}
 
-	if (formatStr.contains("%(script)"))
+	if (formatStr.contains("%(script)", Qt::CaseInsensitive))
 	{
 		QString fileName = injector.currentScriptFileName;
-		fileName.remove(util::applicationFilePath());
+		fileName.remove(util::applicationDirPath() + "/script/");
+		fileName.remove(util::applicationDirPath());
 		QFileInfo fileInfo(fileName);
-		formatStr.replace("%(script)", fileName);
+		formatStr.replace("%(script)", fileName, Qt::CaseInsensitive);
 	}
 
 	std::wstring wtitle = formatStr.toStdWString();
@@ -3436,7 +3441,7 @@ bool Worker::login(long long s)
 			config.writeArray<int>("System", "Login", "LoginFailed", { 315, 255 });
 		}
 		break;
-			}
+	}
 	case util::kStatusBusy:
 	{
 		QList<int> list = config.readArray<int>("System", "Login", "Busy");
@@ -3588,7 +3593,7 @@ bool Worker::login(long long s)
 			13, 3, 1,
 			14, 3, 2,
 			15, 3, 3,
-	};
+		};
 
 		const long long a = table[server * 3 + 1];
 		const long long b = table[server * 3 + 2];
@@ -3626,7 +3631,7 @@ bool Worker::login(long long s)
 		}
 #endif
 		break;
-		}
+	}
 	case util::kStatusSelectSubServer:
 	{
 		if (!input())
@@ -3784,8 +3789,8 @@ bool Worker::login(long long s)
 		if (position < 0 || position > MAX_CHARACTER)
 			break;
 
-		if (!getCharListTable(position).valid)
-			break;
+		//if (!getCharListTable(position).valid)
+		//	break;
 
 		//#ifndef USE_MOUSE
 				//playerLogin(position);
@@ -3830,8 +3835,8 @@ bool Worker::login(long long s)
 	{
 		break;
 	}
-}
-return false;
+	}
+	return false;
 }
 
 #pragma endregion
@@ -5705,7 +5710,7 @@ void Worker::tradeAppendItems(const QString& name, const QVector<long long>& ite
 	{
 		tradeCancel();
 		return;
-}
+	}
 
 	QHash< long long, ITEM > items = getItems();
 	for (long long i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
@@ -6472,14 +6477,14 @@ bool Worker::conditionMatchTarget(QVector<battleobject_t> btobjs, const QString&
 			//匹配環境變量
 			for (const QString& it : hash.keys())
 			{
-				if (src.contains(it))
+				if (src.contains(it, Qt::CaseInsensitive))
 				{
 					//開頭為A切換成友方數據
 					if (src.startsWith("A"))
 						btobjs = getBattleData().allies;
 
-					matchType = hash.value(it);
-					src.remove(it);
+					matchType = hash.value(it.toUpper());
+					src.remove(it, Qt::CaseInsensitive);
 					break;
 				}
 			}
@@ -9864,6 +9869,9 @@ bool Worker::fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget,
 //戰鬥人物普通攻擊
 void Worker::sendBattleCharAttackAct(long long target)
 {
+	if (!getBattleFlag())
+		return;
+
 	if (target < 0 || target >= MAX_ENEMY)
 		return;
 
@@ -9886,6 +9894,9 @@ void Worker::sendBattleCharAttackAct(long long target)
 //戰鬥人物使用精靈
 void Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 {
+	if (!getBattleFlag())
+		return;
+
 	if (target < 0 || (target > (TARGET_ALL)))
 		return;
 
@@ -9896,9 +9907,9 @@ void Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 	const QString magicName = magic.name;
 
 	QString text("");
+	battledata_t bt = getBattleData();
 	if (target < MAX_ENEMY)
 	{
-		battledata_t bt = getBattleData();
 		battleobject_t obj = bt.objects.value(target, battleobject_t{});
 		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 		text = QObject::tr("use magic %1 to [%2]%3").arg(magicName).arg(target + 1).arg(name);
@@ -9908,15 +9919,24 @@ void Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 		text = QObject::tr("use %1 to %2").arg(magicName).arg(getAreaString(target));
 	}
 
-	labelCharAction = text;
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateLabelCharAction(text);
 
 	if (magic.memo.contains("力回"))//補血
+	{
+		//不可補敵方
+		if (target >= bt.enemymin && target <= bt.enemymax
+			|| (battleCharCurrentPos < 10 && target == TARGET_SIDE_1)
+			|| (battleCharCurrentPos >= 10 && target == TARGET_SIDE_0))
+			return;
+
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
+	}
 	else
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+
+	labelCharAction = text;
+	emit signalDispatcher.updateLabelCharAction(text);
 
 	const QString qcmd = QString("J|%1|%2").arg(util::toQString(magicIndex, 16)).arg(util::toQString(target, 16)).toUpper();
 	lssproto_B_send(qcmd);
@@ -9934,9 +9954,9 @@ void Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 	PROFESSION_SKILL skill = getSkill(skillIndex);
 	const QString skillName = skill.name.simplified();
 	QString text("");
+	battledata_t bt = getBattleData();
 	if (target < MAX_ENEMY)
 	{
-		battledata_t bt = getBattleData();
 		battleobject_t obj = bt.objects.value(target, battleobject_t{});
 		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 		text = QObject::tr("use skill %1 to [%2]%3").arg(skillName).arg(target + 1).arg(name);
@@ -9946,14 +9966,23 @@ void Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 		text = QObject::tr("use %1 to %2").arg(skillName).arg(getAreaString(target));
 	}
 
-	labelCharAction = text;
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateLabelCharAction(text);
 	if (skill.memo.contains("力回"))//補血
+	{
+		//不可補敵方
+		if (target >= bt.enemymin && target <= bt.enemymax
+			|| (battleCharCurrentPos < 10 && target == TARGET_SIDE_1)
+			|| (battleCharCurrentPos >= 10 && target == TARGET_SIDE_0))
+			return;
+
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
+	}
 	else
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+
+	labelCharAction = text;
+	emit signalDispatcher.updateLabelCharAction(text);
 
 	const QString qcmd = QString("P|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16)).toUpper();
 	lssproto_B_send(qcmd);
@@ -9962,6 +9991,9 @@ void Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 //戰鬥人物使用道具
 void Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 {
+	if (!getBattleFlag())
+		return;
+
 	if (target < 0 || (target > (TARGET_ALL)))
 		return;
 
@@ -9972,9 +10004,9 @@ void Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 	const QString itemName = item.name.simplified();
 
 	QString text("");
+	battledata_t bt = getBattleData();
 	if (target < MAX_ENEMY)
 	{
-		battledata_t bt = getBattleData();
 		battleobject_t obj = bt.objects.value(target, battleobject_t{});
 		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 		text = QObject::tr("use item %1 to [%2]%3").arg(itemName).arg(target + 1).arg(name);
@@ -9984,14 +10016,24 @@ void Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 		text = QObject::tr("use %1 to %2").arg(itemName).arg(getAreaString(target));
 	}
 
-	labelCharAction = text;
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateLabelCharAction(text);
+
 	if (item.memo.contains("力回"))//補血
+	{
+		//不可補敵方
+		if (target >= bt.enemymin && target <= bt.enemymax
+			|| (battleCharCurrentPos < 10 && target == TARGET_SIDE_1)
+			|| (battleCharCurrentPos >= 10 && target == TARGET_SIDE_0))
+			return;
+
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
+	}
 	else
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+
+	labelCharAction = text;
+	emit signalDispatcher.updateLabelCharAction(text);
 
 	const QString qcmd = QString("I|%1|%2").arg(util::toQString(itemIndex, 16)).arg(util::toQString(target, 16)).toUpper();
 	lssproto_B_send(qcmd);
@@ -10029,6 +10071,9 @@ void Worker::sendBattleCharEscapeAct()
 //戰鬥人物捉寵
 void Worker::sendBattleCharCatchPetAct(long long target)
 {
+	if (!getBattleFlag())
+		return;
+
 	if (target < 0 || target >= MAX_ENEMY)
 		return;
 
@@ -10050,6 +10095,9 @@ void Worker::sendBattleCharCatchPetAct(long long target)
 //戰鬥人物切換戰寵
 void Worker::sendBattleCharSwitchPetAct(long long petIndex)
 {
+	if (!getBattleFlag())
+		return;
+
 	if (petIndex < 0 || petIndex >= MAX_PET)
 		return;
 
@@ -10068,6 +10116,7 @@ void Worker::sendBattleCharSwitchPetAct(long long petIndex)
 
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+
 	emit signalDispatcher.updateLabelCharAction(text);
 
 	const QString qcmd = QString("S|%1").arg(util::toQString(petIndex, 16));
@@ -10077,6 +10126,9 @@ void Worker::sendBattleCharSwitchPetAct(long long petIndex)
 //戰鬥人物什麼都不做
 void Worker::sendBattleCharDoNothing()
 {
+	if (!getBattleFlag())
+		return;
+
 	QString text(QObject::tr("do nothing"));
 
 	labelCharAction = text;
@@ -10093,6 +10145,9 @@ void Worker::sendBattleCharDoNothing()
 //戰鬥戰寵技能
 void Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 {
+	if (!getBattleFlag())
+		return;
+
 	PC pc = getPC();
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 		return;
@@ -10105,12 +10160,12 @@ void Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 
 	QString text("");
 	PET_SKILL petSkill = getPetSkill(pc.battlePetNo, skillIndex);
+	battledata_t bt = getBattleData();
 	if (target < MAX_ENEMY)
 	{
 		QString name;
 		if (petSkill.name != "防禦" && petSkill.name != "防御")
 		{
-			battledata_t bt = getBattleData();
 			battleobject_t obj = bt.objects.value(target, battleobject_t{});
 			name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 		}
@@ -10124,16 +10179,26 @@ void Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 		text = QObject::tr("use %1 to %2").arg(petSkill.name).arg(getAreaString(target));
 	}
 
-	labelPetAction = text;
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateLabelPetAction(text);
+
 	if (petSkill.name.contains("防"))//防禦
 		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos, QColor("#CCB157"));
 	else if (petSkill.memo.contains("力回"))//補血
+	{
+		//不可補敵方
+		if (target >= bt.enemymin && target <= bt.enemymax
+			|| (battleCharCurrentPos < 10 && target == TARGET_SIDE_1)
+			|| (battleCharCurrentPos >= 10 && target == TARGET_SIDE_0))
+			return;
+
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
+	}
 	else
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+
+	labelPetAction = text;
+	emit signalDispatcher.updateLabelPetAction(text);
 
 	const QString qcmd = QString("W|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16)).toUpper();
 	lssproto_B_send(qcmd);
@@ -10142,6 +10207,9 @@ void Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 //戰鬥戰寵什麼都不做
 void Worker::sendBattlePetDoNothing()
 {
+	if (!getBattleFlag())
+		return;
+
 	PC pc = getPC();
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 		return;
@@ -10301,7 +10369,7 @@ void Worker::lssproto_AB_recv(char* cdata)
 			}
 		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -10919,7 +10987,7 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 	}
 
 
-	}
+}
 
 //寵郵飛進來
 void Worker::lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata)
@@ -11025,52 +11093,52 @@ QString Worker::battleStringFormat(const battleobject_t& obj, QString formatStr)
 {
 	Injector& injector = Injector::getInstance(getIndex());
 	//"[%(pos)]%(self)%(name) LV:%(lv)(%(hp)|%(hpp))%(status)"
-	formatStr.replace("%(pos)", util::toQString(obj.pos));
+	formatStr.replace("%(pos)", util::toQString(obj.pos), Qt::CaseInsensitive);
 
 	bool isself = obj.pos == battleCharCurrentPos.load(std::memory_order_acquire);
-	formatStr.replace("%(self)", isself ? injector.getStringHash(util::kBattleSelfMarkString) : "");
-	formatStr.replace("%(name)", obj.name);
-	formatStr.replace("%(fname)", obj.freeName);
-	formatStr.replace("%(lv)", util::toQString(obj.level));
-	formatStr.replace("%(hp)", util::toQString(obj.hp));
-	formatStr.replace("%(maxhp)", util::toQString(obj.maxHp));
-	formatStr.replace("%(hpp)", util::toQString(obj.hpPercent));
+	formatStr.replace("%(self)", isself ? injector.getStringHash(util::kBattleSelfMarkString) : "", Qt::CaseInsensitive);
+	formatStr.replace("%(name)", obj.name, Qt::CaseInsensitive);
+	formatStr.replace("%(fname)", obj.freeName, Qt::CaseInsensitive);
+	formatStr.replace("%(lv)", util::toQString(obj.level), Qt::CaseInsensitive);
+	formatStr.replace("%(hp)", util::toQString(obj.hp), Qt::CaseInsensitive);
+	formatStr.replace("%(maxhp)", util::toQString(obj.maxHp), Qt::CaseInsensitive);
+	formatStr.replace("%(hpp)", util::toQString(obj.hpPercent), Qt::CaseInsensitive);
 
-	formatStr.replace("%(mp)", isself ? util::toQString(battleCharCurrentMp.load(std::memory_order_acquire)) : "");
-	formatStr.replace("%(maxmp)", isself ? util::toQString(pc_.maxMp) : "");
-	formatStr.replace("%(mpp)", isself ? util::toQString(pc_.mpPercent) : "");
+	formatStr.replace("%(mp)", isself ? util::toQString(battleCharCurrentMp.load(std::memory_order_acquire)) : "", Qt::CaseInsensitive);
+	formatStr.replace("%(maxmp)", isself ? util::toQString(pc_.maxMp) : "", Qt::CaseInsensitive);
+	formatStr.replace("%(mpp)", isself ? util::toQString(pc_.mpPercent) : "", Qt::CaseInsensitive);
 
-	formatStr.replace("%(mod)", util::toQString(obj.modelid));
+	formatStr.replace("%(mod)", util::toQString(obj.modelid), Qt::CaseInsensitive);
 
-	if (formatStr.contains("%(status)"))
+	if (formatStr.contains("%(status)", Qt::CaseInsensitive))
 	{
 		QString statusStr = getBadStatusString(obj.status);
 		if (!statusStr.isEmpty())
 			statusStr = QString("%1").arg(statusStr);
-		formatStr.replace("%(status)", statusStr);
+		formatStr.replace("%(status)", statusStr, Qt::CaseInsensitive);
 	}
 
 	if (obj.rideFlag > 0)
 	{
-		formatStr.replace("%(rlv)", util::toQString(obj.rideLevel));
-		formatStr.replace("%(rhp)", util::toQString(obj.rideHp));
-		formatStr.replace("%(rmaxhp)", util::toQString(obj.rideMaxHp));
-		formatStr.replace("%(rhpp)", util::toQString(obj.rideHpPercent));
+		formatStr.replace("%(rlv)", util::toQString(obj.rideLevel), Qt::CaseInsensitive);
+		formatStr.replace("%(rhp)", util::toQString(obj.rideHp), Qt::CaseInsensitive);
+		formatStr.replace("%(rmaxhp)", util::toQString(obj.rideMaxHp), Qt::CaseInsensitive);
+		formatStr.replace("%(rhpp)", util::toQString(obj.rideHpPercent), Qt::CaseInsensitive);
 		formatStr.replace("%(rname)", obj.rideName);
 
-		formatStr.remove("%(rb)");
-		formatStr.remove("%(re)");
+		formatStr.remove("%(rb)", Qt::CaseInsensitive);
+		formatStr.remove("%(re)", Qt::CaseInsensitive);
 	}
 	else
 	{
-		formatStr.remove("%(rlv)");
-		formatStr.remove("%(rhp)");
-		formatStr.remove("%(rmaxhp)");
-		formatStr.remove("%(rhpp)");
-		formatStr.remove("%(rname)");
+		formatStr.remove("%(rlv)", Qt::CaseInsensitive);
+		formatStr.remove("%(rhp)", Qt::CaseInsensitive);
+		formatStr.remove("%(rmaxhp)", Qt::CaseInsensitive);
+		formatStr.remove("%(rhpp)", Qt::CaseInsensitive);
+		formatStr.remove("%(rname)", Qt::CaseInsensitive);
 
-		long long i = formatStr.indexOf("%(rb)");//begin remove from
-		long long j = formatStr.indexOf("%(re)");//end remove to
+		long long i = formatStr.indexOf("%(rb)", 0, Qt::CaseInsensitive);//begin remove from
+		long long j = formatStr.indexOf("%(re)", 0, Qt::CaseInsensitive);//end remove to
 		if (i != -1)
 			formatStr.remove(i, j - i + 5);
 	}
@@ -11563,6 +11631,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 		}
 
 		setBattleData(bt);
+
+
+		if (!isAllieAllDead && bt.allies.isEmpty())
+			isAllieAllDead = true;
+		if (!isEnemyAllDead && bt.enemies.isEmpty())
+			isEnemyAllDead = true;
+
 		if (isAllieAllDead || isEnemyAllDead)
 		{
 			setBattleEnd();
@@ -12009,7 +12084,7 @@ void Worker::lssproto_JOBDAILY_recv(char* cdata)
 
 	if (IS_WAITFOR_JOBDAILY_FLAG.load(std::memory_order_acquire))
 		IS_WAITFOR_JOBDAILY_FLAG.store(false, std::memory_order_release);
-	}
+}
 
 //導師系統
 void Worker::lssproto_TEACHER_SYSTEM_recv(char* cdata)
@@ -12379,7 +12454,7 @@ void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 	std::ignore = getFloorName();
 	std::ignore = getDir();
 	std::ignore = getPoint();
-	}
+}
 
 //地圖數據更新，重新寫入地圖
 void Worker::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata)
@@ -13490,7 +13565,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				pet.blessatk = getIntegerToken(data, "|", 33);
 				pet.blessdef = getIntegerToken(data, "|", 34);
 				pet.blessquick = getIntegerToken(data, "|", 35);
-	}
+			}
 			else
 			{
 				mask = 2;
@@ -13671,7 +13746,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-}
+		}
 
 		PC pc = pc_;
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
@@ -13729,7 +13804,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		Injector& injector = Injector::getInstance(getIndex());
 		injector.setUserData(util::kUserPetNames, petNames);
-}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的

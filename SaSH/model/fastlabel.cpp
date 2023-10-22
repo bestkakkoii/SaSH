@@ -90,6 +90,15 @@ void FastLabel::setText(const QString& text)
 {
 	setUpdatesEnabled(false);
 	content_msg_ = text;
+
+	if (isAutoResize_)
+	{
+		QFontMetrics fm(font_);
+		int textWidth = fm.horizontalAdvance(text) + 4;
+
+		setFixedWidth(textWidth);
+	}
+
 	setUpdatesEnabled(true);
 	update();
 }

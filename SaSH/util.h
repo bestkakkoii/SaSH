@@ -1147,33 +1147,35 @@ QScrollBar::handle:pressed:horizontal {
 QComboBox {
 	color:black;
 	background-color: white;
-    border: 2px solid gray;
-	border-radius: 5px;
+    border: 1px solid gray;
+	border-radius: 3px;
 }
 
 QComboBox:hover {
-    border: 2px solid #3282F6;
+    border: 1px solid #4096FF;
 }
 
 QComboBox QAbstractItemView { 
 	color:black;
 	background-color: white;
+	border: 1px solid gray;
+	border-radius: 3px;
     min-width: 200px;
 }
 
 QComboBox::drop-down {
 	color:black;
 	background-color: white;
-
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
     width: 15px;
-
+	/* 
+	subcontrol-origin: padding;
+    subcontrol-position: top right;
     border-left-width: 1px;
     border-left-color: darkgray;
-    border-left-style: solid; /* just a single line */
-    border-top-right-radius: 2px; /* same radius as the QComboBox */
+    border-left-style: solid;
+    border-top-right-radius: 2px;
     border-bottom-right-radius: 2px;
+	*/
 }
 
 QComboBox::down-arrow {
@@ -1191,12 +1193,22 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
 QListView{
 	color:black;
 	background-color: white;
+	border: 2px solid gray;
+	border-radius: 10px;
 	outline:0px;
 }
 
 QListView:item{
 	color:black;
 	background-color: white;
+	border: 3px solid white;
+	border-radius: 10px;
+}
+
+QListView:item:hover{
+	color:black;
+	border: 3px solid white;
+	background-color: #E6F4FF;
 }
 
 QScrollBar:vertical {
@@ -1250,27 +1262,25 @@ QScrollBar::handle:pressed:vertical {
 		QPushButton {
 			background-color: white;
 			border: 1px solid gray;
-
-			border-radius: 5px;
+			border-radius: 3px;
 			padding: 2px;
 			color: black;
 		}
 		
 		QPushButton:hover {
-			background-color: #3282F6;
-			border: 1px solid #3282F6;
-			color:white;
+			background-color: white;
+			border: 1px solid #4096FF;
+			color:#4096FF;
 		}
 		
 		QPushButton:pressed, QPushButton:checked {
-			background-color: #3282FF;
-			border: 1px solid #3282FF;
-			color:white;
+			background-color: white;
+			border: 1px solid #0958D9;
+			color:#0958D9;
 		}
 
 		QPushButton:disabled {
 			background-color: #F0F4F8;
-			border: 1px solid #F0F4F8;
 			color:gray;
 		}
 )";
@@ -1290,7 +1300,7 @@ QSpinBox {
 	color:black;
 	background-color: white;
     border: 1px solid gray;
-	border-radius: 5px;
+	border-radius: 3px;
 }
 
 QSpinBox:focus { 
@@ -1409,7 +1419,7 @@ QCheckBox::indicator:indeterminate:pressed {
 		QString styleSheet = R"(
 QLineEdit {
     border: 1px solid gray;
-	border-radius: 5px;
+	border-radius: 3px;
     padding: 0 4px;
     background-color: white;
     selection-background-color: #3A79B8;
@@ -1513,22 +1523,16 @@ QLineEdit:hover{
 			}
 
 			QTabBar::tab:selected{
-				color:white;
-				background-color: #398FFE;
-				border-top:0px solid #3282F6;
+				color: #1677FF;
+				background-color: white;
+				border-bottom:2px solid #1677FF;
 
 			}
 
 			QTabBar::tab:hover{
-				color:white;
-				background-color: #398FFE;
+				color:#62A9FF;
+				background-color: white;
 				border-top:0px solid #3282F6;
-
-				padding-left:0px;
-				padding-right:0px;
-				height:18px;
-				margin-left:0px;
-				margin-right:0px;
 			}
 
 		)";
@@ -2650,7 +2654,7 @@ QGroupBox {
 				QFile::close();
 			}
 			QFile::open(ioFlags);
-			}
+		}
 
 		explicit ScopedFile(const QString& filename)
 			: QFile(filename)
@@ -2758,7 +2762,7 @@ QGroupBox {
 
 	private:
 		QSet<uchar*> m_maps;
-		};
+	};
 
 	//Json配置讀寫
 	class Config
@@ -2968,4 +2972,4 @@ QGroupBox {
 	static const QRegularExpression rexSquareBrackets(R"(\[(\d+)\])");
 	//([\w\p{Han}]+)\[(\d+)\]
 
-	}
+}

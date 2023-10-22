@@ -18,21 +18,33 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #ifndef SYNCCLIENT_H
 #define SYNCCLIENT_H
+#ifndef ASYNCCLIENT_H
 
-#if 0
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <Windows.h>
 
+constexpr const wchar_t* IPV6_DEFAULT = L"::1";
+constexpr const wchar_t* IPV4_DEFAULT = L"127.0.0.1";
+
+struct tcp_keepalive {
+	ULONG onoff;
+	ULONG keepalivetime;
+	ULONG keepaliveinterval;
+};
+
+#define SIO_KEEPALIVE_VALS                  _WSAIOW(IOC_VENDOR,4)
+
 class SyncClient
 {
-	DISABLE_COPY_MOVE(SyncClient)
 private:
 	SOCKET clientSocket = INVALID_SOCKET;
 	DWORD lastError_ = 0;
 
 public:
-	SyncClient()
+	SyncClient(HWND parentHwnd, long long index)
+		: parendHwnd_(parentHwnd)
+		, index_(index)
 	{
 		WSADATA data;
 		if (WSAStartup(MAKEWORD(2, 2), &data) != 0)
@@ -46,128 +58,170 @@ public:
 
 	virtual ~SyncClient()
 	{
-		SyncClient& instance = getInstance();
-
-		closesocket(instance.clientSocket);
+		if (pclosesocket_ != nullptr)
+			pclosesocket_(clientSocket_);
 		WSACleanup();
 
 	}
 
-	bool Connect(const std::string& serverIP, unsigned short serverPort)
+	inline BOOL __fastcall Connect(unsigned short type, unsigned short serverPort)
 	{
-		GameService& g_GameService = GameService::getInstance();
-		SyncClient& instance = getInstance();
-		instance.clientSocket = ::socket(AF_INET6, SOCK_STREAM, 0);//g_GameService.psocket(AF_INET6, SOCK_STREAM, 0);
-		if (instance.clientSocket == INVALID_SOCKET)
+		ADDRESS_FAMILY family = AF_UNSPEC;
+		u_short port = htons(serverPort);
+		void* pAddrBuf = nullptr;
+		sockaddr* serverAddr = nullptr;
+		int namelen = 0;
+		wchar_t wcsServerIP[256] = {};
+
+		do
 		{
+			if (type > 0)
+			{
+				family = AF_INET6;
+
+				sockaddr_in6 serverAddr6 = {};
+				serverAddr6.sin6_family = family;
+				serverAddr6.sin6_port = port;
+				pAddrBuf = reinterpret_cast<void*>(&serverAddr6.sin6_addr);
+				serverAddr = reinterpret_cast<sockaddr*>(&serverAddr6);
+				namelen = sizeof(serverAddr6);
+
+				_snwprintf_s(wcsServerIP, _countof(wcsServerIP), _TRUNCATE, L"%s", IPV6_DEFAULT);
+
+				std::wcout << L"current type: IPV6: " << std::wstring(wcsServerIP) << std::endl;
+			}
+			else
+			{
+				family = AF_INET;
+
+				sockaddr_in serverAddr4 = {};
+				serverAddr4.sin_family = family;
+				serverAddr4.sin_port = port;
+				pAddrBuf = reinterpret_cast<void*>(&serverAddr4.sin_addr);
+				serverAddr = reinterpret_cast<sockaddr*>(&serverAddr4);
+				namelen = sizeof(serverAddr4);
+
+				_snwprintf_s(wcsServerIP, _countof(wcsServerIP), _TRUNCATE, L"%s", IPV4_DEFAULT);
+
+				std::wcout << L"current type: IPV4: " << std::wstring(wcsServerIP) << std::endl;
+			}
+
+			clientSocket_ = ::socket(family, SOCK_STREAM, IPPROTO_TCP);
+			if (INVALID_SOCKET == clientSocket_)
+			{
+				break;
+			}
+
+			std::wcout << "WSASocketW OK" << std::endl;
+
+			if (InetPtonW(family, wcsServerIP, pAddrBuf) != 1)
+			{
+				break;
+			}
+
+			std::wcout << "InetNtopW OK" << std::endl;
+
+			if (connect(clientSocket_, serverAddr, namelen) == SOCKET_ERROR)
+			{
+				if (WSAGetLastError() != WSAEWOULDBLOCK)
+					break;
+			}
+
+			std::wcout << "WSAConnect OK" << std::endl;
+
+			if (nullptr == parendHwnd_)
+			{
 #ifdef _DEBUG
-			std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
+				std::wcout << L"g_ParenthWnd is nullptr." << std::endl;
 #endif
-			WSACleanup();
-			return false;
-		}
+				break;
+			}
 
-		int bufferSize = 8191;
-		int minBufferSize = 1;
-		setsockopt(instance.clientSocket, SOL_SOCKET, SO_RCVBUF, (char*)&bufferSize, sizeof(bufferSize));
-		setsockopt(instance.clientSocket, SOL_SOCKET, SO_SNDBUF, (char*)&bufferSize, sizeof(bufferSize));
-		setsockopt(instance.clientSocket, SOL_SOCKET, SO_RCVLOWAT, (char*)&minBufferSize, sizeof(minBufferSize));
-		setsockopt(instance.clientSocket, SOL_SOCKET, SO_SNDLOWAT, (char*)&minBufferSize, sizeof(minBufferSize));
-		//DWORD timeout = 5000; // 超時時間為 5000 毫秒
-		//setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
-		//setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+			std::string message = "hs|";
+			message += std::to_string(index_);
+			message += "\n";
+			if (Send(message) == FALSE)
+				break;
 
-		LINGER lingerOption = { 0, 0 };
-		lingerOption.l_onoff = 0;        // 立即中止
-		lingerOption.l_linger = 0;      // 延遲時間不適用
-		setsockopt(instance.clientSocket, SOL_SOCKET, SO_LINGER, (char*)&lingerOption, sizeof(lingerOption));
-		int keepAliveOption = 1;  // 開啟保持活動機制
-		setsockopt(instance.clientSocket, SOL_SOCKET, TCP_KEEPALIVE, (char*)&keepAliveOption, sizeof(keepAliveOption));
-
-		sockaddr_in6 serverAddr{};
-		serverAddr.sin6_family = AF_INET6;
-		serverAddr.sin6_port = htons(serverPort);
-
-		if (inet_pton(AF_INET6, serverIP.c_str(), &(serverAddr.sin6_addr)) <= 0)
-		{
 #ifdef _DEBUG
-			std::cout << "inet_pton failed. Error Code : " << WSAGetLastError() << std::endl;
+			std::wcout << L"Notified parent window OK" << std::endl;
 #endif
-			closesocket(instance.clientSocket);
-			return false;
-		}
+			return TRUE;
+		} while (false);
 
-		if (connect(instance.clientSocket, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) != 0)
-		{
-#ifdef _DEBUG
-			std::cout << "connect failed. Error Code : " << WSAGetLastError() << std::endl;
-#endif
-			closesocket(instance.clientSocket);
-			return false;
-		}
-		extern HWND g_ParenthWnd;
-#ifdef _DEBUG
-		std::cout << "connect success. " << g_ParenthWnd << " " << SendMessageW(g_ParenthWnd, util::kConnectionOK, NULL, NULL) << std::endl;
-#else
-		SendMessageW(g_ParenthWnd, util::kConnectionOK, NULL, NULL);
-#endif
-
-		return true;
+		return FALSE;
 	}
 
-	int Send(char* dataBuf, int dataLen)
+	inline BOOL __fastcall Send(const char* dataBuf, size_t dataLen)
 	{
-		SyncClient& instance = getInstance();
-		if (INVALID_SOCKET == instance.clientSocket)
-			return false;
+		if (INVALID_SOCKET == clientSocket_)
+			return FALSE;
 
 		if (dataBuf == nullptr)
-			return false;
+			return FALSE;
 
 		if (dataLen <= 0)
-			return false;
+			return FALSE;
 
-		GameService& g_GameService = GameService::getInstance();
-		//std::unique_ptr <char[]> buf(new char[dataLen]());
-		//memset(buf.get(), 0, dataLen);
-		//memcpy_s(buf.get(), dataLen, dataBuf, dataLen);
-
-		//int result = g_GameService.psend(instance.clientSocket, buf.get(), dataLen, 0);
-		int result = ::send(instance.clientSocket, dataBuf, dataLen, 0);//g_GameService.psend(instance.clientSocket, dataBuf, dataLen, 0);
+		int result = ::send(clientSocket_, dataBuf, dataLen, 0);
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
-			return 0;
+			return FALSE;
 		}
 		else if (result == 0)
 		{
 		}
 
-		return result;
+		return TRUE;
 	}
 
-	int Receive(char* buf, size_t buflen)
+	inline BOOL __fastcall Send(std::string str)
 	{
-		SyncClient& instance = getInstance();
-		if (INVALID_SOCKET == instance.clientSocket)
-			return 0;
+		if (INVALID_SOCKET == clientSocket_)
+			return FALSE;
 
-		if (buf == nullptr)
-			return false;
+		if (str.empty())
+			return FALSE;
 
-		if (buflen <= 0)
-			return false;
-
-		GameService& g_GameService = GameService::getInstance();
-		memset(buf, 0, buflen);
-		int len = g_GameService.precv(instance.clientSocket, buf, buflen, 0);
-		if (len == 0)
+		int result = ::send(clientSocket_, str.c_str(), str.length(), 0);
+		if (result == SOCKET_ERROR)
+		{
+			lastError_ = WSAGetLastError();
+			return FALSE;
+		}
+		else if (result == 0)
 		{
 		}
-		return len;
+
+		return TRUE;
 	}
 
-	std::wstring getLastError()
+	inline BOOL Recv(char* dataBuf, size_t dataLen)
+	{
+		if (INVALID_SOCKET == clientSocket_)
+			return FALSE;
+
+		if (dataBuf == nullptr)
+			return FALSE;
+
+		if (dataLen <= 0)
+			return FALSE;
+
+		int result = precv_(clientSocket_, dataBuf, dataLen, 0);
+		if (result == SOCKET_ERROR)
+		{
+			lastError_ = WSAGetLastError();
+			return FALSE;
+		}
+		else if (result == 0)
+		{
+		}
+
+		return TRUE;
+	}
+
+	inline std::wstring __fastcall getLastError()
 	{
 		if (lastError_ == 0)
 		{
@@ -182,7 +236,25 @@ public:
 		LocalFree(msg);
 		return result;
 	}
-};
-#endif
 
+	inline void __fastcall setCloseSocketFunction(int(__stdcall* p)(SOCKET s))
+	{
+		pclosesocket_ = p;
+	}
+
+	inline void __fastcall setRecvFunction(int(__stdcall* p)(SOCKET s, char* buf, int len, int flags))
+	{
+		precv_ = p;
+	}
+
+private:
+	long long index_;
+	SOCKET clientSocket_ = INVALID_SOCKET;
+	HWND parendHwnd_ = nullptr;
+	int(__stdcall* pclosesocket_)(SOCKET s) = nullptr;
+	//recv
+	int(__stdcall* precv_)(SOCKET s, char* buf, int len, int flags) = nullptr;
+};
+
+#endif
 #endif //SYNCCLIENT_H

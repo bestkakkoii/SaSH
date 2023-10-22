@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>285</width>
+    <width>290</width>
     <height>220</height>
    </rect>
   </property>
@@ -18,19 +18,19 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="topMargin">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="rightMargin">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="bottomMargin">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="spacing">
-    <number>1</number>
+    <number>5</number>
    </property>
    <item row="0" column="0">
     <widget class="QSplitter" name="splitter">
@@ -59,6 +59,12 @@
          </property>
          <item>
           <widget class="QLabel" name="label_path">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="minimumSize">
             <size>
              <width>180</width>
@@ -67,7 +73,7 @@
            </property>
            <property name="maximumSize">
             <size>
-             <width>180</width>
+             <width>16777215</width>
              <height>16777215</height>
             </size>
            </property>
@@ -94,6 +100,12 @@
          </item>
          <item>
           <widget class="FastLabel" name="label_row" native="true">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="minimumSize">
             <size>
              <width>30</width>

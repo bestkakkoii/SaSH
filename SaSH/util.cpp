@@ -1775,6 +1775,9 @@ QString __fastcall util::applicationFilePath()
 		if (path.isEmpty())
 			return "";
 
+		if (path.contains("\\"))
+			path.replace("\\", "/");
+
 		qputenv("CURRENT_PATH", path.toUtf8());
 		init = true;
 	}

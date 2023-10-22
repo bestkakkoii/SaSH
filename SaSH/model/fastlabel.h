@@ -49,6 +49,8 @@ public:
 	QString getText() const;
 	void setFlag(int flag = Qt::AlignLeft | Qt::AlignVCenter);
 	int getFlag();
+
+	inline void setAutoResize(bool isAutoResize) { isAutoResize_ = isAutoResize; }
 protected:
 #ifdef OPENGL_LABEL
 	virtual void initializeGL() override;
@@ -61,7 +63,7 @@ protected:
 
 private:
 	int flag_ = Qt::AlignLeft | Qt::AlignVCenter;
-
+	bool isAutoResize_ = false;
 	QPen pen_;
 	QFont font_;
 	QPixmap pixmap_;

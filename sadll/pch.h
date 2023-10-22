@@ -34,11 +34,13 @@
 #include <usermessage.h>
 #include "util.h"
 
-#define USE_ASYNC_TCP
+//#define USE_ASYNC_TCP
 #ifdef USE_ASYNC_TCP
 #include "asyncclient.h"
+#include "syncclient.h"
 #else
 #include "syncclient.h"
+#include "asyncclient.h"
 #endif
 
 #endif
