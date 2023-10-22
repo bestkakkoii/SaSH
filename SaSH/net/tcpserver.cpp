@@ -5289,18 +5289,44 @@ void Worker::move(const QPoint& p)
 //轉向指定坐標
 long long Worker::setCharFaceToPoint(const QPoint& pos)
 {
+	QPoint c = pos - getPoint();
+	double r = atan2(c.x(), c.y()) / M_PI * 180.0;
 	long long dir = -1;
-	QPoint current = nowPoint_;
-	for (const QPoint& it : util::fix_point)
+	if (r <= -135 + 22.5 && r >= -135 - 22.5)
 	{
-		if (it + current == pos)
-		{
-			dir = util::fix_point.indexOf(it);
-			setCharFaceDirection(dir);
-			return dir;
-		}
+		dir = 7;
 	}
-	return -1;
+	if (r <= -90 + 22.5 && r >= -90 - 22.5)
+	{
+		dir = 6;
+	}
+	if (r <= -45 + 22.5 && r >= -45 - 22.5)
+	{
+		dir = 5;
+	}
+	if (r <= 0 + 22.5 && r >= 0 - 22.5)
+	{
+		dir = 4;
+	}
+	if (r <= 45 + 22.5 && r >= 45 - 22.5)
+	{
+		dir = 3;
+	}
+	if (r <= 90 + 22.5 && r >= 90 - 22.5)
+	{
+		dir = 2;
+	}
+	if (r <= 135 + 22.5 && r >= 135 - 22.5)
+	{
+		dir = 1;
+	}
+	if (r < -135 - 22.5 || (r <= 180 + 22.5 && r >= 180 - 22.5))
+	{
+		dir = 0;
+	}
+
+	setCharFaceDirection(dir);
+	return dir;
 }
 
 //轉向 (根據方向索引自動轉換成A-H)
@@ -5679,7 +5705,7 @@ void Worker::tradeAppendItems(const QString& name, const QVector<long long>& ite
 	{
 		tradeCancel();
 		return;
-	}
+}
 
 	QHash< long long, ITEM > items = getItems();
 	for (long long i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
@@ -10275,7 +10301,7 @@ void Worker::lssproto_AB_recv(char* cdata)
 			}
 		}
 #endif
-	}
+}
 }
 
 //名片數據
@@ -10893,7 +10919,7 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 	}
 
 
-}
+	}
 
 //寵郵飛進來
 void Worker::lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata)
@@ -10969,7 +10995,7 @@ void Worker::lssproto_EF_recv(int effect, int level, char* coption)
 	//SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	//long long floor = getFloor();
 	//emit signalDispatcher.updateNpcList(floor);
-	}
+}
 
 //求救
 void Worker::lssproto_HL_recv(int)
@@ -11893,7 +11919,7 @@ void Worker::lssproto_FM_recv(char* cdata)
 			//getStringToken(data, "|", 3, sizeof( FMType3 ) - 1, FMType3 );
 			//ItemmanInit(data );
 			//initItemman(data );
-	}
+		}
 		if (FMType2 == "T")
 		{
 			//initFamilyTaxWN(data);
@@ -11983,7 +12009,7 @@ void Worker::lssproto_JOBDAILY_recv(char* cdata)
 
 	if (IS_WAITFOR_JOBDAILY_FLAG.load(std::memory_order_acquire))
 		IS_WAITFOR_JOBDAILY_FLAG.store(false, std::memory_order_release);
-}
+	}
 
 //導師系統
 void Worker::lssproto_TEACHER_SYSTEM_recv(char* cdata)
@@ -12138,8 +12164,8 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 					currency.prestige = nRep;
 					currencyData = currency;
 				}
-}
-}
+			}
+		}
 
 		if (message.contains(rexVit))
 		{
@@ -12325,11 +12351,11 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-}
+	}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 
 //地圖數據更新，重新繪製地圖
 void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -12353,7 +12379,7 @@ void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 	std::ignore = getFloorName();
 	std::ignore = getDir();
 	std::ignore = getPoint();
-}
+	}
 
 //地圖數據更新，重新寫入地圖
 void Worker::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata)
@@ -12683,7 +12709,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			unit.isVisible = modelid > 0 && modelid != 9999;
 			unit.objType = util::OBJ_HUMAN;
 			mapUnitHash.insert(id, unit);
-				}
+		}
 
 #ifdef _CHAR_PROFESSION			//人物職業
 #ifdef _GM_IDENTIFY		//GM識別
@@ -12873,8 +12899,8 @@ void Worker::lssproto_C_recv(char* cdata)
 		}
 #endif
 #pragma endregion
-		}
 	}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Worker::lssproto_CA_recv(char* cdata)
@@ -13299,8 +13325,8 @@ void Worker::lssproto_S_recv(char* cdata)
 					default:
 						break;
 					}
-					}
 				}
+			}
 
 
 			emit signalDispatcher.updateMainFormTitle(pc_.name);//標題設置為人物名稱
@@ -13332,10 +13358,10 @@ void Worker::lssproto_S_recv(char* cdata)
 
 			playerInfoColContents.insert(0, var);
 			emit signalDispatcher.updateCharInfoColContents(0, var);
-			}
+		}
 
 		getCharMaxCarryingCapacity();
-		}
+	}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -13645,7 +13671,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-	}
+}
 
 		PC pc = pc_;
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
