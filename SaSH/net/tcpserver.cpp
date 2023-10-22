@@ -307,12 +307,11 @@ void Socket::onReadyRead()
 		if (!injector.worker.isNull())
 		{
 			//封包入隊列
-			injector.worker->readQueue_.enqueue(badata);
+			injector.worker->readQueue_.enqueue(std::move(badata));
 			//通知處理
 			injector.worker->processRead();
 
-			write(std::move(badata));
-			flush();
+			write("\0", 1);
 			waitForBytesWritten();
 		}
 		return;

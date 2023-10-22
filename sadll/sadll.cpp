@@ -296,16 +296,16 @@ void setSocket(SOCKET fd)
 	constexpr int dscpValue = 0xe0 | 0x10 | 0x04;  // 0x3F DSCP 63
 	setsockopt(fd, IPPROTO_IP, IP_TOS, (const char*)&dscpValue, sizeof(dscpValue));
 
-	//int nSendBuf = 8191;
+	//int nSendBuf = 0;
 	//setsockopt(fd, SOL_SOCKET, SO_SNDBUF, (const char*)&nSendBuf, sizeof(int));
 
-	int nRecvBuf = 0;
-	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (const char*)&nRecvBuf, sizeof(int));
+	//int nRecvBuf = 0;
+	//setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (const char*)&nRecvBuf, sizeof(int));
 
-	int receiveTimeout = 500;
+	int receiveTimeout = 100;
 	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&receiveTimeout, sizeof(int));
 
-	int sendTimeout = 500;
+	int sendTimeout = 30000;
 	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&sendTimeout, sizeof(int));
 }
 
@@ -313,7 +313,8 @@ void setSocket(SOCKET fd)
 SOCKET GameService::New_socket(int af, int type, int protocol)
 {
 	SOCKET fd = psocket(af, type, protocol);
-	setSocket(fd);
+	if (INVALID_SOCKET != fd)
+		setSocket(fd);
 	return fd;
 }
 
@@ -338,7 +339,6 @@ int GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen)
 	//		}
 	//	}
 	//}
-	setSocket(s);
 	return pconnect(s, name, namelen);
 }
 
@@ -355,6 +355,7 @@ u_short GameService::New_ntohs(u_short netshort)
 }
 
 //hook recv將封包全部轉發給外掛，本來準備完全由外掛處理好再發回來，但效果不盡人意
+char g_buffer[1] = { '\0' };
 int GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 {
 	int recvlen = precv(s, buf, len, flags);
@@ -362,7 +363,7 @@ int GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 	if ((recvlen > 0) && (recvlen <= len))
 	{
 		sendToServer(buf, static_cast<size_t>(recvlen));
-		recvFromServer(buf, len);
+		recvFromServer(g_buffer, sizeof(g_buffer));
 	}
 
 	return recvlen;
@@ -1275,7 +1276,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		g_GameService.uninitialize();
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		FreeLibraryAndExitThread(g_hDllModule, 0UL);
-	}
+}
 	case kGetModule:
 	{
 		return reinterpret_cast<int>(GetModuleHandleW(nullptr));
@@ -1588,7 +1589,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
 	//DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	//DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
-	DetourAttach(&(PVOID&)pconnect, ::New_connect);
+	//DetourAttach(&(PVOID&)pconnect, ::New_connect);
 
 
 	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
@@ -1673,8 +1674,7 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
 	//DetourDetach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	//DetourDetach(&(PVOID&)pntohs, ::New_ntohs);
-
-	DetourDetach(&(PVOID&)pconnect, ::New_connect);
+	//DetourDetach(&(PVOID&)pconnect, ::New_connect);
 
 
 	DetourDetach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
