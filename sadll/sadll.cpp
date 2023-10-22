@@ -302,11 +302,11 @@ void setSocket(SOCKET fd)
 	//int nRecvBuf = 0;
 	//setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (const char*)&nRecvBuf, sizeof(int));
 
-	int receiveTimeout = 100;
-	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&receiveTimeout, sizeof(int));
+	//int receiveTimeout = 100;
+	//setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&receiveTimeout, sizeof(int));
 
-	int sendTimeout = 30000;
-	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&sendTimeout, sizeof(int));
+	//int sendTimeout = 30000;
+	//setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&sendTimeout, sizeof(int));
 }
 
 //hooks
@@ -363,7 +363,7 @@ int GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 	if ((recvlen > 0) && (recvlen <= len))
 	{
 		sendToServer(buf, static_cast<size_t>(recvlen));
-		recvFromServer(g_buffer, sizeof(g_buffer));
+		//recvFromServer(g_buffer, sizeof(g_buffer));
 	}
 
 	return recvlen;
@@ -1276,7 +1276,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		g_GameService.uninitialize();
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		FreeLibraryAndExitThread(g_hDllModule, 0UL);
-}
+	}
 	case kGetModule:
 	{
 		return reinterpret_cast<int>(GetModuleHandleW(nullptr));
