@@ -98,19 +98,40 @@ void ProgressBar::onCurrentValueChanged(int level, int value, int maxvalue)
 	QString text;
 	if (kHP == type_)
 	{
-		text = QString("%1 %2,%3/%4(%5)")
-			.arg(name_)
-			.arg(level_)
-			.arg("%v")
-			.arg("%m")
-			.arg("%p%");
+		if (value == 1)
+		{
+			text = QString("%1 %2,%3/%4(1%)")
+				.arg(name_)
+				.arg(level_)
+				.arg("%v")
+				.arg("%m");
+		}
+		else
+		{
+			text = QString("%1 %2,%3/%4(%5)")
+				.arg(name_)
+				.arg(level_)
+				.arg("%v")
+				.arg("%m")
+				.arg("%p%");
+		}
+
 	}
 	else
 	{
-		text = QString("%1/%2(%3)")
-			.arg("%v")
-			.arg("%m")
-			.arg("%p%");
+		if (value == 1)
+		{
+			text = QString("%1/%2(1%)")
+				.arg("%v")
+				.arg("%m");
+		}
+		else
+		{
+			text = QString("%1/%2(%3)")
+				.arg("%v")
+				.arg("%m")
+				.arg("%p%");
+		}
 	}
 	setFormat(text);
 }

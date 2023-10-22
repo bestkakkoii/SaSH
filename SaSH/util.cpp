@@ -1826,7 +1826,7 @@ long long __fastcall util::percent(long long value, long long total)
 		return 0;
 
 	double d = std::floor(static_cast<double>(value) * 100.0 / static_cast<double>(total));
-	if ((value > 0) && (d < 1.0))
+	if ((value > 0) && (static_cast<long long>(d) == 0))
 		return 1;
 	else
 		return static_cast<long long>(d);

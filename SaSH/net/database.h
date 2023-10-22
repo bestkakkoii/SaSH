@@ -1346,8 +1346,6 @@ typedef struct battleobject_s
 
 typedef struct battledata_s
 {
-	bool charAlreadyAction = true;
-	bool petAlreadyAction = true;
 	long long fieldAttr = 0;
 	long long alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
 	battleobject_t player = {};

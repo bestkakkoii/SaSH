@@ -1000,6 +1000,14 @@ void AfkForm::onComboBoxCurrentIndexChanged(int value)
 	//normal
 	if (name == "comboBox_magicheal_normal")
 	{
+		if (value <= 2)
+		{
+			value = 3;
+			ui.comboBox_magicheal_normal->blockSignals(true);
+			ui.comboBox_magicheal_normal->setCurrentIndex(value);
+			ui.comboBox_magicheal_normal->blockSignals(false);
+		}
+
 		injector.setValueHash(util::kNormalMagicHealMagicValue, value != -1 ? value : 0);
 		return;
 	}
@@ -1181,12 +1189,13 @@ void AfkForm::onResetControlTextLanguage()
 				tr("gloves")
 			};
 
+			long long size = actionList.size();
 			for (long long i = 0; i < actionList.size(); ++i)
 			{
 				if (notBattle && i < 3)
 					continue;
 
-				combo->addItem(actionList[i] + (i >= 3 ? ":" : ""));
+				combo->addItem(QString("%1:%2:%3").arg(i + 1).arg(actionList[i]).arg(i >= 3 ? ":" : ""));
 				long long index = static_cast<long long>(combo->count()) - 1;
 				combo->setItemData(index, QString("%1").arg(actionList[i]), Qt::ToolTipRole);
 			}
@@ -1196,7 +1205,7 @@ void AfkForm::onResetControlTextLanguage()
 
 			for (long long i = 0; i < MAX_PROFESSION_SKILL; ++i)
 			{
-				QString text = QString("%1:").arg(i + 1);
+				QString text = QString("%1:").arg(i + 1 + size);
 				combo->addItem(text);
 				long long index = static_cast<long long>(combo->count()) - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
@@ -1241,14 +1250,7 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_magicrevive, false);
 	appendCharAction(ui.comboBox_purgaction_char_action, false);
 
-	appendCharAction(ui.comboBox_magicheal_normal, true);
-	for (long long i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
-	{
-		QString text = QString("%1:").arg(i + 1 - CHAR_EQUIPPLACENUM);
-		ui.comboBox_magicheal_normal->addItem(text);
-		long long index = static_cast<long long>(ui.comboBox_magicheal_normal->count()) - 1;
-		ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);
-	}
+	appendCharAction(ui.comboBox_magicheal_normal, false);
 
 	//battle
 	appendNumbers(ui.comboBox_roundaction_pet_action, MAX_SKILL);
@@ -1453,7 +1455,7 @@ void AfkForm::onUpdateComboBoxItemText(long long type, const QStringList& textLi
 				combo->setUpdatesEnabled(false);
 				long long nOriginalIndex = combo->currentIndex();
 
-				long long base = 3; //基礎3個動作
+				constexpr long long base = 3; //基礎3個動作
 				long long size = MAX_MAGIC + base + MAX_PROFESSION_SKILL;
 				long long n = 0;
 
@@ -1473,35 +1475,22 @@ void AfkForm::onUpdateComboBoxItemText(long long type, const QStringList& textLi
 
 					//重設基礎動作
 					QString text = "";
-					if (i < 3)
+					if (i < base)
 					{
-						text = normalActionList.value(i);
+						text = QString("%1:%2").arg(i + 1).arg(normalActionList.value(i));
 					}
-					else if (i >= 3 && i < MAX_MAGIC + 3)
+					else if (i >= base && i < MAX_MAGIC + 3)
 					{
-						text = QString("%1:%2").arg(equipActionList.value(i - 3)).arg(textList.value(i - 3));
+						text = QString("%1:%2:%3").arg(i + 1).arg(equipActionList.value(i - base)).arg(textList.value(i - base));
 					}
 					else
 					{
-						text = QString("%1:%2").arg(i - (MAX_MAGIC + 3) + 1).arg(textList.value(i - 3));
+						text = QString("%1:%3").arg(i + 1).arg(textList.value(i - base));
 					}
 
 					combo->setItemText(i, text);
 					combo->setItemData(i, text, Qt::ToolTipRole);
 					++n;
-				}
-
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (!injector.worker.isNull() && injector.worker->getOnlineFlag() && combo == ui.comboBox_magicheal_normal)
-				{
-					QStringList list;
-					QHash<long long, ITEM> items = injector.worker->getItems();
-					for (long long i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
-					{
-						ITEM item = items.value(i);
-						if (!list.contains(item.name))
-							list.append(item.name);
-					}
 				}
 
 				combo->setCurrentIndex(nOriginalIndex);

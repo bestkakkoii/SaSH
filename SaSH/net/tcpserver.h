@@ -494,6 +494,8 @@ private:
 	util::SafeVector<bool> battlePetDisableList_ = {};
 
 	//戰鬥相關
+	std::atomic_bool battleCharAlreadyActed = true;
+	std::atomic_bool battlePetAlreadyActed = true;
 	std::atomic_llong battleCharCurrentPos = 0;
 	std::atomic_llong battleBpFlag = 0;
 	std::atomic_llong battleField = 0;
