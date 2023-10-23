@@ -1084,7 +1084,7 @@ void MissionThread::autoJoin()
 
 		QString leader = injector.getStringHash(util::kAutoFunNameString);
 		if (leader.isEmpty())
-			return;
+			continue;
 
 		PC ch = injector.worker->getPC();
 		long long actionType = injector.getValueHash(util::kAutoFunTypeValue);
