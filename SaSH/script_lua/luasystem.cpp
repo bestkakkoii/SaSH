@@ -381,6 +381,7 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		if (injector.worker->findUnit(searchStr, util::OBJ_NPC, &unit, "", unitid))
 		{
 			injector.worker->setCharFaceToPoint(unit.p);
+			QThread::msleep(300);
 			unitid = unit.id;
 		}
 	}
@@ -902,6 +903,7 @@ long long CLuaSystem::set(std::string enumStr,
 			{ "MagicHealPetNormalValue", util::kNormalMagicHealPetValue },
 			{ "MagicHealAllieNormalValue", util::kNormalMagicHealAllieValue },*/
 			{ "精靈補血", util::kNormalMagicHealEnable },//{ "平時精靈補血精靈索引", util::kNormalMagicHealMagicValue },
+			{ "精靈補血道具", util::kNormalMagicHealItemString },
 			/*{ "戰鬥精靈補血人物", util::kBattleMagicHealCharValue },
 			{"戰鬥精靈補血戰寵", util::kBattleMagicHealPetValue},
 			{ "戰鬥精靈補血隊友", util::kBattleMagicHealAllieValue },*/
@@ -1037,6 +1039,7 @@ long long CLuaSystem::set(std::string enumStr,
 			{ "MagicHealPetNormalValue", util::kNormalMagicHealPetValue },
 			{ "MagicHealAllieNormalValue", util::kNormalMagicHealAllieValue },*/
 			{ "精灵补血", util::kNormalMagicHealEnable },//{ "平时精灵补血精灵索引", util::kNormalMagicHealMagicValue },
+			{ "精灵补血道具", util::kNormalMagicHealItemString },
 			/*{ "战斗精灵补血人物", util::kBattleMagicHealCharValue },
 			{"战斗精灵补血战宠", util::kBattleMagicHealPetValue},
 			{ "战斗精灵补血队友", util::kBattleMagicHealAllieValue },*/
@@ -1686,6 +1689,7 @@ long long CLuaSystem::set(std::string enumStr,
 	case util::kGameSecurityCodeString:
 	case util::kMailWhiteListString:
 	case util::kBattleCatchPetNameString:
+	case util::kNormalMagicHealItemString:
 	{
 		QString text;
 		if (!p1.is<std::string>())

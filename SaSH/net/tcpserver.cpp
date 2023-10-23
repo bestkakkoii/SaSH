@@ -5355,7 +5355,7 @@ void Worker::setCharFaceDirection(long long dir)
 	QString dirStr = dirchr.at(dir);
 	std::string sdirStr = util::fromUnicode(dirStr.toUpper());
 	lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str()));
-
+	lssproto_L_send(dir);
 	if (getBattleFlag())
 		return;
 
@@ -10749,7 +10749,7 @@ void Worker::lssproto_I_recv(char* cdata)
 //對話框
 void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int unitid, char* cdata)
 {
-	QString data = util::toUnicode(cdata);
+	QString data = util::toUnicode(cdata, false);
 	if (data.isEmpty() && buttontype == 0)
 		return;
 
@@ -11699,145 +11699,246 @@ void Worker::lssproto_B_recv(char* ccommand)
 		setBattleEnd();
 		break;
 	}
-	case 'B':
-	{
-		/*
-		BB|的時候，遠程攻擊動畫。
-		BB|攻擊方編號|投射物類型|防禦方編號|標志|傷害|防禦方編號|???|FF|
-		除了第二個參數表示投射物類型
-		*/
-		break;
-	}
-	case 'D':
-	{
-		/*
-		BD|的時候，HP和MP更改動畫。
-		BD|將更改的角色編號|更改類型|增加還是減少|增量|
-		更改類型為0表示HP，1表示MP。增加還是減少為1表示增加，0表示減少。
-		*/
-		break;
-	}
-	case 'E':
-	{
-		/*
-		BE|的時候，逃跑動畫。
-		BE|逃跑者編號|防禦方編號|標志|
-		如果標志為1，逃跑成功。如果標志為0，逃跑失敗。在失敗的情況下，客戶端將以隨機方式確定敵人被拖拽到何處。如果玩家角色逃跑，則沒有BE用於寵物，寵物也會逃跑。
-		*/
-		break;
-	}
-	case 'F':
-	{
-		/*
-		BF|的時候，寵物隱藏動畫。
-		BF|隱藏的角色編號|
-		只有寵物可以使用此命令。客戶端將播放寵物跑到背後的效果，然後寵物消失。
-		*/
-		break;
-	}
-	case 'G':
-	{
-		/*
-		bg|的時候，防禦動畫。
-		bg|防禦的角色編號|
-		這個命令以小寫字母發送。角色沒有動作，客戶端不需要處理此命令，將其視為注釋處理。
-		*/
-		break;
-	}
-	case 'H':
-	{
-		/*
-		BH|的時候，普通攻擊動畫。
-		BH|攻擊方編號|防禦方編號|標志|傷害|防禦方編號|標志|傷害|????重覆。如果防禦方編號為FF，則視為此命令結束。
-
-		(普通攻擊示例) B|BH|攻擊_0|防禦_A|標志_2|傷害_32|防禦_B|標志_2|傷害_32|FF|
-		這表示0號(攻擊_0)對A號(防禦_A)造成0x32傷害(傷害_32)，然後對B號(防禦_B)也進行了攻擊，造成0x32傷害(傷害_32)。
-
-		(反擊示例) B|BH|攻擊_0|防禦_A|標志_2|傷害_32|反擊_0|標志_10|傷害_16|FF|
-		這表示0號(攻擊_0)對A號(防禦_A)造成0x32傷害(傷害_32)，然後0號(反擊_0)在反擊中受到0x16傷害(傷害_16)。在這種情況下，誰發動了反擊將由直前攻擊的對象確定。
-
-		(有守衛時的示例) B|BH|攻擊_0|防禦_A|標志_202|傷害_32|守衛_B|FF|
-		這表示0號(攻擊_0)對A號(防禦_A)造成了0x32傷害(傷害_32)，但由於B號成為了守衛者，所以傷害實際上被轉向了守衛者。
-		*/
-		break;
-	}
-	case 'J':
-	{
-		/*
-		BJ|的時候，咒術和物品效果動畫。
-		BJ|使用咒術的角色編號|使用咒術的效果編號|受到咒術影響的效果編號|受到效果的角色編號|受到效果的角色編號|???|FF|
-		用於物品和咒術的使用。受到影響的角色編號可以連續寫入，但最後一個必須以FF結束。
-		*/
-		break;
-	}
-	case 'M':
-	{
-		/*
-		BM|的時候，狀態異常變化動畫。
-		BM|狀態變化的角色編號|哪種狀態異常|
-		狀態異常編號為：
-		---0：無狀態異常
-		---1：中毒
-		---2：麻痹
-		---3：睡眠
-		---4：石化
-		---5：醉酒
-		---6：混亂
-		*/
-		break;
-	}
-	case 'O':
-	{
-		/*
-		BO|的時候，回旋鏢動畫。
-		BO|攻擊方編號|防禦方編號|標志|傷害|防禦方編號|???|FF|
-		除了第二個參數表示投射物類型外，其他內容與普通攻擊相同
-		*/
-		break;
-	}
-	case 'S':
-	{
-		/*
-		BS|的時候，寵物出入動畫。
-		BS|寵物編號[0～19](%X)|標志|圖像編號|級別|HP|名稱|
-		標志0表示寵物返回時，此後的文本將被忽略。
-		標志1表示寵物出現時，如果想交換寵物，則返回並再次出現寵物，這樣可以通過發送2次BS命令來交換寵物。
-		*/
-		break;
-	}
-	case 'T':
-	{
-		/*
-		BT|的時候，敵人捕獲動畫。
-		BT|攻擊方編號|防禦方編號|標志|
-		如果標志為1，捕獲成功。如果標志為0，捕獲失敗。在失敗的情況下，敵人捕獲的程度由客戶端以隨機方式確定。
-		*/
-	}
-	case 'V':
-	{
-		/*
-		BV|的時候，領域屬性更改動畫。
-		BV|更改屬性的角色編號|更改的屬性編號|
-		更改的屬性編號為：
-		---0：無屬性
-		---1：地屬性
-		---2：水屬性
-		---3：火屬性
-		---4：風屬性
-		*/
-		break;
-	}
-	case 'Y':
-	{
-		/*
-		BY|的時候，合體攻擊動畫。
-		BY|防禦方編號|攻擊方編號|標志|傷害|攻擊方編號|標志|傷害|????重覆。與普通攻擊不同的是，攻守角色發生了交換。
-		*/
-		break;
-	}
 	default:
+	{
+#if 0
+		long long i = 0;
+		QString temp;
+		bool endNow = false;
+
+		QStringList list = command.split(util::rexOR);
+
+		long long size = list.size();
+		for (i = 0; i < size;)
+		{
+			temp.clear();
+			temp = list.value(i).toUpper().mid(1);
+			if (temp.isEmpty())
+				break;
+			QChar c = temp.at(0);
+			ushort f = c.unicode();
+
+			switch (f)
+			{
+			case 'B':
+			{
+				/*
+				BB|的時候，遠程攻擊動畫。
+				BB|攻擊方編號|投射物類型|防禦方編號|標志|傷害|防禦方編號|???|FF|
+				除了第二個參數表示投射物類型
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			case 'D':
+			{
+				/*
+				BD|的時候，HP和MP更改動畫。
+				BD|將更改的角色編號|更改類型|增加還是減少|增量|
+				更改類型為0表示HP，1表示MP。增加還是減少為1表示增加，0表示減少。
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			case 'E':
+			{
+				/*
+				BE|的時候，逃跑動畫。
+				BE|逃跑者編號|防禦方編號|標志|
+				如果標志為1，逃跑成功。如果標志為0，逃跑失敗。在失敗的情況下，客戶端將以隨機方式確定敵人被拖拽到何處。如果玩家角色逃跑，則沒有BE用於寵物，寵物也會逃跑。
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			case 'F':
+			{
+				/*
+				BF|的時候，寵物隱藏動畫。
+				BF|隱藏的角色編號|
+				只有寵物可以使用此命令。客戶端將播放寵物跑到背後的效果，然後寵物消失。
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			case 'G':
+			{
+				/*
+				bg|的時候，防禦動畫。
+				bg|防禦的角色編號|
+				這個命令以小寫字母發送。角色沒有動作，客戶端不需要處理此命令，將其視為注釋處理。
+				*/
+
+				//臨時用
+				long long pos = list.value(i).toLongLong();
+				i += 2;
+				break;
+			}
+			case 'H':
+			{
+				/*
+				BH|的時候，普通攻擊動畫。
+				BH|攻擊方編號|防禦方編號|標志|傷害|防禦方編號|標志|傷害|????重覆。如果防禦方編號為FF，則視為此命令結束。
+
+				(普通攻擊示例) B|BH|攻擊_0|防禦_A|標志_2|傷害_32|防禦_B|標志_2|傷害_32|FF|
+				這表示0號(攻擊_0)對A號(防禦_A)造成0x32傷害(傷害_32)，然後對B號(防禦_B)也進行了攻擊，造成0x32傷害(傷害_32)。
+
+				(反擊示例) B|BH|攻擊_0|防禦_A|標志_2|傷害_32|反擊_0|標志_10|傷害_16|FF|
+				這表示0號(攻擊_0)對A號(防禦_A)造成0x32傷害(傷害_32)，然後0號(反擊_0)在反擊中受到0x16傷害(傷害_16)。在這種情況下，誰發動了反擊將由直前攻擊的對象確定。
+
+				(有守衛時的示例) B|BH|攻擊_0|防禦_A|標志_202|傷害_32|守衛_B|FF|
+				這表示0號(攻擊_0)對A號(防禦_A)造成了0x32傷害(傷害_32)，但由於B號成為了守衛者，所以傷害實際上被轉向了守衛者。
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			case 'J':
+			{
+				/*
+				BJ|的時候，咒術和物品效果動畫。
+				BJ|使用咒術的角色編號|使用咒術的效果編號|受到咒術影響的效果編號|受到效果的角色編號|受到效果的角色編號|???|FF|
+				用於物品和咒術的使用。受到影響的角色編號可以連續寫入，但最後一個必須以FF結束。
+				*/
+
+				//使用咒術的角色編號
+				temp = list.value(++i);
+				long long pos = a62toi(temp);
+				//使用咒術的效果編號
+				temp = list.value(++i);
+				long long magicEffectId = a62toi(temp);
+				//受到咒術影響的效果編號
+				temp = list.value(++i);
+				long long targetEffectId = a62toi(temp);
+				//受到咒術影響的效果編號
+				QVector<long long> targets;
+				for (;;)
+				{
+					temp = list.value(++i);
+					if (temp == "FF")
+						break;
+
+					long long target = a62toi(temp);
+					targets.append(target);
+				}
+				break;
+			}
+			case 'M':
+			{
+				/*
+				BM|的時候，狀態異常變化動畫。
+				BM|狀態變化的角色編號|哪種狀態異常|
+				狀態異常編號為：
+				---0：無狀態異常
+				---1：中毒
+				---2：麻痹
+				---3：睡眠
+				---4：石化
+				---5：醉酒
+				---6：混亂
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			case 'O':
+			{
+				/*
+				BO|的時候，回旋鏢動畫。
+				BO|攻擊方編號|防禦方編號|標志|傷害|防禦方編號|???|FF|
+				除了第二個參數表示投射物類型外，其他內容與普通攻擊相同
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			case 'S':
+			{
+				/*
+				BS|的時候，寵物出入動畫。
+				BS|寵物編號[0～19](%X)|標志|圖像編號|級別|HP|名稱|
+				標志0表示寵物返回時，此後的文本將被忽略。
+				標志1表示寵物出現時，如果想交換寵物，則返回並再次出現寵物，這樣可以通過發送2次BS命令來交換寵物。
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			case 'T':
+			{
+				/*
+				BT|的時候，敵人捕獲動畫。
+				BT|攻擊方編號|防禦方編號|標志|
+				如果標志為1，捕獲成功。如果標志為0，捕獲失敗。在失敗的情況下，敵人捕獲的程度由客戶端以隨機方式確定。
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			case 'V':
+			{
+				/*
+				BV|的時候，領域屬性更改動畫。
+				BV|更改屬性的角色編號|更改的屬性編號|
+				更改的屬性編號為：
+				---0：無屬性
+				---1：地屬性
+				---2：水屬性
+				---3：火屬性
+				---4：風屬性
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			case 'Y':
+			{
+				/*
+				BY|的時候，合體攻擊動畫。
+				BY|防禦方編號|攻擊方編號|標志|傷害|攻擊方編號|標志|傷害|????重覆。與普通攻擊不同的是，攻守角色發生了交換。
+				*/
+
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			default:
+			{
+				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
+					++i;
+				++i;
+				break;
+			}
+			}
+		}
+#endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
+	}
 	}
 }
 
