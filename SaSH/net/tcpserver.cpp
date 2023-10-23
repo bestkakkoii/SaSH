@@ -5343,7 +5343,7 @@ long long Worker::setCharFaceToPoint(const QPoint& pos)
 }
 
 //轉向 (根據方向索引自動轉換成A-H)
-void Worker::setCharFaceDirection(long long dir)
+void Worker::setCharFaceDirection(long long dir, bool noWindow)
 {
 	if (dir < 0 || dir >= MAX_DIR)
 		return;
@@ -5355,7 +5355,8 @@ void Worker::setCharFaceDirection(long long dir)
 	QString dirStr = dirchr.at(dir);
 	std::string sdirStr = util::fromUnicode(dirStr.toUpper());
 	lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str()));
-	lssproto_L_send(dir);
+	if (!noWindow)
+		lssproto_L_send(dir);
 	if (getBattleFlag())
 		return;
 
@@ -8347,23 +8348,21 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 			break;
 
 		QString text = injector.getStringHash(util::kLockAttackString);
-		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
-		if (targetList.isEmpty())
+		if (text.isEmpty())
 			break;
 
-		bool bret = false;
-		for (const QString& it : targetList)
+		if (conditionMatchTarget(battleObjects, text, &target))
 		{
-			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
-			{
-				bret = true;
-				battleObjects = tempbattleObjects;
-				target = battleObjects.front().pos;
-				break;
-			}
+			break;
 		}
 
-		if (bret)
+		//鎖定攻擊條件不滿足時，是否不藥逃跑
+		bool doNotEscape = injector.getEnableHash(util::kBattleNoEscapeWhileLockPetEnable);
+
+		if (!doNotEscape && IS_LOCKATTACK_ESCAPE_DISABLE.load(std::memory_order_acquire))
+			break;
+
+		if (doNotEscape)
 			break;
 
 		sendBattlePetDoNothing();
@@ -11318,7 +11317,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		setBattleData(bt);
 		break;
-	}
+			}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -12368,7 +12367,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 					recorder[0].goldearn += nGold;
 				}
 			}
-		}
+	}
 
 		if (message.contains(rexRep))
 		{
@@ -12510,7 +12509,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+			}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12598,7 +12597,7 @@ void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 	std::ignore = getFloorName();
 	std::ignore = getDir();
 	std::ignore = getPoint();
-}
+			}
 
 //地圖數據更新，重新寫入地圖
 void Worker::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata)
@@ -12817,7 +12816,7 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+			}
 #endif
 			}
 
@@ -13164,7 +13163,7 @@ void Worker::lssproto_CA_recv(char* cdata)
 		unit.dir = dir;
 		mapUnitHash.insert(charindex, unit);
 	}
-}
+		}
 
 //刪除指定一個或多個周圍人、NPC單位
 void Worker::lssproto_CD_recv(char* cdata)
@@ -13901,7 +13900,7 @@ void Worker::lssproto_S_recv(char* cdata)
 		else
 		{
 			emit signalDispatcher.updateRideHpProgressValue(0, 0, 0);
-		}
+				}
 
 		if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
 		{
@@ -13948,7 +13947,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		Injector& injector = Injector::getInstance(getIndex());
 		injector.setUserData(util::kUserPetNames, petNames);
-	}
+			}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -14492,7 +14491,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-}
+		}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)

@@ -326,6 +326,7 @@ void ThreadManager::close(long long index)
 
 MainObject::MainObject(long long index, QObject* parent)
 	: ThreadPlugin(index, parent)
+	, autoThreads_(MissionThread::kMaxAutoMission, nullptr)
 {
 
 }
@@ -339,8 +340,9 @@ MainObject::~MainObject()
 
 void MainObject::run()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	long long currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	Injector::process_information_t process_info;
 	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
@@ -405,6 +407,18 @@ void MainObject::run()
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
+		for (long long i = 0; i < MissionThread::kMaxAutoMission; ++i)
+		{
+			if (autoThreads_.value(i) != nullptr)
+				continue;
+
+			autoThreads_[i] = new MissionThread(currentIndex, i);
+			if (autoThreads_[i] == nullptr)
+				continue;
+
+			autoThreads_[i]->start();
+		}
+
 		//進入主循環
 		mainProc();
 	} while (false);
@@ -420,44 +434,17 @@ void MainObject::run()
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 	}
 
-	if (pointerwriter_future_.isRunning())
-	{
-		pointerwriter_future_cancel_flag_.store(true, std::memory_order_release);
-		pointerwriter_future_.cancel();
-		pointerwriter_future_.waitForFinished();
-	}
-
-	//關閉走路遇敵線程
-	if (autowalk_future_.isRunning())
-	{
-		autowalk_future_cancel_flag_.store(true, std::memory_order_release);
-		autowalk_future_.cancel();
-		autowalk_future_.waitForFinished();
-	}
-
 	//關閉自動組隊線程
-	if (autojoin_future_.isRunning())
+	for (auto& pthread : autoThreads_)
 	{
-		autojoin_future_cancel_flag_.store(true, std::memory_order_release);
-		autojoin_future_.cancel();
-		autojoin_future_.waitForFinished();
+		if (pthread != nullptr)
+		{
+			pthread->wait();
+			delete pthread;
+			pthread = nullptr;
+		}
 	}
-
-	//關閉自動丟寵
-	if (autodroppet_future_.isRunning())
-	{
-		autodroppet_future_cancel_flag_.store(true, std::memory_order_release);
-		autodroppet_future_.cancel();
-		autodroppet_future_.waitForFinished();
-	}
-
-	//關閉自動疊加
-	if (autosortitem_future_.isRunning())
-	{
-		autosortitem_future_cancel_flag_.store(true, std::memory_order_release);
-		autosortitem_future_.cancel();
-		autosortitem_future_.waitForFinished();
-	}
+	autoThreads_.clear();
 
 	while (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 	{
@@ -695,21 +682,6 @@ long long MainObject::checkAndRunFunctions()
 
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
-
-		//走路遇敵 或 快速遇敵 (封包)
-		checkAutoWalk();
-
-		//自動組隊、跟隨
-		checkAutoJoin();
-
-		//自動疊加
-		checkAutoSortItem();
-
-		//自動丟寵
-		checkAutoDropPet();
-
-		//紀錄NPC
-		checkRecordableNpcInfo();
 
 		return 2;
 	}
@@ -1044,757 +1016,671 @@ void MainObject::checkEtcFlag()
 		injector.worker->setSwitcher(flg);
 }
 
-//自動疊加
-void MainObject::checkAutoSortItem()
+MissionThread::MissionThread(long long index, long long type, QObject* parent)
+	: ThreadPlugin(index, parent)
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
-		return;
-
-	if (injector.getEnableHash(util::kAutoStackEnable))
+	switch (type)
 	{
-		if (autosortitem_future_.isRunning())
+	case kAutoJoin:
+		connect(this, &MissionThread::start, this, &MissionThread::autoJoin);
+		break;
+	case kAutoWalk:
+		connect(this, &MissionThread::start, this, &MissionThread::autoWalk);
+		break;
+	case kAutoDropPet:
+		connect(this, &MissionThread::start, this, &MissionThread::autoDropPet);
+		break;
+	case kAutoSortItem:
+		connect(this, &MissionThread::start, this, &MissionThread::autoSortItem);
+		break;
+	case kAutoRecordNPC:
+		connect(this, &MissionThread::start, this, &MissionThread::autoRecordNPC);
+		break;
+	}
+
+	moveToThread(&thread_);
+	thread_.start();
+}
+
+MissionThread::~MissionThread()
+{
+	qDebug() << "MissionThread::~MissionThread()";
+}
+
+void MissionThread::wait()
+{
+	requestInterruption();
+	thread_.requestInterruption();
+	thread_.quit();
+	thread_.wait();
+}
+
+void MissionThread::autoJoin()
+{
+	long long index = getIndex();
+	QSet<QPoint> blockList;
+	for (;;)
+	{
+		QThread::msleep(500);
+
+		if (isInterruptionRequested())
 			return;
 
-		autosortitem_future_cancel_flag_.store(false, std::memory_order_release);
+		Injector& injector = Injector::getInstance(index);
+		if (injector.worker.isNull())
+			continue;
 
-		autosortitem_future_ = QtConcurrent::run([&injector, this]()
+		if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
+			continue;
+
+		if (!injector.getEnableHash(util::kAutoJoinEnable))
+			continue;
+
+		if (!injector.worker->getOnlineFlag())
+			continue;
+
+		if (injector.worker->getBattleFlag())
+			continue;
+
+		QString leader = injector.getStringHash(util::kAutoFunNameString);
+		if (leader.isEmpty())
+			return;
+
+		PC ch = injector.worker->getPC();
+		long long actionType = injector.getValueHash(util::kAutoFunTypeValue);
+		if (actionType == 0)
+		{
+			//檢查隊長是否正確
+			if (ch.status & CHR_STATUS_LEADER)
+				continue;
+
+			if (ch.status & CHR_STATUS_PARTY)
 			{
-				long long	i = 0;
-				constexpr long long duration = 30;
+				bool ok = false;
+				QString name = injector.worker->getParty(0).name;
+				if ((!name.isEmpty() && leader == name)
+					|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
+					return;
 
+				injector.worker->setTeamState(false);
+				QThread::msleep(200);
+			}
+		}
+
+		constexpr long long MAX_SINGLE_STEP = 3;
+		map_t map;
+		std::vector<QPoint> path;
+		QPoint current_point;
+		QPoint newpoint;
+		mapunit_t unit = {};
+		long long dir = -1;
+		long long floor = injector.worker->getFloor();
+		long long len = MAX_SINGLE_STEP;
+		long long size = 0;
+		CAStar astar;
+
+		for (;;)
+		{
+			//如果主線程關閉則自動退出
+			if (isInterruptionRequested())
+				return;
+
+			if (injector.worker.isNull())
+				break;
+
+			if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
+				break;
+
+			if (!injector.getEnableHash(util::kAutoJoinEnable))
+				break;
+
+			leader = injector.getStringHash(util::kAutoFunNameString);
+			if (leader.isEmpty())
+				break;
+
+			//如果人物不在線上則自動退出
+			if (!injector.worker->getOnlineFlag())
+				break;
+
+			if (injector.worker->getBattleFlag())
+				continue;
+
+			ch = injector.worker->getPC();
+			if (leader == ch.name)//隊長正確
+				break;
+
+			if (floor != injector.worker->getFloor())
+				break;
+
+			QString freeName = "";
+			if (leader.count("|") == 1)
+			{
+				QStringList list = leader.split(util::rexOR);
+				if (list.size() == 2)
+				{
+					leader = list.value(0);
+					freeName = list.value(1);
+				}
+			}
+
+			//查找目標人物所在坐標
+			if (!injector.worker->findUnit(leader, util::OBJ_HUMAN, &unit, freeName))
+				break;
+
+			//如果和目標人物處於同一個坐標則向隨機方向移動一格
+			current_point = injector.worker->getPoint();
+			if (current_point == unit.p)
+			{
+				injector.worker->move(current_point + util::fix_point.value(QRandomGenerator::global()->bounded(0, 7)));
+				continue;
+			}
+
+			//計算最短離靠近目標人物的坐標和面相的方向
+			dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(index, astar, floor, current_point, unit.p, &newpoint, false, -1);
+			if (-1 == dir)
+				break;
+
+			if (current_point == newpoint)
+				break;
+
+			if (current_point != newpoint)
+			{
+				if (!injector.worker->mapAnalyzer.getMapDataByFloor(floor, &map))
+				{
+					injector.worker->mapAnalyzer.readFromBinary(index, floor, injector.worker->getFloorName(), false);
+					continue;
+				}
+
+				if (!injector.worker->mapAnalyzer.calcNewRoute(index, astar, floor, current_point, newpoint, blockList, &path))
+					break;
+
+				len = MAX_SINGLE_STEP;
+				size = static_cast<long long>(path.size()) - 1;
+
+				//步長 如果path大小 小於步長 就遞減步長
 				for (;;)
 				{
-					for (i = 0; i < duration; ++i)
-					{
-						if (isInterruptionRequested())
-							return;
-
-						if (injector.worker.isNull())
-							return;
-
-						if (autosortitem_future_cancel_flag_.load(std::memory_order_acquire))
-							return;
-
-						QThread::msleep(100);
-					}
-
-					injector.worker->sortItem();
+					if (!(size < len))
+						break;
+					--len;
 				}
-			});
-	}
-	else
-	{
-		if (autosortitem_future_.isRunning())
+
+				//如果步長小於1 就不動
+				if (len < 0)
+					break;
+
+				if (len >= static_cast<long long>(path.size()))
+					break;
+
+				injector.worker->move(path.at(len));
+			}
+			else
+				break;
+		}
+
+		if (leader.isEmpty())
+			continue;
+
+		actionType = injector.getValueHash(util::kAutoFunTypeValue);
+		if (actionType == 0)
 		{
-			autosortitem_future_cancel_flag_.store(true, std::memory_order_release);
-			autosortitem_future_.cancel();
-			autosortitem_future_.waitForFinished();
+			injector.worker->setCharFaceDirection(dir, true);
+			injector.worker->setTeamState(true);
+			continue;
 		}
 	}
 }
 
-//走路遇敵
-void MainObject::checkAutoWalk()
+void MissionThread::autoWalk()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
-		return;
+	QPoint current_pos;
+	bool current_side = false;
+	QPoint posCache = current_pos;
 
-	if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
+	for (;;)
 	{
-		//如果線程已經在執行就返回
-		if (autowalk_future_.isRunning())
+		//如果主線程關閉則自動退出
+		if (isInterruptionRequested())
 			return;
 
-		//重置停止標誌
-		autowalk_future_cancel_flag_.store(false, std::memory_order_release);
-		//紀錄當前人物座標
-		QPoint current_pos = injector.worker->getPoint();
-		autowalk_future_ = QtConcurrent::run([&injector, current_pos, this]()
-			{
-				bool current_side = false;
-				QPoint posCache = current_pos;
+		//取設置
+		bool enableAutoWalk = injector.getEnableHash(util::kAutoWalkEnable);//走路遇敵開關
+		bool enableFastAutoWalk = injector.getEnableHash(util::kFastAutoWalkEnable);//快速遇敵開關
+		if (!enableAutoWalk && !enableFastAutoWalk)
+		{
+			current_pos = QPoint();
+			QThread::msleep(100);
+			continue;
+		}
+		else if (current_pos.isNull())
+		{
+			current_pos = injector.worker->getPoint();
+		}
 
-				for (;;)
+		//如果人物不在線上則自動退出
+		if (!injector.worker->getOnlineFlag())
+		{
+			QThread::msleep(100);
+			continue;
+		}
+
+		//如果人物在戰鬥中則進入循環等待
+		if (injector.worker->getBattleFlag())
+		{
+			//先等一小段時間
+			QThread::msleep(100);
+
+			//如果已經退出戰鬥就等待1.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
+			if (!injector.worker->getBattleFlag())
+			{
+				for (long long i = 0; i < 5; ++i)
 				{
 					//如果主線程關閉則自動退出
 					if (isInterruptionRequested())
 						return;
-
-					//如果停止標誌為真則自動退出
-					if (autowalk_future_cancel_flag_.load(std::memory_order_acquire))
-						return;
-
-					//取設置
-					bool enableAutoWalk = injector.getEnableHash(util::kAutoWalkEnable);//走路遇敵開關
-					bool enableFastAutoWalk = injector.getEnableHash(util::kFastAutoWalkEnable);//快速遇敵開關
-					if (!enableAutoWalk && !enableFastAutoWalk)
-						return;
-
-					//如果人物不在線上則自動退出
-					if (!injector.worker->getOnlineFlag())
-						return;
-
-					//如果人物在戰鬥中則進入循環等待
-					if (injector.worker->getBattleFlag())
-					{
-						//先等一小段時間
-						QThread::msleep(100);
-
-						//如果已經退出戰鬥就等待1.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
-						if (!injector.worker->getBattleFlag())
-						{
-							for (long long i = 0; i < 5; ++i)
-							{
-								//如果主線程關閉則自動退出
-								if (isInterruptionRequested())
-									return;
-								QThread::msleep(100);
-							}
-						}
-						else
-							continue;
-					}
-
-					long long walk_speed = injector.getValueHash(util::kAutoWalkDelayValue);//走路速度
-
-					//走路遇敵
-					if (enableAutoWalk)
-					{
-						long long walk_len = injector.getValueHash(util::kAutoWalkDistanceValue);//走路距離
-						long long walk_dir = injector.getValueHash(util::kAutoWalkDirectionValue);//走路方向
-
-						//如果direction是0，則current_pos +- x，否則 +- y 如果是2 則隨機加減
-						//一次性移動walk_len格
-
-						long long x = 0, y = 0;
-						QString dirStr;
-						QString steps;
-						for (long long i = 0; i < 4; ++i)//4個字母為一組
-						{
-							if (walk_dir == 0)
-							{
-								if (current_side)//東
-								{
-									x = current_pos.x() + walk_len + 1;
-									dirStr = "b";
-								}
-								else//西
-								{
-									x = current_pos.x() - walk_len - 1;
-									dirStr = "f";
-								}
-
-								y = current_pos.y();
-							}
-							else if (walk_dir == 1)
-							{
-								x = current_pos.x();
-
-								if (current_side)//南
-								{
-									y = current_pos.y() + walk_len + 1;
-									dirStr = "e";
-								}
-								else//北
-								{
-									y = current_pos.y() - walk_len - 1;
-									dirStr = "a";
-								}
-							}
-							else
-							{
-								//取隨機數
-								std::random_device rd;
-								std::mt19937_64 gen(rd());
-								std::uniform_int_distribution<long long> distributionX(current_pos.x() - walk_len, current_pos.x() + walk_len);
-								std::uniform_int_distribution<long long> distributionY(current_pos.y() - walk_len, current_pos.y() + walk_len);
-								x = distributionX(gen);
-								y = distributionY(gen);
-							}
-
-							//每次循環切換方向
-							if (current_side)
-								current_side = false;
-							else
-								current_side = true;
-
-							for (long long j = 0; j < walk_len; ++j)
-								steps += dirStr;
-						}
-
-						if (walk_len <= 6 && walk_dir != 2)
-							injector.worker->move(current_pos, steps);
-						else
-							injector.worker->move(QPoint(x, y));
-						steps.clear();
-					}
-					else if (enableFastAutoWalk) //快速遇敵 (封包)
-					{
-						injector.worker->move(QPoint(0, 0), "gcgc");
-					}
-					QThread::msleep(walk_speed + 1);//避免太快無論如何都+15ms (太快並不會遇比較快)
+					QThread::msleep(100);
 				}
-			});
-	}
-	else
-	{
-		//如果線程正在執行就取消
-		if (autowalk_future_.isRunning())
+			}
+			else
+				continue;
+		}
+
+		long long walk_speed = injector.getValueHash(util::kAutoWalkDelayValue);//走路速度
+
+		//走路遇敵
+		if (enableAutoWalk)
 		{
-			autowalk_future_cancel_flag_.store(true, std::memory_order_release);
+			long long walk_len = injector.getValueHash(util::kAutoWalkDistanceValue);//走路距離
+			long long walk_dir = injector.getValueHash(util::kAutoWalkDirectionValue);//走路方向
+
+			//如果direction是0，則current_pos +- x，否則 +- y 如果是2 則隨機加減
+			//一次性移動walk_len格
+
+			long long x = 0, y = 0;
+			QString dirStr;
+			QString steps;
+			for (long long i = 0; i < 4; ++i)//4個字母為一組
+			{
+				if (walk_dir == 0)
+				{
+					if (current_side)//東
+					{
+						x = current_pos.x() + walk_len + 1;
+						dirStr = "b";
+					}
+					else//西
+					{
+						x = current_pos.x() - walk_len - 1;
+						dirStr = "f";
+					}
+
+					y = current_pos.y();
+				}
+				else if (walk_dir == 1)
+				{
+					x = current_pos.x();
+
+					if (current_side)//南
+					{
+						y = current_pos.y() + walk_len + 1;
+						dirStr = "e";
+					}
+					else//北
+					{
+						y = current_pos.y() - walk_len - 1;
+						dirStr = "a";
+					}
+				}
+				else
+				{
+					//取隨機數
+					std::random_device rd;
+					std::mt19937_64 gen(rd());
+					std::uniform_int_distribution<long long> distributionX(current_pos.x() - walk_len, current_pos.x() + walk_len);
+					std::uniform_int_distribution<long long> distributionY(current_pos.y() - walk_len, current_pos.y() + walk_len);
+					x = distributionX(gen);
+					y = distributionY(gen);
+				}
+
+				//每次循環切換方向
+				if (current_side)
+					current_side = false;
+				else
+					current_side = true;
+
+				for (long long j = 0; j < walk_len; ++j)
+					steps += dirStr;
+			}
+
+			if (walk_len <= 6 && walk_dir != 2)
+				injector.worker->move(current_pos, steps);
+			else
+				injector.worker->move(QPoint(x, y));
+			steps.clear();
+		}
+		else if (enableFastAutoWalk) //快速遇敵 (封包)
+		{
+			injector.worker->move(QPoint(0, 0), "gcgc");
+		}
+		QThread::msleep(walk_speed + 1);//避免太快無論如何都+15ms (太快並不會遇比較快)
+	}
+}
+
+void MissionThread::autoDropPet()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+
+	auto checkStatus = [this, &injector]()->bool
+		{
+			if (!injector.getEnableHash(util::kDropPetEnable))
+				return false;
+
+			if (injector.worker.isNull())
+				return false;
+
+			if (!injector.worker->getOnlineFlag())
+				return false;
+
+			if (injector.worker->getBattleFlag())
+				return false;
+
+			return true;
+		};
+
+	for (;;)
+	{
+		QThread::msleep(100);
+		if (isInterruptionRequested())
+			return;
+
+		if (!checkStatus())
+			continue;
+
+		bool strLowAtEnable = injector.getEnableHash(util::kDropPetStrEnable);
+		bool defLowAtEnable = injector.getEnableHash(util::kDropPetDefEnable);
+		bool agiLowAtEnable = injector.getEnableHash(util::kDropPetAgiEnable);
+		bool aggregateLowAtEnable = injector.getEnableHash(util::kDropPetAggregateEnable);
+		double strLowAtValue = injector.getValueHash(util::kDropPetStrValue);
+		double defLowAtValue = injector.getValueHash(util::kDropPetDefValue);
+		double agiLowAtValue = injector.getValueHash(util::kDropPetAgiValue);
+		double aggregateLowAtValue = injector.getValueHash(util::kDropPetAggregateValue);
+		QString text = injector.getStringHash(util::kDropPetNameString);
+		QStringList nameList;
+		if (!text.isEmpty())
+			nameList = text.split(util::rexOR, Qt::SkipEmptyParts);
+
+		for (long long i = 0; i < MAX_PET; ++i)
+		{
+			if (checkStatus() != 1)
+				break;
+
+			PET pet = injector.worker->getPet(i);
+			if (!pet.valid || pet.maxHp <= 0 || pet.level <= 0)
+				continue;
+
+			double str = pet.atk;
+			double def = pet.def;
+			double agi = pet.agi;
+			double aggregate = ((str + def + agi + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0;
+
+			bool okDrop = false;
+			if (strLowAtEnable && (str < strLowAtValue))
+			{
+				okDrop = true;
+			}
+			else if (defLowAtEnable && (def < defLowAtValue))
+			{
+				okDrop = true;
+			}
+			else if (agiLowAtEnable && (agi < agiLowAtValue))
+			{
+				okDrop = true;
+			}
+			else if (aggregateLowAtEnable && (aggregate < aggregateLowAtValue))
+			{
+				okDrop = true;
+			}
+			else
+			{
+				okDrop = false;
+			}
+
+
+			if (okDrop)
+			{
+				if (!nameList.isEmpty())
+				{
+					bool isExact = true;
+					okDrop = false;
+					for (const QString& it : nameList)
+					{
+						QString newName = it.simplified();
+						if (newName.startsWith("?"))
+						{
+							isExact = false;
+							newName = newName.mid(1);
+						}
+
+						if (isExact && pet.name == newName)
+						{
+							okDrop = true;
+							break;
+						}
+						else if (isExact && pet.name.contains(newName))
+						{
+							okDrop = true;
+							break;
+						}
+					}
+				}
+
+				if (okDrop)
+					injector.worker->dropPet(i);
+			}
 		}
 	}
 }
 
-//自動組隊
-void MainObject::checkAutoJoin()
+void MissionThread::autoSortItem()
+{
+	long long	i = 0;
+	constexpr long long duration = 30;
+	Injector& injector = Injector::getInstance(getIndex());
+
+	for (;;)
+	{
+		for (i = 0; i < duration; ++i)
+		{
+			if (isInterruptionRequested())
+				return;
+
+			QThread::msleep(100);
+		}
+
+		if (!injector.getEnableHash(util::kAutoStackEnable))
+			continue;
+
+		if (injector.worker.isNull())
+			continue;
+
+		injector.worker->sortItem();
+	}
+}
+
+void MissionThread::autoRecordNPC()
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
-		return;
-
-	if (injector.getEnableHash(util::kAutoJoinEnable) &&
-		(!injector.getEnableHash(util::kAutoWalkEnable) && !injector.getEnableHash(util::kFastAutoWalkEnable)))
+	for (;;)
 	{
-		//如果線程已經在執行就返回
-		if (autojoin_future_.isRunning())
+		for (long long i = 0; i < 5; ++i)
+		{
+			QThread::msleep(1000);
+
+			if (isInterruptionRequested())
+				return;
+		}
+
+		if (injector.worker.isNull())
+			continue;
+
+		if (isInterruptionRequested())
 			return;
 
-		autojoin_future_cancel_flag_.store(false, std::memory_order_release);
+		if (!injector.worker->getOnlineFlag())
+			continue;
 
-		autojoin_future_ = QtConcurrent::run([this, currentIndex]()
+		if (injector.worker->getBattleFlag())
+			continue;
+
+		CAStar astar;
+
+		QHash<long long, mapunit_t> units = injector.worker->mapUnitHash.toHash();
+		util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
+
+		for (const mapunit_t& unit : units)
+		{
+			if (isInterruptionRequested())
+				return;
+
+			if (injector.worker.isNull())
+				break;
+
+			if (!injector.worker->getOnlineFlag())
+				break;
+
+			if (injector.worker->getBattleFlag())
+				break;
+
+			if ((unit.objType != util::OBJ_NPC)
+				|| unit.name.isEmpty()
+				|| (injector.worker->getWorldStatus() != 9)
+				|| (injector.worker->getGameStatus() != 3)
+				|| injector.worker->npcUnitPointHash.contains(QPoint(unit.x, unit.y)))
 			{
-				QSet<QPoint> blockList;
-				for (;;)
+				continue;
+			}
+
+			injector.worker->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
+
+			util::MapData d;
+			long long nowFloor = injector.worker->nowFloor_.load(std::memory_order_acquire);
+			QPoint nowPoint = injector.worker->nowPoint_.get();
+
+			d.floor = nowFloor;
+			d.name = unit.name;
+
+			//npc前方一格
+			QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
+			//檢查是否可走
+			if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, newPoint))
+			{
+				d.x = newPoint.x();
+				d.y = newPoint.y();
+			}
+			else
+			{
+				//再往前一格
+				QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
+				//檢查是否可走
+				if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, additionPoint))
 				{
-					QThread::msleep(500);
-
-					Injector& injector = Injector::getInstance(currentIndex);
-					if (injector.worker.isNull())
-						return;
-
-					if (autojoin_future_cancel_flag_.load(std::memory_order_acquire))
-						return;
-
-					if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
-						return;
-
-					if (!injector.getEnableHash(util::kAutoJoinEnable))
-						return;
-
-					if (!injector.worker->getOnlineFlag())
-						return;
-
-					if (injector.worker->getBattleFlag())
-						continue;
-
-					QString leader = injector.getStringHash(util::kAutoFunNameString);
-					if (leader.isEmpty())
-						return;
-
-					PC ch = injector.worker->getPC();
-					long long actionType = injector.getValueHash(util::kAutoFunTypeValue);
-					if (actionType == 0)
+					d.x = additionPoint.x();
+					d.y = additionPoint.y();
+				}
+				else
+				{
+					//檢查NPC周圍8格
+					bool flag = false;
+					for (long long i = 0; i < 8; ++i)
 					{
-						//檢查隊長是否正確
-						if (ch.status & CHR_STATUS_LEADER)
-							continue;
-
-						if (ch.status & CHR_STATUS_PARTY)
+						newPoint = util::fix_point.value(i) + unit.p;
+						if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, newPoint))
 						{
-							bool ok = false;
-							QString name = injector.worker->getParty(0).name;
-							if ((!name.isEmpty() && leader == name)
-								|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
-								return;
-
-							injector.worker->setTeamState(false);
-							QThread::msleep(200);
+							d.x = newPoint.x();
+							d.y = newPoint.y();
+							flag = true;
+							break;
 						}
 					}
 
-					constexpr long long MAX_SINGLE_STEP = 3;
-					map_t map;
-					std::vector<QPoint> path;
-					QPoint current_point;
-					QPoint newpoint;
-					mapunit_t unit = {};
-					long long dir = -1;
-					long long floor = injector.worker->getFloor();
-					long long len = MAX_SINGLE_STEP;
-					long long size = 0;
-					CAStar astar;
-
-					for (;;)
+					if (!flag)
 					{
-						//如果主線程關閉則自動退出
-						if (isInterruptionRequested())
-							return;
-
-						//如果停止標誌為真則自動退出
-						if (autojoin_future_cancel_flag_.load(std::memory_order_acquire))
-							return;
-
-						if (injector.worker.isNull())
-							return;
-
-						if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
-							return;
-
-						if (!injector.getEnableHash(util::kAutoJoinEnable))
-							return;
-
-						leader = injector.getStringHash(util::kAutoFunNameString);
-						if (leader.isEmpty())
-							return;
-
-						//如果人物不在線上則自動退出
-						if (!injector.worker->getOnlineFlag())
-							break;
-
-						if (injector.worker->getBattleFlag())
-							continue;
-
-						ch = injector.worker->getPC();
-						if (leader == ch.name)//隊長正確
-							return;
-
-						if (floor != injector.worker->getFloor())
-							return;
-
-						QString freeName = "";
-						if (leader.count("|") == 1)
-						{
-							QStringList list = leader.split(util::rexOR);
-							if (list.size() == 2)
-							{
-								leader = list.value(0);
-								freeName = list.value(1);
-							}
-						}
-
-						//查找目標人物所在坐標
-						if (!injector.worker->findUnit(leader, util::OBJ_HUMAN, &unit, freeName))
-							break;
-
-						//如果和目標人物處於同一個坐標則向隨機方向移動一格
-						current_point = injector.worker->getPoint();
-						if (current_point == unit.p)
-						{
-							injector.worker->move(current_point + util::fix_point.value(QRandomGenerator::global()->bounded(0, 7)));
-							continue;
-						}
-
-						//計算最短離靠近目標人物的坐標和面相的方向
-						dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(currentIndex, astar, floor, current_point, unit.p, &newpoint, false, -1);
-						if (-1 == dir)
-							break;
-
-						if (current_point == newpoint)
-							break;
-
-						if (current_point != newpoint)
-						{
-							if (!injector.worker->mapAnalyzer.getMapDataByFloor(floor, &map))
-							{
-								injector.worker->mapAnalyzer.readFromBinary(currentIndex, floor, injector.worker->getFloorName(), false);
-								continue;
-							}
-
-							if (!injector.worker->mapAnalyzer.calcNewRoute(currentIndex, astar, floor, current_point, newpoint, blockList, &path))
-								break;
-
-							len = MAX_SINGLE_STEP;
-							size = static_cast<long long>(path.size()) - 1;
-
-							//步長 如果path大小 小於步長 就遞減步長
-							for (;;)
-							{
-								if (!(size < len))
-									break;
-								--len;
-							}
-
-							//如果步長小於1 就不動
-							if (len < 0)
-								break;
-
-							if (len >= static_cast<long long>(path.size()))
-								break;
-
-							injector.worker->move(path.at(len));
-						}
-						else
-							break;
-					}
-
-					if (leader.isEmpty())
-						continue;
-
-					actionType = injector.getValueHash(util::kAutoFunTypeValue);
-					if (actionType == 0)
-					{
-						injector.worker->setCharFaceDirection(dir);
-						injector.worker->setTeamState(true);
 						continue;
 					}
 				}
 			}
-		);
-	}
-	else
-	{
-		//如果線程正在執行就取消
-		if (autojoin_future_.isRunning())
+			config.writeMapData(unit.name, d);
+		}
+
+		static bool constDataInit = false;
+
+		if (constDataInit)
+			continue;
+
+		constDataInit = true;
+
+		QString content;
+		QStringList paths;
+		util::searchFiles(util::applicationDirPath(), "point", ".txt", &paths, false);
+		if (paths.isEmpty())
+			continue;
+
+		//這裡是讀取預製傳點坐標
+		if (!util::readFile(paths.front(), &content))
 		{
-			autojoin_future_cancel_flag_.store(true, std::memory_order_release);
+			qDebug() << "Failed to open point.dat";
+			continue;
+		}
+
+		QStringList entrances = content.simplified().split(" ");
+
+		for (const QString& entrance : entrances)
+		{
+			const QStringList entranceData(entrance.split(util::rexOR));
+			if (entranceData.size() != 3)
+				continue;
+
+			bool ok = false;
+			const long long floor = entranceData.value(0).toLongLong(&ok);
+			if (!ok)
+				continue;
+
+			const QString pointStr(entranceData.value(1));
+			const QStringList pointData(pointStr.split(util::rexComma));
+			if (pointData.size() != 2)
+				continue;
+
+			long long x = pointData.value(0).toLongLong(&ok);
+			if (!ok)
+				continue;
+
+			long long y = pointData.value(1).toLongLong(&ok);
+			if (!ok)
+				continue;
+
+			const QPoint pos(x, y);
+
+			const QString name(entranceData.value(2));
+
+			util::MapData d;
+			d.floor = floor;
+			d.name = name;
+			d.x = x;
+			d.y = y;
+
+			mapunit_t unit;
+			unit.x = x;
+			unit.y = y;
+			unit.p = pos;
+			unit.name = name;
+
+			injector.worker->npcUnitPointHash.insert(pos, unit);
+
+			config.writeMapData(name, d);
 		}
 	}
-}
-
-//自動丟寵
-void MainObject::checkAutoDropPet()
-{
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
-		return;
-
-	if (autodroppet_future_.isRunning())
-		return;
-
-	autodroppet_future_cancel_flag_.store(false, std::memory_order_release);
-
-	if (injector.getEnableHash(util::kDropPetEnable))
-	{
-		autodroppet_future_ = QtConcurrent::run([this]()->void
-			{
-				Injector& injector = Injector::getInstance(getIndex());
-				auto checkStatus = [this, &injector]()->long long
-					{
-						//如果主線程關閉則自動退出
-						if (isInterruptionRequested())
-							return -1;
-
-						//如果停止標誌為真則自動退出
-						if (autodroppet_future_cancel_flag_.load(std::memory_order_acquire))
-							return -1;
-
-						if (!injector.getEnableHash(util::kDropPetEnable))
-							return -1;
-
-						if (injector.worker.isNull())
-							return -1;
-
-						if (!injector.worker->getOnlineFlag())
-							return 0;
-
-						if (injector.worker->getBattleFlag())
-							return 0;
-
-						return 1;
-					};
-
-				for (;;)
-				{
-					QThread::msleep(100);
-					long long state = checkStatus();
-					if (-1 == state)
-						return;
-					else if (0 == state)
-						continue;
-
-					bool strLowAtEnable = injector.getEnableHash(util::kDropPetStrEnable);
-					bool defLowAtEnable = injector.getEnableHash(util::kDropPetDefEnable);
-					bool agiLowAtEnable = injector.getEnableHash(util::kDropPetAgiEnable);
-					bool aggregateLowAtEnable = injector.getEnableHash(util::kDropPetAggregateEnable);
-					double strLowAtValue = injector.getValueHash(util::kDropPetStrValue);
-					double defLowAtValue = injector.getValueHash(util::kDropPetDefValue);
-					double agiLowAtValue = injector.getValueHash(util::kDropPetAgiValue);
-					double aggregateLowAtValue = injector.getValueHash(util::kDropPetAggregateValue);
-					QString text = injector.getStringHash(util::kDropPetNameString);
-					QStringList nameList;
-					if (!text.isEmpty())
-						nameList = text.split(util::rexOR, Qt::SkipEmptyParts);
-
-					for (long long i = 0; i < MAX_PET; ++i)
-					{
-						if (checkStatus() != 1)
-							break;
-
-						PET pet = injector.worker->getPet(i);
-						if (!pet.valid || pet.maxHp <= 0 || pet.level <= 0)
-							continue;
-
-						double str = pet.atk;
-						double def = pet.def;
-						double agi = pet.agi;
-						double aggregate = ((str + def + agi + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0;
-
-						bool okDrop = false;
-						if (strLowAtEnable && (str < strLowAtValue))
-						{
-							okDrop = true;
-						}
-						else if (defLowAtEnable && (def < defLowAtValue))
-						{
-							okDrop = true;
-						}
-						else if (agiLowAtEnable && (agi < agiLowAtValue))
-						{
-							okDrop = true;
-						}
-						else if (aggregateLowAtEnable && (aggregate < aggregateLowAtValue))
-						{
-							okDrop = true;
-						}
-						else
-						{
-							okDrop = false;
-						}
-
-
-						if (okDrop)
-						{
-							if (!nameList.isEmpty())
-							{
-								bool isExact = true;
-								okDrop = false;
-								for (const QString& it : nameList)
-								{
-									QString newName = it.simplified();
-									if (newName.startsWith("?"))
-									{
-										isExact = false;
-										newName = newName.mid(1);
-									}
-
-									if (isExact && pet.name == newName)
-									{
-										okDrop = true;
-										break;
-									}
-									else if (isExact && pet.name.contains(newName))
-									{
-										okDrop = true;
-										break;
-									}
-								}
-							}
-
-							if (okDrop)
-								injector.worker->dropPet(i);
-						}
-					}
-				}
-			}
-		);
-	}
-	else
-	{
-		//如果線程正在執行就取消
-		if (autodroppet_future_.isRunning())
-		{
-			autodroppet_future_cancel_flag_.store(true, std::memory_order_release);
-		}
-	}
-}
-
-//檢查可記錄的NPC坐標訊息
-void MainObject::checkRecordableNpcInfo()
-{
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
-		return;
-
-	if (pointerwriter_future_.isRunning())
-		return;
-
-	pointerwriter_future_cancel_flag_ = false;
-
-	pointerwriter_future_ = QtConcurrent::run([this]()
-		{
-			long long currentIndex = getIndex();
-			Injector& injector = Injector::getInstance(currentIndex);
-			for (;;)
-			{
-				for (long long i = 0; i < 5; ++i)
-				{
-					QThread::msleep(1000);
-
-					if (injector.worker.isNull())
-						return;
-
-					if (isInterruptionRequested())
-						return;
-
-					if (pointerwriter_future_cancel_flag_.load(std::memory_order_acquire))
-						return;
-
-					if (injector.worker.isNull())
-						return;
-				}
-
-				if (!injector.worker->getOnlineFlag())
-					continue;
-
-				if (injector.worker->getBattleFlag())
-					continue;
-
-				CAStar astar;
-
-				QHash<long long, mapunit_t> units = injector.worker->mapUnitHash.toHash();
-				util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
-
-				for (const mapunit_t& unit : units)
-				{
-					if (isInterruptionRequested())
-						return;
-
-					if (pointerwriter_future_cancel_flag_.load(std::memory_order_acquire))
-						return;
-
-					if (injector.worker.isNull())
-						return;
-
-					if (!injector.worker->getOnlineFlag())
-						break;
-
-					if (injector.worker->getBattleFlag())
-						break;
-
-					if ((unit.objType != util::OBJ_NPC)
-						|| unit.name.isEmpty()
-						|| (injector.worker->getWorldStatus() != 9)
-						|| (injector.worker->getGameStatus() != 3)
-						|| injector.worker->npcUnitPointHash.contains(QPoint(unit.x, unit.y)))
-					{
-						continue;
-					}
-
-					injector.worker->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
-
-					util::MapData d;
-					long long nowFloor = injector.worker->nowFloor_.load(std::memory_order_acquire);
-					QPoint nowPoint = injector.worker->nowPoint_.get();
-
-					d.floor = nowFloor;
-					d.name = unit.name;
-
-					//npc前方一格
-					QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
-					//檢查是否可走
-					if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, newPoint))
-					{
-						d.x = newPoint.x();
-						d.y = newPoint.y();
-					}
-					else
-					{
-						//再往前一格
-						QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
-						//檢查是否可走
-						if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, additionPoint))
-						{
-							d.x = additionPoint.x();
-							d.y = additionPoint.y();
-						}
-						else
-						{
-							//檢查NPC周圍8格
-							bool flag = false;
-							for (long long i = 0; i < 8; ++i)
-							{
-								newPoint = util::fix_point.value(i) + unit.p;
-								if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, newPoint))
-								{
-									d.x = newPoint.x();
-									d.y = newPoint.y();
-									flag = true;
-									break;
-								}
-							}
-
-							if (!flag)
-							{
-								continue;
-							}
-						}
-					}
-					config.writeMapData(unit.name, d);
-				}
-
-				static bool constDataInit = false;
-
-				if (constDataInit)
-					continue;
-
-				constDataInit = true;
-
-				QString content;
-				QStringList paths;
-				util::searchFiles(util::applicationDirPath(), "point", ".txt", &paths, false);
-				if (paths.isEmpty())
-					continue;
-
-				//這裡是讀取預製傳點坐標
-				if (!util::readFile(paths.front(), &content))
-				{
-					qDebug() << "Failed to open point.dat";
-					continue;
-				}
-
-				QStringList entrances = content.simplified().split(" ");
-
-				for (const QString& entrance : entrances)
-				{
-					const QStringList entranceData(entrance.split(util::rexOR));
-					if (entranceData.size() != 3)
-						continue;
-
-					bool ok = false;
-					const long long floor = entranceData.value(0).toLongLong(&ok);
-					if (!ok)
-						continue;
-
-					const QString pointStr(entranceData.value(1));
-					const QStringList pointData(pointStr.split(util::rexComma));
-					if (pointData.size() != 2)
-						continue;
-
-					long long x = pointData.value(0).toLongLong(&ok);
-					if (!ok)
-						continue;
-
-					long long y = pointData.value(1).toLongLong(&ok);
-					if (!ok)
-						continue;
-
-					const QPoint pos(x, y);
-
-					const QString name(entranceData.value(2));
-
-					util::MapData d;
-					d.floor = floor;
-					d.name = name;
-					d.x = x;
-					d.y = y;
-
-					mapunit_t unit;
-					unit.x = x;
-					unit.y = y;
-					unit.p = pos;
-					unit.name = name;
-
-					injector.worker->npcUnitPointHash.insert(pos, unit);
-
-					config.writeMapData(name, d);
-				}
-			}
-		}
-	);
 }
 
 #if 0
@@ -1952,10 +1838,10 @@ void MainObject::checkAutoLockSchedule()
 					injector.worker->setPetState(i, kRest);
 			}
 			return false;
-				};
+		};
 
 	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
 
-			}
+}
 #endif

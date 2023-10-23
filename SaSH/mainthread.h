@@ -25,6 +25,39 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 class QThread;
 class Server;
 
+class MissionThread : public ThreadPlugin
+{
+	Q_OBJECT
+public:
+	enum
+	{
+		kAutoJoin = 0,
+		kAutoWalk,
+		kAutoDropPet,
+		kAutoSortItem,
+		kAutoRecordNPC,
+		kMaxAutoMission
+	};
+
+	MissionThread(long long index, long long type, QObject* parent = nullptr);
+	virtual ~MissionThread();
+
+
+	void wait();
+signals:
+	void start();
+
+private slots:
+	void autoJoin();
+	void autoWalk();
+	void autoDropPet();
+	void autoSortItem();
+	void autoRecordNPC();
+
+private:
+	QThread thread_;
+};
+
 class MainObject : public ThreadPlugin
 {
 	Q_OBJECT
@@ -49,37 +82,11 @@ private:
 
 	void __fastcall checkControl();
 	void __fastcall checkEtcFlag();
-	void __fastcall checkAutoSortItem();
-	void __fastcall checkAutoWalk();
-	//void __fastcall checkAutoDropItems();
-	//void __fastcall checkAutoDropMeat();
-	void __fastcall checkAutoJoin();
-	//void __fastcall checkAutoHeal();
-	void __fastcall checkAutoDropPet();
-	//void __fastcall checkAutoLockPet();
-	//void __fastcall checkAutoLockSchedule();
-	//void __fastcall checkAutoEatBoostExpItem();
-	void __fastcall checkRecordableNpcInfo();
 	//void checkAutoAbility();
 
 private:
 
 	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
-
-	QFuture<void> autowalk_future_;
-	std::atomic_bool autowalk_future_cancel_flag_ = false;
-
-	QFuture<void> autojoin_future_;
-	std::atomic_bool autojoin_future_cancel_flag_ = false;
-
-	QFuture<void> autodroppet_future_;
-	std::atomic_bool autodroppet_future_cancel_flag_ = false;
-
-	QFuture<void> autosortitem_future_;
-	std::atomic_bool autosortitem_future_cancel_flag_ = false;
-
-	QFuture<void>  pointerwriter_future_;
-	std::atomic_bool pointerwriter_future_cancel_flag_ = false;
 
 	bool isFirstLogin_ = true;
 
@@ -130,6 +137,9 @@ private:
 	bool flagSwitcherFamilyEnable_ = false;
 	bool flagSwitcherJobEnable_ = false;
 	bool flagSwitcherWorldEnable_ = false;
+
+	QVector<MissionThread*> autoThreads_;
+
 };
 
 class ThreadManager : public QObject

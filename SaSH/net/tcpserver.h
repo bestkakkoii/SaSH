@@ -241,7 +241,7 @@ public://actions
 	void __fastcall kickteam(long long n);
 
 	long long __fastcall setCharFaceToPoint(const QPoint& pos);
-	void __fastcall setCharFaceDirection(long long dir);
+	void __fastcall setCharFaceDirection(long long dir, bool noWindow = false);
 	void __fastcall setCharFaceDirection(const QString& dirStr);
 
 	[[nodiscard]] long long __fastcall getPartySize() const;
