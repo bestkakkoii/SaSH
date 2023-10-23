@@ -17,6 +17,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #include "stdafx.h"
+#include "mainthread.h"
 #include "mapwidget.h"
 #include "util.h"
 #include "injector.h"
@@ -163,6 +164,20 @@ void MapWidget::onFindPathFinished()
 
 void MapWidget::closeEvent(QCloseEvent*)
 {
+	QMutexLocker lock(&missionThreadMutex_);
+	Injector& injector = Injector::getInstance(getIndex());
+	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	{
+		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+	}
+
+	if (missionThread_ != nullptr)
+	{
+		missionThread_->wait();
+		missionThread_->deleteLater();
+		missionThread_ = nullptr;
+	}
+
 	setUpdatesEnabled(false);
 	blockSignals(true);
 	update();
@@ -537,6 +552,7 @@ void MapWidget::on_openGLWidget_notifyRightClick()
 
 void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 {
+	QMutexLocker lock(&missionThreadMutex_);
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -551,13 +567,14 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 
 	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
 	{
-		injector.IS_FINDINGPATH.store(false, std::memory_order_acquire);
+		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
 	}
 
-	if (findPathFuture_.isRunning())
+	if (missionThread_ != nullptr)
 	{
-		findPathFuture_.cancel();
-		findPathFuture_.waitForFinished();
+		missionThread_->wait();
+		missionThread_->deleteLater();
+		missionThread_ = nullptr;
 	}
 
 	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
@@ -568,13 +585,12 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	long long x = dst.x();
 	long long y = dst.y();
 
-
 	QPoint point(x, y);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
-#else
-	findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), point);
-#endif
+	missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+	if (missionThread_ == nullptr)
+		return;
+	missionThread_->appendArg(point);
+	missionThread_->start();
 
 	ui.pushButton_findPath->setEnabled(false);
 }
@@ -735,6 +751,7 @@ void MapWidget::on_pushButton_returnBase_clicked()
 
 void MapWidget::on_pushButton_findPath_clicked()
 {
+	QMutexLocker lock(&missionThreadMutex_);
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.isValid())
@@ -752,11 +769,16 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (findPathFuture_.isRunning())
+	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
 	{
 		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
-		findPathFuture_.cancel();
-		findPathFuture_.waitForFinished();
+	}
+
+	if (missionThread_ != nullptr)
+	{
+		missionThread_->wait();
+		missionThread_->deleteLater();
+		missionThread_ = nullptr;
 	}
 
 	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
@@ -767,11 +789,12 @@ void MapWidget::on_pushButton_findPath_clicked()
 		return;
 
 	QPoint point(x, y);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
-#else
-	findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), point);
-#endif
+	missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+	if (missionThread_ == nullptr)
+		return;
+
+	missionThread_->appendArg(point);
+	missionThread_->start();
 
 	ui.pushButton_findPath->setEnabled(false);
 }
@@ -828,6 +851,7 @@ void MapWidget::updateNpcListAllContents(const QVariant& d)
 
 void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 {
+	QMutexLocker lock(&missionThreadMutex_);
 	QTableWidgetItem* item = ui.tableWidget_NPCList->item(row, 1);
 	QTableWidgetItem* item_name = ui.tableWidget_NPCList->item(row, 0);
 
@@ -901,19 +925,25 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 	else
 	{
-		if (findPathFuture_.isRunning())
+		if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
 		{
 			injector.IS_FINDINGPATH.store(false, std::memory_order_release);
-			findPathFuture_.cancel();
-			findPathFuture_.waitForFinished();
+		}
+
+		if (missionThread_ != nullptr)
+		{
+			missionThread_->wait();
+			missionThread_->deleteLater();
+			missionThread_ = nullptr;
 		}
 
 		QPoint point(x, y);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
-#else
-		findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), point);
-#endif
+		missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+		if (missionThread_ == nullptr)
+			return;
+
+		missionThread_->appendArg(point);
+		missionThread_->start();
 
 		ui.pushButton_findPath->setEnabled(false);
 		return;
@@ -963,19 +993,25 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		}
 	}
 
-	if (findPathFuture_.isRunning())
+	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
 	{
 		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
-		findPathFuture_.cancel();
-		findPathFuture_.waitForFinished();
+	}
+
+	if (missionThread_ != nullptr)
+	{
+		missionThread_->wait();
+		missionThread_->deleteLater();
+		missionThread_ = nullptr;
 	}
 
 	point = QPoint(x, y);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
-#else
-	findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), point);
-#endif
+	missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+	if (missionThread_ == nullptr)
+		return;
+
+	missionThread_->appendArg(point);
+	missionThread_->start();
 
 	ui.pushButton_findPath->setEnabled(false);
 }

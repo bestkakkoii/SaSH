@@ -26,6 +26,7 @@ MapGLWidget::MapGLWidget(QWidget* parent)
 	: QOpenGLWidget(parent)
 {
 	QOpenGLWidget::setAutoFillBackground(false);
+	setMouseTracking(true);
 }
 
 MapGLWidget::~MapGLWidget()

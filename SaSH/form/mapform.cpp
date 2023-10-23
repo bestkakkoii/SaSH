@@ -17,6 +17,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #include "stdafx.h"
+#include "mainthread.h"
 #include "mapform.h"
 
 #include "util.h"
@@ -65,6 +66,13 @@ MapForm::MapForm(long long index, QWidget* parent)
 
 MapForm::~MapForm()
 {
+	if (missionThread_ != nullptr)
+	{
+		missionThread_->wait();
+		missionThread_->deleteLater();
+		missionThread_ = nullptr;
+	}
+
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	injector.IS_FINDINGPATH.store(false, std::memory_order_release);
@@ -96,6 +104,7 @@ void MapForm::onButtonClicked()
 
 	if (name == "pushButton_findpath_start")
 	{
+		QMutexLocker lock(&missionThreadMutex_);
 		Injector& injector = Injector::getInstance(currentIndex);
 		if (!injector.isValid())
 			return;
@@ -112,11 +121,16 @@ void MapForm::onButtonClicked()
 		if (!injector.worker->getOnlineFlag())
 			return;
 
-		if (findPathFuture_.isRunning())
+		if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
 		{
 			injector.IS_FINDINGPATH.store(false, std::memory_order_release);
-			findPathFuture_.cancel();
-			findPathFuture_.waitForFinished();
+		}
+
+		if (missionThread_ != nullptr)
+		{
+			missionThread_->wait();
+			missionThread_->deleteLater();
+			missionThread_ = nullptr;
 		}
 
 		connect(injector.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
@@ -125,11 +139,12 @@ void MapForm::onButtonClicked()
 		long long y = ui.spinBox_findpath_y->value();
 
 		QPoint point(x, y);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
-#else
-		findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), std::move(point));
-#endif
+		missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+		if (missionThread_ == nullptr)
+			return;
+
+		missionThread_->appendArg(point);
+		missionThread_->start();
 
 		ui.pushButton_findpath_stop->setEnabled(true);
 		ui.pushButton_findpath_start->setEnabled(false);
@@ -203,6 +218,7 @@ void MapForm::onUpdateNpcList(long long floor)
 
 void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 {
+	QMutexLocker lock(&missionThreadMutex_);
 	if (!npc_hash_.contains(row))
 		return;
 
@@ -223,21 +239,27 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (findPathFuture_.isRunning())
+	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
 	{
 		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
-		findPathFuture_.cancel();
-		findPathFuture_.waitForFinished();
+	}
+
+	if (missionThread_ != nullptr)
+	{
+		missionThread_->wait();
+		missionThread_->deleteLater();
+		missionThread_ = nullptr;
 	}
 
 	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
 
 	QPoint point = npc_hash_.value(row);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	findPathFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::findPathAsync, point);
-#else
-	findPathFuture_ = QtConcurrent::run(&Worker::findPathAsync, injector.worker.get(), std::move(point));
-#endif
+	missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+	if (missionThread_ == nullptr)
+		return;
+
+	missionThread_->appendArg(point);
+	missionThread_->start();
 
 	ui.pushButton_findpath_stop->setEnabled(true);
 	ui.pushButton_findpath_start->setEnabled(false);

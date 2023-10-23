@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "ui_mapform.h"
 #include <indexer.h>
 
+class MissionThread;
 class MapForm : public QWidget, public Indexer
 {
 	Q_OBJECT
@@ -50,7 +51,9 @@ private:
 	Ui::MapFormClass ui;
 
 	QHash<int, QPoint> npc_hash_;
-	QFuture<void> findPathFuture_;
 
 	static QHash<long long, QHash<QPoint, QString>> entrances_;
+
+	QMutex missionThreadMutex_;
+	MissionThread* missionThread_ = nullptr;
 };

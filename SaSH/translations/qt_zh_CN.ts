@@ -2866,12 +2866,12 @@ New version:%2</source>
 <context>
     <name>MapForm</name>
     <message>
-        <location filename="../form/mapform.cpp" line="175"/>
+        <location filename="../form/mapform.cpp" line="190"/>
         <source>location</source>
         <translation>地点</translation>
     </message>
     <message>
-        <location filename="../form/mapform.cpp" line="175"/>
+        <location filename="../form/mapform.cpp" line="190"/>
         <source>cod</source>
         <translation>坐标</translation>
     </message>
@@ -2916,74 +2916,74 @@ New version:%2</source>
         <translation type="vanished">%1 地图:%2 编号:%3 [%4,%5] 档案:%6 坐标:%7,%8</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="228"/>
-        <location filename="../form/mapwidget.cpp" line="651"/>
+        <location filename="../form/mapwidget.cpp" line="243"/>
+        <location filename="../form/mapwidget.cpp" line="667"/>
         <source>downloading(%1%2)</source>
         <translation>下载中(%1%2)</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="295"/>
-        <location filename="../form/mapwidget.cpp" line="420"/>
+        <location filename="../form/mapwidget.cpp" line="310"/>
+        <location filename="../form/mapwidget.cpp" line="435"/>
         <source>UP</source>
         <translation>上楼</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="298"/>
-        <location filename="../form/mapwidget.cpp" line="423"/>
+        <location filename="../form/mapwidget.cpp" line="313"/>
+        <location filename="../form/mapwidget.cpp" line="438"/>
         <source>DWON</source>
         <translation>下楼</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="301"/>
-        <location filename="../form/mapwidget.cpp" line="426"/>
+        <location filename="../form/mapwidget.cpp" line="316"/>
+        <location filename="../form/mapwidget.cpp" line="441"/>
         <source>JUMP</source>
         <translation>传点</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="304"/>
-        <location filename="../form/mapwidget.cpp" line="429"/>
+        <location filename="../form/mapwidget.cpp" line="319"/>
+        <location filename="../form/mapwidget.cpp" line="444"/>
         <source>WARP</source>
         <translation>转移</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="307"/>
-        <location filename="../form/mapwidget.cpp" line="432"/>
+        <location filename="../form/mapwidget.cpp" line="322"/>
+        <location filename="../form/mapwidget.cpp" line="447"/>
         <source>UNKNOWN</source>
         <translation>未知</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="325"/>
+        <location filename="../form/mapwidget.cpp" line="340"/>
         <source>X[%1]%2</source>
         <translation>隐藏[%1]%2</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="352"/>
+        <location filename="../form/mapwidget.cpp" line="367"/>
         <source>[I]%1</source>
         <translation>[道具]%1</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="358"/>
+        <location filename="../form/mapwidget.cpp" line="373"/>
         <source>[G]%1</source>
         <translation>[石币]%1</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="365"/>
-        <location filename="../form/mapwidget.cpp" line="367"/>
+        <location filename="../form/mapwidget.cpp" line="380"/>
+        <location filename="../form/mapwidget.cpp" line="382"/>
         <source>[P]%2</source>
         <translation>[宠物]%2</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="367"/>
+        <location filename="../form/mapwidget.cpp" line="382"/>
         <source>X[P]%2</source>
         <translation>隐藏[宠物]%2</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="374"/>
+        <location filename="../form/mapwidget.cpp" line="389"/>
         <source>[H]%1</source>
         <translation>[玩家]%1</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="376"/>
+        <location filename="../form/mapwidget.cpp" line="391"/>
         <source>X[H]%1</source>
         <translation>隐藏[玩家]%1</translation>
     </message>
@@ -2996,37 +2996,37 @@ New version:%2</source>
         <translation type="vanished">%1 地图:%2 编号:%3 [%4,%5] 滑鼠:%6,%7</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="878"/>
-        <location filename="../form/mapwidget.cpp" line="880"/>
+        <location filename="../form/mapwidget.cpp" line="902"/>
+        <location filename="../form/mapwidget.cpp" line="904"/>
         <source>[P]</source>
         <translation>[宠物]</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="884"/>
-        <location filename="../form/mapwidget.cpp" line="886"/>
+        <location filename="../form/mapwidget.cpp" line="908"/>
+        <location filename="../form/mapwidget.cpp" line="910"/>
         <source>[H]</source>
         <translation>[玩家]</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="890"/>
-        <location filename="../form/mapwidget.cpp" line="892"/>
+        <location filename="../form/mapwidget.cpp" line="914"/>
+        <location filename="../form/mapwidget.cpp" line="916"/>
         <source>[I]</source>
         <translation>[道具]</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="896"/>
-        <location filename="../form/mapwidget.cpp" line="898"/>
+        <location filename="../form/mapwidget.cpp" line="920"/>
+        <location filename="../form/mapwidget.cpp" line="922"/>
         <source>[G]</source>
         <translation>[石币]</translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="385"/>
+        <location filename="../form/mapwidget.cpp" line="400"/>
         <source>X[NPC][%1]%2</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="219"/>
-        <location filename="../form/mapwidget.cpp" line="644"/>
+        <location filename="../form/mapwidget.cpp" line="234"/>
+        <location filename="../form/mapwidget.cpp" line="660"/>
         <source>[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8</source>
         <translation>[%1] %2 地图:%3 编号:%4 [%5,%6] 鼠标:%7,%8</translation>
     </message>
@@ -4892,109 +4892,109 @@ New version:%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="514"/>
+        <location filename="../script_lua/luasystem.cpp" line="515"/>
         <source>index must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="525"/>
+        <location filename="../script_lua/luasystem.cpp" line="526"/>
         <source>type must be 1 or 2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="571"/>
-        <location filename="../script_lua/luasystem.cpp" line="580"/>
+        <location filename="../script_lua/luasystem.cpp" line="572"/>
+        <location filename="../script_lua/luasystem.cpp" line="581"/>
         <source>Invalid value of &apos;dataplacenum&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="589"/>
+        <location filename="../script_lua/luasystem.cpp" line="590"/>
         <source>character name cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="601"/>
+        <location filename="../script_lua/luasystem.cpp" line="602"/>
         <source>vit must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="607"/>
+        <location filename="../script_lua/luasystem.cpp" line="608"/>
         <source>str must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="613"/>
+        <location filename="../script_lua/luasystem.cpp" line="614"/>
         <source>tgh must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="619"/>
+        <location filename="../script_lua/luasystem.cpp" line="620"/>
         <source>dex must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="625"/>
+        <location filename="../script_lua/luasystem.cpp" line="626"/>
         <source>vit + str + tgh + dex must equal to 20</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="631"/>
+        <location filename="../script_lua/luasystem.cpp" line="632"/>
         <source>earth must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="637"/>
+        <location filename="../script_lua/luasystem.cpp" line="638"/>
         <source>water must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="643"/>
+        <location filename="../script_lua/luasystem.cpp" line="644"/>
         <source>fire must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="649"/>
+        <location filename="../script_lua/luasystem.cpp" line="650"/>
         <source>wind must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="655"/>
+        <location filename="../script_lua/luasystem.cpp" line="656"/>
         <source>earth + water + fire + wind must equal to 10</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="673"/>
+        <location filename="../script_lua/luasystem.cpp" line="674"/>
         <source>hometown cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="725"/>
+        <location filename="../script_lua/luasystem.cpp" line="726"/>
         <source>index must between 1 and %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="732"/>
+        <location filename="../script_lua/luasystem.cpp" line="733"/>
         <source>password cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="787"/>
+        <location filename="../script_lua/luasystem.cpp" line="788"/>
         <source>type cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="1079"/>
+        <location filename="../script_lua/luasystem.cpp" line="1080"/>
         <source>unknown setting type: &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="1184"/>
-        <location filename="../script_lua/luasystem.cpp" line="1229"/>
-        <location filename="../script_lua/luasystem.cpp" line="1300"/>
-        <location filename="../script_lua/luasystem.cpp" line="1354"/>
-        <location filename="../script_lua/luasystem.cpp" line="1428"/>
-        <location filename="../script_lua/luasystem.cpp" line="1479"/>
-        <location filename="../script_lua/luasystem.cpp" line="1596"/>
+        <location filename="../script_lua/luasystem.cpp" line="1185"/>
+        <location filename="../script_lua/luasystem.cpp" line="1230"/>
+        <location filename="../script_lua/luasystem.cpp" line="1301"/>
+        <location filename="../script_lua/luasystem.cpp" line="1355"/>
+        <location filename="../script_lua/luasystem.cpp" line="1429"/>
+        <location filename="../script_lua/luasystem.cpp" line="1480"/>
+        <location filename="../script_lua/luasystem.cpp" line="1597"/>
         <source>the first parameter of the setting &apos;%1&apos; must be a number or boolean</source>
         <translation type="unfinished"></translation>
     </message>

@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //#include "mapglwidget.h"
 #endif
 
+class MissionThread;
 class MapWidget : public QMainWindow, public Indexer
 {
 	Q_OBJECT;
@@ -113,7 +114,8 @@ private:
 
 	static QHash<long long, QHash<QPoint, QString>> entrances_;
 
-	QFuture<void> findPathFuture_;
+	QMutex missionThreadMutex_;
+	MissionThread* missionThread_ = nullptr;
 
 	long long counter_ = 10;
 

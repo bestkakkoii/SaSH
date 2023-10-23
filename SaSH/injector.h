@@ -368,7 +368,7 @@ private:
 		//script
 		{util::kScriptSpeedValue, 0},
 
-		{ util::kTcpDelayValue, 10 },
+		{ util::kTcpDelayValue, 0 },
 
 		{ util::kSettingMaxValue, util::kSettingMaxValue },
 		{ util::kSettingMinString, util::kSettingMinString },

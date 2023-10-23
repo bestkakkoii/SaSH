@@ -162,7 +162,6 @@ protected:
 	{
 		QPointF pos = event->pos();
 
-
 		if (m_isMove)
 		{
 			QPointF point = (event->pos() - m_startPos) * m_scaleValue;

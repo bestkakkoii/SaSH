@@ -383,7 +383,8 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		mapunit_t unit;
 		if (injector.worker->findUnit(searchStr, util::OBJ_NPC, &unit, "", unitid))
 		{
-			injector.worker->setCharFaceToPoint(unit.p);
+			if (!injector.worker->isDialogVisible())
+				injector.worker->setCharFaceToPoint(unit.p);
 			if (button == BUTTON_NOTUSED && row == -1)
 				QThread::msleep(300);
 			unitid = unit.id;
@@ -752,7 +753,7 @@ long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_s
 	if (injector.worker.isNull())
 		return FALSE;
 
-	std::cout << "Received " << args.size() << " arguments:" << std::endl;
+	qDebug() << "Received " << args.size() << " arguments:";
 
 	std::vector<std::variant<int, std::string>> vargs;
 	for (auto arg : args)

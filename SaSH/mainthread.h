@@ -36,14 +36,18 @@ public:
 		kAutoDropPet,
 		kAutoSortItem,
 		kAutoRecordNPC,
-		kMaxAutoMission
+		kMaxAutoMission,
+		kAsyncFindPath
 	};
 
 	MissionThread(long long index, long long type, QObject* parent = nullptr);
 	virtual ~MissionThread();
 
-
 	void wait();
+
+	inline void appendArg(const QVariant& arg) { args_.append(arg); }
+	inline void appendArgs(const QVariantList& args) { args_.append(args); }
+
 signals:
 	void start();
 
@@ -53,9 +57,11 @@ private slots:
 	void autoDropPet();
 	void autoSortItem();
 	void autoRecordNPC();
+	void asyncFindPath();
 
 private:
 	QThread thread_;
+	QVariantList args_;
 };
 
 class MainObject : public ThreadPlugin

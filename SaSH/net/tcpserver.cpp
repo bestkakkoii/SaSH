@@ -3889,16 +3889,16 @@ void Worker::press(BUTTON_TYPE select, long long dialogid, long long unitid)
 	}
 	else if (BUTTON_AUTO == select)
 	{
-		if (checkAND(dialog.buttontype, BUTTON_OK))
-			select = BUTTON_OK;
-		else if (checkAND(dialog.buttontype, BUTTON_YES))
-			select = BUTTON_YES;
-		else if (checkAND(dialog.buttontype, BUTTON_NEXT))
+		if (checkAND(dialog.buttontype, BUTTON_NEXT))
 			select = BUTTON_NEXT;
 		else if (checkAND(dialog.buttontype, BUTTON_PREVIOUS))
 			select = BUTTON_PREVIOUS;
 		else if (checkAND(dialog.buttontype, BUTTON_NO))
 			select = BUTTON_NO;
+		else if (checkAND(dialog.buttontype, BUTTON_YES))
+			select = BUTTON_YES;
+		else if (checkAND(dialog.buttontype, BUTTON_OK))
+			select = BUTTON_OK;
 		else if (checkAND(dialog.buttontype, BUTTON_CANCEL))
 			select = BUTTON_CANCEL;
 	}
@@ -11317,7 +11317,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		setBattleData(bt);
 		break;
-			}
+	}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -12367,7 +12367,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 					recorder[0].goldearn += nGold;
 				}
 			}
-	}
+		}
 
 		if (message.contains(rexRep))
 		{
@@ -12509,7 +12509,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-			}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12597,7 +12597,7 @@ void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 	std::ignore = getFloorName();
 	std::ignore = getDir();
 	std::ignore = getPoint();
-			}
+}
 
 //地圖數據更新，重新寫入地圖
 void Worker::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata)
@@ -12816,7 +12816,7 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
 			}
 
@@ -13163,7 +13163,7 @@ void Worker::lssproto_CA_recv(char* cdata)
 		unit.dir = dir;
 		mapUnitHash.insert(charindex, unit);
 	}
-		}
+}
 
 //刪除指定一個或多個周圍人、NPC單位
 void Worker::lssproto_CD_recv(char* cdata)
@@ -13900,7 +13900,7 @@ void Worker::lssproto_S_recv(char* cdata)
 		else
 		{
 			emit signalDispatcher.updateRideHpProgressValue(0, 0, 0);
-				}
+		}
 
 		if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
 		{
@@ -13947,7 +13947,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		Injector& injector = Injector::getInstance(getIndex());
 		injector.setUserData(util::kUserPetNames, petNames);
-			}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -14491,7 +14491,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-		}
+}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)

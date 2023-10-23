@@ -1036,6 +1036,9 @@ MissionThread::MissionThread(long long index, long long type, QObject* parent)
 	case kAutoRecordNPC:
 		connect(this, &MissionThread::start, this, &MissionThread::autoRecordNPC);
 		break;
+	case kAsyncFindPath:
+		connect(this, &MissionThread::start, this, &MissionThread::asyncFindPath);
+		break;
 	}
 
 	moveToThread(&thread_);
@@ -1683,6 +1686,15 @@ void MissionThread::autoRecordNPC()
 	}
 }
 
+void MissionThread::asyncFindPath()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	if (injector.worker.isNull())
+		return;
+
+	QPoint dst = args_.value(0).toPoint();
+	injector.worker->findPathAsync(dst);
+}
 #if 0
 //自動鎖寵排程
 void MainObject::checkAutoLockSchedule()
@@ -1838,7 +1850,7 @@ void MainObject::checkAutoLockSchedule()
 					injector.worker->setPetState(i, kRest);
 			}
 			return false;
-		};
+};
 
 	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
