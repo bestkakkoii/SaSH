@@ -374,6 +374,9 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 	if (odialogid.is<long long>())
 		dialogid = odialogid.as<long long>();
 
+	QString text = util::toQString(sbuttonStr);
+	BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
+
 	if (ounitid.is<std::string>())
 	{
 		QString searchStr = util::toQString(ounitid.as<std::string>());
@@ -381,7 +384,8 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		if (injector.worker->findUnit(searchStr, util::OBJ_NPC, &unit, "", unitid))
 		{
 			injector.worker->setCharFaceToPoint(unit.p);
-			QThread::msleep(300);
+			if (button == BUTTON_NOTUSED && row == -1)
+				QThread::msleep(300);
 			unitid = unit.id;
 		}
 	}
@@ -392,8 +396,6 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		return TRUE;
 	}
 
-	QString text = util::toQString(sbuttonStr);
-	BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
 	if (button == BUTTON_NOTUSED)
 	{
 		dialog_t dialog = injector.worker->currentDialog;
