@@ -45,6 +45,7 @@ public:
 	void wait();
 
 	inline bool isRunning() { return thread_.isRunning(); }
+	inline bool isFinished() { return thread_.isFinished(); }
 	inline void appendArg(const QVariant& arg) { args_.append(arg); }
 	inline void appendArgs(const QVariantList& args) { args_.append(args); }
 

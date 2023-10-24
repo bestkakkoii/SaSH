@@ -2830,19 +2830,19 @@ New version:%2</source>
         <translation type="vanished">第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;回合時間: %3 秒&#x3000;&#x3000;累積時間: %4 分鐘</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="827"/>
-        <location filename="../mainthread.cpp" line="852"/>
+        <location filename="../mainthread.cpp" line="831"/>
+        <location filename="../mainthread.cpp" line="856"/>
         <source>%1 (avg exp: %2)</source>
         <translation>%1 (平均每小時經驗: %2)</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="834"/>
+        <location filename="../mainthread.cpp" line="838"/>
         <source>%1 (avg gold: %2)</source>
         <translation>%1 (平均每小時石幣: %2)</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="820"/>
-        <location filename="../mainthread.cpp" line="846"/>
+        <location filename="../mainthread.cpp" line="824"/>
+        <location filename="../mainthread.cpp" line="850"/>
         <source>%1→%2 (avg level: %3)</source>
         <translation>%1→%2 (平均每小時等級: %3)</translation>
     </message>

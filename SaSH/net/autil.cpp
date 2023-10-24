@@ -639,7 +639,7 @@ int Autil::util_deint(int sliceno, int* value)
 	t1 = reinterpret_cast<int*>(t3);
 	t2 = *t1 ^ 0xffffffff;
 
-	if (isBackVersion)
+	if (!isBackVersion)
 		util_swapint(value, &t2, const_cast<char*>("2413"));
 	else
 		util_swapint(value, &t2, const_cast<char*>("3421"));
@@ -657,7 +657,7 @@ int Autil::util_mkint(char* buffer, int value)
 	int t1 = 0, t2 = 0;
 	char t3[SBUFSIZE] = {}; // This buffer is enough for an integer.
 
-	if (isBackVersion)
+	if (!isBackVersion)
 		util_swapint(&t1, &value, const_cast<char*>("3142"));
 	else
 		util_swapint(&t1, &value, const_cast<char*>("4312"));

@@ -763,15 +763,19 @@ long long MainObject::checkAndRunFunctions()
 	//批次開啟子任務線程
 	for (long long i = 0; i < MissionThread::kMaxAutoMission; ++i)
 	{
-		if (autoThreads_.value(i) != nullptr)
+		MissionThread* p = autoThreads_.value(i);
+		if (p == nullptr)
 		{
-			autoThreads_[i] = new MissionThread(currentIndex, i);
-			if (autoThreads_[i] == nullptr)
+			p = new MissionThread(currentIndex, i);
+			if (p == nullptr)
 				continue;
+
+			autoThreads_[i] = p;
+			continue;
 		}
 
-		if (!autoThreads_[i]->isRunning())
-			autoThreads_[i]->start();
+		if (p != nullptr)
+			p->start();
 	}
 
 	//平時
