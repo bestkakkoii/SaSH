@@ -216,6 +216,7 @@ Server::~Server()
 //啟動TCP服務端，並監聽系統自動配發的端口
 bool Server::start(QObject* parent)
 {
+	std::ignore = parent;
 	QOperatingSystemVersion version = QOperatingSystemVersion::current();
 
 	if (version > QOperatingSystemVersion::Windows7)
@@ -282,6 +283,7 @@ void Server::incomingConnection(qintptr socketDescriptor)
 Socket::Socket(qintptr socketDescriptor, QObject* parent)
 	: QTcpSocket(nullptr)
 {
+	std::ignore = parent;
 	setSocketDescriptor(socketDescriptor);
 	setReadBufferSize(8191);
 
@@ -371,6 +373,7 @@ Worker::Worker(long long index, Socket* socket, QObject* parent)
 	//, teamInfoLock_(QReadWriteLock::Recursive)
 	, mapAnalyzer(index)
 {
+	std::ignore = socket;
 	loginTimer.start();
 	battleDurationTimer.start();
 	oneRoundDurationTimer.start();
@@ -383,7 +386,7 @@ Worker::Worker(long long index, Socket* socket, QObject* parent)
 	injector.autil.util_Init();
 	clearNetBuffer();
 
-	injector.autil.PersonalKey.set("upupupupp");
+	injector.autil.setKey("upupupupp");
 }
 
 Worker::~Worker()
@@ -395,7 +398,7 @@ Worker::~Worker()
 void Worker::clear()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	injector.autil.PersonalKey.set("upupupupp");
+	injector.autil.setKey("upupupupp");
 
 	enemyNameListCache = QStringList();
 	customDialog = customdialog_t{};
@@ -434,11 +437,11 @@ void Worker::clear()
 	profession_skill_.clear();
 	petSkill_.clear();
 	battlePetDisableList_.clear();
-	battleCharCurrentPos = 0;
-	battleBpFlag = 0;
-	battleCharEscapeFlag = 0;
-	battleCharCurrentMp = 0;
-	battleCurrentAnimeFlag = 0;
+	battleCharCurrentPos.store(0, std::memory_order_release);
+	battleBpFlag.store(0, std::memory_order_release);
+	battleCharEscapeFlag.store(0, std::memory_order_release);
+	battleCharCurrentMp.store(0, std::memory_order_release);
+	battleCurrentAnimeFlag.store(0, std::memory_order_release);
 	lastSecretChatName.clear();
 
 	mapUnitHash.clear();
@@ -483,7 +486,6 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 	long long indexEof = preStr.indexOf("\n");
 	//\n之後的移除
 	preStr = preStr.left(indexEof);
-	Injector& injector = Injector::getInstance(getIndex());
 
 	if (preStr.startsWith("dc|"))
 	{
@@ -494,8 +496,6 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 
 	if (preStr.startsWith("bpk|"))
 	{
-		long long currentIndex = getIndex();
-		Injector& injector = Injector::getInstance(currentIndex);
 		//long long value = mem::read<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
 		isBattleDialogReady.store(true, std::memory_order_release);
 		doBattleWork(true);
@@ -540,8 +540,7 @@ void Worker::handleData(const QByteArray& badata)
 
 
 	QString key = mem::readString(injector.getProcess(), injector.getProcessModule() + kOffsetPersonalKey, PERSONALKEYSIZE, true, true);
-	if (key != injector.autil.PersonalKey)
-		injector.autil.PersonalKey = key;
+	injector.autil.setKey(util::toConstData(key));
 
 	if (!splitLinesFromReadBuf(dataList_))
 		return;
@@ -598,7 +597,6 @@ void Worker::handleData(const QByteArray& badata)
 long long Worker::dispatchMessage(const QByteArray& encoded)
 {
 	long long func = 0, fieldcount = 0;
-	long long iChecksum = 0, iChecksumrecv = 0;
 
 	Injector& injector = Injector::getInstance(getIndex());
 	net_raw_.clear();
@@ -787,7 +785,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 			return BC_INVALID;
 
 		//qDebug() << "LSSPROTO_MC_RECV" << "fl" << fl << "x1" << x1 << "y1" << y1 << "x2" << x2 << "y2" << y2 <<
-			//"tilesum" << tilesum << "objsum" << objsum << "eventsum" << eventsum << "data" << util::toUnicode(data.data());
+			//"tilesum" << tilesum << "objsum" << objsum << "eventsum" << eventsum << "data" << util::toUnicode(net_data);
 		lssproto_MC_recv(fl, x1, y1, x2, y2, tilesum, objsum, eventsum, net_data);
 		break;
 	}
@@ -803,7 +801,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&fl, &x1, &y1, &x2, &y2, net_data))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_M_RECV" << "fl" << fl << "x1" << x1 << "y1" << y1 << "x2" << x2 << "y2" << y2 << "data" << util::toUnicode(data.data());
+		//qDebug() << "LSSPROTO_M_RECV" << "fl" << fl << "x1" << x1 << "y1" << y1 << "x2" << x2 << "y2" << y2 << "data" << util::toUnicode(net_data);
 		lssproto_M_recv(fl, x1, y1, x2, y2, net_data);
 		break;
 	}
@@ -1797,7 +1795,7 @@ bool Worker::getItemIndexsByName(const QString& name, const QString& memo, QVect
 
 	QVector<long long> v;
 	QHash<long long, ITEM> items = getItems();
-	for (long long i = 0; i < MAX_ITEM; ++i)
+	for (long long i = from; i < to; ++i)
 	{
 		QString itemName = items.value(i).name.simplified();
 		QString itemMemo = items.value(i).memo.simplified();
@@ -1932,10 +1930,10 @@ long long Worker::getPetSkillIndexByName(long long& petIndex, const QString& nam
 }
 
 //使用名稱枚舉所有寵物索引
-bool Worker::getPetIndexsByName(const QString& name, QVector<long long>* pv) const
+bool Worker::getPetIndexsByName(const QString& cmpname, QVector<long long>* pv) const
 {
 	QVector<long long> v;
-	QStringList nameList = name.simplified().split(util::rexOR, Qt::SkipEmptyParts);
+	QStringList nameList = cmpname.simplified().split(util::rexOR, Qt::SkipEmptyParts);
 
 	for (long long i = 0; i < MAX_PET; ++i)
 	{
@@ -2489,7 +2487,7 @@ long long Worker::getProfessionSkillIndexByName(const QString& names) const
 //更新敵我索引範圍
 void Worker::updateCurrentSideRange(battledata_t& bt)
 {
-	if (battleCharCurrentPos < 10)
+	if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 	{
 		bt.alliemin = 0;
 		bt.alliemax = 9;
@@ -2691,7 +2689,7 @@ void Worker::updateDatasFromMemory()
 	else if (!isInTeam && checkAND(pc_.status, CHR_STATUS_PARTY))
 		pc_.status &= (~CHR_STATUS_PARTY);
 
-	for (long long i = 0; i < MAX_PET; ++i)
+	for (i = 0; i < MAX_PET; ++i)
 	{
 		if (i == pc_.mailPetNo)
 		{
@@ -2740,7 +2738,7 @@ void Worker::updateBattleTimeInfo()
 		if (!getBattleFlag())
 			break;
 
-		QThread::msleep(10);
+		QThread::msleep(50);
 
 		time = battleDurationTimer.elapsed() / 1000.0;
 		cost = battle_one_round_time.load(std::memory_order_acquire) / 1000.0;
@@ -3393,7 +3391,7 @@ bool Worker::login(long long s)
 			}
 
 			return true;
-#ifndef USE_MOUSE
+
 			//std::string saccount = util::fromUnicode(account);
 			//std::string spassword = util::fromUnicode(password);
 
@@ -3416,49 +3414,49 @@ bool Worker::login(long long s)
 	case util::kStatusDisconnect:
 	{
 		IS_DISCONNECTED.store(true, std::memory_order_release);
-		QList<int> list = config.readArray<int>("System", "Login", "Disconnect");
+		QList<long long> list = config.readArray<long long>("System", "Login", "Disconnect");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.value(0), list.value(1));
 		else
 		{
 			injector.leftDoubleClick(315, 270);
-			config.writeArray<int>("System", "Login", "Disconnect", { 315, 270 });
+			config.writeArray<long long>("System", "Login", "Disconnect", { 315, 270 });
 		}
 		break;
 	}
 	case util::kStatusLoginFailed:
 	{
-		QList<int> list = config.readArray<int>("System", "Login", "LoginFailed");
+		QList<long long> list = config.readArray<long long>("System", "Login", "LoginFailed");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.value(0), list.value(1));
 		else
 		{
 			injector.leftDoubleClick(315, 255);
-			config.writeArray<int>("System", "Login", "LoginFailed", { 315, 255 });
+			config.writeArray<long long>("System", "Login", "LoginFailed", { 315, 255 });
 		}
 		break;
 	}
 	case util::kStatusBusy:
 	{
-		QList<int> list = config.readArray<int>("System", "Login", "Busy");
+		QList<long long> list = config.readArray<long long>("System", "Login", "Busy");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.value(0), list.value(1));
 		else
 		{
 			injector.leftDoubleClick(315, 255);
-			config.writeArray<int>("System", "Login", "Busy", { 315, 255 });
+			config.writeArray<long long>("System", "Login", "Busy", { 315, 255 });
 		}
 		break;
 	}
 	case util::kStatusTimeout:
 	{
-		QList<int> list = config.readArray<int>("System", "Login", "Timeout");
+		QList<long long> list = config.readArray<long long>("System", "Login", "Timeout");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.value(0), list.value(1));
 		else
 		{
 			injector.leftDoubleClick(315, 253);
-			config.writeArray<int>("System", "Login", "Timeout", { 315, 253 });
+			config.writeArray<long long>("System", "Login", "Timeout", { 315, 253 });
 		}
 		break;
 	}
@@ -3466,13 +3464,13 @@ bool Worker::login(long long s)
 	{
 		backToFirstPage();
 #ifdef USE_MOUSE
-		QList<int> list = config.readArray<int>("System", "Login", "NoUserNameOrPassword");
+		QList<long long> list = config.readArray<long long>("System", "Login", "NoUserNameOrPassword");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.value(0), list.value(1));
 		else
 		{
 			injector.leftDoubleClick(315, 253);
-			config.writeArray<int>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
+			config.writeArray<long long>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
 		}
 #endif
 		break;
@@ -3512,24 +3510,7 @@ bool Worker::login(long long s)
 
 		//sa_8001.exe+206F1 - 0F85 1A020000         - jne sa_8001.exe+20911
 		mem::write(hProcess, hModule + 0x206F1, const_cast<char*>("\x0F\x85\x1A\x02\x00\x00"), 6);//還原OK點擊事件
-
-#else
-			if (!ok)
-			{
-				QList<int> list = config.readArray<int>("System", "Login", "OK");
-				if (list.size() == 2)
-					injector.leftDoubleClick(list.value(0), list.value(1));
-				else
-				{
-					injector.leftDoubleClick(380, 310);
-					config.writeArray<int>("System", "Login", "OK", { 380, 310 });
-				}
-			}
-	}
-
-#endif
-
-	break;
+		break;
 	}
 	case util::kStatusSelectServer:
 	{
@@ -3597,7 +3578,7 @@ bool Worker::login(long long s)
 		long long x = 160 + (a * 125);
 		long long y = 165 + (b * 25);
 
-		QList<int> list = config.readArray<int>("System", "Login", "SelectServer");
+		QList<long long> list = config.readArray<long long>("System", "Login", "SelectServer");
 		if (list.size() == 4)
 		{
 			x = list.value(0) + (a * list.value(1));
@@ -3605,7 +3586,7 @@ bool Worker::login(long long s)
 		}
 		else
 		{
-			config.writeArray<int>("System", "Login", "SelectServer", { 160, 125, 165, 25 });
+			config.writeArray<long long>("System", "Login", "SelectServer", { 160, 125, 165, 25 });
 		}
 
 		for (;;)
@@ -3710,7 +3691,8 @@ bool Worker::login(long long s)
 			long long x = 500;
 			long long y = 340;
 
-			QList<int> list = config.readArray<int>("System", "Login", "SelectSubServerGoBack");
+			QList<
+			> list = config.readArray<long long>("System", "Login", "SelectSubServerGoBack");
 			if (list.size() == 2)
 			{
 				x = list.value(0);
@@ -3718,13 +3700,13 @@ bool Worker::login(long long s)
 			}
 			else
 			{
-				config.writeArray<int>("System", "Login", "SelectSubServer", QList<int>{ 500, 340 });
+				config.writeArray<long long>("System", "Login", "SelectSubServer", QList<long long>{ 500, 340 });
 			}
 
 			for (;;)
 			{
 				injector.mouseMove(x, y);
-				long long value = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffsetMousePointedIndex);
+				long long value = mem::read<long long>(injector.getProcess(), injector.getProcessModule() + kOffsetMousePointedIndex);
 				if (value != -1)
 				{
 					injector.leftDoubleClick(x, y);
@@ -3747,7 +3729,7 @@ bool Worker::login(long long s)
 			long long x = 250;
 			long long y = 265 + (subserver * 20);
 
-			QList<int> list = config.readArray<int>("System", "Login", "SelectSubServer");
+			QList<long long> list = config.readArray<long long>("System", "Login", "SelectSubServer");
 			if (list.size() == 3)
 			{
 				x = list.value(0);
@@ -3755,7 +3737,7 @@ bool Worker::login(long long s)
 			}
 			else
 			{
-				config.writeArray<int>("System", "Login", "SelectSubServer", { 250, 265, 20 });
+				config.writeArray<long long>("System", "Login", "SelectSubServer", { 250, 265, 20 });
 			}
 
 			for (;;)
@@ -3797,7 +3779,7 @@ bool Worker::login(long long s)
 		long long x = 100 + (position * 300);
 		long long y = 340;
 
-		QList<int> list = config.readArray<int>("System", "Login", "SelectCharacter");
+		QList<long long> list = config.readArray<long long>("System", "Login", "SelectCharacter");
 		if (list.size() == 3)
 		{
 			x = list.value(0) + (position * list.value(1));
@@ -3805,7 +3787,7 @@ bool Worker::login(long long s)
 		}
 		else
 		{
-			config.writeArray<int>("System", "Login", "SelectCharacter", { 100, 300, 340 });
+			config.writeArray<long long>("System", "Login", "SelectCharacter", { 100, 300, 340 });
 		}
 
 		injector.leftClick(x, y);
@@ -4343,7 +4325,6 @@ void Worker::setPetState(long long petIndex, PetState state)
 
 	HANDLE hProcess = injector.getProcess();
 	long long hModule = injector.getProcessModule();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	{
 		QWriteLocker locker(&petInfoLock_);
@@ -4725,8 +4706,8 @@ void Worker::checkAutoAbility()
 			continue;
 
 		PC pc = getPC();
-		QVector<long long> ability = { pc.vit, pc.str, pc.tgh, pc.dex };
-		long long abilityPoint = ability.value(abilityIndex, -1);
+		const QVector<long long> abilitys = { pc.vit, pc.str, pc.tgh, pc.dex };
+		long long abilityPoint = abilitys.value(abilityIndex, -1);
 		if (abilityPoint == -1)
 			continue;
 
@@ -4769,10 +4750,8 @@ void Worker::checkAutoDropMeat()
 	if (!checkEnable())
 		return;
 
-	bool bret = false;
 	constexpr const char* meat = "?肉";
 	constexpr const char* memo = "耐久力";
-
 
 	QVector<long long> items;
 	if (!getItemIndexsByName(meat, "", &items, CHAR_EQUIPPLACENUM, MAX_ITEM))
@@ -5125,9 +5104,9 @@ void Worker::checkAutoHeal()
 		long long magicIndex = -1;
 		{
 			QString itemNames = injector.getStringHash(util::kNormalMagicHealItemString).simplified();
-			QVector<long long> items;
-			if (getItemIndexsByName(itemNames, "", &items) && !items.isEmpty())
-				magicIndex = items.front();
+			QVector<long long> nitems;
+			if (getItemIndexsByName(itemNames, "", &nitems) && !nitems.isEmpty())
+				magicIndex = nitems.front();
 		}
 
 		if (magicIndex == -1)
@@ -5148,6 +5127,116 @@ void Worker::checkAutoHeal()
 		QThread::msleep(150);
 	}
 }
+
+void Worker::checkAutoDropPet()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+
+	auto checkStatus = [this, &injector]()->bool
+		{
+			if (!injector.getEnableHash(util::kDropPetEnable))
+				return false;
+
+			if (!getOnlineFlag())
+				return false;
+
+			if (getBattleFlag())
+				return false;
+
+			return true;
+		};
+
+
+	if (isInterruptionRequested())
+		return;
+
+	if (!checkStatus())
+		return;
+
+	bool strLowAtEnable = injector.getEnableHash(util::kDropPetStrEnable);
+	bool defLowAtEnable = injector.getEnableHash(util::kDropPetDefEnable);
+	bool agiLowAtEnable = injector.getEnableHash(util::kDropPetAgiEnable);
+	bool aggregateLowAtEnable = injector.getEnableHash(util::kDropPetAggregateEnable);
+	double strLowAtValue = injector.getValueHash(util::kDropPetStrValue);
+	double defLowAtValue = injector.getValueHash(util::kDropPetDefValue);
+	double agiLowAtValue = injector.getValueHash(util::kDropPetAgiValue);
+	double aggregateLowAtValue = injector.getValueHash(util::kDropPetAggregateValue);
+	QString text = injector.getStringHash(util::kDropPetNameString);
+	QStringList nameList;
+	if (!text.isEmpty())
+		nameList = text.split(util::rexOR, Qt::SkipEmptyParts);
+
+	for (long long i = 0; i < MAX_PET; ++i)
+	{
+		if (checkStatus() != 1)
+			break;
+
+		PET pet = getPet(i);
+		if (!pet.valid || pet.maxHp <= 0 || pet.level <= 0)
+			continue;
+
+		double str = pet.atk;
+		double def = pet.def;
+		double agi = pet.agi;
+		double aggregate = ((str + def + agi + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0;
+
+		bool okDrop = false;
+		if (strLowAtEnable && (str < strLowAtValue))
+		{
+			okDrop = true;
+		}
+		else if (defLowAtEnable && (def < defLowAtValue))
+		{
+			okDrop = true;
+		}
+		else if (agiLowAtEnable && (agi < agiLowAtValue))
+		{
+			okDrop = true;
+		}
+		else if (aggregateLowAtEnable && (aggregate < aggregateLowAtValue))
+		{
+			okDrop = true;
+		}
+		else
+		{
+			okDrop = false;
+		}
+
+
+		if (okDrop)
+		{
+			if (!nameList.isEmpty())
+			{
+				bool isExact = true;
+				okDrop = false;
+				for (const QString& it : nameList)
+				{
+					QString newName = it.simplified();
+					if (newName.startsWith("?"))
+					{
+						isExact = false;
+						newName = newName.mid(1);
+					}
+
+					if (isExact && pet.name == newName)
+					{
+						okDrop = true;
+						break;
+					}
+					else if (isExact && pet.name.contains(newName))
+					{
+						okDrop = true;
+						break;
+					}
+				}
+			}
+
+			if (okDrop)
+				dropPet(i);
+		}
+	}
+}
+
 #pragma endregion
 
 #pragma region MAP
@@ -5208,6 +5297,9 @@ void Worker::downloadMap(long long floor)
 
 	do
 	{
+		if (original != getFloor())
+			return;
+
 		downloadMap(downloadMapX_, downloadMapY_, floor);
 
 		long long blockWidth = qMin(MAX_BLOCK_SIZE, downloadMapXSize_ - downloadMapX_);
@@ -5787,7 +5879,7 @@ void Worker::tradeAppendPets(const QString& name, const QVector<long long>& petI
 
 	//T|87| 02020202|P|3| 3 |  攻击|忠犬|料理|||||乌力斯坦|嘿嘿嘿嘿
 	//T|%s| %s      |P|3| %d | %s
-	QStringList list = mypet_tradeList;
+	QStringList tradelist = mypet_tradeList;
 	for (const long long index : petIndexs)
 	{
 		if (index < 0 || index >= MAX_PET)
@@ -5812,9 +5904,9 @@ void Worker::tradeAppendPets(const QString& name, const QVector<long long>& petI
 		QString cmd = QString("T|%1|%2|P|3|%3|%4").arg(opp_sockfd).arg(opp_name).arg(index).arg(list.join("|"));
 		std::string scmd = util::fromUnicode(cmd);
 		lssproto_TD_send(const_cast<char*>(scmd.c_str()));
-		list[index] = QString("P|%1").arg(index);
+		tradelist[index] = QString("P|%1").arg(index);
 	}
-	mypet_tradeList = list;
+	mypet_tradeList = tradelist;
 }
 
 //完成交易
@@ -5938,15 +6030,22 @@ void Worker::setBattleEnd()
 	if (getWorldStatus() == 10)
 		setGameStatus(7);
 
+	Injector& injector = Injector::getInstance(getIndex());
+	bool enableLockRide = injector.getEnableHash(util::kLockRideEnable) && !injector.getEnableHash(util::kLockPetScheduleEnable);
+	bool enableLockPet = injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockPetScheduleEnable);
+	bool enableHeal = injector.getEnableHash(util::kNormalItemHealMpEnable)
+		|| injector.getEnableHash(util::kNormalItemHealEnable)
+		|| injector.getEnableHash(util::kNormalMagicHealEnable);
+
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	if (!autoLockPet_.isRunning())
+	if (!autoLockPet_.isRunning() && (enableLockRide || enableLockPet))
 		autoLockPet_ = QtConcurrent::run(this, &Worker::checkAutoLockPet);
-	if (!autoHealFuture_.isRunning())
+	if (!autoHealFuture_.isRunning() && enableHeal)
 		autoHealFuture_ = QtConcurrent::run(this, &Worker::checkAutoHeal);
 #else
-	if (!autoLockPet_.isRunning())
+	if (!autoLockPet_.isRunning() && (enableLockRide || enableLockPet))
 		autoLockPet_ = QtConcurrent::run(&Worker::checkAutoLockPet, this);
-	if (!autoHealFuture_.isRunning())
+	if (!autoHealFuture_.isRunning() && enableHeal)
 		autoHealFuture_ = QtConcurrent::run(&Worker::checkAutoHeal, this);
 #endif
 }
@@ -5964,13 +6063,14 @@ void Worker::doBattleWork(bool canDelay)
 {
 	if (canDelay)
 	{
+		//紀錄動作前的回合
+		long long recordedRound = battleCurrentRound.load(std::memory_order_acquire);
 		if (!asyncBattleAction(canDelay))
 			return;
 
-		long long recordedRound = battleCurrentRound.load(std::memory_order_acquire);
 		Injector& injector = Injector::getInstance(getIndex());
 		long long resendDelay = injector.getValueHash(util::kBattleResendDelayValue);
-		if (resendDelay >= 1000 && !battleBackupFuture_.isRunning())
+		if (resendDelay >= 1000 && battleCurrentRound.load(std::memory_order_acquire) > 0 && !battleBackupFuture_.isRunning())
 			battleBackupFuture_ = QtConcurrent::run([this, recordedRound, canDelay]()
 				{
 					//備用
@@ -6009,7 +6109,7 @@ void Worker::doBattleWork(bool canDelay)
 							break;
 						}
 
-						QThread::msleep(10);
+						QThread::msleep(100);
 					}
 
 					battleCharAlreadyActed.store(false, std::memory_order_release);
@@ -6031,8 +6131,6 @@ bool Worker::asyncBattleAction(bool canDelay)
 
 	if (isInterruptionRequested())
 		return false;
-
-	constexpr long long MAX_DELAY = 100;
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -6132,7 +6230,7 @@ bool Worker::asyncBattleAction(bool canDelay)
 //人物戰鬥
 long long Worker::playerDoBattleWork(const battledata_t& bt)
 {
-	if (hasUnMoveableStatue(bt.player.status))
+	if (hasUnMoveableStatue(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).status))
 	{
 		sendBattleCharDoNothing();
 		return 1;
@@ -6142,13 +6240,13 @@ long long Worker::playerDoBattleWork(const battledata_t& bt)
 	Injector& injector = Injector::getInstance(currentIndex);
 	do
 	{
-		if (bt.objects.isEmpty() || bt.enemies.isEmpty() || bt.allies.isEmpty() || bt.objects.value(battleCharCurrentPos).hp <= 0)
+		if (bt.objects.isEmpty() || bt.enemies.isEmpty() || bt.allies.isEmpty() || bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).hp <= 0)
 		{
 			sendBattleCharDoNothing();
 			break;
 		}
 
-		if (battleCharCurrentPos >= MAX_ENEMY
+		if (battleCharCurrentPos.load(std::memory_order_acquire) >= MAX_ENEMY
 			|| checkAND(battleBpFlag.load(std::memory_order_acquire), BATTLE_BP_PLAYER_MENU_NON)/*觀戰*/)
 		{
 			sendBattleCharDoNothing();
@@ -6186,14 +6284,14 @@ long long Worker::petDoBattleWork(const battledata_t& bt)
 	Injector& injector = Injector::getInstance(currentIndex);
 	do
 	{
-		if (bt.objects.isEmpty() || bt.enemies.isEmpty() || bt.allies.isEmpty() || bt.objects.value(battleCharCurrentPos + 5).hp <= 0)
+		if (bt.objects.isEmpty() || bt.enemies.isEmpty() || bt.allies.isEmpty() || bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp <= 0)
 		{
 			sendBattlePetDoNothing();
 			break;
 		}
 
 		//自動逃跑
-		if (hasUnMoveableStatue(bt.pet.status)
+		if (hasUnMoveableStatue(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status)
 			|| injector.getEnableHash(util::kAutoEscapeEnable)
 			|| petEscapeEnableTempFlag.load(std::memory_order_acquire)
 			|| checkAND(battleBpFlag.load(std::memory_order_acquire), BATTLE_BP_PET_MENU_NON))
@@ -6697,7 +6795,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 
 			long long min = 0;
 			long long max = (MAX_ENEMY / 2) - 1;
-			if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+			if (battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2))
 			{
 				min = MAX_ENEMY / 2;
 				max = MAX_ENEMY - 1;
@@ -6746,7 +6844,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 				if (!fallEscapeEnable)
 					break;
 
-				if (bt.player.rideFlag != 0)
+				if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).rideFlag != 0)
 					break;
 
 				sendBattleCharEscapeAct();
@@ -7636,7 +7734,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 
 				if (checkAND(targetFlags, kSelectSelf))
 				{
-					if (hasBadStatus(bt.objects.value(battleCharCurrentPos).status))
+					if (hasBadStatus(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).status))
 					{
 						ok = true;
 					}
@@ -7644,12 +7742,14 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 
 				if (checkAND(targetFlags, kSelectPet))
 				{
-					if (!ok && bt.objects.value(battleCharCurrentPos + 5).maxHp > 0)
+					if (!ok && bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
 					{
-						if (hasBadStatus(bt.objects.value(battleCharCurrentPos + 5).status) && bt.objects.value(battleCharCurrentPos + 5).hp > 0 &&
-							!checkAND(bt.objects.value(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.value(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
+						if (hasBadStatus(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status)
+							&& bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp > 0
+							&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD)
+							&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_HIDE))
 						{
-							tempTarget = battleCharCurrentPos + 5;
+							tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 							ok = true;
 						}
 					}
@@ -7658,7 +7758,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 						if (hasBadStatus(bt.objects.value(battleCharCurrentPos).status) && bt.objects.value(battleCharCurrentPos).rideHp > 0 &&
 							!checkAND(bt.objects.value(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.value(battleCharCurrentPos).status, BC_FLG_HIDE))
 						{
-							tempTarget = battleCharCurrentPos;
+							tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
 							ok = true;
 						}
 					}
@@ -8226,7 +8326,7 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 
 			long long min = 0;
 			long long max = (MAX_ENEMY / 2) - 1;
-			if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+			if (battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2))
 			{
 				min = MAX_ENEMY / 2;
 				max = MAX_ENEMY - 1;
@@ -8270,7 +8370,7 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 
 			long long min = 0;
 			long long max = (MAX_ENEMY / 2) - 1;
-			if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+			if (battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2))
 			{
 				min = MAX_ENEMY / 2;
 				max = MAX_ENEMY - 1;
@@ -8638,7 +8738,7 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 
 		if (checkAND(targetFlags, kSelectSelf))
 		{
-			if (hasBadStatus(bt.objects.value(battleCharCurrentPos).status))
+			if (hasBadStatus(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).status))
 			{
 				ok = true;
 			}
@@ -8646,12 +8746,14 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 
 		if (checkAND(targetFlags, kSelectPet))
 		{
-			if (!ok && bt.objects.value(battleCharCurrentPos + 5).maxHp > 0)
+			if (!ok && bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
 			{
-				if (hasBadStatus(bt.objects.value(battleCharCurrentPos + 5).status) && bt.objects.value(battleCharCurrentPos + 5).hp > 0 &&
-					!checkAND(bt.objects.value(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.value(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
+				if (hasBadStatus(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status)
+					&& bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp > 0
+					&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD)
+					&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_HIDE))
 				{
-					tempTarget = battleCharCurrentPos + 5;
+					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 					ok = true;
 				}
 			}
@@ -8660,7 +8762,7 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 				if (hasBadStatus(bt.objects.value(battleCharCurrentPos).status) && bt.objects.value(battleCharCurrentPos).rideHp > 0 &&
 					!checkAND(bt.objects.value(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.value(battleCharCurrentPos).status, BC_FLG_HIDE))
 				{
-					tempTarget = battleCharCurrentPos;
+					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
 					ok = true;
 				}
 			}
@@ -8728,7 +8830,7 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 				if (bt.objects.value(battleCharCurrentPos + 5).hpPercent <= petPercent && bt.objects.value(battleCharCurrentPos + 5).hp > 0 &&
 					!checkAND(bt.objects.value(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.value(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
 				{
-					tempTarget = battleCharCurrentPos + 5;
+					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 					ok = true;
 				}
 			}
@@ -8737,7 +8839,7 @@ void Worker::handlePetBattleLogics(const battledata_t& bt)
 				if (bt.objects.value(battleCharCurrentPos).rideHpPercent <= petPercent && bt.objects.value(battleCharCurrentPos).rideHp > 0 &&
 					!checkAND(bt.objects.value(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.value(battleCharCurrentPos).status, BC_FLG_HIDE))
 				{
-					tempTarget = battleCharCurrentPos;
+					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
 					ok = true;
 				}
 			}
@@ -9936,8 +10038,8 @@ void Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 	{
 		//不可補敵方
 		if (target >= bt.enemymin && target <= bt.enemymax
-			|| (battleCharCurrentPos < 10 && target == TARGET_SIDE_1)
-			|| (battleCharCurrentPos >= 10 && target == TARGET_SIDE_0))
+			|| (battleCharCurrentPos.load(std::memory_order_acquire) < 10 && target == TARGET_SIDE_1)
+			|| (battleCharCurrentPos.load(std::memory_order_acquire) >= 10 && target == TARGET_SIDE_0))
 			return;
 
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
@@ -9988,8 +10090,8 @@ void Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 	{
 		//不可補敵方
 		if (target >= bt.enemymin && target <= bt.enemymax
-			|| (battleCharCurrentPos < 10 && target == TARGET_SIDE_1)
-			|| (battleCharCurrentPos >= 10 && target == TARGET_SIDE_0))
+			|| (battleCharCurrentPos.load(std::memory_order_acquire) < 10 && target == TARGET_SIDE_1)
+			|| (battleCharCurrentPos.load(std::memory_order_acquire) >= 10 && target == TARGET_SIDE_0))
 			return;
 
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
@@ -10045,8 +10147,8 @@ void Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 	{
 		//不可補敵方
 		if (target >= bt.enemymin && target <= bt.enemymax
-			|| (battleCharCurrentPos < 10 && target == TARGET_SIDE_1)
-			|| (battleCharCurrentPos >= 10 && target == TARGET_SIDE_0))
+			|| (battleCharCurrentPos.load(std::memory_order_acquire) < 10 && target == TARGET_SIDE_1)
+			|| (battleCharCurrentPos.load(std::memory_order_acquire) >= 10 && target == TARGET_SIDE_0))
 			return;
 
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
@@ -10070,7 +10172,7 @@ void Worker::sendBattleCharDefenseAct()
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.updateLabelCharAction(text);
-	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos, QColor("#CCB157"));
+	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.load(std::memory_order_acquire), QColor("#CCB157"));
 
 	const QString qcmd("G");
 	lssproto_B_send(qcmd);
@@ -10158,7 +10260,7 @@ void Worker::sendBattleCharDoNothing()
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	emit signalDispatcher.updateLabelCharAction(text);
-	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos, QColor("#696969"));
+	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.load(std::memory_order_acquire), QColor("#696969"));
 
 	const QString qcmd("N");
 	lssproto_B_send(qcmd);
@@ -10205,13 +10307,13 @@ void Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	if (petSkill.name.contains("防"))//防禦
-		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos, QColor("#CCB157"));
+		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.load(std::memory_order_acquire), QColor("#CCB157"));
 	else if (petSkill.memo.contains("力回"))//補血
 	{
 		//不可補敵方
 		if (target >= bt.enemymin && target <= bt.enemymax
-			|| (battleCharCurrentPos < 10 && target == TARGET_SIDE_1)
-			|| (battleCharCurrentPos >= 10 && target == TARGET_SIDE_0))
+			|| (battleCharCurrentPos.load(std::memory_order_acquire) < 10 && target == TARGET_SIDE_1)
+			|| (battleCharCurrentPos.load(std::memory_order_acquire) >= 10 && target == TARGET_SIDE_0))
 			return;
 
 		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
@@ -10242,7 +10344,7 @@ void Worker::sendBattlePetDoNothing()
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.updateLabelPetAction(text);
-	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos + 5, QColor("#696969"));
+	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.load(std::memory_order_acquire) + 5, QColor("#696969"));
 
 	const QString qcmd("W|FF|FF");
 	lssproto_B_send(qcmd);
@@ -10300,10 +10402,10 @@ void Worker::lssproto_PR_recv(int request, int result)
 void Worker::lssproto_EV_recv(int dialogid, int result)
 {
 	//对客户端的EV事件进行回应。在收到此回应之前，客户端将无法执行其他动作，如行走等。
-
+	std::ignore = dialogid;
+	std::ignore = result;
 	std::ignore = getFloorName();
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
 	long long floor = getFloor();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.updateNpcList(floor);
@@ -10463,16 +10565,23 @@ void Worker::lssproto_RS_recv(char* cdata)
 
 	setBattleEnd();
 
+	long long currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	if (!dropMeatFuture_.isRunning())
+	if (!dropMeatFuture_.isRunning() && injector.getEnableHash(util::kAutoDropMeatEnable))
 		dropMeatFuture_ = QtConcurrent::run(this, &Worker::checkAutoDropMeat);
-	if (!autoAbilityFuture_.isRunning())
+	if (!autoAbilityFuture_.isRunning() && injector.getEnableHash(util::kAutoAbilityEnable))
 		autoAbilityFuture_ = QtConcurrent::run(this, &Worker::checkAutoAbility);
+	if (!autoDropPetFuture_.isRunning() && injector.getEnableHash(util::kDropPetEnable))
+		autoDropPetFuture_ = QtConcurrent::run(this, &Worker::checkAutoDropPet);
 #else
-	if (!dropMeatFuture_.isRunning())
+	if (!dropMeatFuture_.isRunning() && injector.getEnableHash(util::kAutoDropMeatEnable))
 		dropMeatFuture_ = QtConcurrent::run(&Worker::checkAutoDropMeat, this);
-	if (!autoAbilityFuture_.isRunning())
+	if (!autoAbilityFuture_.isRunning() && injector.getEnableHash(util::kAutoAbilityEnable))
 		autoAbilityFuture_ = QtConcurrent::run(&Worker::checkAutoAbility, this);
+	if (!autoDropPetFuture_.isRunning() && injector.getEnableHash(util::kDropPetEnable))
+		autoDropPetFuture_ = QtConcurrent::run(&Worker::checkAutoDropPet, this);
 #endif
 
 	long long i;
@@ -10592,8 +10701,6 @@ void Worker::lssproto_RS_recv(char* cdata)
 		texts.append(itemsList);
 	}
 
-	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
 	if (!texts.isEmpty() && injector.getEnableHash(util::kShowExpEnable))
 		announce(texts.join(" "));
 }
@@ -10637,8 +10744,6 @@ void Worker::lssproto_I_recv(char* cdata)
 		QString name2;
 		QString memo;
 		//char *data = "9|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20||10|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20|";
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 		QHash <long long, ITEM> items = item_.toHash();
 		for (j = 0; ; ++j)
@@ -10878,11 +10983,9 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 		return;
 	}
 
-	for (const QString& it : BankItemList)
-	{
-		if (!data.contains("寄放店", Qt::CaseInsensitive))
-			continue;
 
+	if (data.contains("寄放店", Qt::CaseInsensitive))
+	{
 		currentBankItemList.clear();
 		long long index = 0;
 		for (;;)
@@ -10904,7 +11007,6 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 		}
 		IS_WAITFOR_BANK_FLAG.store(false, std::memory_order_release);
 		return;
-
 	}
 
 	//匹配額外訊息
@@ -10990,8 +11092,6 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 	{
 		if (data.contains(it, Qt::CaseInsensitive))
 		{
-			long long currentIndex = getIndex();
-			Injector& injector = Injector::getInstance(currentIndex);
 			injector.sendMessage(kDistoryDialog, NULL, NULL);
 			return;
 		}
@@ -11006,8 +11106,6 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 		if (!securityCode.isEmpty())
 		{
 			unlockSecurityCode(securityCode);
-			long long currentIndex = getIndex();
-			Injector& injector = Injector::getInstance(currentIndex);
 			injector.sendMessage(kDistoryDialog, NULL, NULL);
 			return;
 		}
@@ -11054,7 +11152,7 @@ void Worker::lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, in
 		long long id;
 		long long x;
 		long long y;
-		long long dir;
+		long long ldir;
 		long long modelid;
 		long long level;
 		long long nameColor;
@@ -11073,7 +11171,7 @@ void Worker::lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, in
 		getStringToken(data, "|", ps++, smalltoken);
 		y = smalltoken.toLongLong();
 		getStringToken(data, "|", ps++, smalltoken);
-		dir = (smalltoken.toLongLong() + 3) % 8;
+		ldir = (smalltoken.toLongLong() + 3) % 8;
 		getStringToken(data, "|", ps++, smalltoken);
 		modelid = smalltoken.toLongLong();
 		getStringToken(data, "|", ps++, smalltoken);
@@ -11247,8 +11345,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 		battleBpFlag.store(list.value(1).toLongLong(nullptr, 16), std::memory_order_release);
 		battleCharCurrentMp.store(list.value(2).toLongLong(nullptr, 16), std::memory_order_release);
 
-		bt.player.pos = battleCharCurrentPos;
-
 		{
 			pc_.mp = battleCharCurrentMp.load(std::memory_order_acquire);
 			pc_.mpPercent = util::percent(pc_.mp, pc_.maxMp);
@@ -11337,9 +11433,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		bt.allies.clear();
 		bt.enemies.clear();
-		bt.fieldAttr = 0;
-		bt.pet = {};
-		bt.player = {};
 		bt.objects.clear();
 		bt.objects.resize(MAX_ENEMY);
 
@@ -11358,8 +11451,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 		bool ok = false;
 		bool valid = false;
 
-		bt.fieldAttr = getIntegerToken(data, "|", 1);
-		battleField.store(bt.fieldAttr, std::memory_order_release);
+		battleField.store(getIntegerToken(data, "|", 1), std::memory_order_release);
 
 		{
 			QHash<long long, PET> pets = pet_.toHash();
@@ -11368,7 +11460,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 			for (;;)
 			{
 				/*
-				16進制使用 a62toi
 				string 使用 getStringToken(data, "|", n, var);
 				而後使用 makeStringFromEscaped(var) 處理轉譯
 
@@ -11461,21 +11552,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 				if (battleCharCurrentPos.load(std::memory_order_acquire) == pos)
 				{
-					bt.player.pos = pos;
-					bt.player.name = obj.name;
-					bt.player.freeName = obj.freeName;
-					bt.player.modelid = obj.modelid;
-					bt.player.level = obj.level;
-					bt.player.hp = obj.hp;
-					bt.player.maxHp = obj.maxHp;
-					bt.player.hpPercent = obj.hpPercent;
-					bt.player.status = obj.status;
-					bt.player.rideFlag = obj.rideFlag;
-					bt.player.rideName = obj.rideName;
-					bt.player.rideLevel = obj.rideLevel;
-					bt.player.rideHp = obj.rideHp;
-					bt.player.rideMaxHp = obj.rideMaxHp;
-
 					pc_.hp = obj.hp;
 					pc_.maxHp = obj.maxHp;
 					pc_.hpPercent = util::percent(obj.hp, obj.maxHp);
@@ -11646,21 +11722,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 						if (pc_.battlePetNo >= 0 && pc_.battlePetNo < MAX_PET)
 						{
-							bt.pet.pos = obj.pos;
-							bt.pet.name = obj.name;
-							bt.pet.freeName = obj.freeName;
-							bt.pet.modelid = obj.modelid;
-							bt.pet.level = obj.level;
-							bt.pet.hp = obj.hp;
-							bt.pet.maxHp = obj.maxHp;
-							bt.pet.hpPercent = obj.hpPercent;
-							bt.pet.status = obj.status;
-							bt.pet.rideFlag = obj.rideFlag;
-							bt.pet.rideName = obj.rideName;
-							bt.pet.rideLevel = obj.rideLevel;
-							bt.pet.rideHp = obj.rideHp;
-							bt.pet.rideMaxHp = obj.rideMaxHp;
-
 							pets[pc_.battlePetNo].hp = obj.hp;
 							pets[pc_.battlePetNo].maxHp = obj.maxHp;
 							pets[pc_.battlePetNo].hpPercent = obj.hpPercent;
@@ -11685,7 +11746,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 		//切換標誌為可動作狀態
 		battleCharAlreadyActed.store(false, std::memory_order_release);
 		battlePetAlreadyActed.store(false, std::memory_order_release);
-
+		doBattleWork(true);
 		break;
 	}
 	case 'U':
@@ -12481,7 +12542,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 					QString tellName;
 					QString szMsgBuf;
 					QString temp = QObject::tr("Tell you:");
-					int found = msg.indexOf(temp);
+					long long found = msg.indexOf(temp);
 
 					if (found != -1)
 					{
@@ -15163,7 +15224,7 @@ void Worker::findPathAsync(const QPoint& dst)
 		bool bret = false;
 		if (getBattleFlag())
 		{
-			QElapsedTimer timer; timer.start();
+			QElapsedTimer stimer; stimer.start();
 			bret = true;
 			for (;;)
 			{
@@ -15183,7 +15244,7 @@ void Worker::findPathAsync(const QPoint& dst)
 				if (!getBattleFlag())
 					break;
 
-				if (timer.hasExpired(180000))
+				if (stimer.hasExpired(180000))
 					break;
 
 				QThread::msleep(100);

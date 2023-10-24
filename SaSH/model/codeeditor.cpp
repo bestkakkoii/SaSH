@@ -436,7 +436,7 @@ void CodeEditor::commentSwitch()
 
 void CodeEditor::jumpToLineDialog()
 {
-	QSharedPointer<int> pline(QSharedPointer<int>::create(1));
+	QSharedPointer<long long> pline(QSharedPointer<long long>::create(1));
 	if (pline.isNull())
 		return;
 

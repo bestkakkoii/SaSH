@@ -2406,9 +2406,9 @@ namespace zipper
 		if (size == 0) return 0;
 		TZip* zip = (TZip*)param; return zip->write(buf, size);
 	}
-	unsigned int TZip::write(const char* buf, unsigned int size)
+	unsigned int TZip::write(const char* cbuf, unsigned int size)
 	{
-		const char* srcbuf = buf;
+		const char* srcbuf = cbuf;
 		if (encwriting)
 		{
 			if (encbuf != 0 && encbufsize < size) { delete[] encbuf; encbuf = 0; }
@@ -2426,8 +2426,9 @@ namespace zipper
 		}
 		else if (hfout != 0)
 		{
-			DWORD writ; WriteFile(hfout, srcbuf, size, &writ, NULL);
-			return writ;
+			DWORD dwrit;
+			WriteFile(hfout, srcbuf, size, &dwrit, NULL);
+			return dwrit;
 		}
 		oerr = ZR_NOTINITED; return 0;
 	}
@@ -2488,8 +2489,8 @@ namespace zipper
 	{
 		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
 		if (hf == 0 || hf == INVALID_HANDLE_VALUE) return ZR_ARGS;
-		DWORD res = SetFilePointer(hfout, 0, 0, FILE_CURRENT);
-		if (res != 0xFFFFFFFF)
+		DWORD dwres = SetFilePointer(hfout, 0, 0, FILE_CURRENT);
+		if (dwres != 0xFFFFFFFF)
 		{
 			ZRESULT res = GetFileInfo(hf, &attr, &isize, &times, &timestamp);
 			if (res != ZR_OK) return res;
@@ -2553,26 +2554,26 @@ namespace zipper
 		return zip->read(buf, size);
 	}
 
-	unsigned TZip::read(char* buf, unsigned size)
+	unsigned TZip::read(char* cbuf, unsigned size)
 	{
 		if (bufin != 0)
 		{
 			if (posin >= lenin) return 0; // end of input
 			ulg red = lenin - posin;
 			if (red > size) red = size;
-			memcpy(buf, bufin + posin, red);
+			memcpy(cbuf, bufin + posin, red);
 			posin += red;
 			ired += red;
-			crc = crc32(crc, (uch*)buf, red);
+			crc = crc32(crc, (uch*)cbuf, red);
 			return red;
 		}
 		else if (hfin != 0)
 		{
 			DWORD red;
-			BOOL ok = ReadFile(hfin, buf, size, &red, NULL);
+			BOOL ok = ReadFile(hfin, cbuf, size, &red, NULL);
 			if (!ok) return 0;
 			ired += red;
-			crc = crc32(crc, (uch*)buf, red);
+			crc = crc32(crc, (uch*)cbuf, red);
 			return red;
 		}
 		else { oerr = ZR_NOTINITED; return 0; }
@@ -2728,10 +2729,10 @@ namespace zipper
 		for (const char* cp = password; cp != 0 && *cp != 0; cp++) update_keys(keys, *cp);
 		// generate some random bytes
 		if (!has_seeded) srand(static_cast<int>(GetTickCount64() ^ (unsigned long long)GetDesktopWindow()));
-		char encbuf[12]; for (int i = 0; i < 12; i++) encbuf[i] = (char)((rand() >> 7) & 0xff);
-		encbuf[11] = (char)((zfi.tim >> 8) & 0xff);
-		for (int ei = 0; ei < 12; ei++) encbuf[ei] = zencode(keys, encbuf[ei]);
-		if (password != 0 && !isdir) { swrite(this, encbuf, 12); writ += 12; }
+		char cencbuf[12] = {}; for (int i = 0; i < 12; i++) cencbuf[i] = (char)((rand() >> 7) & 0xff);
+		cencbuf[11] = (char)((zfi.tim >> 8) & 0xff);
+		for (int ei = 0; ei < 12; ei++) cencbuf[ei] = zencode(keys, cencbuf[ei]);
+		if (password != 0 && !isdir) { swrite(this, cencbuf, 12); writ += 12; }
 
 		//(2) Write deflated/stored file to zip file
 		ZRESULT writeres = ZR_OK;

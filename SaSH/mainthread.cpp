@@ -106,8 +106,6 @@ void UniqueIdManager::deallocateUniqueId(long long id)
 	QSystemSemaphore semaphore("UniqueIdManagerSystemSemaphore", 1, QSystemSemaphore::Open);
 	semaphore.acquire();
 
-	long long allocatedId = -1;
-
 	// 嘗試連接到共享內存，如果不存在則創建
 	if (g_sharedMemory.key().isEmpty())
 	{
@@ -223,7 +221,7 @@ void UniqueIdManager::updateSharedMemory(const QSet<long long>& allocatedIds)
 	QJsonArray idArray;
 	for (long long id : allocatedIds)
 	{
-		idArray.append(static_cast<int>(id));
+		idArray.append(id);
 	}
 
 	obj[jsonKey_] = idArray;
@@ -246,6 +244,7 @@ void UniqueIdManager::updateSharedMemory(const QSet<long long>& allocatedIds)
 
 bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* parent)
 {
+	std::ignore = parent;
 	QMutexLocker locker(&mutex_);
 	if (threads_.contains(index))
 		return false;
@@ -345,7 +344,7 @@ void MainObject::run()
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	Injector::process_information_t process_info;
-	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
+	remove_thread_reason = util::REASON_NO_ERROR;
 	QElapsedTimer timer; timer.start();
 	do
 	{
@@ -407,18 +406,6 @@ void MainObject::run()
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
-		for (long long i = 0; i < MissionThread::kMaxAutoMission; ++i)
-		{
-			if (autoThreads_.value(i) != nullptr)
-				continue;
-
-			autoThreads_[i] = new MissionThread(currentIndex, i);
-			if (autoThreads_[i] == nullptr)
-				continue;
-
-			autoThreads_[i]->start();
-		}
-
 		//進入主循環
 		mainProc();
 	} while (false);
@@ -460,19 +447,16 @@ void MainObject::mainProc()
 {
 	Injector& injector = Injector::getInstance(getIndex());
 	QElapsedTimer freeMemTimer; freeMemTimer.start();
-	QElapsedTimer freeSelfMemTimer; freeSelfMemTimer.start();
 
 	mem::freeUnuseMemory(injector.getProcess());
 
 	bool nodelay = false;
 	for (;;)
 	{
-		if (nodelay)
-		{
-			nodelay = false;
-		}
+		if (!nodelay)
+			QThread::msleep(100);
 		else
-			QThread::msleep(200);
+			nodelay = false;
 
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
@@ -501,16 +485,20 @@ void MainObject::mainProc()
 		else
 			freeMemTimer.restart();
 
-		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeSelfMemTimer.hasExpired(60ll * 60ll * 1000ll))
-		{
-			freeSelfMemTimer.restart();
-			injector.worker->mapAnalyzer.clear();
-		}
-		else
-			freeSelfMemTimer.restart();
-
 		//有些數據需要和客戶端內存同步
 		injector.worker->updateDatasFromMemory();
+
+		injector.worker->setWindowTitle(injector.getStringHash(util::kTitleFormatString));
+
+		//異步加速
+		long long value = injector.getValueHash(util::kSpeedBoostValue);
+		if (flagSetBoostValue_ != value)
+		{
+			flagSetBoostValue_ = value;
+			injector.postMessage(kSetBoostSpeed, true, flagSetBoostValue_);
+		}
+
+		checkControl();
 
 		//其他所有功能
 		long long status = checkAndRunFunctions();
@@ -519,19 +507,121 @@ void MainObject::mainProc()
 		if (status == 1)//非登入狀態
 		{
 			if (!isFirstLogin_)
-				QThread::msleep(800);
+				QThread::msleep(1000);
 			else
-				QThread::msleep(10);
+				QThread::msleep(50);
 			nodelay = true;
 		}
 		else if (status == 2)//平時
 		{
+			//登出按下，異步登出
+			if (injector.getEnableHash(util::kLogOutEnable))
+			{
+				injector.setEnableHash(util::kLogOutEnable, false);
+				if (!injector.worker.isNull())
+					injector.worker->logOut();
+			}
 
+			//回點按下，異步回點
+			if (injector.getEnableHash(util::kLogBackEnable))
+			{
+				injector.setEnableHash(util::kLogBackEnable, false);
+				if (!injector.worker.isNull())
+					injector.worker->logBack();
+			}
+
+			//EO按下，異步發送EO
+			if (injector.getEnableHash(util::kEchoEnable))
+			{
+				injector.setEnableHash(util::kEchoEnable, false);
+				if (!injector.worker.isNull())
+					injector.worker->EO();
+			}
+
+			//異步快速走路
+			bool bChecked = injector.getEnableHash(util::kFastWalkEnable);
+			if (flagFastWalkEnable_ != bChecked)
+			{
+				flagFastWalkEnable_ = bChecked;
+				injector.postMessage(kEnableFastWalk, bChecked, NULL);
+			}
+
+			//異步橫衝直撞 (穿牆)
+			bChecked = injector.getEnableHash(util::kPassWallEnable);
+			if (flagPassWallEnable_ != bChecked)
+			{
+				flagPassWallEnable_ = bChecked;
+				injector.postMessage(kEnablePassWall, bChecked, NULL);
+			}
+
+			//異步鎖定畫面
+			bChecked = injector.getEnableHash(util::kLockImageEnable);
+			if (flagLockImageEnable_ != bChecked)
+			{
+				flagLockImageEnable_ = bChecked;
+				injector.postMessage(kEnableImageLock, bChecked, NULL);
+			}
+
+			//異步資源優化
+			bChecked = injector.getEnableHash(util::kOptimizeEnable);
+			if (flagOptimizeEnable_ != bChecked)
+			{
+				flagOptimizeEnable_ = bChecked;
+				injector.postMessage(kEnableOptimize, bChecked, NULL);
+			}
+
+			//異步關閉特效
+			bChecked = injector.getEnableHash(util::kCloseEffectEnable);
+			if (flagCloseEffectEnable_ != bChecked)
+			{
+				flagCloseEffectEnable_ = bChecked;
+				injector.postMessage(kEnableEffect, !bChecked, NULL);
+			}
+
+			//異步鎖定時間
+			bChecked = injector.getEnableHash(util::kLockTimeEnable);
+			value = injector.getValueHash(util::kLockTimeValue);
+			if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
+			{
+				flagLockTimeEnable_ = bChecked;
+				flagLockTimeValue_ = value;
+				injector.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
+			}
+
+			//隱藏人物按下，異步隱藏
+			bChecked = injector.getEnableHash(util::kHideCharacterEnable);
+			if (flagHideCharacterEnable_ != bChecked)
+			{
+				flagHideCharacterEnable_ = bChecked;
+				injector.postMessage(kEnableCharShow, !bChecked, NULL);
+			}
+
+			//快速戰鬥，阻止戰鬥封包
+			bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
+			if (flagFastBattleEnable_ != bCheckedFastBattle)
+			{
+				flagFastBattleEnable_ = bCheckedFastBattle;
+				injector.sendMessage(kSetBlockPacket, bCheckedFastBattle, NULL);
+			}
 		}
 		else if (status == 3)//戰鬥中
 		{
-			QThread::msleep(10);
-			nodelay = true;
+			//異步戰鬥99秒
+			bool bChecked = injector.getEnableHash(util::kBattleTimeExtendEnable);
+			if (flagBattleTimeExtendEnable_ != bChecked)
+			{
+				flagBattleTimeExtendEnable_ = bChecked;
+				injector.postMessage(kBattleTimeExtend, bChecked, NULL);
+			}
+
+			//戰鬥面板開關，當非快戰狀態下，只要打開自動戰鬥或快速戰鬥都禁用戰鬥面板
+			bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
+			bChecked = injector.getEnableHash(util::kAutoBattleEnable) || bCheckedFastBattle;
+			if (flagBattleDialogEnable_ != !bChecked)
+			{
+				flagBattleDialogEnable_ = !bChecked;
+				injector.sendMessage(kEnableBattleDialog, !bChecked, NULL);
+			}
 		}
 		else//錯誤
 		{
@@ -597,11 +687,12 @@ void MainObject::inGameInitialize()
 
 long long MainObject::checkAndRunFunctions()
 {
-	Injector& injector = Injector::getInstance(getIndex());
+	long long currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.worker.isNull())
 		return 0;
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	long long status = injector.worker->getUnloginStatus();
 
@@ -611,10 +702,6 @@ long long MainObject::checkAndRunFunctions()
 	}
 	else
 	{
-		//檢查UI的設定是否有變化
-		checkControl();
-		injector.worker->setWindowTitle(injector.getStringHash(util::kTitleFormatString));
-
 		switch (status)
 		{
 		default:
@@ -663,13 +750,29 @@ long long MainObject::checkAndRunFunctions()
 		login_run_once_flag_ = false;
 		inGameInitialize();
 
+		//首次登入標誌
 		if (isFirstLogin_)
 			isFirstLogin_ = false;
 	}
 
 	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.worker->loginTimer.elapsed(), true));
 
+	//更新掛機數據到UI
 	updateAfkInfos();
+
+	//批次開啟子任務線程
+	for (long long i = 0; i < MissionThread::kMaxAutoMission; ++i)
+	{
+		if (autoThreads_.value(i) != nullptr)
+		{
+			autoThreads_[i] = new MissionThread(currentIndex, i);
+			if (autoThreads_[i] == nullptr)
+				continue;
+		}
+
+		if (!autoThreads_[i]->isRunning())
+			autoThreads_[i]->start();
+	}
 
 	//平時
 	if (!injector.worker->getBattleFlag())
@@ -697,8 +800,6 @@ long long MainObject::checkAndRunFunctions()
 
 		return 3;
 	}
-
-	return 1;
 }
 
 void MainObject::updateAfkInfos()
@@ -709,29 +810,28 @@ void MainObject::updateAfkInfos()
 		return;
 
 	long long duration = injector.worker->loginTimer.elapsed();
-	signalDispatcher.updateAfkInfoTable(0, util::formatMilliseconds(duration));
+	emit signalDispatcher.updateAfkInfoTable(0, util::formatMilliseconds(duration));
 
 	util::AfkRecorder recorder = injector.worker->recorder[0];
 
 	long long avgLevelPerHour = 0;
 	if (duration > 0 && recorder.leveldifference > 0)
 		avgLevelPerHour = recorder.leveldifference * 3600000.0 / duration;
-	signalDispatcher.updateAfkInfoTable(2, QString(tr("%1→%2 (avg level: %3)"))
+	emit signalDispatcher.updateAfkInfoTable(2, QString(tr("%1→%2 (avg level: %3)"))
 		.arg(recorder.levelrecord).arg(recorder.levelrecord + recorder.leveldifference).arg(avgLevelPerHour));
 
 	long long avgExpPerHour = 0;
 	if (duration > 0 && recorder.expdifference > 0)
 		avgExpPerHour = recorder.expdifference * 3600000.0 / duration;
 
-	signalDispatcher.updateAfkInfoTable(3, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
+	emit signalDispatcher.updateAfkInfoTable(3, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
 
-	signalDispatcher.updateAfkInfoTable(4, util::toQString(recorder.deadthcount));
-
+	emit signalDispatcher.updateAfkInfoTable(4, util::toQString(recorder.deadthcount));
 
 	long long avgGoldPerHour = 0;
 	if (duration > 0 && recorder.goldearn > 0)
 		avgGoldPerHour = recorder.goldearn * 3600000.0 / duration;
-	signalDispatcher.updateAfkInfoTable(5, tr("%1 (avg gold: %2)").arg(recorder.goldearn).arg(avgGoldPerHour));
+	emit signalDispatcher.updateAfkInfoTable(5, tr("%1 (avg gold: %2)").arg(recorder.goldearn).arg(avgGoldPerHour));
 
 	constexpr long long n = 7;
 	long long j = 0;
@@ -743,21 +843,19 @@ void MainObject::updateAfkInfos()
 		if (duration > 0 && recorder.leveldifference > 0)
 			avgExpPerHour = recorder.leveldifference * 3600000.0 / duration;
 
-		signalDispatcher.updateAfkInfoTable(i + n + j, QString(tr("%1→%2 (avg level: %3)"))
+		emit signalDispatcher.updateAfkInfoTable(i + n + j, QString(tr("%1→%2 (avg level: %3)"))
 			.arg(recorder.levelrecord).arg(recorder.levelrecord + recorder.leveldifference).arg(avgExpPerHour));
 
 		avgExpPerHour = 0;
 		if (duration > 0 && recorder.expdifference > 0)
 			avgExpPerHour = recorder.expdifference * 3600000.0 / duration;
-		signalDispatcher.updateAfkInfoTable(i + n + 1 + j, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
+		emit signalDispatcher.updateAfkInfoTable(i + n + 1 + j, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
 
-		signalDispatcher.updateAfkInfoTable(i + n + 2 + j, util::toQString(recorder.deadthcount));
+		emit signalDispatcher.updateAfkInfoTable(i + n + 2 + j, util::toQString(recorder.deadthcount));
 
-
-		signalDispatcher.updateAfkInfoTable(i + n + 3 + j, "");
+		emit signalDispatcher.updateAfkInfoTable(i + n + 3 + j, "");
 
 		j += 3;
-
 	}
 }
 
@@ -768,145 +866,18 @@ void MainObject::checkControl()
 	if (injector.worker.isNull())
 		return;
 
-	long long value = 0;
-
-	//隱藏人物按下，異步隱藏
-	bool bChecked = injector.getEnableHash(util::kHideCharacterEnable);
-	if (flagHideCharacterEnable_ != bChecked)
-	{
-		flagHideCharacterEnable_ = bChecked;
-		injector.postMessage(kEnableCharShow, !bChecked, NULL);
-	}
-
 	if (!injector.worker->getOnlineFlag())
 		return;
-
-	//登出按下，異步登出
-	if (injector.getEnableHash(util::kLogOutEnable))
-	{
-		injector.setEnableHash(util::kLogOutEnable, false);
-		if (!injector.worker.isNull())
-			injector.worker->logOut();
-	}
-
-	//回點按下，異步回點
-	if (injector.getEnableHash(util::kLogBackEnable))
-	{
-		injector.setEnableHash(util::kLogBackEnable, false);
-		if (!injector.worker.isNull())
-			injector.worker->logBack();
-	}
-
-	//EO按下，異步發送EO
-	if (injector.getEnableHash(util::kEchoEnable))
-	{
-		injector.setEnableHash(util::kEchoEnable, false);
-		if (!injector.worker.isNull())
-			injector.worker->EO();
-	}
-
-	//////////////////////////////
-
-	//異步加速
-	value = injector.getValueHash(util::kSpeedBoostValue);
-	if (flagSetBoostValue_ != value)
-	{
-		flagSetBoostValue_ = value;
-		injector.postMessage(kSetBoostSpeed, true, flagSetBoostValue_);
-	}
-
-	//異步快速走路
-	bChecked = injector.getEnableHash(util::kFastWalkEnable);
-	if (flagFastWalkEnable_ != bChecked)
-	{
-		flagFastWalkEnable_ = bChecked;
-		injector.postMessage(kEnableFastWalk, bChecked, NULL);
-	}
-
-	//異步橫衝直撞 (穿牆)
-	bChecked = injector.getEnableHash(util::kPassWallEnable);
-	if (flagPassWallEnable_ != bChecked)
-	{
-		flagPassWallEnable_ = bChecked;
-		injector.postMessage(kEnablePassWall, bChecked, NULL);
-	}
-
-	//異步鎖定畫面
-	bChecked = injector.getEnableHash(util::kLockImageEnable);
-	if (flagLockImageEnable_ != bChecked)
-	{
-		flagLockImageEnable_ = bChecked;
-		injector.postMessage(kEnableImageLock, bChecked, NULL);
-	}
-
-	//異步戰鬥99秒
-	bChecked = injector.getEnableHash(util::kBattleTimeExtendEnable);
-	if (flagBattleTimeExtendEnable_ != bChecked)
-	{
-		flagBattleTimeExtendEnable_ = bChecked;
-		injector.postMessage(kBattleTimeExtend, bChecked, NULL);
-	}
-
-	//異步資源優化
-	bChecked = injector.getEnableHash(util::kOptimizeEnable);
-	if (flagOptimizeEnable_ != bChecked)
-	{
-		flagOptimizeEnable_ = bChecked;
-		injector.postMessage(kEnableOptimize, bChecked, NULL);
-	}
-
-	//自動戰鬥，異步戰鬥面板開關
-	bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-	bChecked = injector.getEnableHash(util::kAutoBattleEnable) || bCheckedFastBattle;
-	if (bChecked)
-	{
-		flagBattleDialogEnable_ = false;
-		injector.postMessage(kEnableBattleDialog, false, NULL);
-	}
-	else if (!bChecked && !flagBattleDialogEnable_)
-	{
-		flagBattleDialogEnable_ = true;
-		injector.postMessage(kEnableBattleDialog, true, NULL);
-	}
-
-	//快速戰鬥，異步阻止戰鬥封包
-	long long W = injector.worker->getWorldStatus();
-	if (bCheckedFastBattle && W == 9) //如果有開啟快速戰鬥，且畫面不在戰鬥中
-	{
-		injector.postMessage(kSetBlockPacket, true, NULL);
-	}
-	else
-	{
-		injector.postMessage(kSetBlockPacket, false, NULL);
-	}
-
-	//異步關閉特效
-	bChecked = injector.getEnableHash(util::kCloseEffectEnable);
-	if (flagCloseEffectEnable_ != bChecked)
-	{
-		flagCloseEffectEnable_ = bChecked;
-		injector.postMessage(kEnableEffect, !bChecked, NULL);
-	}
-
-	//異步鎖定時間
-	bChecked = injector.getEnableHash(util::kLockTimeEnable);
-	value = injector.getValueHash(util::kLockTimeValue);
-	if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
-	{
-		flagLockTimeEnable_ = bChecked;
-		flagLockTimeValue_ = value;
-		injector.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
-	}
 
 	if (injector.worker->loginTimer.elapsed() < 10000)
 		return;
 
 	//異步關閉聲音
-	bChecked = injector.getEnableHash(util::kMuteEnable);
+	bool bChecked = injector.getEnableHash(util::kMuteEnable);
 	if (flagMuteEnable_ != bChecked)
 	{
 		flagMuteEnable_ = bChecked;
-		injector.postMessage(kEnableSound, !bChecked, NULL);
+		injector.sendMessage(kEnableSound, !bChecked, NULL);
 	}
 }
 
@@ -1022,24 +993,25 @@ MissionThread::MissionThread(long long index, long long type, QObject* parent)
 	switch (type)
 	{
 	case kAutoJoin:
-		connect(this, &MissionThread::start, this, &MissionThread::autoJoin);
+		connect(this, &MissionThread::start, this, &MissionThread::autoJoin, Qt::QueuedConnection);
 		break;
 	case kAutoWalk:
-		connect(this, &MissionThread::start, this, &MissionThread::autoWalk);
-		break;
-	case kAutoDropPet:
-		connect(this, &MissionThread::start, this, &MissionThread::autoDropPet);
+		connect(this, &MissionThread::start, this, &MissionThread::autoWalk, Qt::QueuedConnection);
 		break;
 	case kAutoSortItem:
-		connect(this, &MissionThread::start, this, &MissionThread::autoSortItem);
+		connect(this, &MissionThread::start, this, &MissionThread::autoSortItem, Qt::QueuedConnection);
 		break;
 	case kAutoRecordNPC:
-		connect(this, &MissionThread::start, this, &MissionThread::autoRecordNPC);
+		connect(this, &MissionThread::start, this, &MissionThread::autoRecordNPC, Qt::QueuedConnection);
 		break;
 	case kAsyncFindPath:
-		connect(this, &MissionThread::start, this, &MissionThread::asyncFindPath);
+		connect(this, &MissionThread::start, this, &MissionThread::asyncFindPath, Qt::QueuedConnection);
 		break;
 	}
+
+	connect(&thread_, &QThread::finished, this, &MissionThread::reset, Qt::QueuedConnection);
+	connect(&thread_, &QThread::finished, &thread_, &QThread::quit, Qt::QueuedConnection);
+	connect(&thread_, &QThread::finished, this, &MissionThread::onFinished, Qt::QueuedConnection);
 
 	moveToThread(&thread_);
 	thread_.start();
@@ -1050,12 +1022,19 @@ MissionThread::~MissionThread()
 	qDebug() << "MissionThread::~MissionThread()";
 }
 
+void MissionThread::onFinished()
+{
+	qDebug() << "finished!";
+}
+
 void MissionThread::wait()
 {
-	requestInterruption();
-	thread_.requestInterruption();
-	thread_.quit();
-	thread_.wait();
+	if (thread_.isRunning())
+	{
+		requestInterruption();
+		thread_.quit();
+		thread_.wait();
+	}
 }
 
 void MissionThread::autoJoin()
@@ -1071,13 +1050,13 @@ void MissionThread::autoJoin()
 
 		Injector& injector = Injector::getInstance(index);
 		if (injector.worker.isNull())
-			continue;
+			return;
 
 		if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
-			continue;
+			return;
 
 		if (!injector.getEnableHash(util::kAutoJoinEnable))
-			continue;
+			return;
 
 		if (!injector.worker->getOnlineFlag())
 			continue;
@@ -1099,7 +1078,6 @@ void MissionThread::autoJoin()
 
 			if (ch.status & CHR_STATUS_PARTY)
 			{
-				bool ok = false;
 				QString name = injector.worker->getParty(0).name;
 				if ((!name.isEmpty() && leader == name)
 					|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
@@ -1129,13 +1107,13 @@ void MissionThread::autoJoin()
 				return;
 
 			if (injector.worker.isNull())
-				break;
+				return;
 
 			if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
-				break;
+				return;
 
 			if (!injector.getEnableHash(util::kAutoJoinEnable))
-				break;
+				return;
 
 			leader = injector.getStringHash(util::kAutoFunNameString);
 			if (leader.isEmpty())
@@ -1253,8 +1231,7 @@ void MissionThread::autoWalk()
 		if (!enableAutoWalk && !enableFastAutoWalk)
 		{
 			current_pos = QPoint();
-			QThread::msleep(100);
-			continue;
+			return;
 		}
 		else if (current_pos.isNull())
 		{
@@ -1264,7 +1241,7 @@ void MissionThread::autoWalk()
 		//如果人物不在線上則自動退出
 		if (!injector.worker->getOnlineFlag())
 		{
-			QThread::msleep(100);
+			QThread::msleep(500);
 			continue;
 		}
 
@@ -1272,7 +1249,7 @@ void MissionThread::autoWalk()
 		if (injector.worker->getBattleFlag())
 		{
 			//先等一小段時間
-			QThread::msleep(100);
+			QThread::msleep(500);
 
 			//如果已經退出戰鬥就等待1.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
 			if (!injector.worker->getBattleFlag())
@@ -1370,124 +1347,9 @@ void MissionThread::autoWalk()
 	}
 }
 
-void MissionThread::autoDropPet()
-{
-	Injector& injector = Injector::getInstance(getIndex());
-
-	auto checkStatus = [this, &injector]()->bool
-		{
-			if (!injector.getEnableHash(util::kDropPetEnable))
-				return false;
-
-			if (injector.worker.isNull())
-				return false;
-
-			if (!injector.worker->getOnlineFlag())
-				return false;
-
-			if (injector.worker->getBattleFlag())
-				return false;
-
-			return true;
-		};
-
-	for (;;)
-	{
-		QThread::msleep(100);
-		if (isInterruptionRequested())
-			return;
-
-		if (!checkStatus())
-			continue;
-
-		bool strLowAtEnable = injector.getEnableHash(util::kDropPetStrEnable);
-		bool defLowAtEnable = injector.getEnableHash(util::kDropPetDefEnable);
-		bool agiLowAtEnable = injector.getEnableHash(util::kDropPetAgiEnable);
-		bool aggregateLowAtEnable = injector.getEnableHash(util::kDropPetAggregateEnable);
-		double strLowAtValue = injector.getValueHash(util::kDropPetStrValue);
-		double defLowAtValue = injector.getValueHash(util::kDropPetDefValue);
-		double agiLowAtValue = injector.getValueHash(util::kDropPetAgiValue);
-		double aggregateLowAtValue = injector.getValueHash(util::kDropPetAggregateValue);
-		QString text = injector.getStringHash(util::kDropPetNameString);
-		QStringList nameList;
-		if (!text.isEmpty())
-			nameList = text.split(util::rexOR, Qt::SkipEmptyParts);
-
-		for (long long i = 0; i < MAX_PET; ++i)
-		{
-			if (checkStatus() != 1)
-				break;
-
-			PET pet = injector.worker->getPet(i);
-			if (!pet.valid || pet.maxHp <= 0 || pet.level <= 0)
-				continue;
-
-			double str = pet.atk;
-			double def = pet.def;
-			double agi = pet.agi;
-			double aggregate = ((str + def + agi + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0;
-
-			bool okDrop = false;
-			if (strLowAtEnable && (str < strLowAtValue))
-			{
-				okDrop = true;
-			}
-			else if (defLowAtEnable && (def < defLowAtValue))
-			{
-				okDrop = true;
-			}
-			else if (agiLowAtEnable && (agi < agiLowAtValue))
-			{
-				okDrop = true;
-			}
-			else if (aggregateLowAtEnable && (aggregate < aggregateLowAtValue))
-			{
-				okDrop = true;
-			}
-			else
-			{
-				okDrop = false;
-			}
-
-
-			if (okDrop)
-			{
-				if (!nameList.isEmpty())
-				{
-					bool isExact = true;
-					okDrop = false;
-					for (const QString& it : nameList)
-					{
-						QString newName = it.simplified();
-						if (newName.startsWith("?"))
-						{
-							isExact = false;
-							newName = newName.mid(1);
-						}
-
-						if (isExact && pet.name == newName)
-						{
-							okDrop = true;
-							break;
-						}
-						else if (isExact && pet.name.contains(newName))
-						{
-							okDrop = true;
-							break;
-						}
-					}
-				}
-
-				if (okDrop)
-					injector.worker->dropPet(i);
-			}
-		}
-	}
-}
-
 void MissionThread::autoSortItem()
 {
-	long long	i = 0;
+	long long i = 0;
 	constexpr long long duration = 30;
 	Injector& injector = Injector::getInstance(getIndex());
 
@@ -1498,14 +1360,14 @@ void MissionThread::autoSortItem()
 			if (isInterruptionRequested())
 				return;
 
-			QThread::msleep(100);
+			QThread::msleep(500);
 		}
 
 		if (!injector.getEnableHash(util::kAutoStackEnable))
-			continue;
+			return;
 
 		if (injector.worker.isNull())
-			continue;
+			return;
 
 		injector.worker->sortItem();
 	}
@@ -1850,7 +1712,7 @@ void MainObject::checkAutoLockSchedule()
 					injector.worker->setPetState(i, kRest);
 			}
 			return false;
-};
+		};
 
 	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);

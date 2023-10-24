@@ -248,7 +248,6 @@ bool __fastcall findPathProcess(
 	std::vector<QPoint> path;
 	QElapsedTimer timer; timer.start();
 	QSet<QPoint> blockList;
-	long long nret = -1;
 
 	if (!injector.worker->mapAnalyzer.calcNewRoute(currentIndex, astar, floor, src, dst, blockList, &path))
 	{

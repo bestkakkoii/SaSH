@@ -17,7 +17,7 @@ WNDPROC g_OldWndProc = nullptr;
 HWND g_MainHwnd = nullptr;
 HMODULE g_hGameModule = nullptr;
 HMODULE g_hDllModule = nullptr;
-WCHAR g_szGameModulePath[MAX_PATH] = { 0 };
+WCHAR g_szGameModulePath[MAX_PATH] = {};
 DWORD g_MainThreadId = 0;
 HANDLE g_MainThreadHandle = nullptr;
 HWND g_ParenthWnd = nullptr;
@@ -282,9 +282,9 @@ void setSocket(SOCKET fd)
 	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&option_value, sizeof(option_value));
 	BOOL keepAlive = TRUE; //Keep-Alive
 	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (const char*)&keepAlive, sizeof(BOOL));
-	struct tcp_keepalive in_keep_alive = { 0 };
+	struct tcp_keepalive in_keep_alive = {};
 	unsigned long ul_in_len = sizeof(struct tcp_keepalive);
-	struct tcp_keepalive out_keep_alive = { 0 };
+	struct tcp_keepalive out_keep_alive = {};
 	unsigned long ul_out_len = sizeof(struct tcp_keepalive);
 	unsigned long ul_bytes_return = 0;
 	in_keep_alive.onoff = 1; /*打開keepalive*/
@@ -1881,7 +1881,7 @@ int GameService::connectServer(SOCKET& rsocket, const char* ip, unsigned short p
 	//因為函數在沒有運行完成就進行返回，會不斷地返回WSAEWOULDBLOCK錯誤。
 	if (pconnect(rsocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR)
 	{
-		struct timeval timeout = { 0 };
+		struct timeval timeout = {};
 		timeout.tv_sec = 10;	//連接超時時間為10秒,此值過小會造成多線程同時連接服務端時因無法建立連接而通信失敗
 		timeout.tv_usec = 0;	//產生此情況的原因是線程的執行順序是不可預知的
 

@@ -534,19 +534,9 @@ void Parser::initialize(Parser* pparent)
 			customdialog_t dialog = injector.worker->customDialog;
 
 			QString sbtype;
-			UINT acp = GetACP();
-			//if (acp != 950)
-			//{
-			//	sbtype = gb2312.key(dialog.button, "");
-			//	if (sbtype.isEmpty())
-			//		sbtype = big5.key(dialog.button, "");
-			//}
-			//else
-			//{
 			sbtype = big5.key(dialog.button, "");
 			if (sbtype.isEmpty())
 				sbtype = gb2312.key(dialog.button, "");
-			//}
 
 			if (sbtype.isEmpty())
 				sbtype = "0x" + util::toQString(static_cast<long long>(dialog.rawbutton), 16);
@@ -557,10 +547,9 @@ void Parser::initialize(Parser* pparent)
 
 			t["row"] = dialog.row;
 
-			QByteArray data = sbtype.toUtf8();
-			t["button"] = data.constData();
+			t["button"] = util::toConstData(sbtype);
 
-			t["data"] = dialog.rawdata.toUtf8().constData();
+			t["data"] = util::toConstData(dialog.rawdata);
 
 			return t;
 		});
@@ -706,7 +695,7 @@ void Parser::initialize(Parser* pparent)
 
 			long long time = timer->elapsed();
 			QString formated = util::formatMilliseconds(time);
-			return formated.toUtf8().constData();
+			return util::toConstData(formated);
 		};
 
 	timer["del"] = [this](long long id, sol::this_state s)->bool
@@ -786,7 +775,7 @@ void Parser::initialize(Parser* pparent)
 					return sol::make_object(s, var.toBool());
 
 				insertGlobalVar("vret", var.toString());
-				return sol::make_object(s, var.toString().toUtf8().constData());
+				return sol::make_object(s, util::toConstData(var.toString()));
 			}
 		});
 
@@ -880,7 +869,7 @@ void Parser::initialize(Parser* pparent)
 			}
 
 			insertGlobalVar("vret", formatStr);
-			return sol::make_object(s, formatStr.toUtf8().constData());
+			return sol::make_object(s, util::toConstData(formatStr));
 
 		});
 
@@ -906,7 +895,7 @@ void Parser::initialize(Parser* pparent)
 			}
 
 			insertGlobalVar("vret", result);
-			return result.toUtf8().constData();
+			return util::toConstData(result);
 		});
 
 	lua_.set_function("full", [this](std::string sstr, sol::this_state s)->std::string
@@ -931,21 +920,21 @@ void Parser::initialize(Parser* pparent)
 			}
 
 			insertGlobalVar("vret", result);
-			return result.toUtf8().constData();
+			return util::toConstData(result);
 		});
 
 	lua_.set_function("lower", [this](std::string sstr, sol::this_state s)->std::string
 		{
 			QString result = util::toQString(sstr).toLower();
 			insertGlobalVar("vret", result);
-			return result.toUtf8().constData();
+			return util::toConstData(result);
 		});
 
 	lua_.set_function("upper", [this](std::string sstr, sol::this_state s)->std::string
 		{
 			QString result = util::toQString(sstr).toUpper();
 			insertGlobalVar("vret", result);
-			return result.toUtf8().constData();
+			return util::toConstData(result);
 		});
 
 	lua_.set_function("trim", [this](std::string sstr, sol::object oisSimplified, sol::this_state s)->std::string
@@ -965,7 +954,7 @@ void Parser::initialize(Parser* pparent)
 				result = result.simplified();
 
 			insertGlobalVar("vret", result);
-			return result.toUtf8().constData();
+			return util::toConstData(result);
 		});
 
 	lua_.set_function("todb", [this](sol::object ovalue, sol::object len, sol::this_state s)->double
@@ -1003,7 +992,7 @@ void Parser::initialize(Parser* pparent)
 			}
 
 			insertGlobalVar("vret", result);
-			return result.toUtf8().constData();
+			return util::toConstData(result);
 		});
 
 	lua_.set_function("toint", [this](sol::object ovalue, sol::this_state s)->long long
@@ -1045,7 +1034,7 @@ void Parser::initialize(Parser* pparent)
 
 			insertGlobalVar("vret", result);
 
-			return result.toUtf8().constData();
+			return util::toConstData(result);
 		});
 
 	lua_.set_function("find", [this](std::string ssrc, std::string sfrom, sol::object osto, sol::this_state s)->std::string
@@ -1077,7 +1066,7 @@ void Parser::initialize(Parser* pparent)
 			result = varValue.mid(pos1 + text1.length(), pos2 - pos1 - text1.length());
 
 			insertGlobalVar("vret", result);
-			return result.toUtf8().constData();
+			return util::toConstData(result);
 		});
 
 	//参数1:字符串内容, 参数2:正则表达式, 参数3(选填):第几个匹配项, 参数4(选填):是否为全局匹配, 参数5(选填):第几组
@@ -1113,7 +1102,7 @@ void Parser::initialize(Parser* pparent)
 					if (capture < 0 || capture > match.lastCapturedIndex())
 					{
 						insertGlobalVar("vret", result);
-						return result.toUtf8().constData();
+						return util::toConstData(result);
 					}
 
 					result = match.captured(capture);
@@ -1138,7 +1127,7 @@ void Parser::initialize(Parser* pparent)
 			}
 
 			insertGlobalVar("vret", result);
-			return result.toUtf8().constData();
+			return util::toConstData(result);
 		});
 
 	//rex 参数1:来源字符串, 参数2:正则表达式
@@ -1159,7 +1148,7 @@ void Parser::initialize(Parser* pparent)
 			{
 				for (long long i = 0; i <= match.lastCapturedIndex(); ++i)
 				{
-					result[n] = match.captured(i).toUtf8().constData();
+					result[n] = util::toConstData(match.captured(i));
 				}
 			}
 
@@ -1190,7 +1179,7 @@ void Parser::initialize(Parser* pparent)
 
 				for (const auto& capture : match.capturedTexts())
 				{
-					result[n] = capture.toUtf8().constData();
+					result[n] = util::toConstData(capture);
 					++n;
 				}
 			}
@@ -1261,7 +1250,7 @@ void Parser::initialize(Parser* pparent)
 				retstring = util::findFileFromName(fileName, util::toQString(obj));
 			}
 
-			return retstring.toUtf8().constData();
+			return util::toConstData(retstring);
 		};
 
 	lua_["mktable"] = [](long long a, sol::object ob, sol::this_state s)->sol::object
@@ -1656,7 +1645,7 @@ void Parser::initialize(Parser* pparent)
 			{
 				for (const QString& i : v)
 				{
-					t.add(i.toUtf8().constData());
+					t.add(util::toConstData(i));
 				}
 				return t;
 			}
@@ -1669,9 +1658,9 @@ void Parser::initialize(Parser* pparent)
 			QStringList l = {};
 			for (const std::pair<sol::object, sol::object>& i : t)
 			{
-				if (i.second.is<int>())
+				if (i.second.is<long long>())
 				{
-					l.append(util::toQString(i.second.as<int>()));
+					l.append(util::toQString(i.second.as<long long>()));
 				}
 				else if (i.second.is<double>())
 				{
@@ -1686,9 +1675,9 @@ void Parser::initialize(Parser* pparent)
 					l.append(util::toQString(i.second));
 				}
 			}
-			QString ret = l.join(util::toQString(del));
-			insertGlobalVar("vret", ret);
-			return  ret.toUtf8().constData();
+			QString result = l.join(util::toQString(del));
+			insertGlobalVar("vret", result);
+			return  util::toConstData(result);
 		};
 
 	//根據key交換表中的兩個元素
@@ -1928,7 +1917,7 @@ QVariant Parser::luaDoString(QString expr)
 
 	sol::state& lua_ = pLua_->getLua();
 
-	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
+	const std::string exprStrUTF8(util::toConstData(exprStr));
 	//執行lua
 	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8, sol::script_pass_on_error);
 	lua_.collect_garbage();
@@ -2426,7 +2415,7 @@ bool Parser::checkCallStack()
 #pragma region GlobalVar
 bool Parser::isGlobalVarContains(const QString& name)
 {
-	std::string sname = name.toUtf8().constData();
+	std::string sname(util::toConstData(name));
 	sol::state& lua_ = pLua_->getLua();
 	if (lua_[sname.c_str()].valid())
 		return true;
@@ -2436,7 +2425,7 @@ bool Parser::isGlobalVarContains(const QString& name)
 
 QVariant Parser::getGlobalVarValue(const QString& name)
 {
-	std::string sname = name.toUtf8().constData();
+	std::string sname(util::toConstData(name));
 	sol::state& lua_ = pLua_->getLua();
 
 	if (!lua_[sname.c_str()].valid())
@@ -2539,12 +2528,12 @@ void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 	{
 		if (!str.startsWith("{") && !str.endsWith("}"))
 		{
-			lua_.set(keyBytes.constData(), str.toUtf8().constData());
+			lua_.set(keyBytes.constData(), util::toConstData(str));
 		}
 		else//table
 		{
 			QString content = QString("%1 = %2;").arg(name).arg(str);
-			std::string contentBytes = content.toUtf8().constData();
+			std::string contentBytes(util::toConstData(content));
 			sol::protected_function_result loaded_chunk = lua_.safe_script(contentBytes, sol::script_pass_on_error);
 			lua_.collect_garbage();
 			if (!loaded_chunk.valid())
@@ -2578,7 +2567,8 @@ void Parser::insertVar(const QString& name, const QVariant& value)
 void Parser::removeGlobalVar(const QString& name)
 {
 	sol::state& lua_ = pLua_->getLua();
-	lua_[name.toUtf8().constData()] = sol::lua_nil;
+	QByteArray ba = name.toUtf8();
+	lua_[ba.constData()] = sol::lua_nil;
 	if (!globalNames_->contains(name))
 		return;
 
@@ -3098,7 +3088,7 @@ bool Parser::processIfCompare()
 		return false;
 	end
 	*/
-	bool result = false;
+
 	QString exprStr = QString("if (%1) then return true; else return false; end").arg(getToken<QString>(1).simplified());
 	insertGlobalVar("_IFEXPR", exprStr);
 
@@ -3143,7 +3133,6 @@ void Parser::processMultiVariable()
 
 	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
 	long long varCount = varNames.count();
-	long long value = 0;
 
 	QVariant firstValue;
 
@@ -3281,7 +3270,6 @@ void Parser::processFormation()
 //處理"調用"
 bool Parser::processCall(RESERVE reserve)
 {
-	RESERVE type = getTokenType(1);
 	do
 	{
 		QString functionName;
@@ -3341,7 +3329,6 @@ bool Parser::processCall(RESERVE reserve)
 //處理"跳轉"
 bool Parser::processGoto()
 {
-	RESERVE type = getTokenType(1);
 	do
 	{
 		QVariant var = checkValue(currentLineTokens_, 1);
@@ -3524,8 +3511,6 @@ bool Parser::processFor()
 		QVariant stepValue = checkValue(currentLineTokens_, 4);
 		if (stepValue.type() != QVariant::LongLong || stepValue.toLongLong() == 0)
 			stepValue = 1ll;
-
-		long long nStepValue = stepValue.toLongLong();
 
 		ForNode node = getForNodeByLineIndex(currentLine);
 		node.beginValue = nBeginValue;
@@ -4104,13 +4089,13 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 	if (expr.contains("_FILE_"))
 	{
-		lua_.set("_FILE_", getScriptFileName().toUtf8().constData());
+		lua_.set("_FILE_", util::toConstData(getScriptFileName()));
 	}
 
 	if (expr.contains("_FUNCTION_"))
 	{
 		if (!callStack_.isEmpty())
-			lua_.set("_FUNCTION_", callStack_.top().name.toUtf8().constData());
+			lua_.set("_FUNCTION_", util::toConstData(callStack_.top().name));
 		else
 			lua_.set("_FUNCTION_", sol::lua_nil);
 	}
@@ -4266,7 +4251,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		long long satime = injector.worker->saCurrentGameTime.load(std::memory_order_release);
 		QString timeStr = hash.value(satime, QObject::tr("unknown"));
-		lua_.set("gtime", timeStr.toUtf8().constData());
+		lua_.set("gtime", util::toConstData(timeStr));
 	}
 
 	//char\.(\w+)
@@ -4278,9 +4263,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		PC _pc = injector.worker->getPC();
 
-		ch["name"] = _pc.name.toUtf8().constData();
+		ch["name"] = util::toConstData(_pc.name);
 
-		ch["fname"] = _pc.freeName.toUtf8().constData();
+		ch["fname"] = util::toConstData(_pc.freeName);
 
 		ch["lv"] = _pc.level;
 
@@ -4330,7 +4315,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		ch["faceid"] = _pc.faceid;
 
-		ch["family"] = _pc.family.toUtf8().constData();
+		ch["family"] = util::toConstData(_pc.family);
 
 		ch["battlepet"] = _pc.battlePetNo + 1;
 
@@ -4368,9 +4353,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			pet[index]["valid"] = p.valid;
 
-			pet[index]["name"] = p.name.toUtf8().constData();
+			pet[index]["name"] = util::toConstData(p.name);
 
-			pet[index]["fname"] = p.freeName.toUtf8().constData();
+			pet[index]["fname"] = util::toConstData(p.freeName);
 
 			pet[index]["lv"] = p.level;
 
@@ -4410,7 +4395,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			PetState state = p.state;
 			QString str = hash.key(state, "");
-			pet[index]["state"] = str.toUtf8().constData();
+			pet[index]["state"] = util::toConstData(str);
 
 			pet[index]["power"] = p.power;
 		}
@@ -4437,9 +4422,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			item[index]["index"] = index;
 
-			item[index]["name"] = it.name.toUtf8().constData();
+			item[index]["name"] = util::toConstData(it.name);
 
-			item[index]["memo"] = it.memo.toUtf8().constData();
+			item[index]["memo"] = util::toConstData(it.memo);
 
 			if (it.name == "惡魔寶石" || it.name == "恶魔宝石")
 			{
@@ -4471,7 +4456,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			item[index]["target"] = it.target;
 			item[index]["type"] = it.type;
 			item[index]["modelid"] = it.modelid;
-			item[index]["name2"] = it.name2.toUtf8().constData();
+			item[index]["name2"] = util::toConstData(it.name2);
 		}
 
 
@@ -4485,7 +4470,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		auto getIndexs = [this, currentIndex](sol::object oitemnames, sol::object oitemmemos, bool includeEequip, sol::this_state s)->QVector<long long>
 			{
 				QVector<long long> itemIndexs;
-				long long count = 0;
 				Injector& injector = Injector::getInstance(currentIndex);
 				if (injector.worker.isNull())
 					return itemIndexs;
@@ -4530,8 +4514,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				QVector<long long> itemIndexs = getIndexs(oitemnames, oitemmemos, includeEequip, s);
 				if (itemIndexs.isEmpty())
 					return count;
-
-				long long size = itemIndexs.size();
 
 				QHash<long long, ITEM> items = injector.worker->getItems();
 				for (const long long itemIndex : itemIndexs)
@@ -4604,8 +4586,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				sol::table t = lua.create_table();
 				t["valid"] = item.valid;
 				t["index"] = index;
-				t["name"] = item.name.toUtf8().constData();
-				t["memo"] = item.memo.toUtf8().constData();
+				t["name"] = util::toConstData(item.name);
+				t["memo"] = util::toConstData(item.memo);
+				t["name2"] = util::toConstData(item.name2);
 				t["dura"] = item.damage;
 				t["lv"] = item.level;
 				t["stack"] = item.stack;
@@ -4613,7 +4596,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				t["target"] = item.target;
 				t["type"] = item.type;
 				t["modelid"] = item.modelid;
-				t["name2"] = item.name2.toUtf8().constData();
 
 				return t;
 			});
@@ -4641,10 +4623,10 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			team[index]["id"] = party.id;
 
-			team[index]["name"] = party.name.toUtf8().constData();
+			team[index]["name"] = util::toConstData(party.name);
 
 			if (injector.worker->mapUnitHash.contains(party.id))
-				team[index]["fname"] = injector.worker->mapUnitHash.value(party.id).freeName.toUtf8().constData();
+				team[index]["fname"] = util::toConstData(injector.worker->mapUnitHash.value(party.id).freeName);
 
 			team[index]["lv"] = party.level;
 
@@ -4664,7 +4646,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	{
 		sol::meta::unqualified_t<sol::table> map = lua_["map"];
 
-		map["name"] = injector.worker->getFloorName().toUtf8().constData();
+		map["name"] = util::toConstData(injector.worker->getFloorName());
 
 		map["floor"] = injector.worker->getFloor();
 
@@ -4673,7 +4655,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		map["y"] = injector.worker->getPoint().y();
 
 		if (expr.contains("ground"))
-			map["ground"] = injector.worker->getGround().toUtf8().constData();
+			map["ground"] = util::toConstData(injector.worker->getGround());
 
 		map.set_function("isxy", [this, currentIndex](long long x, long long y, sol::this_state s)->bool
 			{
@@ -4751,7 +4733,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			card[index]["index"] = index;
 
-			card[index]["name"] = addressBook.name.toUtf8().constData();
+			card[index]["name"] = util::toConstData(addressBook.name);
 
 			card[index]["online"] = addressBook.onlineFlag;
 
@@ -4773,7 +4755,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			QString text = injector.worker->getChatHistory(i);
 			long long index = i + 1;
 
-			chat[index] = text.toUtf8().constData();
+			chat[index] = util::toConstData(text);
 		}
 
 		chat["contains"] = [this, currentIndex](std::string str, sol::this_state s)->bool
@@ -4826,11 +4808,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			unit[index]["id"] = u.id;
 
-			unit[index]["name"] = u.name.toUtf8().constData();
+			unit[index]["name"] = util::toConstData(u.name);
 
-			unit[index]["fname"] = u.freeName.toUtf8().constData();
+			unit[index]["fname"] = util::toConstData(u.freeName);
 
-			unit[index]["family"] = u.family.toUtf8().constData();
+			unit[index]["family"] = util::toConstData(u.family);
 
 			unit[index]["lv"] = u.level;
 
@@ -4880,11 +4862,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 				t["id"] = _unit.id;
 
-				t["name"] = _unit.name.toUtf8().constData();
+				t["name"] = util::toConstData(_unit.name);
 
-				t["fname"] = _unit.freeName.toUtf8().constData();
+				t["fname"] = util::toConstData(_unit.freeName);
 
-				t["family"] = _unit.family.toUtf8().constData();
+				t["family"] = util::toConstData(_unit.family);
 
 				t["lv"] = _unit.level;
 
@@ -4912,15 +4894,18 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		battle["time"] = injector.worker->battle_total_time.load(std::memory_order_acquire) / 1000.0 / 60.0;
 		battle["cost"] = injector.worker->battle_one_round_time.load(std::memory_order_acquire) / 1000.0;
 		battle["round"] = injector.worker->battleCurrentRound.load(std::memory_order_acquire) + 1;
+		battle["field"] = util::toConstData(injector.worker->getFieldString(injector.worker->battleField.load(std::memory_order_acquire)));
+		battle["charpos"] = static_cast<long long>(injector.worker->battleCharCurrentPos.load(std::memory_order_acquire) + 1);
+		battle["petpos"] = -1;
+		battle["size"] = 0;
+		battle["enemycount"] = 0;
+		battle["alliecount"] = 0;
 
 		if (injector.worker->getBattleFlag())
 		{
 			battledata_t bt = injector.worker->getBattleData();
 
-			battle["field"] = injector.worker->getFieldString(bt.fieldAttr).toUtf8().constData();
-
-			battle["charpos"] = static_cast<long long>(bt.player.pos + 1);
-			battle["petpos"] = static_cast<long long>(bt.pet.pos + 1);
+			battle["petpos"] = static_cast<long long>(bt.objects.value(injector.worker->battleCharCurrentPos.load(std::memory_order_acquire) + 5).pos + 1);
 
 			long long size = bt.objects.size();
 			battle["size"] = size;
@@ -4936,9 +4921,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 				battle[index]["index"] = static_cast<long long>(obj.pos + 1);
 
-				battle[index]["name"] = obj.name.toUtf8().constData();
+				battle[index]["name"] = util::toConstData(obj.name);
 
-				battle[index]["fname"] = obj.freeName.toUtf8().constData();
+				battle[index]["fname"] = util::toConstData(obj.freeName);
 
 				battle[index]["modelid"] = obj.modelid;
 
@@ -4950,11 +4935,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 				battle[index]["hpp"] = obj.hpPercent;
 
-				battle[index]["status"] = injector.worker->getBadStatusString(obj.status).toUtf8().constData();
+				battle[index]["status"] = util::toConstData(injector.worker->getBadStatusString(obj.status));
 
 				battle[index]["ride"] = obj.rideFlag > 0;
 
-				battle[index]["ridename"] = obj.rideName.toUtf8().constData();
+				battle[index]["ridename"] = util::toConstData(obj.rideName);
 
 				battle[index]["ridelv"] = obj.rideLevel;
 
@@ -4988,7 +4973,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			long long index = i + 1;
 
-			dlg[index] = text.toUtf8().constData();
+			dlg[index] = util::toConstData(text);
 		}
 
 		if (visible)
@@ -4997,7 +4982,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			dlg["id"] = dialog.dialogid;
 			dlg["unitid"] = dialog.unitid;
 			dlg["type"] = dialog.windowtype;
-			dlg["buttontext"] = dialog.linebuttontext.join("|").toUtf8().constData();
+			dlg["buttontext"] = util::toConstData(dialog.linebuttontext.join("|"));
 			dlg["button"] = dialog.buttontype;
 		}
 		else
@@ -5053,8 +5038,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			mg[index]["index"] = index;
 			mg[index]["costmp"] = magic.costmp;
 			mg[index]["field"] = magic.field;
-			mg[index]["name"] = magic.name.toUtf8().constData();
-			mg[index]["memo"] = magic.memo.toUtf8().constData();
+			mg[index]["name"] = util::toConstData(magic.name);
+			mg[index]["memo"] = util::toConstData(magic.memo);
 			mg[index]["target"] = magic.target;
 		}
 
@@ -5085,8 +5070,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				t["index"] = index;
 				t["costmp"] = _magic.costmp;
 				t["field"] = _magic.field;
-				t["name"] = _magic.name.toUtf8().constData();
-				t["memo"] = _magic.memo.toUtf8().constData();
+				t["name"] = util::toConstData(_magic.name);
+				t["memo"] = util::toConstData(_magic.memo);
 				t["target"] = _magic.target;
 
 				return t;
@@ -5110,8 +5095,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			sk[index]["type"] = skill.kind;
 			sk[index]["lv"] = skill.skill_level;
 			sk[index]["id"] = skill.skillId;
-			sk[index]["name"] = skill.name.toUtf8().constData();
-			sk[index]["memo"] = skill.memo.toUtf8().constData();
+			sk[index]["name"] = util::toConstData(skill.name);
+			sk[index]["memo"] = util::toConstData(skill.memo);
 			sk[index]["target"] = skill.target;
 		}
 
@@ -5144,8 +5129,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				t["type"] = _skill.kind;
 				t["lv"] = _skill.skill_level;
 				t["id"] = _skill.skillId;
-				t["name"] = _skill.name.toUtf8().constData();
-				t["memo"] = _skill.memo.toUtf8().constData();
+				t["name"] = util::toConstData(_skill.name);
+				t["memo"] = util::toConstData(_skill.memo);
 				t["target"] = _skill.target;
 
 				return t;
@@ -5174,8 +5159,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				psk[petIndex][index]["id"] = skill.skillId;
 				psk[petIndex][index]["field"] = skill.field;
 				psk[petIndex][index]["target"] = skill.target;
-				psk[petIndex][index]["name"] = skill.name.toUtf8().constData();
-				psk[petIndex][index]["memo"] = skill.memo.toUtf8().constData();
+				psk[petIndex][index]["name"] = util::toConstData(skill.name);
+				psk[petIndex][index]["memo"] = util::toConstData(skill.memo);
 			}
 		}
 
@@ -5206,8 +5191,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				t["id"] = _skill.skillId;
 				t["field"] = _skill.field;
 				t["target"] = _skill.target;
-				t["name"] = _skill.name.toUtf8().constData();
-				t["memo"] = _skill.memo.toUtf8().constData();
+				t["name"] = util::toConstData(_skill.name);
+				t["memo"] = util::toConstData(_skill.memo);
 
 				return t;
 			};
@@ -5239,9 +5224,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				peq[petIndex][index]["type"] = item.type;
 				peq[petIndex][index]["modelid"] = item.modelid;
 				peq[petIndex][index]["dura"] = item.damage;
-				peq[petIndex][index]["name"] = item.name.toUtf8().constData();
-				peq[petIndex][index]["name2"] = item.name2.toUtf8().constData();
-				peq[petIndex][index]["memo"] = item.memo.toUtf8().constData();
+				peq[petIndex][index]["name"] = util::toConstData(item.name);
+				peq[petIndex][index]["name2"] = util::toConstData(item.name2);
+				peq[petIndex][index]["memo"] = util::toConstData(item.memo);
 			}
 		}
 	}
@@ -5269,10 +5254,10 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		{
 			long long card = i + 1;
 			MAIL_HISTORY mail = injector.worker->getMailHistory(i);
-			for (long long j = 0; j < MAIL_MAX_HISTORY; ++j)
+			for (j = 0; j < MAIL_MAX_HISTORY; ++j)
 			{
 				long long index = j + 1;
-				mails[card][index] = mail.dateStr[j].toUtf8().constData();
+				mails[card][index] = util::toConstData(mail.dateStr[j]);
 			}
 		}
 	}

@@ -115,6 +115,7 @@ void CAStar::clear()
 // 參數是否有效
 bool CAStar::is_vlid_params(const QPoint& start, const QPoint& end) const
 {
+	std::ignore = end;
 	return ((can_pass_ != nullptr)
 		&& ((start.x() >= 0) && (start.x() < width_))
 		&& ((start.y() >= 0) && (start.y() < height_))
@@ -152,12 +153,12 @@ void CAStar::percolate_up(long long& hole)
 			std::swap(open_list_[hole], open_list_[parent]);
 #endif
 			hole = parent;
-		}
+	}
 		else
 		{
 			return;
 		}
-	}
+}
 }
 
 #if defined(Chebyshev_distance)

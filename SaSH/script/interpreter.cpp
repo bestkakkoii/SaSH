@@ -58,16 +58,12 @@ Interpreter::~Interpreter()
 //在新線程執行腳本文件
 void Interpreter::doFileWithThread(long long beginLine, const QString& fileName)
 {
-
+	std::ignore = fileName;
 	beginLine_ = beginLine;
-
-	Injector& injector = Injector::getInstance(getIndex());
 
 	thread_ = new QThread();
 
 	moveToThread(thread_);
-	long long currentIndex = getIndex();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	connect(this, &Interpreter::finished, thread_, &QThread::quit, Qt::QueuedConnection);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
 	connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
@@ -133,7 +129,6 @@ void Interpreter::doString(QString content)
 	if (!parser_.loadString(content))
 		return;
 
-	long long currentIndex = getIndex();
 	openLibs();
 	thread_ = new QThread();
 	moveToThread(thread_);

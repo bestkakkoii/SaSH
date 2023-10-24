@@ -383,10 +383,10 @@ long long Interpreter::waitpos(long long currentIndex, long long currentLine, co
 				continue;
 
 			bool ok1, ok2;
-			long long x = pos.value(0).toLongLong(&ok1);
-			long long y = pos.value(1).toLongLong(&ok2);
+			long long px = pos.value(0).toLongLong(&ok1);
+			long long py = pos.value(1).toLongLong(&ok2);
 			if (ok1 && ok2)
-				posList.push_back(QPoint(x, y));
+				posList.push_back(QPoint(px, py));
 		}
 
 		if (posList.isEmpty())

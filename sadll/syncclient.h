@@ -61,7 +61,6 @@ public:
 		if (pclosesocket_ != nullptr)
 			pclosesocket_(clientSocket_);
 		WSACleanup();
-
 	}
 
 	inline BOOL __fastcall Connect(unsigned short type, unsigned short serverPort)
@@ -167,6 +166,7 @@ public:
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
+			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			return FALSE;
 		}
 		else if (result == 0)
@@ -188,6 +188,7 @@ public:
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
+			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			return FALSE;
 		}
 		else if (result == 0)
@@ -212,6 +213,7 @@ public:
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
+			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			return FALSE;
 		}
 		else if (result == 0)

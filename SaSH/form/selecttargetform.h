@@ -54,7 +54,7 @@ private:
 	QString* dst_ = nullptr;
 };
 
-static bool createSelectTargetForm(long long index, long long type, QString* dst, QWidget* perent)
+inline bool createSelectTargetForm(long long index, long long type, QString* dst, QWidget* perent)
 {
 	SelectTargetForm* pObjForm = q_check_ptr(new SelectTargetForm(index, type, dst, perent));
 	if (pObjForm)

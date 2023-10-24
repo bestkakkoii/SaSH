@@ -766,7 +766,9 @@ long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_s
 		}
 		else if (arg.is<std::string>() || arg.get_type() == sol::type::string)
 		{
-			vargs.emplace_back(arg.as<std::string>());
+			QString str = util::toQString(arg.as<std::string>());
+			std::string encodedStr = util::fromUnicode(str);
+			vargs.emplace_back(encodedStr);
 		}
 	}
 

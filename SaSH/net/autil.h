@@ -105,7 +105,7 @@ public:
 	inline void util_Send(int func, Args... args)
 	{
 		int iChecksum = 0;
-		char buffer[NETDATASIZE] = { 0 };
+		char buffer[NETDATASIZE] = {};
 
 		util_SendProcessArgs(iChecksum, buffer, args...);
 		util_mkint(buffer, iChecksum);
@@ -115,7 +115,7 @@ public:
 	inline void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
 	{
 		int iChecksum = 0;
-		char buffer[NETDATASIZE] = { 0 };
+		char buffer[NETDATASIZE] = {};
 
 		for (const std::variant<int, std::string>& arg : args)
 		{
@@ -159,12 +159,28 @@ public:
 		return (iChecksum == iChecksumrecv);
 	}
 
-public:
-	util::SafeData<size_t> SliceCount;
-	util::SafeData<QString> PersonalKey;
+	inline void setKey(const std::string& key)
+	{
+		std::unique_lock<std::shared_mutex> lock(keyMutex_);
+		if (strncmp(personalKey_, key.c_str(), key.size()) == 0)
+			return;
 
+		memset(personalKey_, 0, sizeof(personalKey_));
+		_snprintf_s(personalKey_, sizeof(personalKey_), _TRUNCATE, "%s", key.c_str());
+	}
+
+private:
+	mutable std::shared_mutex keyMutex_;
+	char personalKey_[1024] = {};
+
+	[[nodiscard]] inline std::string getKey() const
+	{
+		std::shared_lock<std::shared_mutex> lock(keyMutex_);
+		return personalKey_;
+	}
 
 private:
 	QHash<long long, QByteArray> msgSlice_ = {};
 	QMutex msgMutex_;
+	bool isBackVersion = false;
 };

@@ -217,6 +217,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* result)
 #endif
 {
+	std::ignore = eventType;
 	MSG* msg = static_cast<MSG*>(message);
 	long long currentIndex = getIndex();
 
@@ -274,7 +275,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		interpreter_hash_.insert(id, interpreter);
 
 		QString script = util::toQString(utf8str);
-		connect(interpreter.data(), &Interpreter::finished, this, [this, id]()
+		connect(interpreter.get(), &Interpreter::finished, this, [this, id]()
 			{
 				interpreter_hash_.remove(id);
 				updateStatusText();
@@ -1552,7 +1553,6 @@ void MainForm::onUpdateStatusLabelTextChanged(long long status)
 		{ util::kLabelStatusNoPassword, tr("no password")},
 	};
 
-	Injector& injector = Injector::getInstance(getIndex());
 	ui.label_status->setText(hash.value(static_cast<util::UserStatus>(status), tr("unknown")));
 }
 
@@ -1787,7 +1787,6 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 	else
 		icon = QMessageBox::Icon::Information;
 
-	QMessageBox::StandardButton button = QMessageBox::StandardButton::NoButton;
 	QMessageBox msgBox(this);
 	msgBox.setWindowFlags(msgBox.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 	msgBox.setModal(true);

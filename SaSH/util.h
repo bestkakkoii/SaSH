@@ -968,15 +968,13 @@ namespace util
 			qDebug() << "toQString: unknown type" << typeid(T).name();
 			MessageBoxA(NULL, typeid(T).name(), "toQString: unknown type", MB_OK | MB_ICONERROR);
 			__assume(false);
-			return QString();
 		}
-
 	}
 
 	inline [[nodiscard]] QString __fastcall toUnicode(const char* str, bool trim = true, bool ext = true)
 	{
 		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//取GB2312解碼器
-		QString qstr = codec->toUnicode(str);//先以GB2312解碼轉成UNICODE
+		QString qstr(codec->toUnicode(str));//先以GB2312解碼轉成UNICODE
 		UINT ACP = ::GetACP();
 		if (950 == ACP && ext)
 		{
@@ -984,8 +982,8 @@ namespace util
 			//long long size = lstrlenW(wstr.c_str());
 			//QScopedArrayPointer <wchar_t> wbuf(q_check_ptr(new wchar_t[size + 1]()));
 			////繁體字碼表映射
-			//LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
-			//qstr = util::toQString(wbuf.data());
+			//LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.get(), size, NULL, NULL, NULL);
+			//qstr = util::toQString(wbuf.get());
 		}
 		if (!trim)
 			return qstr;
@@ -993,25 +991,31 @@ namespace util
 			return qstr.simplified();
 	}
 
-	inline [[nodiscard]] std::string __fastcall fromUnicode(const QString& str, bool keppOrigin = false)
+	inline [[nodiscard]] std::string __fastcall fromUnicode(const QString& str, bool keepOriginalData = false)
 	{
-		QString qstr = str;
-		std::wstring wstr = qstr.toStdWString();
+		QString qstr(str);
+		std::wstring wstr(qstr.toStdWString());
 		UINT ACP = ::GetACP();
-		if (950 == ACP && !keppOrigin)
+		if (950 == ACP && !keepOriginalData)
 		{
 			// 繁體系統要轉回簡體體否則遊戲視窗會亂碼
 			long long size = lstrlenW(wstr.c_str());
 			QScopedArrayPointer <wchar_t> wbuf(q_check_ptr(new wchar_t[size + 1]()));
-			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
-			qstr = util::toQString(wbuf.data());
+			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.get(), size, NULL, NULL, NULL);
+			qstr = util::toQString(wbuf.get());
 		}
-		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
-		QByteArray bytes = codec->fromUnicode(qstr);
 
-		std::string s = bytes.data();
+		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
+		QByteArray bytes(codec->fromUnicode(qstr));
+		std::string s(bytes.constData());
 
 		return s;
+	}
+
+	inline [[nodiscard]] std::string __fastcall toConstData(const QString& str)
+	{
+		const QByteArray ba(str.toUtf8());
+		return ba.constData();
 	}
 
 	template<typename T>
@@ -1653,7 +1657,7 @@ QGroupBox {
 
 	bool __fastcall writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist);
 
-	bool __fastcall monitorThreadResourceUsage(unsigned long long threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage);
+	bool __fastcall monitorThreadResourceUsage(FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage);
 
 	QFont __fastcall getFont();
 
@@ -1798,7 +1802,7 @@ QGroupBox {
 		long long t = p->currentIndex().row();
 		if (t < 0)
 			return;
-		if (t + 1 > p->count() - 1)
+		if (t + 1 > static_cast<long long>(p->count()) - 1)
 			return;
 
 		long long selectRow = t;

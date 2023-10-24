@@ -276,7 +276,6 @@ void BattleInfoForm::onUpdateBattleItemRowContents(long long index, const QStrin
 	else
 		content = text;
 
-	QTableWidgetItem* item = nullptr;
 	if (index >= 10)
 	{
 		ui.tableWidget_top->setText(fill.first, 0, content);

@@ -259,8 +259,6 @@ void ScriptForm::loadFile(const QString& fileName, bool start)
 		interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
 	}
 
-	Injector& injector = Injector::getInstance(currentIndex);
-
 	interpreter_->preview(fileName);
 	if (start)
 	{

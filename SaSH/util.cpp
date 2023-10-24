@@ -156,7 +156,7 @@ bool __fastcall mem::writeString(HANDLE hProcess, unsigned long long baseAddress
 	QByteArray ba = codec->fromUnicode(str);
 	ba.append('\0');
 
-	char* pBuffer = ba.data();
+	const char* pBuffer = ba.constData();
 	unsigned long long len = ba.size();
 
 	QScopedArrayPointer <char> p(q_check_ptr(new char[len + 1]()));
@@ -381,7 +381,8 @@ long __fastcall mem::getProcessExportTable32(HANDLE hProcess, const QString& Mod
 		usFuncId = mem::read<short>(hProcess, (muBase + pExport->AddressOfNameOrdinals + i * sizeof(short)));
 		ulPointer = static_cast<ULONG64>(mem::read<int>(hProcess, (muBase + pExport->AddressOfFunctions + static_cast<ULONG64>(sizeof(DWORD)) * usFuncId)));
 		ulFuncAddr = muBase + ulPointer;
-		_snprintf_s(tbinfo[count].ModuleName, sizeof(tbinfo[count].ModuleName), _TRUNCATE, "%s", ModuleName.toUtf8().constData());
+		std::string smoduleName = util::toConstData(ModuleName);
+		_snprintf_s(tbinfo[count].ModuleName, sizeof(tbinfo[count].ModuleName), _TRUNCATE, "%s", smoduleName.c_str());
 		_snprintf_s(tbinfo[count].FuncName, sizeof(tbinfo[count].FuncName), _TRUNCATE, "%s", bFuncName);
 		tbinfo[count].Address = ulFuncAddr;
 		tbinfo[count].RecordAddr = (ULONG64)(muBase + pExport->AddressOfFunctions + static_cast<ULONG64>(sizeof(DWORD)) * usFuncId);
@@ -709,7 +710,7 @@ bool __fastcall mem::enumProcess(QVector<long long>* pprocesses, const QString& 
 	if (!hSnapshot.isValid())
 		return false;
 
-	PROCESSENTRY32W pe32 = { 0 };
+	PROCESSENTRY32W pe32 = {};
 	pe32.dwSize = sizeof(PROCESSENTRY32W);
 
 	// 遍历进程快照
@@ -1306,7 +1307,6 @@ QFileInfoList __fastcall util::loadAllFileLists(
 	for (const QFileInfo& item : list_file)
 	{
 		std::unique_ptr<TreeWidgetItem> child(q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1)));
-		bool bret = false;
 
 		if (child == nullptr)
 			continue;
@@ -1664,15 +1664,16 @@ bool __fastcall util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR
 	return bret;
 }
 
-bool __fastcall util::monitorThreadResourceUsage(unsigned long long threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage)
+bool __fastcall util::monitorThreadResourceUsage(FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage)
 {
-	FILETIME idleTime = { 0 };
-	FILETIME kernelTime = { 0 };
-	FILETIME userTime = { 0 };
+	FILETIME idleTime = {};
+	FILETIME kernelTime = {};
+	FILETIME userTime = {};
 
 	if (GetSystemTimes(&idleTime, &kernelTime, &userTime) == TRUE)
 	{
-		ULARGE_INTEGER x = { 0 }, y = { 0 };
+		ULARGE_INTEGER x = {};
+		ULARGE_INTEGER y = {};
 
 		double idle, kernel, user;
 
@@ -1706,7 +1707,7 @@ bool __fastcall util::monitorThreadResourceUsage(unsigned long long threadId, FI
 		preuserTime = userTime;
 	}
 
-	PROCESS_MEMORY_COUNTERS_EX memCounters = { 0 };
+	PROCESS_MEMORY_COUNTERS_EX memCounters = {};
 	if (!K32GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memCounters), sizeof(memCounters)))
 	{
 		qDebug() << "Failed to get memory info: " << GetLastError();

@@ -947,7 +947,7 @@ void MapAnalyzer::loadHotData(Downloader& downloader)
 	sol::state lua;
 	lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::string, sol::lib::math, sol::lib::table, sol::lib::os);
 
-	const std::string exprStrUTF8 = strdata.toUtf8().constData();
+	const std::string exprStrUTF8 = util::toConstData(strdata);
 	sol::protected_function_result loaded_chunk = lua.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
 	lua.collect_garbage();
 
@@ -1434,7 +1434,7 @@ bool MapAnalyzer::loadFromBinary(long long currentIndex, long long floor, map_t*
 
 	const QString fileName(getCurrentPreHandleMapPath(currentIndex, floor));
 
-	std::string f = fileName.toUtf8().constData();
+	std::string f = util::toConstData(fileName);
 	std::ifstream ifs(f, std::ios::binary | std::ios::in);
 	if (!ifs.is_open())
 	{
@@ -1515,7 +1515,7 @@ bool MapAnalyzer::saveAsBinary(long long currentIndex, map_t map, const QString&
 	}
 
 	//write to binary file
-	std::string f = newFileName.toUtf8().constData();
+	std::string f = util::toConstData(newFileName);
 	std::ofstream ofs(f, std::ios::binary | std::ios::out | std::ios::trunc);
 	if (!ofs.is_open())
 	{
@@ -1527,7 +1527,7 @@ bool MapAnalyzer::saveAsBinary(long long currentIndex, map_t map, const QString&
 	ofs.write(reinterpret_cast<const char*>(&map.floor), sizeof(short));
 	ofs.write(reinterpret_cast<const char*>(&map.width), sizeof(short));
 	ofs.write(reinterpret_cast<const char*>(&map.height), sizeof(short));
-	std::string name(map.name.toUtf8().constData());
+	std::string name(util::toConstData(map.name));
 	ofs.write(name.c_str(), 24);
 	unsigned short x = 0;
 	unsigned short y = 0;

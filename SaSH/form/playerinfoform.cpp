@@ -88,16 +88,16 @@ void CharInfoForm::onResetControlTextLanguage()
 	}
 }
 
-void CharInfoForm::onUpdateCharInfoColContents(long long col, const QVariant& data)
+void CharInfoForm::onUpdateCharInfoColContents(long long col, const QVariant& vdata)
 {
 	// 檢查是否為 QVariantList
-	if (data.type() != QVariant::List)
+	if (vdata.type() != QVariant::List)
 		return;
 
 	col += 1;
 
 	// 取得 QVariantList
-	QVariantList list = data.toList();
+	QVariantList list = vdata.toList();
 
 	// 取得 QVariantList 的大小
 	const long long size = list.size();

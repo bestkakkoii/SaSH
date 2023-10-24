@@ -195,6 +195,12 @@ public slots:
 		isInterruptionRequested_.store(true, std::memory_order_release);
 	}
 
+	inline void reset()
+	{
+		std::unique_lock<std::shared_mutex> lock(rwLock_);
+		isInterruptionRequested_.store(false, std::memory_order_release);
+	}
+
 	void paused()
 	{
 		pausedMutex_.lock();

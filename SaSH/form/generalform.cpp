@@ -212,7 +212,7 @@ void GeneralForm::reloadPaths()
 		if (paths.isEmpty())
 		{
 			QString path;
-			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+
 			if (!util::fileDialogShow(SASH_SUPPORT_GAMENAME, QFileDialog::AcceptOpen, &path, this) || path.isEmpty())
 				return;
 
@@ -270,8 +270,6 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_addpath")
 	{
-
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		QString newPath;
 
 		if (!util::fileDialogShow(SASH_SUPPORT_GAMENAME, QFileDialog::AcceptOpen, &newPath, this)

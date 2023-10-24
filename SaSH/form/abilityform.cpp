@@ -114,6 +114,7 @@ void AbilityForm::onApplyHashSettingsToUI()
 
 void AbilityForm::on_tableWidget_cellDoubleClicked(int row, int column)
 {
+	std::ignore = column;
 	TableWidget* pTableWidget = qobject_cast<TableWidget*>(sender());
 	if (nullptr == pTableWidget)
 		return;

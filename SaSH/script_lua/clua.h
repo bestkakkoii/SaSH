@@ -147,38 +147,6 @@ private:
 	long long a_ = 0;
 };
 
-class CLuaUtil
-{
-public:
-	CLuaUtil() = default;
-	~CLuaUtil() = default;
-
-	//long long createDialog(long long currentline, sol::this_state s);
-	//long long regex(long long currentline, sol::this_state s);
-	//long long find(long long currentline, sol::this_state s);
-	//long long half(long long currentline, sol::this_state s);
-	//long long full(long long currentline, sol::this_state s);
-	//long long upper(long long currentline, sol::this_state s);
-	//long long lower(long long currentline, sol::this_state s);
-	//long long replace(long long currentline, sol::this_state s);
-	//long long trim(std::string str, sol::this_state s);
-
-	bool getSys(sol::table dstTable, sol::this_state s);
-	bool getMap(sol::table dstTable, sol::this_state s);
-	bool getChar(sol::table dstTable, sol::this_state s);
-	bool getPet(sol::table dstTable, sol::this_state s);
-	bool getTeam(sol::table dstTable, sol::this_state s);
-	bool getCard(sol::table dstTable, sol::this_state s);
-	bool getChat(sol::table dstTable, sol::this_state s);
-	bool getDialog(sol::table dstTable, sol::this_state s);
-	bool getUnit(sol::table dstTable, sol::this_state s);
-	bool getBattleUnit(sol::table dstTable, sol::this_state s);
-	bool getDaily(sol::table dstTable, sol::this_state s);
-	bool getItem(sol::table dstTable, sol::this_state s);
-	bool getSkill(sol::table dstTable, sol::this_state s);
-	bool getMagic(sol::table dstTable, sol::this_state s);
-};
-
 class CLuaSystem
 {
 public:

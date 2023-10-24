@@ -220,8 +220,6 @@ bool Lexer::isOperator(const QChar& ch) const
 //解析整個腳本至多個TOKEN
 bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 {
-	Injector& injector = Injector::getInstance(pLexer->getIndex());
-
 	pLexer->clear();
 
 	QStringList lines = script.split("\n");
@@ -634,7 +632,7 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 				//createEmptyToken(pos, ptoken);
 				break;
 			}
-	}
+		}
 
 		if (!doNotLowerCase)
 			createToken(pos, type, QVariant::fromValue(token.toLower()), token.toLower(), ptoken);//命令必定是小寫
@@ -731,7 +729,7 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 			createToken(pos, type, data, token, ptoken);
 			++pos;
 		}
-} while (false);
+	} while (false);
 }
 
 //更新並記錄每個函數塊的開始行和結束行
@@ -922,9 +920,9 @@ void Lexer::recordNode()
 		{
 			bool ok = false;
 
-			for (auto subit = forNodes.constBegin(); subit != forNodes.constEnd(); ++subit)
+			for (auto ssubit = forNodes.constBegin(); ssubit != forNodes.constEnd(); ++ssubit)
 			{
-				ForNode node = *subit;
+				ForNode node = *ssubit;
 				if (row > node.beginLine && row < node.endLine)
 				{
 					ok = true;
@@ -995,9 +993,9 @@ void Lexer::recordNode()
 			{
 				bool ok = false;
 
-				for (auto subit = forNodes.constBegin(); subit != forNodes.constEnd(); ++subit)
+				for (auto ssubit = forNodes.constBegin(); ssubit != forNodes.constEnd(); ++ssubit)
 				{
-					ForNode node = *subit;
+					ForNode node = *ssubit;
 					if (row > node.beginLine && row < node.endLine)
 					{
 						ok = true;
@@ -1017,9 +1015,9 @@ void Lexer::recordNode()
 			{
 				bool ok = false;
 
-				for (auto subit = functionNodes.constBegin(); subit != functionNodes.constEnd(); ++subit)
+				for (auto ssubit = functionNodes.constBegin(); ssubit != functionNodes.constEnd(); ++ssubit)
 				{
-					FunctionNode node = *subit;
+					FunctionNode node = *ssubit;
 					if (row > node.beginLine && row < node.endLine)
 					{
 						ok = true;
@@ -1102,6 +1100,7 @@ void Lexer::createEmptyToken(long long index, TokenMap* ptoken)
 //根據容取TOKEN應該定義的類型
 RESERVE Lexer::getTokenType(long long& pos, RESERVE previous, QString& str, const QString raw) const
 {
+	std::ignore = pos;
 	//findex = 0;
 
 	if (str.startsWith("//") || str.startsWith("/*"))

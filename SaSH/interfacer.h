@@ -51,7 +51,7 @@ public:
 	long long RunScript(long long windowID, const QString& scriptCode) {
 		DWORD_PTR result = 0;
 		QByteArray ba = scriptCode.toUtf8();
-		if (SendMessageTimeoutW(targetWindow_, kRunScript, windowID, (LPARAM)ba.data(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
+		if (SendMessageTimeoutW(targetWindow_, kRunScript, windowID, (LPARAM)ba.constData(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
 			if (result == std::numeric_limits <DWORD_PTR>::max())
 				return -1;
 			return static_cast<long long>(result);
@@ -72,7 +72,7 @@ public:
 	long long RunFile(long long windowID, const QString& filePath) {
 		DWORD_PTR result = 0;
 		QByteArray ba = filePath.toUtf8();
-		if (SendMessageTimeoutW(targetWindow_, kRunFile, windowID, (LPARAM)ba.data(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
+		if (SendMessageTimeoutW(targetWindow_, kRunFile, windowID, (LPARAM)ba.constData(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
 			if (result == std::numeric_limits <DWORD_PTR>::max())
 				return -1;
 			return static_cast<long long>(result);
@@ -147,7 +147,7 @@ public:
 		long long wParam = alignLeft ? 0 : 1;
 		DWORD_PTR result = 0;
 		QByteArray ba = windowList.toUtf8();
-		if (SendMessageTimeoutW(targetWindow_, kSortWindow, wParam, (LPARAM)ba.data(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0)
+		if (SendMessageTimeoutW(targetWindow_, kSortWindow, wParam, (LPARAM)ba.constData(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0)
 		{
 			if (result == std::numeric_limits <DWORD_PTR>::max())
 				return -1;
@@ -159,7 +159,7 @@ public:
 	long long Thumbnail(const QString& thumbnailInfo) {
 		DWORD_PTR result = 0;
 		QByteArray ba = thumbnailInfo.toUtf8();
-		if (SendMessageTimeoutW(targetWindow_, kThumbnail, 0, (LPARAM)ba.data(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0)
+		if (SendMessageTimeoutW(targetWindow_, kThumbnail, 0, (LPARAM)ba.constData(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0)
 		{
 			if (result == std::numeric_limits <DWORD_PTR>::max())
 				return -1;
@@ -239,7 +239,7 @@ public:
 	long long LoadSettings(long long windowID, const QString& jsonConfigPath) {
 		DWORD_PTR result = 0;
 		QByteArray ba = jsonConfigPath.toUtf8();
-		if (SendMessageTimeoutW(targetWindow_, kLoadSettings, windowID, (LPARAM)ba.data(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0)
+		if (SendMessageTimeoutW(targetWindow_, kLoadSettings, windowID, (LPARAM)ba.constData(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0)
 		{
 			if (result == std::numeric_limits <DWORD_PTR>::max())
 				return -1;

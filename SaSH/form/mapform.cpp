@@ -151,7 +151,6 @@ void MapForm::onButtonClicked()
 	}
 	else if (name == "pushButton_findpath_stop")
 	{
-		long long currentIndex = getIndex();
 		Injector& injector = Injector::getInstance(currentIndex);
 		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
 		ui.pushButton_findpath_stop->setEnabled(false);
@@ -218,6 +217,7 @@ void MapForm::onUpdateNpcList(long long floor)
 
 void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 {
+	std::ignore = col;
 	QMutexLocker lock(&missionThreadMutex_);
 	if (!npc_hash_.contains(row))
 		return;

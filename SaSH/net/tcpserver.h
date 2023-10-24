@@ -435,6 +435,9 @@ private:
 
 	//自動補血、氣
 	void checkAutoHeal();
+
+	//自動丟寵
+	void checkAutoDropPet();
 #pragma endregion
 
 #pragma region SAClientOriginal
@@ -493,29 +496,20 @@ private:
 
 	util::SafeVector<bool> battlePetDisableList_ = {};
 
-	//戰鬥相關
-	std::atomic_bool battleCharAlreadyActed = true;
-	std::atomic_bool battlePetAlreadyActed = true;
-	std::atomic_llong battleCharCurrentPos = 0;
-	std::atomic_llong battleBpFlag = 0;
-	std::atomic_llong battleField = 0;
-	std::atomic_bool battleCharEscapeFlag = 0;
-	std::atomic_llong battleCharCurrentMp = 0;
-	std::atomic_llong battleCurrentAnimeFlag = 0;
-
 	QFuture<void> battleBackupFuture_;
 	QFuture<void> autoLockPet_;
 	QFuture<void> dropMeatFuture_;
 	QFuture<void> autoHealFuture_;
 	QFuture<void> autoAbilityFuture_;
 	QFuture<void> battleTimeFuture_;
+	QFuture<void> autoDropPetFuture_;
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
 	QString lastSecretChatName = "";//最後一次收到密語的發送方名稱
 
 	//遊戲內當前時間相關
-	LSTIME saTimeStruct = { 0 };
+	LSTIME saTimeStruct = {};
 	long long serverTime = 0LL;
 	long long FirstTime = 0LL;
 
@@ -524,7 +518,7 @@ private:
 	QString opp_sockfd;
 	QString opp_name;
 	QString opp_goldmount;
-	long long showindex[7] = { 0 };
+	long long showindex[7] = {};
 	long long tradeWndDropGoldGet = 0;
 	QString opp_itemgraph;
 	QString opp_itemname;
@@ -553,6 +547,16 @@ public:
 	std::atomic_llong nowFloor_;
 	util::SafeData<QString> nowFloorName_;
 	util::SafeData<QPoint> nowPoint_;
+
+	//戰鬥相關
+	std::atomic_bool battleCharAlreadyActed = true;
+	std::atomic_bool battlePetAlreadyActed = true;
+	std::atomic_llong battleCharCurrentPos = 0;
+	std::atomic_llong battleBpFlag = 0;
+	std::atomic_llong battleField = 0;
+	std::atomic_bool battleCharEscapeFlag = 0;
+	std::atomic_llong battleCharCurrentMp = 0;
+	std::atomic_llong battleCurrentAnimeFlag = 0;
 
 	//custom
 	std::atomic_bool IS_TRADING = false;

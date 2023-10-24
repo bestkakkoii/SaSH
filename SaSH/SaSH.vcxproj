@@ -475,7 +475,6 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <ClCompile Include="script_lua\luamap.cpp" />
     <ClCompile Include="script_lua\luapet.cpp" />
     <ClCompile Include="script_lua\luasystem.cpp" />
-    <ClCompile Include="script_lua\luautil.cpp" />
     <ClCompile Include="update\downloader.cpp" />
     <ClCompile Include="util.cpp" />
     <QtMoc Include="form\infoform.h" />

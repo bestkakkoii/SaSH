@@ -103,7 +103,7 @@ class JumpToLineDialog : public QDialog
 	Q_OBJECT
 
 public:
-	JumpToLineDialog(CodeEditor* parent = nullptr, int* lineNumber = nullptr)
+	JumpToLineDialog(CodeEditor* parent = nullptr, long long* lineNumber = nullptr)
 		: QDialog(parent), m_lineNumber(lineNumber)
 	{
 		setAttribute(Qt::WA_DeleteOnClose);
@@ -114,13 +114,13 @@ public:
 		connect(parent, &CodeEditor::closeJumpToLineDialog, this, &JumpToLineDialog::close);
 
 		// Set the width to 1/2 of the parent's width, but keep the height unchanged
-		int dialogWidth = parent->width() / 2;
-		int dialogHeight = height(); // Keep the height unchanged
+		long long dialogWidth = parent->width() / 2;
+		long long dialogHeight = height(); // Keep the height unchanged
 
 		// Calculate the dialog position relative to the parent window
 		QPoint parentCenter = parent->mapToGlobal(QPoint(parent->width() / 2, 0));
-		int dialogX = parentCenter.x() - dialogWidth / 2;
-		int dialogY = parentCenter.y();
+		long long dialogX = parentCenter.x() - dialogWidth / 2;
+		long long dialogY = parentCenter.y();
 
 		// Set the dialog's geometry
 		setGeometry(dialogX, dialogY, dialogWidth, dialogHeight);
@@ -181,7 +181,7 @@ protected:
 	}
 
 private:
-	int* m_lineNumber;
+	long long* m_lineNumber;
 };
 
 

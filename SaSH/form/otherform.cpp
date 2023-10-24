@@ -175,10 +175,10 @@ void OtherForm::onListWidgetDoubleClicked(QListWidgetItem* item)
 		QStringList list;
 		for (long long i = 0; i < size; ++i)
 		{
-			QListWidgetItem* item = ui.listWidget_lockpets->item(i);
-			if (item)
+			QListWidgetItem* pitem = ui.listWidget_lockpets->item(i);
+			if (pitem)
 			{
-				QString str = item->text().simplified();
+				QString str = pitem->text().simplified();
 				if (str.isEmpty())
 					continue;
 				list.append(str);

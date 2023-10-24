@@ -223,8 +223,7 @@ BattleSettingFrom::~BattleSettingFrom()
 
 void BattleSettingFrom::onListWidgetAddItem(const QString& text)
 {
-
-
+	std::ignore = text;
 }
 
 void BattleSettingFrom::onTextBrowserAppendText(const QString& text, bool cacheOnly)

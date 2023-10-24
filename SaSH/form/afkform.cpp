@@ -1051,9 +1051,6 @@ void AfkForm::onComboBoxClicked()
 		return;
 	}
 
-	util::UserSetting settingType = util::kSettingNotUsed;
-
-
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.worker.isNull())

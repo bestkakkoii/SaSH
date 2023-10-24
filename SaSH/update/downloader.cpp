@@ -280,7 +280,7 @@ bool uncompress(Downloader* d, const QString& source, const QString& destination
 		return false;
 	}
 
-	zipper::ZIPENTRY ze = { 0 };
+	zipper::ZIPENTRY ze = {};
 	ret = GetZipItem(hz, -1, &ze);
 	if (ret != ZR_OK)
 	{
@@ -651,7 +651,7 @@ void Downloader::onDownloadFinished()
 	}
 }
 
-void Downloader::onErrorOccurred(QNetworkReply::NetworkError code)
+void Downloader::onErrorOccurred(QNetworkReply::NetworkError)
 {
 	if (reply_ != nullptr)
 	{

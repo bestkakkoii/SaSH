@@ -55,7 +55,7 @@ void __fastcall luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const L
 	{
 		//用戶請求停止
 		const QString qmsgstr(errormsg_str.value(element));
-		const std::string str(qmsgstr.toUtf8().constData());
+		const std::string str(util::toConstData(qmsgstr));
 		luaL_error(L, str.c_str());
 		break;
 	}
@@ -63,7 +63,7 @@ void __fastcall luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const L
 	{
 		long long topsize = lua_gettop(L);
 		const QString qmsgstr(QString(errormsg_str.value(element)).arg(p1.toLongLong()).arg(topsize));
-		const std::string str(qmsgstr.toUtf8().constData());
+		const std::string str(util::toConstData(qmsgstr));
 		luaL_argcheck(L, topsize == p1.toLongLong(), topsize, str.c_str());
 		break;
 	}
@@ -71,7 +71,7 @@ void __fastcall luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const L
 	{
 		long long topsize = lua_gettop(L);
 		const QString qmsgstr(QString(errormsg_str.value(element)).arg(topsize));
-		const std::string str(qmsgstr.toUtf8().constData());
+		const std::string str(util::toConstData(qmsgstr));
 		luaL_argcheck(L, topsize == 0, 1, str.c_str());
 		break;
 	}
@@ -79,21 +79,21 @@ void __fastcall luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const L
 	{
 		long long topsize = lua_gettop(L);
 		const QString qmsgstr(QString(errormsg_str.value(element)).arg(p1.toLongLong()).arg(p2.toLongLong()).arg(topsize));
-		const std::string str(qmsgstr.toUtf8().constData());
+		const std::string str(util::toConstData(qmsgstr));
 		luaL_argcheck(L, topsize >= p1.toLongLong() && topsize <= p2.toLongLong(), 1, str.c_str());
 		break;
 	}
 	case ERROR_PARAM_VALUE://數值錯誤 p1 第幾個參數 p2邏輯 str訊息
 	{
 		const QString qmsgstr(p3.toString());
-		const std::string str(qmsgstr.toUtf8().constData());
+		const std::string str(util::toConstData(qmsgstr));
 		luaL_argcheck(L, p2.toBool(), p1.toLongLong(), str.c_str());
 		break;
 	}
 	case ERROR_PARAM_TYPE://參數預期錯誤 p1 第幾個參數 p2邏輯 str訊息
 	{
 		const QString qmsgstr(p3.toString());
-		const std::string str(qmsgstr.toUtf8().constData());
+		const std::string str(util::toConstData(qmsgstr));
 		luaL_argexpected(L, p2.toBool(), p1.toLongLong(), str.c_str());
 		break;
 	}
@@ -497,8 +497,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	}
 	case LUA_HOOKLINE:
 	{
-		sol::state_view lua(s.lua_state());
-
 		if (lua["_HOOKFORSTOP"].is<bool>() && lua["_HOOKFORSTOP"].get<bool>())
 		{
 			luadebug::checkStopAndPause(s);
@@ -614,8 +612,6 @@ void CLua::start()
 {
 	moveToThread(&thread_);
 
-	long long currentIndex = getIndex();
-
 	connect(this, &CLua::finished, &thread_, &QThread::quit);
 	connect(&thread_, &QThread::finished, &thread_, &QThread::deleteLater);
 	connect(&thread_, &QThread::started, this, &CLua::proc);
@@ -627,7 +623,6 @@ void CLua::start()
 			thread_.wait();
 			qDebug() << "CLua::finished";
 		});
-
 
 	thread_.start();
 }
@@ -735,26 +730,9 @@ void CLua::open_testlibs()
 	*/
 }
 
-void CLua::open_utillibs(sol::state& lua)
+void CLua::open_utillibs(sol::state&)
 {
-	lua.new_usertype<CLuaUtil>("InfoClass",
-		sol::call_constructor,
-		sol::constructors<CLuaUtil()>(),
-		"sys", &CLuaUtil::getSys,
-		"map", &CLuaUtil::getMap,
-		"char", &CLuaUtil::getChar,
-		"pet", &CLuaUtil::getPet,
-		"team", &CLuaUtil::getTeam,
-		"card", &CLuaUtil::getCard,
-		"chat", &CLuaUtil::getChat,
-		"dialog", &CLuaUtil::getDialog,
-		"unit", &CLuaUtil::getUnit,
-		"battlUnit", &CLuaUtil::getBattleUnit,
-		"daily", &CLuaUtil::getDaily,
-		"item", &CLuaUtil::getItem,
-		"skill", &CLuaUtil::getSkill,
-		"magic", &CLuaUtil::getMagic
-	);
+
 }
 
 //luasystem.cpp
@@ -956,7 +934,7 @@ collectgarbage("step", 1024);
 		paths.append(path.replace("\\", "/"));
 	}
 
-	lua_["package"]["path"] = std::string(paths.join(";").toUtf8().constData());
+	lua_["package"]["path"] = std::string(util::toConstData(paths.join(";")));
 
 	if (isHookEnabled_)
 	{
@@ -982,7 +960,7 @@ void CLua::proc()
 		openlibs();
 
 		QStringList tableStrs;
-		std::string luaCode = scriptContent_.toUtf8().constData();
+		std::string luaCode(util::toConstData(scriptContent_));
 
 		//安全模式下執行lua腳本
 		sol::protected_function_result loaded_chunk = lua_.safe_script(luaCode.c_str(), sol::script_pass_on_error);

@@ -103,15 +103,15 @@ void ItemInfoForm::onResetControlTextLanguage()
 	}
 }
 
-void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, long long row, const QVariant& data)
+void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, long long row, const QVariant& vdata)
 {
 
 	// 檢查是否為 QVariantList
-	if (data.type() != QVariant::List)
+	if (vdata.type() != QVariant::List)
 		return;
 
 	// 取得 QVariantList
-	QVariantList list = data.toList();
+	QVariantList list = vdata.toList();
 
 	// 取得 QVariantList 的大小
 	const long long size = list.size();
@@ -138,18 +138,19 @@ void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, long long
 	}
 }
 
-void ItemInfoForm::onUpdateEquipInfoRowContents(long long row, const QVariant& data)
+void ItemInfoForm::onUpdateEquipInfoRowContents(long long row, const QVariant& vdata)
 {
-	updateItemInfoRowContents(ui.tableWidget_equip, row, data);
+	updateItemInfoRowContents(ui.tableWidget_equip, row, vdata);
 }
 
-void ItemInfoForm::onUpdateItemInfoRowContents(long long row, const QVariant& data)
+void ItemInfoForm::onUpdateItemInfoRowContents(long long row, const QVariant& vdata)
 {
-	updateItemInfoRowContents(ui.tableWidget_item, row - 9, data);
+	updateItemInfoRowContents(ui.tableWidget_item, row - 9, vdata);
 }
 
 void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
 {
+	std::ignore = column;
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.worker.isNull())
@@ -160,6 +161,7 @@ void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
 
 void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int column)
 {
+	std::ignore = column;
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.worker.isNull())

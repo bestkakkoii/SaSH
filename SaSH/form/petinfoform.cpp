@@ -35,6 +35,7 @@ PetInfoForm::~PetInfoForm()
 
 void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 {
+	std::ignore = index;
 	QString str = ui.comboBox->currentText();
 	if (str.isEmpty())
 		return;
@@ -184,7 +185,6 @@ void PetInfoForm::on_pushButton_calc_clicked()
 	long long diff_def = cur_def_ - base_def_;
 	long long diff_agi = cur_agi_ - base_agi_;
 
-	constexpr double rate_level = 1.0;
 	double rate_maxHp = calcRate(diff_maxHp, diff_level);
 	double rate_atk = calcRate(diff_atk, diff_level);
 	double rate_def = calcRate(diff_def, diff_level);

@@ -214,19 +214,11 @@ void ScriptEditor::initStaticLabel()
 			if (!isVisible())
 				return;
 
-			long long currentIndex = getIndex();
-			Injector& injector = Injector::getInstance(currentIndex);
-			unsigned long long threadId = reinterpret_cast<unsigned long long>(QThread::currentThreadId());
-			if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
-			{
-				threadId = injector.scriptThreadId;
-			}
-
 			qreal cpuUsage = 0;
 			qreal memoryUsage = 0;
 			qreal memoryTotal = 0;
 
-			if (util::monitorThreadResourceUsage(threadId, idleTime_, kernelTime_, userTime_, &cpuUsage, &memoryUsage, &memoryTotal))
+			if (util::monitorThreadResourceUsage(idleTime_, kernelTime_, userTime_, &cpuUsage, &memoryUsage, &memoryTotal))
 			{
 				usageLabel_->setText(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB"))
 					.arg(util::toQString(cpuUsage))
@@ -1322,9 +1314,9 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 
 		if (document_.contains(str))
 		{
-			QSharedPointer< QTextDocument> doc = document_.value(str);
+			QSharedPointer<QTextDocument> doc = document_.value(str);
 			ui.textBrowser->setUpdatesEnabled(false);
-			ui.textBrowser->setDocument(doc.data());
+			ui.textBrowser->setDocument(doc.get());
 			ui.textBrowser->setUpdatesEnabled(true);
 			break;
 		}
@@ -1359,7 +1351,7 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 		document_.insert(str, doc);
 
 		ui.textBrowser->setUpdatesEnabled(false);
-		ui.textBrowser->setDocument(doc.data());
+		ui.textBrowser->setDocument(doc.get());
 		ui.textBrowser->setUpdatesEnabled(true);
 	} while (false);
 }
@@ -2630,7 +2622,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 
 	for (const QString& it : globalNames)
 	{
-		const std::string name = it.toUtf8().constData();
+		const std::string name(util::toConstData(it));
 		const sol::object o = lua_[name.c_str()];
 		if (!o.valid())
 			continue;

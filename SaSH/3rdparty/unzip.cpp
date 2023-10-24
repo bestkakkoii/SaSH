@@ -3553,8 +3553,8 @@ void zfree(void *buf)
 				//
 				if (pfile_in_zip_read_info->encrypted)
 				{
-					char* buf = (char*)pfile_in_zip_read_info->stream.next_in;
-					for (unsigned int i = 0; i < uReadThis; i++) buf[i] = zdecode(pfile_in_zip_read_info->keys, buf[i]);
+					char* cbuf = (char*)pfile_in_zip_read_info->stream.next_in;
+					for (unsigned int i = 0; i < uReadThis; i++) cbuf[i] = zdecode(pfile_in_zip_read_info->keys, cbuf[i]);
 				}
 			}
 

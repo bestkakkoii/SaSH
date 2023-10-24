@@ -19,7 +19,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "qthumbnailform.h"
 
-
 QThumbnailForm::QThumbnailForm(const QList<HWND>& v, QWidget* parent)
 	: QWidget(parent)
 	, m_glWidgets(50)
@@ -110,7 +109,7 @@ void QThumbnailForm::refresh()
 
 void QThumbnailForm::RemoteMouseMove(HWND hWnd, const POINT& point)
 {
-	SendMessage(hWnd, WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
+	SendMessageW(hWnd, WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
 }
 
 void QThumbnailForm::RemoteMouseRelease(HWND hWnd, const POINT& point, Qt::MouseButton button)
@@ -119,17 +118,17 @@ void QThumbnailForm::RemoteMouseRelease(HWND hWnd, const POINT& point, Qt::Mouse
 	if (button == Qt::LeftButton)
 	{
 		// Send a WM_LBUTTONUP message to the target window
-		SendMessage(hWnd, WM_LBUTTONUP, MK_LBUTTON, MAKELPARAM(point.x, point.y));
+		SendMessageW(hWnd, WM_LBUTTONUP, MK_LBUTTON, MAKELPARAM(point.x, point.y));
 	}
 	else if (button == Qt::RightButton)
 	{
 		// Send a WM_RBUTTONUP message to the target window
-		SendMessage(hWnd, WM_RBUTTONUP, MK_RBUTTON, MAKELPARAM(point.x, point.y));
+		SendMessageW(hWnd, WM_RBUTTONUP, MK_RBUTTON, MAKELPARAM(point.x, point.y));
 	}
 	else if (button == Qt::MiddleButton)
 	{
 		// Send a WM_MBUTTONUP message to the target window
-		SendMessage(hWnd, WM_MBUTTONUP, MK_MBUTTON, MAKELPARAM(point.x, point.y));
+		SendMessageW(hWnd, WM_MBUTTONUP, MK_MBUTTON, MAKELPARAM(point.x, point.y));
 	}
 }
 
@@ -139,50 +138,22 @@ void QThumbnailForm::RemoteMousePress(HWND hWnd, const POINT& point, Qt::MouseBu
 	if (button == Qt::LeftButton)
 	{
 		// Send a WM_LBUTTONDOWN message to the target window
-		SendMessage(hWnd, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(point.x, point.y));
+		SendMessageW(hWnd, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(point.x, point.y));
 	}
 	else if (button == Qt::RightButton)
 	{
 		// Send a WM_RBUTTONDOWN message to the target window
-		SendMessage(hWnd, WM_RBUTTONDOWN, MK_RBUTTON, MAKELPARAM(point.x, point.y));
+		SendMessageW(hWnd, WM_RBUTTONDOWN, MK_RBUTTON, MAKELPARAM(point.x, point.y));
 	}
 	else if (button == Qt::MiddleButton)
 	{
 		// Send a WM_MBUTTONDOWN message to the target window
-		SendMessage(hWnd, WM_MBUTTONDOWN, MK_MBUTTON, MAKELPARAM(point.x, point.y));
+		SendMessageW(hWnd, WM_MBUTTONDOWN, MK_MBUTTON, MAKELPARAM(point.x, point.y));
 	}
 }
 
-int findbyName(QList<HWND> v, const QString& name, HWND* phWnd)
-{
-	////查找 ->GetCharData().name
-	//int size = v.size();
-	//for (int i = 0; i < size; ++i)
-	//{
-	//	if (!v.value(i)) continue;
-	//	if (v.value(i)->GetCharData().name == name)
-	//	{
-	//		if (phWnd)
-	//			*phWnd = v.value(i);
-	//		return i;
-	//	}
-	//}
-	return -1;
-};
-
 int QThumbnailForm::findbyIndex(QList<HWND> v, int index, HWND* phWnd)
 {
-	//int size = v.size();
-	//for (int i = 0; i < size; ++i)
-	//{
-	//	if (v.value(i)) continue;
-	//	if (v.value(i)->GetIndex() == index)
-	//	{
-	//		if (phWnd)
-	//			*phWnd = v.valuet(i);
-	//		return i;
-	//	}
-	//}
 	QReadLocker locker(&m_lock);
 	if (index < 0 || index >= m_hWnds.size())
 		return -1;
@@ -193,22 +164,16 @@ int QThumbnailForm::findbyIndex(QList<HWND> v, int index, HWND* phWnd)
 	return index;
 };
 
-void QThumbnailForm::RemoteRun(HWND h, const POINT& point, Qt::MouseButton button, bool isrelease)
+void QThumbnailForm::RemoteRun(HWND hWnd, const POINT& point, Qt::MouseButton button, bool isrelease)
 {
 	QReadLocker locker(&m_lock);
 	QList<HWND> v = m_hWnds;
-	auto run = [this, &point, button, isrelease](HWND hWnd)
-	{
-		if (button == Qt::MouseButton::NoButton)
-			RemoteMouseMove(hWnd, point);
-		else if ((button != Qt::MouseButton::NoButton) && !isrelease)
-			RemoteMousePress(hWnd, point, button);
-		else if ((button != Qt::MouseButton::NoButton) && isrelease)
-			RemoteMouseRelease(hWnd, point, button);
-	};
-
-	//沒有//setoc 
-	run(h);
+	if (button == Qt::MouseButton::NoButton)
+		RemoteMouseMove(hWnd, point);
+	else if ((button != Qt::MouseButton::NoButton) && !isrelease)
+		RemoteMousePress(hWnd, point, button);
+	else if ((button != Qt::MouseButton::NoButton) && isrelease)
+		RemoteMouseRelease(hWnd, point, button);
 }
 
 void QThumbnailForm::on_mousePressEvent(HWND h, POINT point, Qt::MouseButton button)

@@ -33,7 +33,6 @@ public:
 	{
 		kAutoJoin = 0,
 		kAutoWalk,
-		kAutoDropPet,
 		kAutoSortItem,
 		kAutoRecordNPC,
 		kMaxAutoMission,
@@ -45,19 +44,22 @@ public:
 
 	void wait();
 
+	inline bool isRunning() { return thread_.isRunning(); }
 	inline void appendArg(const QVariant& arg) { args_.append(arg); }
 	inline void appendArgs(const QVariantList& args) { args_.append(args); }
 
 signals:
 	void start();
 
-private slots:
+public slots:
 	void autoJoin();
 	void autoWalk();
-	void autoDropPet();
 	void autoSortItem();
 	void autoRecordNPC();
 	void asyncFindPath();
+
+private slots:
+	void onFinished();
 
 private:
 	QThread thread_;

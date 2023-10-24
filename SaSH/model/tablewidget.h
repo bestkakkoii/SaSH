@@ -195,7 +195,7 @@ QScrollBar::handle:pressed:horizontal {
 		item->setBackground(color);
 	}
 
-	void setText(long long row, long long column, const QString& text, const QString& toolTip = "", QVariant data = QVariant())
+	void setText(long long row, long long column, const QString& text, const QString& toolTip = "", QVariant vdata = QVariant())
 	{
 		long long max = QTableWidget::rowCount();
 		if (row >= max)
@@ -213,7 +213,7 @@ QScrollBar::handle:pressed:horizontal {
 			else
 				item->setToolTip(text);
 
-			item->setData(Qt::UserRole, data);
+			item->setData(Qt::UserRole, vdata);
 		}
 		else
 		{
@@ -226,7 +226,7 @@ QScrollBar::handle:pressed:horizontal {
 			else
 				item->setToolTip(text);
 
-			item->setData(Qt::UserRole, data);
+			item->setData(Qt::UserRole, vdata);
 
 			setItem(row, column, item);
 		}

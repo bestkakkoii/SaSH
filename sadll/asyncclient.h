@@ -159,9 +159,9 @@ public:
 			BOOL keepAlive = TRUE; //Keep-Alive
 			setsockopt(clientSocket_, SOL_SOCKET, SO_KEEPALIVE, (const char*)&keepAlive, sizeof(BOOL));
 
-			struct tcp_keepalive in_keep_alive = { 0 };
+			struct tcp_keepalive in_keep_alive = {};
 			unsigned long ul_in_len = sizeof(struct tcp_keepalive);
-			struct tcp_keepalive out_keep_alive = { 0 };
+			struct tcp_keepalive out_keep_alive = {};
 			unsigned long ul_out_len = sizeof(struct tcp_keepalive);
 			unsigned long ul_bytes_return = 0;
 			in_keep_alive.onoff = 1; /*打開keepalive*/

@@ -984,9 +984,9 @@ typedef struct tagLSTIME
 
 typedef struct tagMAIL_HISTORY
 {
-	long long 	noReadFlag[MAIL_MAX_HISTORY] = { 0 };
-	long long 	petLevel[MAIL_MAX_HISTORY] = { 0 };
-	long long 	itemGraNo[MAIL_MAX_HISTORY] = { 0 };
+	long long 	noReadFlag[MAIL_MAX_HISTORY] = {};
+	long long 	petLevel[MAIL_MAX_HISTORY] = {};
+	long long 	itemGraNo[MAIL_MAX_HISTORY] = {};
 	long long 	newHistoryNo = 0;
 	QString str[MAIL_MAX_HISTORY];
 	QString dateStr[MAIL_MAX_HISTORY];
@@ -1107,7 +1107,7 @@ typedef struct tagPC
 	QString profession_class_name = "";
 	QString gm_name = "";	// Rog ADD GM識別
 	QString chatRoomNum = "";// ROG ADD 好友頻道
-	//ITEM item[MAX_ITEM] = { 0 };
+	//ITEM item[MAX_ITEM] = {};
 	//ITEM itempool[MAX_ITEM] = {};
 	// 2 -> 慬我方按下確定鍵
 	// 3 -> 僅對方按下確定鍵
@@ -1255,10 +1255,10 @@ typedef struct tagCHARLISTTABLE
 //	long long 是否自動遇敵 = 0;
 //	long long 人物方向 = 0;
 //	long long 登陸延時時間 = 0;
-//	char 登陸人物名稱[4][32] = { 0 };
+//	char 登陸人物名稱[4][32] = {};
 //}Landed;
 
-constexpr int MAX_MISSION = 300;
+constexpr long long MAX_MISSION = 300;
 typedef struct tagJOBDAILY
 {
 	long long id = 0;								// 任務編號
@@ -1346,10 +1346,7 @@ typedef struct battleobject_s
 
 typedef struct battledata_s
 {
-	long long fieldAttr = 0;
 	long long alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
-	battleobject_t player = {};
-	battleobject_t pet = {};
 	QVector<battleobject_t> objects;
 	QVector<battleobject_t> allies;
 	QVector<battleobject_t> enemies;

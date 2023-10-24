@@ -1038,7 +1038,6 @@ long long Interpreter::recordequip(long long currentIndex, long long currentLine
 
 	checkOnlineThenWait();
 
-
 	QHash<long long, ITEM> items = injector.worker->getItems();
 	QHash<long long, ITEM> recordedItems = recordedEquip_.value(currentIndex);
 	for (long long i = 0; i < CHAR_EQUIPPLACENUM; ++i)
