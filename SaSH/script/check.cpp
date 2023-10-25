@@ -213,7 +213,7 @@ long long Interpreter::waitdlg(long long currentIndex, long long currentLine, co
 				QStringList dialogStrList = injector.worker->currentDialog.get().linedatas;
 				for (long long i = min; i <= max; ++i)
 				{
-					int index = i - 1;
+					long long index = i - 1;
 					if (index < 0 || index >= dialogStrList.size())
 						break;
 

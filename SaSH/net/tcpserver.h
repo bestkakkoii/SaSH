@@ -263,7 +263,7 @@ public://actions
 	[[nodiscard]] bool __fastcall checkPartyHp(long long cmpvalue, long long* target);
 
 	[[nodiscard]] bool __fastcall isPetSpotEmpty() const;
-	[[nodiscard]] long long __fastcall checkJobDailyState(const QString& missionName);
+	[[nodiscard]] long long __fastcall checkJobDailyState(const QString& missionName, long long timeout);
 
 	[[nodiscard]] bool __fastcall isDialogVisible();
 
@@ -502,7 +502,6 @@ private:
 	QFuture<void> dropMeatFuture_;
 	QFuture<void> autoHealFuture_;
 	QFuture<void> autoAbilityFuture_;
-	QFuture<void> battleTimeFuture_;
 	QFuture<void> autoDropPetFuture_;
 
 	//client original 目前很多都是沒用處的
@@ -629,39 +628,39 @@ private://lssproto
 
 private://lssproto_recv
 #pragma region Lssproto_Recv
-	virtual void __fastcall lssproto_XYD_recv(const QPoint& pos, int dir) override;//戰鬥結束後的大地圖座標
-	virtual void __fastcall lssproto_EV_recv(int dialogid, int result) override;
-	virtual void __fastcall lssproto_EN_recv(int result, int field) override;
+	virtual void __fastcall lssproto_XYD_recv(const QPoint& pos, long long dir) override;//戰鬥結束後的大地圖座標
+	virtual void __fastcall lssproto_EV_recv(long long dialogid, long long result) override;
+	virtual void __fastcall lssproto_EN_recv(long long result, long long field) override;
 	virtual void __fastcall lssproto_RS_recv(char* data) override;
 	virtual void __fastcall lssproto_RD_recv(char* data) override;
 	virtual void __fastcall lssproto_B_recv(char* command) override;
 	virtual void __fastcall lssproto_I_recv(char* data) override;
-	virtual void __fastcall lssproto_SI_recv(int fromindex, int toindex) override;
-	virtual void __fastcall lssproto_MSG_recv(int aindex, char* text, int color) override;	//收到普通郵件或寵物郵件
-	virtual void __fastcall lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata) override;
+	virtual void __fastcall lssproto_SI_recv(long long fromindex, long long toindex) override;
+	virtual void __fastcall lssproto_MSG_recv(long long aindex, char* text, long long color) override;	//收到普通郵件或寵物郵件
+	virtual void __fastcall lssproto_PME_recv(long long unitid, long long graphicsno, const QPoint& pos, long long dir, long long flg, long long no, char* cdata) override;
 	virtual void __fastcall lssproto_AB_recv(char* data) override;
-	virtual void __fastcall lssproto_ABI_recv(int num, char* data) override;
-	virtual void __fastcall lssproto_TK_recv(int index, char* message, int color) override;
-	virtual void __fastcall lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tilesum, int objsum, int eventsum, char* data) override;
-	virtual void __fastcall lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* data) override;
+	virtual void __fastcall lssproto_ABI_recv(long long num, char* data) override;
+	virtual void __fastcall lssproto_TK_recv(long long index, char* message, long long color) override;
+	virtual void __fastcall lssproto_MC_recv(long long fl, long long x1, long long y1, long long x2, long long y2, long long tilesum, long long objsum, long long eventsum, char* data) override;
+	virtual void __fastcall lssproto_M_recv(long long fl, long long x1, long long y1, long long x2, long long y2, char* data) override;
 	virtual void __fastcall lssproto_C_recv(char* data) override;
 	virtual void __fastcall lssproto_CA_recv(char* data) override;
 	virtual void __fastcall lssproto_CD_recv(char* data) override;
 	virtual void __fastcall lssproto_R_recv(char* data) override;
 	virtual void __fastcall lssproto_S_recv(char* data) override;
-	virtual void __fastcall lssproto_D_recv(int category, int dx, int dy, char* data) override;
-	virtual void __fastcall lssproto_FS_recv(int flg) override;
-	virtual void __fastcall lssproto_HL_recv(int flg) override;//戰鬥中是否要Help
-	virtual void __fastcall lssproto_PR_recv(int request, int result) override;
-	virtual void __fastcall lssproto_KS_recv(int petarray, int result) override;//指定那一只寵物出場戰鬥
+	virtual void __fastcall lssproto_D_recv(long long category, long long dx, long long dy, char* data) override;
+	virtual void __fastcall lssproto_FS_recv(long long flg) override;
+	virtual void __fastcall lssproto_HL_recv(long long flg) override;//戰鬥中是否要Help
+	virtual void __fastcall lssproto_PR_recv(long long request, long long result) override;
+	virtual void __fastcall lssproto_KS_recv(long long petarray, long long result) override;//指定那一只寵物出場戰鬥
 #ifdef _STANDBYPET
-	virtual void __fastcall lssproto_SPET_recv(int standbypet, int result) override;
+	virtual void __fastcall lssproto_SPET_recv(long long standbypet, long long result) override;
 #endif
-	virtual void __fastcall lssproto_PS_recv(int result, int havepetindex, int havepetskill, int toindex) override;	//寵物合成
-	virtual void __fastcall lssproto_SKUP_recv(int point) override;//取得可加的屬性點數
-	virtual void __fastcall lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int unitid, char* data) override;
-	virtual void __fastcall lssproto_EF_recv(int effect, int level, char* option) override;
-	virtual void __fastcall lssproto_SE_recv(const QPoint& pos, int senumber, int sw) override;
+	virtual void __fastcall lssproto_PS_recv(long long result, long long havepetindex, long long havepetskill, long long toindex) override;	//寵物合成
+	virtual void __fastcall lssproto_SKUP_recv(long long point) override;//取得可加的屬性點數
+	virtual void __fastcall lssproto_WN_recv(long long windowtype, long long buttontype, long long dialogid, long long unitid, char* data) override;
+	virtual void __fastcall lssproto_EF_recv(long long effect, long long level, char* option) override;
+	virtual void __fastcall lssproto_SE_recv(const QPoint& pos, long long senumber, long long sw) override;
 	virtual void __fastcall lssproto_ClientLogin_recv(char* result) override;
 	virtual void __fastcall lssproto_CreateNewChar_recv(char* result, char* data) override;
 	virtual void __fastcall lssproto_CharDelete_recv(char* result, char* data) override;
@@ -669,23 +668,23 @@ private://lssproto_recv
 	virtual void __fastcall lssproto_CharList_recv(char* result, char* data) override;
 	virtual void __fastcall lssproto_CharLogout_recv(char* result, char* data) override;
 	virtual void __fastcall lssproto_ProcGet_recv(char* data) override;
-	virtual void __fastcall lssproto_CharNumGet_recv(int logincount, int player) override;
+	virtual void __fastcall lssproto_CharNumGet_recv(long long logincount, long long player) override;
 	virtual void __fastcall lssproto_Echo_recv(char* test) override;
-	virtual void __fastcall lssproto_NU_recv(int AddCount) override;
-	virtual void __fastcall lssproto_WO_recv(int effect) override;//取得轉生的特效
+	virtual void __fastcall lssproto_NU_recv(long long AddCount) override;
+	virtual void __fastcall lssproto_WO_recv(long long effect) override;//取得轉生的特效
 	virtual void __fastcall lssproto_TD_recv(char* data) override;
 	virtual void __fastcall lssproto_FM_recv(char* data) override;
 #ifdef _ITEM_CRACKER
 	virtual void __fastcall lssproto_IC_recv(const QPoint& pos) override;
 #endif
 #ifdef _MAGIC_NOCAST//沈默
-	virtual void __fastcall lssproto_NC_recv(int flg) override;
+	virtual void __fastcall lssproto_NC_recv(long long flg) override;
 #endif
 #ifdef _CHECK_GAMESPEED
-	virtual void __fastcall lssproto_CS_recv(int deltimes) override;
+	virtual void __fastcall lssproto_CS_recv(long long deltimes) override;
 #endif
 #ifdef _PETS_SELECTCON
-	virtual void __fastcall lssproto_PETST_recv(int petarray, int result) override;
+	virtual void __fastcall lssproto_PETST_recv(long long petarray, long long result) override;
 #endif
 #ifdef _CHATROOMPROTOCOL			// (不可開) 聊天室頻道
 	virtual void __fastcall lssproto_CHATROOM_recv(char* data) override;
@@ -721,32 +720,32 @@ private://lssproto_recv
 	virtual void __fastcall lssproto_S2_recv(char* data) override;
 
 #ifdef _ITEM_FIREWORK
-	virtual void __fastcall lssproto_Firework_recv(int nCharaindex, int nType, int nActionNum) override;	// 煙火功能
+	virtual void __fastcall lssproto_Firework_recv(long long nCharaindex, long long nType, long long nActionNum) override;	// 煙火功能
 #endif
 #ifdef _THEATER
 	virtual void __fastcall lssproto_TheaterData_recv(char* pData) override;
 #endif
 #ifdef _MOVE_SCREEN
-	virtual void __fastcall lssproto_MoveScreen_recv(BOOL bMoveScreenMode, int iXY) override;	// client 移動熒幕
+	virtual void __fastcall lssproto_MoveScreen_recv(BOOL bMoveScreenMode, long long iXY) override;	// client 移動熒幕
 #endif
 #ifdef _NPC_MAGICCARD
 	virtual void __fastcall lssproto_MagiccardAction_recv(char* data) override;	//魔法牌功能
-	virtual void __fastcall lssproto_MagiccardDamage_recv(int position, int damage, int offsetx, int offsety) override;
+	virtual void __fastcall lssproto_MagiccardDamage_recv(long long position, long long damage, long long offsetx, long long offsety) override;
 #endif
 #ifdef  _NPC_DANCE
-	virtual void __fastcall lssproto_DancemanOption_recv(int option) override;	//動一動狀態
+	virtual void __fastcall lssproto_DancemanOption_recv(long long option) override;	//動一動狀態
 #endif
 #ifdef _ANNOUNCEMENT_
-	virtual void __fastcall lssproto_DENGON_recv(char* data, int colors, int nums) override;
+	virtual void __fastcall lssproto_DENGON_recv(char* data, long long colors, long long nums) override;
 #endif
 #ifdef _HUNDRED_KILL
-	virtual void __fastcall lssproto_hundredkill_recv(int flag) override;
+	virtual void __fastcall lssproto_hundredkill_recv(long long flag) override;
 #endif
 #ifdef _PK2007
-	virtual void __fastcall lssproto_pkList_recv(int count, char* data) override;
+	virtual void __fastcall lssproto_pkList_recv(long long count, char* data) override;
 #endif
 #ifdef _PETBLESS_
-	virtual void __fastcall lssproto_petbless_send(int petpos, int type) override;
+	virtual void __fastcall lssproto_petbless_send(long long petpos, long long type) override;
 #endif
 #ifdef _PET_SKINS
 	virtual void __fastcall lssproto_PetSkins_recv(char* data) override;

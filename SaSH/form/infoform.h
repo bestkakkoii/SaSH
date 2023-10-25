@@ -54,6 +54,9 @@ public slots:
 	void onResetControlTextLanguage();
 	void onApplyHashSettingsToUI();
 
+private slots:
+	void updateInfo();
+
 protected:
 	virtual void showEvent(QShowEvent* e) override;
 	virtual void closeEvent(QCloseEvent* e) override;
@@ -68,5 +71,6 @@ private:
 	//MailInfoForm pMailInfoForm_;
 	//PetInfoForm pPetInfoForm_;
 	AfkInfoForm pAfkInfoForm_;
-	QTimer* timer = nullptr;
+
+	QTimer timer;
 };

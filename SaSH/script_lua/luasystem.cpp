@@ -183,7 +183,7 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 		}
 	}
 
-	int color = 4;
+	long long color = 4;
 	if (ocolor.is<long long>())
 	{
 		color = ocolor.as<long long>();
@@ -755,11 +755,9 @@ long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_s
 
 	qDebug() << "Received " << args.size() << " arguments:";
 
-	std::vector<std::variant<int, std::string>> vargs;
-	for (auto arg : args)
+	std::vector<std::variant<long long, std::string>> vargs;
+	for (const auto arg : args)
 	{
-		std::variant<int, std::string> var;
-
 		if (arg.is<long long>() || arg.get_type() == sol::type::number)
 		{
 			vargs.emplace_back(static_cast<int>(arg.as<long long>()));
@@ -772,7 +770,7 @@ long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_s
 		}
 	}
 
-	injector.autil.util_SendArgs(static_cast<int>(funId), vargs);
+	injector.autil.util_SendArgs(funId, vargs);
 
 	return TRUE;
 }

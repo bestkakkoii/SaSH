@@ -613,9 +613,9 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	{
 	case LSSPROTO_XYD_RECV: /* 戰後刷新人物座標、方向 2 */
 	{
-		int x = 0;
-		int y = 0;
-		int dir = 0;
+		long long x = 0;
+		long long y = 0;
+		long long dir = 0;
 
 		if (!injector.autil.util_Receive(&x, &y, &dir))
 			return BC_INVALID;
@@ -626,8 +626,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_EV_RECV: /* 環境改變WRAP 4 */
 	{
-		int dialogid = 0;//新地圖名稱顯示對話框ID
-		int result = 0;
+		long long dialogid = 0;//新地圖名稱顯示對話框ID
+		long long result = 0;
 
 		if (!injector.autil.util_Receive(&dialogid, &result))
 			return BC_INVALID;
@@ -638,8 +638,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_EN_RECV: /* 開始戰鬥 7 */
 	{
-		int result = 0;
-		int field = 0;
+		long long result = 0;
+		long long field = 0;
 
 		if (!injector.autil.util_Receive(&result, &field))
 			return BC_INVALID;
@@ -691,8 +691,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_SI_RECV: /* 道具位置交換 24 */
 	{
-		int fromindex;
-		int toindex;
+		long long fromindex;
+		long long toindex;
 
 		if (!injector.autil.util_Receive(&fromindex, &toindex))
 			return BC_INVALID;
@@ -703,8 +703,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_MSG_RECV: /* 收到郵件 26 */
 	{
-		int aindex;
-		int color;
+		long long aindex;
+		long long color;
 
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&aindex, net_data, &color))
@@ -716,13 +716,13 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_PME_RECV: /* 寵郵飛進來28 */
 	{
-		int unitid;
-		int graphicsno;
-		int x;
-		int y;
-		int dir;
-		int flg;
-		int no;
+		long long unitid;
+		long long graphicsno;
+		long long x;
+		long long y;
+		long long dir;
+		long long flg;
+		long long no;
 
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&unitid, &graphicsno, &x, &y, &dir, &flg, &no, net_data))
@@ -745,7 +745,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_ABI_RECV: /* 名片數據 31 */
 	{
-		int num;
+		long long num;
 
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&num, net_data))
@@ -757,8 +757,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_TK_RECV: /* 收到對話 36 */
 	{
-		int index;
-		int color;
+		long long index;
+		long long color;
 
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&index, net_data, &color))
@@ -770,14 +770,14 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_MC_RECV: /* 重新繪製地圖 37 */
 	{
-		int fl;
-		int x1;
-		int y1;
-		int x2;
-		int y2;
-		int tilesum;
-		int objsum;
-		int eventsum;
+		long long fl;
+		long long x1;
+		long long y1;
+		long long x2;
+		long long y2;
+		long long tilesum;
+		long long objsum;
+		long long eventsum;
 
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&fl, &x1, &y1, &x2, &y2, &tilesum, &objsum, &eventsum, net_data))
@@ -790,11 +790,11 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_M_RECV: /* 地圖數據更新，重新寫入地圖 39 */
 	{
-		int fl;
-		int x1;
-		int y1;
-		int x2;
-		int y2;
+		long long fl;
+		long long x1;
+		long long y1;
+		long long x2;
+		long long y2;
 
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&fl, &x1, &y1, &x2, &y2, net_data))
@@ -856,9 +856,9 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_D_RECV: /* 未知 47 */
 	{
-		int category;
-		int dx;
-		int dy;
+		long long category;
+		long long dx;
+		long long dy;
 
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&category, &dx, &dy, net_data))
@@ -870,7 +870,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_FS_RECV: /* 開關切換 49 */
 	{
-		int flg;
+		long long flg;
 
 		if (!injector.autil.util_Receive(&flg))
 			return BC_INVALID;
@@ -881,7 +881,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_HL_RECV: /* 戰鬥求救 51 */
 	{
-		int flg;
+		long long flg;
 
 		if (!injector.autil.util_Receive(&flg))
 			return BC_INVALID;
@@ -892,8 +892,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_PR_RECV: /* 組隊變化 53 */
 	{
-		int request;
-		int result;
+		long long request;
+		long long result;
 
 		if (!injector.autil.util_Receive(&request, &result))
 			return BC_INVALID;
@@ -904,8 +904,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_KS_RECV: /* 寵物更換狀態 55 */
 	{
-		int petarray;
-		int result;
+		long long petarray;
+		long long result;
 
 		if (!injector.autil.util_Receive(&petarray, &result))
 			return BC_INVALID;
@@ -916,10 +916,10 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_PS_RECV: /* 收到寵郵 59 */
 	{
-		int result;
-		int havepetindex;
-		int havepetskill;
-		int toindex;
+		long long result;
+		long long havepetindex;
+		long long havepetskill;
+		long long toindex;
 
 		if (!injector.autil.util_Receive(&result, &havepetindex, &havepetskill, &toindex))
 			return BC_INVALID;
@@ -930,7 +930,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_SKUP_RECV: /* 更新點數 63 */
 	{
-		int point;
+		long long point;
 
 		if (!injector.autil.util_Receive(&point))
 			return BC_INVALID;
@@ -941,10 +941,10 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_WN_RECV: /* NPC對話框 66 */
 	{
-		int windowtype;
-		int buttontype;
-		int dialogid;
-		int unitid;
+		long long windowtype;
+		long long buttontype;
+		long long dialogid;
+		long long unitid;
 
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&windowtype, &buttontype, &dialogid, &unitid, net_data))
@@ -957,8 +957,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_EF_RECV: /* 天氣 68 */
 	{
-		int effect;
-		int level;
+		long long effect;
+		long long level;
 
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&effect, &level, net_data))
@@ -970,10 +970,10 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_SE_RECV: /* 未知 69 */
 	{
-		int x;
-		int y;
-		int senumber;
-		int sw;
+		long long x;
+		long long y;
+		long long senumber;
+		long long sw;
 
 		if (!injector.autil.util_Receive(&x, &y, &senumber, &sw))
 			return BC_INVALID;
@@ -1061,8 +1061,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_PLAYERNUMGET_RECV: /* 未知 86 */
 	{
-		int logincount;
-		int player;
+		long long logincount;
+		long long player;
 
 		if (!injector.autil.util_Receive(&logincount, &player))
 			return BC_INVALID;
@@ -1083,7 +1083,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_NU_RECV: /* 未知 90 */
 	{
-		int AddCount;
+		long long AddCount;
 
 		if (!injector.autil.util_Receive(&AddCount))
 			return BC_INVALID;
@@ -1114,7 +1114,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_WO_RECV: /* 未知 95 */
 	{
-		int effect;
+		long long effect;
 
 		if (!injector.autil.util_Receive(&effect))
 			return BC_INVALID;
@@ -1125,7 +1125,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_IC_RECV:/* 未知 100 */
 	{
-		int x, y;
+		long long x, y;
 		if (!injector.autil.util_Receive(&x, &y))
 			return BC_INVALID;
 
@@ -1134,7 +1134,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_NC_RECV: /*未知(大多是戰鬥結束才有) 101 */
 	{
-		int flg = 0;
+		long long flg = 0;
 
 		if (!injector.autil.util_Receive(&flg))
 			return BC_INVALID;
@@ -1145,7 +1145,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_CS_RECV: /* 固定客戶端的速度 104 */
 	{
-		int deltimes = 0;
+		long long deltimes = 0;
 
 		if (!injector.autil.util_Receive(&deltimes))
 			return BC_INVALID;
@@ -1156,8 +1156,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_PETST_RECV: /* 寵物狀態改變 107 */
 	{
-		int petarray;
-		int nresult;
+		long long petarray;
+		long long nresult;
 
 		if (!injector.autil.util_Receive(&petarray, &nresult))
 			return BC_INVALID;
@@ -1168,8 +1168,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_SPET_RECV: /* 寵物更換狀態 115 */
 	{
-		int standbypet;
-		int nresult;
+		long long standbypet;
+		long long nresult;
 
 		if (!injector.autil.util_Receive(&standbypet, &nresult))
 			return BC_INVALID;
@@ -1219,7 +1219,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_FIREWORK_RECV: /* 煙火? 126 */
 	{
-		int iCharaindex, iType, iActionNum;
+		long long iCharaindex, iType, iActionNum;
 
 		if (!injector.autil.util_Receive(&iCharaindex, &iType, &iActionNum))
 			return BC_INVALID;
@@ -1259,10 +1259,10 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_MAGICCARD_DAMAGE_RECV: /* 未知 134 */
 	{
-		int position;
-		int damage;
-		int offsetx;
-		int offsety;
+		long long position;
+		long long damage;
+		long long offsetx;
+		long long offsety;
 		if (!injector.autil.util_Receive(&position, &damage, &offsetx, &offsety))
 			return BC_INVALID;
 
@@ -1299,7 +1299,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_PKLIST_RECV: /* 未知 140 */
 	{
-		int count;
+		long long count;
 		memset(net_data, 0, NETDATASIZE);
 
 		if (!injector.autil.util_Receive(&count, net_data))
@@ -1321,10 +1321,10 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_REDMEMOY_RECV: /* 未知 148 */
 	{
-		int type;
-		int time;
-		int vip;
-		int index;
+		long long type;
+		long long time;
+		long long vip;
+		long long index;
 
 		memset(net_data, 0, NETDATASIZE);
 
@@ -1337,9 +1337,9 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_IMAGE_RECV: /* 驗證圖 151 */
 	{
-		int x = 0;
-		int y = 0;
-		int z = 0;
+		long long x = 0;
+		long long y = 0;
+		long long z = 0;
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data, &x, &y, &z))
 			return BC_INVALID;
@@ -1348,8 +1348,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_DENGON_RECV:/* 特殊公告 200*/
 	{
-		int coloer;
-		int num;
+		long long coloer;
+		long long num;
 
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(net_data, &coloer, &num))
@@ -1361,7 +1361,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case LSSPROTO_SAMENU_RECV: /* ShellExecute 'open' 201*/
 	{
-		int count;
+		long long count;
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&count, net_data))
 			return BC_INVALID;
@@ -1427,7 +1427,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 	case 220:
 	{
-		int unknown;
+		long long unknown;
 		memset(net_data, 0, NETDATASIZE);
 		if (!injector.autil.util_Receive(&unknown, net_data))
 			return BC_INVALID;
@@ -1660,8 +1660,7 @@ long long Worker::getUnloginStatus()
 //計算人物最單物品大堆疊數(負重量)
 void Worker::getCharMaxCarryingCapacity()
 {
-	//QWriteLocker locker(&charInfoLock_);
-	int nowMaxload = pc_.maxload;
+	long long nowMaxload = pc_.maxload;
 	switch (pc_.transmigration)
 	{
 	case 0:
@@ -2121,10 +2120,8 @@ QPoint Worker::getPoint()
 	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
 		return QPoint{};
 
-	int x = mem::read<int>(hProcess, hModule + kOffsetNowX);
-	int y = mem::read<int>(hProcess, hModule + kOffsetNowY);
-
-	QPoint point(x, y);
+	const QPoint point(mem::read<int>(hProcess, hModule + kOffsetNowX)
+		, mem::read<int>(hProcess, hModule + kOffsetNowY));
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2(%3)").arg(point.x()).arg(point.y()).arg(g_dirStrHash.value(getDir())));
@@ -2180,11 +2177,14 @@ QString Worker::getFloorName()
 }
 
 //檢查指定任務狀態，並同步等待封包返回
-long long Worker::checkJobDailyState(const QString& missionName)
+long long Worker::checkJobDailyState(const QString& missionName, long long timeout)
 {
 	QString newMissionName = missionName.simplified();
 	if (newMissionName.isEmpty())
 		return false;
+
+	if (timeout <= 0)
+		timeout = 5000;
 
 	IS_WAITFOR_JOBDAILY_FLAG.store(true, std::memory_order_release);
 	lssproto_JOBDAILY_send(const_cast<char*>("dyedye"));
@@ -2195,13 +2195,13 @@ long long Worker::checkJobDailyState(const QString& missionName)
 		if (isInterruptionRequested())
 		{
 			IS_WAITFOR_JOBDAILY_FLAG.store(false, std::memory_order_release);
-			return 0;
+			return -1;
 		}
 
-		if (timer.hasExpired(5000))
+		if (timer.hasExpired(timeout))
 		{
 			IS_WAITFOR_JOBDAILY_FLAG.store(false, std::memory_order_release);
-			return 0;
+			return -1;
 		}
 
 		if (!IS_WAITFOR_JOBDAILY_FLAG.load(std::memory_order_acquire))
@@ -2723,6 +2723,15 @@ void Worker::updateDatasFromMemory()
 //刷新要顯示的戰鬥時間和相關數據
 void Worker::updateBattleTimeInfo()
 {
+	if (isInterruptionRequested())
+		return;
+
+	if (!getOnlineFlag())
+		return;
+
+	if (!getBattleFlag())
+		return;
+
 	QString battle_time_text;
 	double time = 0.0;
 	double cost = 0.0;
@@ -2730,46 +2739,32 @@ void Worker::updateBattleTimeInfo()
 	long long bp = 0;
 	long long field = 0;
 
-	for (;;)
-	{
-		if (isInterruptionRequested())
-			break;
+	time = battleDurationTimer.elapsed() / 1000.0;
+	cost = battle_one_round_time.load(std::memory_order_acquire) / 1000.0;
+	total_time = battle_total_time.load(std::memory_order_acquire) / 1000.0 / 60.0;
 
-		if (!getOnlineFlag())
-			break;
+	battle_time_text = QString(QObject::tr("%1 count no %2 round duration: %3 sec cost: %4 sec total time: %5 minues"))
+		.arg(battle_total.load(std::memory_order_acquire))
+		.arg(battleCurrentRound.load(std::memory_order_acquire) + 1)
+		.arg(util::toQString(time))
+		.arg(util::toQString(cost))
+		.arg(util::toQString(total_time));
 
-		if (!getBattleFlag())
-			break;
+	bp = battleBpFlag.load(std::memory_order_acquire);
+	if (bp != 0 && checkAND(bp, BATTLE_BP_PLAYER_SURPRISAL))
+		battle_time_text += " " + QObject::tr("(surprise)");
+	else if (bp != 0 && checkAND(bp, BATTLE_BP_ENEMY_SURPRISAL))
+		battle_time_text += " " + QObject::tr("(be surprised)");
+	else
+		battle_time_text += " " + QObject::tr("(normal)");
 
-		QThread::msleep(50);
+	field = battleField.load(std::memory_order_acquire);
+	if (field != 0)
+		battle_time_text += QString(" [%1]").arg(getFieldString(field));
 
-		time = battleDurationTimer.elapsed() / 1000.0;
-		cost = battle_one_round_time.load(std::memory_order_acquire) / 1000.0;
-		total_time = battle_total_time.load(std::memory_order_acquire) / 1000.0 / 60.0;
-
-		battle_time_text = QString(QObject::tr("%1 count no %2 round duration: %3 sec cost: %4 sec total time: %5 minues"))
-			.arg(battle_total.load(std::memory_order_acquire))
-			.arg(battleCurrentRound.load(std::memory_order_acquire) + 1)
-			.arg(util::toQString(time))
-			.arg(util::toQString(cost))
-			.arg(util::toQString(total_time));
-
-		bp = battleBpFlag.load(std::memory_order_acquire);
-		if (bp != 0 && checkAND(bp, BATTLE_BP_PLAYER_SURPRISAL))
-			battle_time_text += " " + QObject::tr("(surprise)");
-		else if (bp != 0 && checkAND(bp, BATTLE_BP_ENEMY_SURPRISAL))
-			battle_time_text += " " + QObject::tr("(be surprised)");
-		else
-			battle_time_text += " " + QObject::tr("(normal)");
-
-		field = battleField.load(std::memory_order_acquire);
-		if (field != 0)
-			battle_time_text += QString(" [%1]").arg(getFieldString(field));
-
-		timeLabelContents = battle_time_text;
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-		emit signalDispatcher.updateBattleTimeLabelTextChanged(battle_time_text.simplified());
-	}
+	timeLabelContents = battle_time_text;
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	emit signalDispatcher.updateBattleTimeLabelTextChanged(battle_time_text.simplified());
 }
 
 //SASH內物品數據交換位置
@@ -5669,12 +5664,6 @@ void Worker::petitemswap(long long petIndex, long long from, long long to)
 	if (petIndex < 0 || petIndex >= MAX_PET)
 		return;
 
-	if (to != -1)
-	{
-		if ((from >= CHAR_EQUIPPLACENUM) || (to >= CHAR_EQUIPPLACENUM))
-			return;
-	}
-
 	lssproto_PetItemEquip_send(nowPoint_, petIndex, from, to);
 	IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 }
@@ -6004,26 +5993,23 @@ void Worker::setBattleEnd()
 	if (!getBattleFlag())
 		return;
 
-	//重置動作人寵標誌避免重複發送
-	battleCharAlreadyActed.store(true, std::memory_order_release);
-	battlePetAlreadyActed.store(true, std::memory_order_release);
-
-	long long battleDuation = battleDurationTimer.elapsed();
-	if (battleDuation > 0ll)
-		battle_total_time.fetch_add(battleDurationTimer.elapsed(), std::memory_order_release);
-
-	normalDurationTimer.restart();
-	battlePetDisableList_.clear();
+	battleBackupThreadFlag.store(true, std::memory_order_release);
 
 	lssproto_EO_send(0);
 	lssproto_Echo_send(const_cast<char*>("hoge"));
 
-	//sendBattleCharDoNothing();
-	//sendBattlePetDoNothing();
+	//重置動作人寵標誌避免重複發送
+	battleCharAlreadyActed.store(true, std::memory_order_release);
+	battlePetAlreadyActed.store(true, std::memory_order_release);
 
-	battleBackupThreadFlag.store(true, std::memory_order_release);
+	battlePetDisableList_.clear();
 
+	long long battleDuation = battleDurationTimer.elapsed();
+	if (battleDuation > 0ll)
+		battle_total_time.fetch_add(battleDurationTimer.elapsed(), std::memory_order_release);
 	setBattleFlag(false);
+
+	normalDurationTimer.restart();
 	if (getWorldStatus() == 10)
 		setGameStatus(7);
 
@@ -6202,11 +6188,12 @@ bool Worker::asyncBattleAction(bool canDelay)
 	//TODO 修正寵物指令在多個BA時候重覆發送的問題
 	if (!battlePetAlreadyActed.load(std::memory_order_acquire))
 	{
-		battlePetAlreadyActed.store(true, std::memory_order_release);
-		petDoBattleWork(bt);
-
-		setCurrentRoundEnd();
-		return true;
+		if (petDoBattleWork(bt) != -1)
+		{
+			battlePetAlreadyActed.store(true, std::memory_order_release);
+			setCurrentRoundEnd();
+			return true;
+		}
 	}
 
 	return false;
@@ -6257,7 +6244,7 @@ long long Worker::petDoBattleWork(const battledata_t& bt)
 {
 	PC pc = getPC();
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
-		return 0;
+		return -1;
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -7490,7 +7477,7 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 				if (!ok)
 					break;
 
-				long long magicIndex = injector.getValueHash(util::kBattleMagicReviveMagicValue);
+				long long magicIndex = injector.getValueHash(util::kBattleMagicReviveMagicValue) - 3;
 				if (magicIndex <0 || magicIndex > MAX_MAGIC)
 					break;
 
@@ -10333,7 +10320,7 @@ void Worker::sendBattlePetDoNothing()
 
 #pragma region Lssproto_Recv
 //組隊變化
-void Worker::lssproto_PR_recv(int request, int result)
+void Worker::lssproto_PR_recv(long long request, long long result)
 {
 	QStringList teamInfoList;
 
@@ -10378,7 +10365,7 @@ void Worker::lssproto_PR_recv(int request, int result)
 }
 
 //地圖轉移
-void Worker::lssproto_EV_recv(int dialogid, int result)
+void Worker::lssproto_EV_recv(long long dialogid, long long result)
 {
 	//对客户端的EV事件进行回应。在收到此回应之前，客户端将无法执行其他动作，如行走等。
 	std::ignore = dialogid;
@@ -10391,7 +10378,7 @@ void Worker::lssproto_EV_recv(int dialogid, int result)
 }
 
 //開關切換
-void Worker::lssproto_FS_recv(int flg)
+void Worker::lssproto_FS_recv(long long flg)
 {
 	{
 		//QWriteLocker locker(&charInfoLock_);
@@ -10476,7 +10463,7 @@ void Worker::lssproto_AB_recv(char* cdata)
 }
 
 //名片數據
-void Worker::lssproto_ABI_recv(int num, char* cdata)
+void Worker::lssproto_ABI_recv(long long num, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
@@ -10699,7 +10686,7 @@ void Worker::lssproto_RD_recv(char*)
 }
 
 //道具位置交換
-void Worker::lssproto_SI_recv(int from, int to)
+void Worker::lssproto_SI_recv(long long from, long long to)
 {
 	swapItemLocal(from, to);
 	updateItemByMemory();
@@ -10830,7 +10817,7 @@ void Worker::lssproto_I_recv(char* cdata)
 }
 
 //對話框
-void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int unitid, char* cdata)
+void Worker::lssproto_WN_recv(long long windowtype, long long buttontype, long long dialogid, long long unitid, char* cdata)
 {
 	QString data = util::toUnicode(cdata, false);
 	if (data.isEmpty() && buttontype == 0)
@@ -11096,7 +11083,7 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 }
 
 //寵郵飛進來
-void Worker::lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata)
+void Worker::lssproto_PME_recv(long long unitid, long long graphicsno, const QPoint& pos, long long dir, long long flg, long long no, char* cdata)
 {
 	if (flg == 0)
 	{
@@ -11159,7 +11146,7 @@ void Worker::lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, in
 }
 
 //天氣
-void Worker::lssproto_EF_recv(int effect, int level, char* coption)
+void Worker::lssproto_EF_recv(long long effect, long long level, char* coption)
 {
 	//long long currentIndex = getIndex();
 	//Injector& injector = Injector::getInstance(currentIndex);
@@ -11172,13 +11159,13 @@ void Worker::lssproto_EF_recv(int effect, int level, char* coption)
 }
 
 //求救
-void Worker::lssproto_HL_recv(int)
+void Worker::lssproto_HL_recv(long long)
 {
 
 }
 
 //開始戰鬥
-void Worker::lssproto_EN_recv(int result, int field)
+void Worker::lssproto_EN_recv(long long result, long long field)
 {
 	//開始戰鬥為1，未開始戰鬥為0   0：不可遇到或錯誤。 1：與敵人戰鬥OK。 2：PvP戰鬥OK
 	if (result > 0)
@@ -11192,6 +11179,7 @@ void Worker::lssproto_EN_recv(int result, int field)
 		battlePetDisableList_.resize(MAX_PET);
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
+		oneRoundDurationTimer.restart();
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 		emit signalDispatcher.battleTableAllItemResetColor();
 	}
@@ -11295,17 +11283,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 		emit signalDispatcher.battleTableAllItemResetColor();
 
 		battledata_t bt = getBattleData();
-
-		if (!battleTimeFuture_.isRunning())
-		{
-			oneRoundDurationTimer.restart();
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-			battleTimeFuture_ = QtConcurrent::run(this, &Worker::updateBattleTimeInfo);
-#else
-			battleTimeFuture_ = QtConcurrent::run(&Worker::updateBattleTimeInfo, this);
-#endif
-		}
-
 		battle_one_round_time.store(oneRoundDurationTimer.elapsed(), std::memory_order_release);
 		oneRoundDurationTimer.restart();
 
@@ -11972,28 +11949,37 @@ void Worker::lssproto_B_recv(char* ccommand)
 }
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
-void Worker::lssproto_PETST_recv(int petarray, int result)
+void Worker::lssproto_PETST_recv(long long petarray, long long result)
 {
+	std::ignore = petarray;
+	std::ignore = result;
+
 	updateDatasFromMemory();
 	updateComboBoxList();
 }
 
 //戰寵狀態改變
-void Worker::lssproto_KS_recv(int petarray, int result)
+void Worker::lssproto_KS_recv(long long petarray, long long result)
 {
+	std::ignore = petarray;
+	std::ignore = result;
+
 	updateDatasFromMemory();
 	updateComboBoxList();
 }
 
 //寵物等待狀態改變 (不是每個私服都有)
-void Worker::lssproto_SPET_recv(int standbypet, int result)
+void Worker::lssproto_SPET_recv(long long standbypet, long long result)
 {
+	std::ignore = standbypet;
+	std::ignore = result;
+
 	updateDatasFromMemory();
 	updateComboBoxList();
 }
 
 //可用點數改變
-void Worker::lssproto_SKUP_recv(int point)
+void Worker::lssproto_SKUP_recv(long long point)
 {
 	PC pc = getPC();
 	pc.point = point;
@@ -12002,7 +11988,7 @@ void Worker::lssproto_SKUP_recv(int point)
 }
 
 //收到郵件
-void Worker::lssproto_MSG_recv(int aindex, char* ctext, int color)
+void Worker::lssproto_MSG_recv(long long aindex, char* ctext, long long color)
 {
 	QString text = util::toUnicode(ctext);
 	if (text.isEmpty())
@@ -12085,12 +12071,16 @@ void Worker::lssproto_MSG_recv(int aindex, char* ctext, int color)
 }
 
 //收到寵郵
-void Worker::lssproto_PS_recv(int result, int havepetindex, int havepetskill, int toindex)
+void Worker::lssproto_PS_recv(long long result, long long havepetindex, long long havepetskill, long long toindex)
 {
+	std::ignore = result;
+	std::ignore = havepetindex;
+	std::ignore = havepetskill;
+	std::ignore = toindex;
 }
 
 //戰後坐標更新
-void Worker::lssproto_XYD_recv(const QPoint& pos, int dir)
+void Worker::lssproto_XYD_recv(const QPoint& pos, long long dir)
 {
 	//dir = (dir + 3) % 8;
 	pc_.dir = dir;
@@ -12351,7 +12341,7 @@ void Worker::lssproto_S2_recv(char* cdata)
 }
 
 //收到玩家對話或公告
-void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
+void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 {
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -12595,8 +12585,18 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 }
 
 //地圖數據更新，重新繪製地圖
-void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
+void Worker::lssproto_MC_recv(long long fl, long long x1, long long y1, long long x2, long long y2, long long tileSum, long long partsSum, long long eventSum, char* cdata)
 {
+	std::ignore = fl;
+	std::ignore = x1;
+	std::ignore = y1;
+	std::ignore = x2;
+	std::ignore = y2;
+	std::ignore = tileSum;
+	std::ignore = partsSum;
+	std::ignore = eventSum;
+	std::ignore = cdata;
+
 	//QString data = util::toUnicode(cdata);
 	//if (data.isEmpty())
 	//	return;
@@ -12619,8 +12619,15 @@ void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 }
 
 //地圖數據更新，重新寫入地圖
-void Worker::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata)
+void Worker::lssproto_M_recv(long long fl, long long x1, long long y1, long long x2, long long y2, char* cdata)
 {
+	std::ignore = fl;
+	std::ignore = x1;
+	std::ignore = y1;
+	std::ignore = x2;
+	std::ignore = y2;
+	std::ignore = cdata;
+
 	QMutexLocker locker(&moveLock_);
 	//QString data = util::toUnicode(cdata);
 	//if (data.isEmpty())
@@ -12733,8 +12740,6 @@ void Worker::lssproto_C_recv(char* cdata)
 			//memset(titlestr, 0, 128);
 			//if (titleindex > 0)
 			//{
-			//	extern char* FreeGetTitleStr(int id);
-			//	sprintf(titlestr, "%s", FreeGetTitleStr(titleindex));
 			//}
 
 			//人物職業
@@ -15059,22 +15064,22 @@ void Worker::lssproto_CustomTK_recv(const QString& data)
 	}
 }
 
-void Worker::lssproto_SE_recv(const QPoint&, int, int)
+void Worker::lssproto_SE_recv(const QPoint&, long long, long long)
 {
 
 }
 
-void Worker::lssproto_WO_recv(int)
+void Worker::lssproto_WO_recv(long long)
 {
 
 }
 
-void Worker::lssproto_NU_recv(int)
+void Worker::lssproto_NU_recv(long long)
 {
 
 }
 
-void Worker::lssproto_CharNumGet_recv(int, int)
+void Worker::lssproto_CharNumGet_recv(long long, long long)
 {
 
 }
@@ -15085,14 +15090,14 @@ void Worker::lssproto_ProcGet_recv(char*)
 }
 
 //服務端發送給客戶端用於顯示某些東西的
-void Worker::lssproto_D_recv(int, int, int, char*)
+void Worker::lssproto_D_recv(long long, long long, long long, char*)
 {
 	/*
 servertoclient D 函数用于向客户端发送显示指令，以在游戏画面上显示特定的内容。该函数接受以下参数：
 
-int category：显示内容的类别或类型。这个参数通常用于区分不同种类的显示内容。
+long long category：显示内容的类别或类型。这个参数通常用于区分不同种类的显示内容。
 
-int dx 和 int dy：指定显示内容的位置坐标，即在游戏画面上的 x 和 y 坐标。这决定了内容将显示在何处。
+long long dx 和 long long dy：指定显示内容的位置坐标，即在游戏画面上的 x 和 y 坐标。这决定了内容将显示在何处。
 
 string data：包含要显示的内容的数据字符串。这可以是文本、图像或其他任何游戏中需要显示的信息或元素。
 
@@ -15101,12 +15106,12 @@ string data：包含要显示的内容的数据字符串。这可以是文本、
 }
 
 //服務端發來的用於固定客戶端的速度
-void Worker::lssproto_CS_recv(int)
+void Worker::lssproto_CS_recv(long long)
 {
 }
 
 //戰鬥結束?
-void Worker::lssproto_NC_recv(int)
+void Worker::lssproto_NC_recv(long long)
 {
 
 }
@@ -15121,13 +15126,15 @@ void Worker::lssproto_R_recv(char*)
 }
 
 //煙火
-void Worker::lssproto_Firework_recv(int, int, int)
+void Worker::lssproto_Firework_recv(long long, long long, long long)
 {
-
 }
 
-void Worker::lssproto_DENGON_recv(char* data, int colors, int nums)
+void Worker::lssproto_DENGON_recv(char* data, long long colors, long long nums)
 {
+	std::ignore = data;
+	std::ignore = colors;
+	std::ignore = nums;
 }
 #pragma endregion
 

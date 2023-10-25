@@ -29,13 +29,13 @@ Lssproto::Lssproto(Autil* autil)
 }
 
 // 0斷線1回點
-void Lssproto::lssproto_CharLogout_send(int Flg)
+void Lssproto::lssproto_CharLogout_send(long long Flg)
 {
 	autil_->util_Send(LSSPROTO_CHARLOGOUT_SEND, Flg);
 }
 
 //往指定方向查看觸發對話的效果
-void Lssproto::lssproto_L_send(int dir)
+void Lssproto::lssproto_L_send(long long dir)
 {
 	autil_->util_Send(LSSPROTO_L_SEND, dir);
 }
@@ -47,32 +47,32 @@ void Lssproto::lssproto_EN_send(const QPoint& pos)
 }
 
 //退出觀戰
-void Lssproto::lssproto_BU_send(int dummy)
+void Lssproto::lssproto_BU_send(long long dummy)
 {
 	autil_->util_Send(LSSPROTO_BU_SEND, dummy);
 }
 
 //開關封包
-void Lssproto::lssproto_FS_send(int flg)
+void Lssproto::lssproto_FS_send(long long flg)
 {
 	autil_->util_Send(LSSPROTO_FS_SEND, flg);
 }
 
 //對話框封包 關於dialogid: 送買242 賣243
-void Lssproto::lssproto_WN_send(const QPoint& pos, int dialogid, int unitid, int select, char* data)
+void Lssproto::lssproto_WN_send(const QPoint& pos, long long dialogid, long long unitid, long long select, char* data)
 {
 	autil_->util_Send(LSSPROTO_WN_SEND, pos.x(), pos.y(), dialogid, unitid, select, data);
 }
 
 //設置寵物狀態封包  0:休息 1:戰鬥或等待 4:郵件
-void Lssproto::lssproto_PETST_send(int nPet, int sPet)
+void Lssproto::lssproto_PETST_send(long long nPet, long long sPet)
 {
 	autil_->util_Send(LSSPROTO_PETST_SEND, nPet, sPet);
 
 }
 
 //設置戰寵封包
-void Lssproto::lssproto_KS_send(int petarray)
+void Lssproto::lssproto_KS_send(long long petarray)
 {
 	autil_->util_Send(LSSPROTO_KS_SEND, petarray);
 }
@@ -83,7 +83,7 @@ void Lssproto::lssproto_KS_send(int petarray)
 //4：寵物3處於等待狀態
 //8：寵物4處於等待狀態
 //16：寵物5處於等待狀態，這些值可相互組合，如5代表寵物1和寵物3處於等待狀態
-void Lssproto::lssproto_SPET_send(int standbypet)
+void Lssproto::lssproto_SPET_send(long long standbypet)
 {
 	autil_->util_Send(LSSPROTO_SPET_SEND, standbypet);
 }
@@ -95,13 +95,13 @@ void Lssproto::lssproto_W2_send(const QPoint& pos, char* direction)
 }
 
 //發送喊話封包
-void Lssproto::lssproto_TK_send(const QPoint& pos, char* message, int color, int area)
+void Lssproto::lssproto_TK_send(const QPoint& pos, char* message, long long color, long long area)
 {
 	autil_->util_Send(LSSPROTO_TK_SEND, pos.x(), pos.y(), message, color, area);
 }
 
 //EO封包
-void Lssproto::lssproto_EO_send(int dummy)
+void Lssproto::lssproto_EO_send(long long dummy)
 {
 	autil_->util_Send(LSSPROTO_EO_SEND, dummy);
 }
@@ -113,31 +113,31 @@ void Lssproto::lssproto_Echo_send(char* test)
 }
 
 //丟棄道具封包
-void Lssproto::lssproto_DI_send(const QPoint& pos, int itemIndex)
+void Lssproto::lssproto_DI_send(const QPoint& pos, long long itemIndex)
 {
 	autil_->util_Send(LSSPROTO_DI_SEND, pos.x(), pos.y(), itemIndex);
 }
 
 //使用道具封包
-void Lssproto::lssproto_ID_send(const QPoint& pos, int haveitemindex, int toindex)
+void Lssproto::lssproto_ID_send(const QPoint& pos, long long haveitemindex, long long toindex)
 {
 	autil_->util_Send(LSSPROTO_ID_SEND, pos.x(), pos.y(), haveitemindex, toindex);
 }
 
 //交換道具封包
-void Lssproto::lssproto_MI_send(int fromindex, int toindex)
+void Lssproto::lssproto_MI_send(long long fromindex, long long toindex)
 {
 	autil_->util_Send(LSSPROTO_MI_SEND, fromindex, toindex);
 }
 
 //撿道具封包
-void Lssproto::lssproto_PI_send(const QPoint& pos, int dir)
+void Lssproto::lssproto_PI_send(const QPoint& pos, long long dir)
 {
 	autil_->util_Send(LSSPROTO_PI_SEND, pos.x(), pos.y(), dir);
 }
 
 //料理封包
-void Lssproto::lssproto_PS_send(int havepetindex, int havepetskill, int toindex, char* data)
+void Lssproto::lssproto_PS_send(long long havepetindex, long long havepetskill, long long toindex, char* data)
 {
 	autil_->util_Send(LSSPROTO_PS_SEND, havepetindex, havepetskill, toindex, data);
 }
@@ -150,72 +150,72 @@ void Lssproto::lssproto_FM_send(char* data)
 }
 
 //丟棄寵物封包
-void Lssproto::lssproto_DP_send(const QPoint& pos, int petindex)
+void Lssproto::lssproto_DP_send(const QPoint& pos, long long petindex)
 {
 	autil_->util_Send(LSSPROTO_DP_SEND, pos.x(), pos.y(), petindex);
 }
 
 //平時使用精靈
-void Lssproto::lssproto_MU_send(const QPoint& pos, int array, int toindex)
+void Lssproto::lssproto_MU_send(const QPoint& pos, long long array, long long toindex)
 {
 	autil_->util_Send(LSSPROTO_MU_SEND, pos.x(), pos.y(), array, toindex);
 }
 
 //人物動作
-void Lssproto::lssproto_AC_send(const QPoint& pos, int actionno)
+void Lssproto::lssproto_AC_send(const QPoint& pos, long long actionno)
 {
 	autil_->util_Send(LSSPROTO_AC_SEND, pos.x(), pos.y(), actionno);
 }
 
 //下載地圖
-void Lssproto::lssproto_M_send(int fl, int x1, int y1, int x2, int y2)
+void Lssproto::lssproto_M_send(long long fl, long long x1, long long y1, long long x2, long long y2)
 {
 	autil_->util_Send(LSSPROTO_M_SEND, fl, x1, y1, x2, y2);
 }
 
 //地圖轉移封包
-void Lssproto::lssproto_EV_send(int e, int dialogid, const QPoint& pos, int dir)
+void Lssproto::lssproto_EV_send(long long e, long long dialogid, const QPoint& pos, long long dir)
 {
 	autil_->util_Send(LSSPROTO_EV_SEND, e, dialogid, pos.x(), pos.y(), dir);
 }
 
 //組隊封包
-void Lssproto::lssproto_PR_send(const QPoint& pos, int request)
+void Lssproto::lssproto_PR_send(const QPoint& pos, long long request)
 {
 	autil_->util_Send(LSSPROTO_PR_SEND, pos.x(), pos.y(), request);
 }
 
 //踢走隊員封包
-void Lssproto::lssproto_KTEAM_send(int si)
+void Lssproto::lssproto_KTEAM_send(long long si)
 {
 	autil_->util_Send(LSSPROTO_KTEAM_SEND, si);
 }
 
 //退隊以後發的
-void Lssproto::lssproto_SP_send(const QPoint& pos, int dir)
+void Lssproto::lssproto_SP_send(const QPoint& pos, long long dir)
 {
 	autil_->util_Send(LSSPROTO_SP_SEND, pos.x(), pos.y(), dir);
 }
 
-void Lssproto::lssproto_MSG_send(int index, char* message, int color)
+void Lssproto::lssproto_MSG_send(long long index, char* message, long long color)
 {
 	autil_->util_Send(LSSPROTO_MSG_SEND, index, message, color);
 }
 
 //人物升級加點封包
-void Lssproto::lssproto_SKUP_send(int skillid)
+void Lssproto::lssproto_SKUP_send(long long skillid)
 {
 	autil_->util_Send(LSSPROTO_SKUP_SEND, skillid);
 }
 
 //丟棄石幣封包
-void Lssproto::lssproto_DG_send(const QPoint& pos, int amount)
+void Lssproto::lssproto_DG_send(const QPoint& pos, long long amount)
 {
 	autil_->util_Send(LSSPROTO_DG_SEND, pos.x(), pos.y(), amount);
 }
 
 //寵物郵件封包
-void Lssproto::lssproto_PMSG_send(int index, int petindex, int itemIndex, char* message, int color)
+void Lssproto::lssproto_PMSG_send(long long index, long long petindex, long long itemIndex, char* message, long long color)
 {
 	autil_->util_Send(LSSPROTO_PMSG_SEND, index, petindex, itemIndex, message, color);
 }
@@ -227,13 +227,13 @@ void Lssproto::lssproto_FT_send(char* data)
 }
 
 //寵物改名封包 (freeName)
-void Lssproto::lssproto_KN_send(int havepetindex, char* data)
+void Lssproto::lssproto_KN_send(long long havepetindex, char* data)
 {
 	autil_->util_Send(LSSPROTO_KN_SEND, havepetindex, data);
 }
 
 //寵物穿脫封包
-void Lssproto::lssproto_PetItemEquip_send(const QPoint& pos, int iPetNo, int iItemNo, int iDestNO)
+void Lssproto::lssproto_PetItemEquip_send(const QPoint& pos, long long iPetNo, long long iItemNo, long long iDestNO)
 {
 	autil_->util_Send(LSSPROTO_PET_ITEM_EQUIP_SEND, pos.x(), pos.y(), iPetNo, iItemNo, iDestNO);
 }
@@ -251,21 +251,21 @@ void Lssproto::lssproto_JOBDAILY_send(char* data)
 }
 
 //老菜單封包
-void Lssproto::lssproto_ShopOk_send(int n)
+void Lssproto::lssproto_ShopOk_send(long long n)
 {
 	autil_->util_Send(LSSPROTO_SHOPOK_SEND, n);
 }
 
 //新菜單封包
 #ifdef _NEW_SYSTEM_MENU
-void Lssproto::lssproto_SaMenu_send(int index)
+void Lssproto::lssproto_SaMenu_send(long long index)
 {
 	autil_->util_Send(LSSPROTO_SAMENU_SEND, index);
 }
 #endif
 
 //求救
-void Lssproto::lssproto_HL_send(int flg)
+void Lssproto::lssproto_HL_send(long long flg)
 {
 	autil_->util_Send(LSSPROTO_HL_SEND, flg);
 }
@@ -277,7 +277,7 @@ void Lssproto::lssproto_B_send(const QString& command)
 	autil_->util_Send(LSSPROTO_B_SEND, const_cast<char*>(cmd.c_str()));
 }
 
-void Lssproto::lssproto_MA_send(const QPoint& pos, int nMind)
+void Lssproto::lssproto_MA_send(const QPoint& pos, long long nMind)
 {
 	autil_->util_Send(LSSPROTO_MA_SEND, pos.x(), pos.y(), nMind);
 }
@@ -289,19 +289,19 @@ void Lssproto::lssproto_S2_send(char* data)
 
 //創建人物
 void Lssproto::lssproto_CreateNewChar_send(
-	int dataplacenum,
+	long long dataplacenum,
 	char* charname,
-	int imgno,
-	int faceimgno,
-	int vital,
-	int str,
-	int tgh,
-	int dex,
-	int earth,
-	int water,
-	int fire,
-	int wind,
-	int hometown)
+	long long imgno,
+	long long faceimgno,
+	long long vital,
+	long long str,
+	long long tgh,
+	long long dex,
+	long long earth,
+	long long water,
+	long long fire,
+	long long wind,
+	long long hometown)
 {
 	autil_->util_Send(LSSPROTO_CREATENEWCHAR_SEND, dataplacenum, charname, imgno, faceimgno, vital, str, tgh, dex, earth, water, fire, wind, hometown);
 }
@@ -312,7 +312,7 @@ void Lssproto::lssproto_CharDelete_send(char* charname, char* securityCode)
 	autil_->util_Send(LSSPROTO_CHARDELETE_SEND, charname, securityCode);
 }
 
-void Lssproto::lssproto_ClientLogin_send(char* cdkey, char* passwd, char* mac, int selectServerIndex, char* ip, DWORD flags)
+void Lssproto::lssproto_ClientLogin_send(char* cdkey, char* passwd, char* mac, long long selectServerIndex, char* ip, DWORD flags)
 {
 	if ((flags & WITH_ALL) & WITH_ALL)
 		autil_->util_Send(LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd, mac, selectServerIndex, ip);

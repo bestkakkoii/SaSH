@@ -77,11 +77,11 @@ QString FastLabel::getText() const
 	return content_msg_;
 }
 
-void FastLabel::setFlag(int flag)
+void FastLabel::setFlag(long long flag)
 {
 	flag_ = flag;
 }
-int FastLabel::getFlag()
+long long FastLabel::getFlag()
 {
 	return flag_;
 }
@@ -94,7 +94,7 @@ void FastLabel::setText(const QString& text)
 	if (isAutoResize_)
 	{
 		QFontMetrics fm(font_);
-		int textWidth = fm.horizontalAdvance(text) + 4;
+		long long textWidth = static_cast<long long>(fm.horizontalAdvance(text)) + 4;
 
 		setFixedWidth(textWidth);
 	}

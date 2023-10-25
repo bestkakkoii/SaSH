@@ -31,10 +31,10 @@ public:
 			m_pix->width(), m_pix->height());
 	}
 
-	void setQGraphicsViewWH(int nwidth, int nheight)//将主界面的控件QGraphicsView的width和height传进本类中，并根据图像的长宽和控件的长宽的比例来使图片缩放到适合控件的大小
+	void setQGraphicsViewWH(long long nwidth, long long nheight)//将主界面的控件QGraphicsView的width和height传进本类中，并根据图像的长宽和控件的长宽的比例来使图片缩放到适合控件的大小
 	{
-		int nImgWidth = m_pix->width();
-		int nImgHeight = m_pix->height();
+		long long nImgWidth = m_pix->width();
+		long long nImgHeight = m_pix->height();
 		qreal temp1 = nwidth * 1.0 / nImgWidth;
 		qreal temp2 = nheight * 1.0 / nImgHeight;
 		if (temp1 > temp2)
@@ -213,7 +213,7 @@ private:
 	qreal m_scaleDafault = 0.0;
 
 	QPixmap* m_pix;
-	int         m_zoomState = NO_STATE;
+	long long   m_zoomState = NO_STATE;
 	bool        m_isMove = false;
 	QPointF     m_startPos;
 

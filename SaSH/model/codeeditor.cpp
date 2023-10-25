@@ -345,8 +345,8 @@ void CodeEditor::findReplace()
 void CodeEditor::commentSwitch()
 {
 	//the plaintext from this widget
-	int selectionEnd = SendScintilla(QsciScintilla::SCI_GETSELECTIONEND);
-	int selectionStart = SendScintilla(QsciScintilla::SCI_GETSELECTIONSTART);
+	long long selectionEnd = SendScintilla(QsciScintilla::SCI_GETSELECTIONEND);
+	long long selectionStart = SendScintilla(QsciScintilla::SCI_GETSELECTIONSTART);
 	const QString str(selectedText());
 	do
 	{
@@ -358,7 +358,7 @@ void CodeEditor::commentSwitch()
 			QString linetext(text(liner));
 			if (linetext.simplified().indexOf("//") == 0 || linetext.simplified().indexOf("/*") == 0)
 			{
-				int indexd = linetext.indexOf("//");
+				long long indexd = linetext.indexOf("//");
 				if (indexd == -1)
 				{
 					indexd = linetext.indexOf("/*");
@@ -390,8 +390,10 @@ void CodeEditor::commentSwitch()
 		else
 			v = str.split("\n"); //按行分割
 
-		int row_num = v.size();
-		if (row_num == 0) return;
+		long long row_num = v.size();
+		if (row_num == 0)
+			return;
+
 		//search all comment or all uncomment
 		//and finally add back to widget by useing setText(str);
 		bool allcomment = false;
@@ -400,7 +402,7 @@ void CodeEditor::commentSwitch()
 		{
 			allcomment = true;
 		}
-		for (int i = 0; i < row_num; ++i)
+		for (long long i = 0; i < row_num; ++i)
 		{
 			//if allcomment is true even if the content already has comment mark still add additional comment
 			//else if allcomment is false remove first command mark for each line if it has
@@ -413,7 +415,7 @@ void CodeEditor::commentSwitch()
 			{
 				if (v.value(i).simplified().indexOf("//") == 0 || v.value(i).simplified().indexOf("/*") == 0)
 				{
-					int index = v.value(i).indexOf("//");
+					long long index = v.value(i).indexOf("//");
 					if (index == -1)
 					{
 						index = v.value(i).indexOf("/*");
@@ -449,7 +451,7 @@ void CodeEditor::jumpToLineDialog()
 	//connect if accept then jump to line
 	connect(dialog, &JumpToLineDialog::accepted, [this, pline]()
 		{
-			int line = *pline.get();
+			long long line = *pline.get();
 			setCursorPosition(line - 1, 0);
 			QString text = this->text(line - 1);
 			setSelection(line - 1, 0, line - 1, text.length());

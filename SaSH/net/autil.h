@@ -50,7 +50,7 @@ public:
 	void __fastcall util_DecodeMessage(QByteArray& dst, QByteArray src);
 	long long __fastcall util_GetFunctionFromSlice(long long* func, long long* fieldcount, long long offest = 23);
 	void __fastcall util_DiscardMessage(void);
-	void __fastcall util_SendMesg(int func, char* buffer);
+	void __fastcall util_SendMesg(long long func, char* buffer);
 
 	// -------------------------------------------------------------------
 	// Encoding function units.  Use in Encrypting functions.
@@ -67,27 +67,27 @@ public:
 	void __fastcall util_shlstring(char* dst, size_t dstlen, char* src, int offs);
 	// -------------------------------------------------------------------
 	// Encrypting functions
-	int __fastcall util_deint(int sliceno, int* value);
-	int __fastcall util_mkint(char* buffer, int value);
-	int __fastcall util_destring(int sliceno, char* value);
-	int __fastcall util_mkstring(char* buffer, char* value);
+	long long __fastcall util_deint(long long sliceno, long long* value);
+	long long __fastcall util_mkint(char* buffer, long long value);
+	long long __fastcall util_destring(long long sliceno, char* value);
+	long long __fastcall util_mkstring(char* buffer, char* value);
 
 	// 輔助函數，處理整數參數
 	template<typename Arg>
-	inline void util_SendProcessArg(int& sum, char* buffer, Arg arg)
+	inline void util_SendProcessArg(long long& sum, char* buffer, Arg arg)
 	{
-		sum += util_mkint(buffer, arg);
+		sum += util_mkint(buffer, static_cast<int>(arg));
 	}
 
 	// 輔助函數，處理字符串參數（重載版本）
-	inline void util_SendProcessArg(int& sum, char* buffer, char* arg)
+	inline void util_SendProcessArg(long long& sum, char* buffer, char* arg)
 	{
 		sum += util_mkstring(buffer, arg);
 	}
 
 	// 輔助函數，遞歸處理參數
 	template<typename Arg, typename... Args>
-	inline void util_SendProcessArgs(int& sum, char* buffer, Arg arg, Args... args)
+	inline void util_SendProcessArgs(long long& sum, char* buffer, Arg arg, Args... args)
 	{
 		util_SendProcessArg(sum, buffer, arg);
 		util_SendProcessArgs(sum, buffer, args...);
@@ -95,16 +95,16 @@ public:
 
 	// 輔助函數，處理最後一個參數
 	template<typename Arg>
-	inline void util_SendProcessArgs(int& sum, char* buffer, Arg arg)
+	inline void util_SendProcessArgs(long long& sum, char* buffer, Arg arg)
 	{
 		util_SendProcessArg(sum, buffer, arg);
 	}
 
 	// 主發送函數
 	template<typename... Args>
-	inline void util_Send(int func, Args... args)
+	inline void util_Send(long long func, Args... args)
 	{
-		int iChecksum = 0;
+		long long iChecksum = 0;
 		char buffer[NETDATASIZE] = {};
 
 		util_SendProcessArgs(iChecksum, buffer, args...);
@@ -112,16 +112,16 @@ public:
 		util_SendMesg(func, buffer);
 	}
 
-	inline void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
+	inline void util_SendArgs(long long func, std::vector<std::variant<long long, std::string>>& args)
 	{
-		int iChecksum = 0;
+		long long iChecksum = 0;
 		char buffer[NETDATASIZE] = {};
 
-		for (const std::variant<int, std::string>& arg : args)
+		for (const std::variant<long long, std::string>& arg : args)
 		{
-			if (std::holds_alternative<int>(arg))
+			if (std::holds_alternative<long long>(arg))
 			{
-				iChecksum += util_mkint(buffer, std::get<int>(arg));
+				iChecksum += util_mkint(buffer, std::get<long long>(arg));
 			}
 			else if (std::holds_alternative<std::string>(arg))
 			{
@@ -136,14 +136,14 @@ public:
 	template<typename... Args>
 	inline bool util_Receive(Args*... args)
 	{
-		int iChecksum = 0;  // 局部變量
-		int iChecksumrecv = 0;
-		int nextSlice = 2;
+		long long iChecksum = 0;  // 局部變量
+		long long iChecksumrecv = 0;
+		long long nextSlice = 2;
 
 		// 解碼參數並累加到 iChecksum
 		auto decode_and_accumulate = [this, &iChecksum, &nextSlice](auto* val)
 			{
-				if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, int>)
+				if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, long long>)
 				{
 					iChecksum += util_deint(nextSlice++, val);
 				}

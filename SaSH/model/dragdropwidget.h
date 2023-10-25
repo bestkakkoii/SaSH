@@ -69,7 +69,8 @@ public:
 		}
 
 		QMap<long long, long long> numberToRow;
-		for (int i = 0; i < rowCount(); ++i)
+		long long  count = rowCount();
+		for (long long i = 0; i < count; ++i)
 		{
 			bool ok;
 			long long  number = numbers[i].toInt(&ok);
@@ -81,7 +82,7 @@ public:
 		}
 
 		QList<long long > current;
-		long long  count = rowCount();
+		count = rowCount();
 		for (long long row = 0; row < count; ++row)
 		{
 			QTableWidgetItem* item = this->item(row, 0);
@@ -162,5 +163,6 @@ private:
 		setItem(to, 0, itemFrom);
 	}
 
-	int drapRow = -1;
+private:
+	long long drapRow = -1;
 };

@@ -47,8 +47,8 @@ public:
 	QColor getTextColor();
 	void setText(const QString& text);
 	QString getText() const;
-	void setFlag(int flag = Qt::AlignLeft | Qt::AlignVCenter);
-	int getFlag();
+	void setFlag(long long flag = Qt::AlignLeft | Qt::AlignVCenter);
+	long long getFlag();
 
 	inline void setAutoResize(bool isAutoResize) { isAutoResize_ = isAutoResize; }
 protected:
@@ -62,7 +62,7 @@ protected:
 #endif
 
 private:
-	int flag_ = Qt::AlignLeft | Qt::AlignVCenter;
+	long long flag_ = Qt::AlignLeft | Qt::AlignVCenter;
 	bool isAutoResize_ = false;
 	QPen pen_;
 	QFont font_;

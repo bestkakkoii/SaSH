@@ -164,7 +164,7 @@ void GeneralForm::onComboBoxClicked()
 			return;
 		}
 
-		int currentIndex = ui.comboBox_setting->currentIndex();
+		long long currentIndex = ui.comboBox_setting->currentIndex();
 		ui.comboBox_setting->blockSignals(true);
 		ui.comboBox_setting->clear();
 		for (const QPair<QString, QString>& pair : fileList)

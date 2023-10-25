@@ -248,7 +248,7 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 				break;
 			}
 
-			int n = totalUse;
+			long long n = totalUse;
 			for (;;)
 			{
 				if (totalUse != -1 && n <= 0)
@@ -283,7 +283,7 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 				break;
 			}
 
-			int n = totalUse;
+			long long n = totalUse;
 			for (;;)
 			{
 				if (totalUse != -1 && n <= 0)
@@ -1173,12 +1173,40 @@ long long Interpreter::petequip(long long currentIndex, long long currentLine, c
 
 	QString itemName;
 	checkString(TK, 2, &itemName);
-	if (itemName.isEmpty())
-		return Parser::kArgError;
 
-	long long itemIndex = injector.worker->getItemIndexByName(itemName, true, "", CHAR_EQUIPPLACENUM);
-	if (itemIndex != -1)
-		injector.worker->petitemswap(petIndex, itemIndex, -1);
+	QStringList itemNames = itemName.split(util::rexOR);
+
+	QString itemMemo;
+	checkString(TK, 3, &itemMemo);
+
+	if (itemName.isEmpty() && itemMemo.isEmpty())
+		return Parser::kArgError + 1ll;
+
+	QStringList itemMemos = itemMemo.split(util::rexOR);
+
+	QStringList itemMemos2 = itemMemos;
+	for (const QString& name : itemNames)
+	{
+		QString memo;
+		if (!itemMemos2.isEmpty())
+			memo = itemMemos2.takeFirst();
+
+		long long itemIndex = injector.worker->getItemIndexByName(name, true, memo, CHAR_EQUIPPLACENUM);
+		if (itemIndex != -1)
+			injector.worker->petitemswap(petIndex, itemIndex, -1);
+	}
+
+	QStringList itemNames2 = itemNames;
+	for (const QString& memo : itemMemos)
+	{
+		QString name;
+		if (!itemNames2.isEmpty())
+			name = itemNames2.takeFirst();
+
+		long long itemIndex = injector.worker->getItemIndexByName(name, true, memo, CHAR_EQUIPPLACENUM);
+		if (itemIndex != -1)
+			injector.worker->petitemswap(petIndex, itemIndex, -1);
+	}
 
 	return Parser::kNoChange;
 }
@@ -1204,52 +1232,64 @@ long long Interpreter::petunequip(long long currentIndex, long long currentLine,
 	if (petIndex < 0 || petIndex >= MAX_PET)
 		return Parser::kArgError + 1ll;
 
-
+	QVector<long long> partIndexs;
 	if (!checkInteger(TK, 2, &part) || part < 1)
 	{
-		QString partStr;
-		checkString(TK, 2, &partStr);
-		if (partStr.isEmpty())
+		QString prePartStr;
+		checkString(TK, 2, &prePartStr);
+		if (prePartStr.isEmpty())
 			return Parser::kArgError + 2ll;
 
-		if (partStr.toLower() == "all" || partStr.toLower() == QString("全部"))
+		QStringList partStrs = prePartStr.split(util::rexOR, Qt::SkipEmptyParts);
+
+		if (prePartStr.toLower() == "all" || prePartStr.toLower() == QString("全部"))
 		{
 			part = 100;
 		}
 		else
 		{
-			part = petEquipMap.value(partStr.toLower(), PET_EQUIPNONE);
-			if (part == PET_EQUIPNONE)
-				return Parser::kArgError + 2ll;
+			for (const QString& partStr : partStrs)
+			{
+				part = petEquipMap.value(partStr.toLower(), PET_EQUIPNONE);
+				if (part != PET_EQUIPNONE)
+					partIndexs.append(part);
+			}
 		}
 	}
 	else
+	{
 		--part;
+		partIndexs.append(part);
+	}
 
 	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
-	if (part < 100)
+	if (!partIndexs.isEmpty())
 	{
-		long long spotIndex = injector.worker->getItemEmptySpotIndex();
-		if (spotIndex == -1)
+		QVector<long long> spots;
+		if (!injector.worker->getItemEmptySpotIndexs(&spots))
 			return Parser::kNoChange;
 
-		injector.worker->petitemswap(petIndex, part, spotIndex);
-	}
-	else
-	{
-		QVector<long long> v;
-		if (!injector.worker->getItemEmptySpotIndexs(&v))
-			return Parser::kNoChange;
-
-		for (long long i = 0; i < CHAR_EQUIPPLACENUM; ++i)
+		for (const long long& index : partIndexs)
 		{
-			if (v.isEmpty())
+			if (spots.isEmpty())
 				break;
 
-			long long itemIndex = v.takeFirst();
+			injector.worker->petitemswap(petIndex, index, spots.takeFirst());
+		}
+	}
+	else if (part == 100)
+	{
+		QVector<long long> spots;
+		if (!injector.worker->getItemEmptySpotIndexs(&spots))
+			return Parser::kNoChange;
 
-			injector.worker->petitemswap(petIndex, i, itemIndex);
+		for (long long index = 0; index < PET_EQUIPNUM; ++index)
+		{
+			if (spots.isEmpty())
+				break;
+
+			injector.worker->petitemswap(petIndex, index, spots.takeFirst());
 		}
 	}
 
@@ -1527,7 +1567,7 @@ long long Interpreter::withdrawitem(long long currentIndex, long long currentLin
 
 	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
-	for (int i = 0; i < max; ++i)
+	for (long long i = 0; i < max; ++i)
 	{
 		QString name = "";
 		QString memo = "";

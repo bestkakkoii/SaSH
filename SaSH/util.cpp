@@ -1254,8 +1254,8 @@ QFileInfoList __fastcall util::loadAllFileLists(
 
 	QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
 	const QFileInfoList folder_list = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot); //獲取當前所有目錄
-	int count = folder_list.size();
-	for (int i = 0; i != count; ++i) //自動遞歸添加各目錄到上一級目錄
+	long long count = folder_list.size();
+	for (long long i = 0; i != count; ++i) //自動遞歸添加各目錄到上一級目錄
 	{
 		const QString namepath = folder_list.value(i).absoluteFilePath(); //獲取路徑
 		const QFileInfo folderinfo = folder_list.value(i);
@@ -1330,10 +1330,10 @@ QFileInfoList __fastcall util::loadAllFileLists(
 
 	QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
 	const QFileInfoList folder_list = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot); //獲取當前所有目錄
-	int count = folder_list.size();
+	long long count = folder_list.size();
 
 	//自動遞歸添加各目錄到上一級目錄
-	for (int i = 0; i != count; ++i)
+	for (long long i = 0; i != count; ++i)
 	{
 		const QString namepath = folder_list.value(i).absoluteFilePath(); //獲取路徑
 		const QFileInfo folderinfo = folder_list.value(i);
@@ -1457,7 +1457,8 @@ QString __fastcall util::findFileFromName(const QString& fileName, const QString
 	dir.setFilter(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
 	dir.setSorting(QDir::DirsFirst);
 	QFileInfoList list = dir.entryInfoList();
-	for (int i = 0; i < list.size(); ++i)
+	long long size = list.size();
+	for (long long i = 0; i < size; ++i)
 	{
 		QFileInfo fileInfo = list.value(i);
 		if (fileInfo.fileName() == fileName)
@@ -1881,7 +1882,7 @@ bool __fastcall util::readFileFilter(const QString& fileName, QString& content, 
 #else
 		return false;
 #endif
-	}
+}
 	content.replace("\r\n", "\n");
 	return true;
 }
@@ -1939,7 +1940,8 @@ QString __fastcall util::byteArrayToHexString(const QByteArray& data)
 QByteArray __fastcall util::hexStringToByteArray(const QString& hexString)
 {
 	QByteArray byteArray;
-	for (int i = 0; i < hexString.length(); i += 2)
+	long long length = hexString.length();
+	for (long long i = 0; i < length; i += 2)
 	{
 		bool ok;
 		QString byteString = hexString.mid(i, 2);

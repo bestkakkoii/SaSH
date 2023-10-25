@@ -32,9 +32,9 @@ public:
 
 	virtual~StringListModel() = default;
 
-	int size() const { QReadLocker locker(&m_stringlistLocker); return m_list.size(); }
+	long long size() const { QReadLocker locker(&m_stringlistLocker); return m_list.size(); }
 
-	void append(const QString& str, int color = 0);
+	void append(const QString& str, long long color = 0);
 
 	QString takeFirst();
 
@@ -42,9 +42,9 @@ public:
 
 	void clear();
 
-	void swapRowUp(int source);
+	void swapRowUp(long long source);
 
-	void swapRowDown(int source);
+	void swapRowDown(long long source);
 
 protected:
 	int rowCount(const QModelIndex& parent = QModelIndex()) const override { return parent.isValid() ? 0 : m_list.size(); }
@@ -56,7 +56,7 @@ signals:
 private:
 	QVector<QString> m_list;
 	QVector<long long> m_colorlist;
-	//int listCount = 0;
+
 	mutable QReadWriteLock m_stringlistLocker;
 
 	QVector<QString> getList() const { QReadLocker locker(&m_stringlistLocker); return m_list; }
@@ -105,11 +105,11 @@ public:
 	void setModel(StringListModel* model);
 
 private slots:
-	void append(const QString& str, int color = 0);
+	void append(const QString& str, long long color = 0);
 	void remove(const QString& str);
 	void clear();
-	void swapRowUp(int source);
-	void swapRowDown(int source);
+	void swapRowUp(long long source);
+	void swapRowDown(long long source);
 
 protected:
 	virtual void wheelEvent(QWheelEvent* event) override;

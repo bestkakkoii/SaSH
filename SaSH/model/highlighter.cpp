@@ -37,7 +37,6 @@ const char* Highlighter::keywords(int set) const
 	{
 		return
 			"call pause exit label jmp back continue "
-			"checkdaily "
 			"waitdlg waitsay waititem waitmap waitteam waitpet waitpos "
 
 			/*lua original*/
@@ -60,7 +59,7 @@ const char* Highlighter::keywords(int set) const
 			"bh bj bp bs be bd bi bn bw bwf bwait bend "
 			"dofile createch delch doffstone send format "
 			"tsort trsort split mktable trotate tunique tshuffle tsleft tsright tmerge tjoin "
-			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath contains openlog "
+			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath contains openlog checkdaily "
 
 			"rungame closegame openwindow setlogin runex stoprunex dostrex loadsetex getgamestate "
 

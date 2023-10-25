@@ -176,11 +176,11 @@ bool enumAllFile(QStringList* pfilePaths, const QString& directory)
 	dir.setSorting(QDir::DirsFirst);
 
 	QFileInfoList list = dir.entryInfoList();
-	int i = 0;
+	long long i = 0;
 	bool bIsDir;
 	do
 	{
-		QFileInfo fileInfo = list.at(i);
+		QFileInfo fileInfo = list.value(i);
 		QString strFileName = fileInfo.fileName();
 		if (strFileName == "." || strFileName == "..")
 		{
@@ -290,11 +290,11 @@ bool uncompress(Downloader* d, const QString& source, const QString& destination
 		return false;
 	}
 
-	int numitems = ze.index;
+	long long numitems = ze.index;
 	d->progressDialog_->reset();
 	d->progressDialog_->setMaximum(numitems);
 	long long currentSize = 0;
-	for (int zi = 0; zi < numitems; zi++)
+	for (long long zi = 0; zi < numitems; zi++)
 	{
 		ret = GetZipItem(hz, zi, &ze);
 		if (ret != ZR_OK)

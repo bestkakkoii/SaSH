@@ -79,7 +79,7 @@ public:
 		currentBuffer_.append(newMessage);
 	}
 
-	int __fastcall size() const
+	long long __fastcall size() const
 	{
 		QMutexLocker locker(&mutex_);
 		return currentBuffer_.size();
@@ -229,16 +229,3 @@ private:
 	QContiguousCache<QString> currentBuffer_;
 	QContiguousCache<QString> nextBuffer_;
 };
-
-//int main(int argc, char** argv)
-//{
-//	QCoreApplication app(argc, argv);
-//
-//	Logger& logger = Logger::instance();
-//	logger.initialize("mylog.log", 1024, "%(date) %(time) %(message)");
-//
-//	// Example usage:
-//	logger.write("This is a log message.");
-//
-//	return app.exec();
-//}

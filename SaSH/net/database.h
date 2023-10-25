@@ -1549,17 +1549,17 @@ static const QHash<QString, CHAR_EquipPlace> equipMap = {
 
 static const QHash<QString, CHAR_EquipPlace> petEquipMap = {
 	{ "頭", PET_HEAD },
-	{ "翼", PET_WING },
+	{ "翅", PET_WING },
 	{ "牙", PET_TOOTH },
-	{ "身體", PET_PLATE },
+	{ "身", PET_PLATE },
 	{ "背", PET_BACK },
 	{ "爪", PET_CLAW },
 	{ "腳", PET_FOOT },
 
 	{ "头", PET_HEAD },
-	{ "翼", PET_WING },
+	{ "翅", PET_WING },
 	{ "牙", PET_TOOTH },
-	{ "身体", PET_PLATE },
+	{ "身", PET_PLATE },
 	{ "背", PET_BACK },
 	{ "爪", PET_CLAW },
 	{ "脚", PET_FOOT },

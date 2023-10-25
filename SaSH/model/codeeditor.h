@@ -49,15 +49,19 @@ public:
 		SYM_STEP,
 	}SymbolHandler;
 	explicit CodeEditor(QWidget* parent = nullptr);
-	int S_BREAK = 0b0001;
-	int S_ARROW = 0b0010;
-	int S_ERRORMARK = 0b0100;
-	int S_STEPMARK = 0b1000;
 
-	inline bool isBreak(int mode) const { return ((mode & S_BREAK) == S_BREAK); }
-	inline bool isArrow(int mode) const { return ((mode & S_ARROW) == S_ARROW); }
-	inline bool isError(int mode) const { return ((mode & S_ERRORMARK) == S_ERRORMARK); }
-	inline bool isStep(int mode) const { return ((mode & S_STEPMARK) == S_STEPMARK); }
+	enum MackerMask
+	{
+		S_BREAK = 0b0001,//1
+		S_ARROW = 0b0010,//2
+		S_ERRORMARK = 0b0100,//4
+		S_STEPMARK = 0b1000,//8
+	};
+
+	inline bool isBreak(long long mode) const { return ((mode & S_BREAK) == S_BREAK); }
+	inline bool isArrow(long long mode) const { return ((mode & S_ARROW) == S_ARROW); }
+	inline bool isError(long long mode) const { return ((mode & S_ERRORMARK) == S_ERRORMARK); }
+	inline bool isStep(long long mode) const { return ((mode & S_STEPMARK) == S_STEPMARK); }
 
 	QFont getOldFont() { return QsciScintilla::font(); }
 	void setNewFont(const QFont& f) { font_ = f; setFont(f); textLexer.setDefaultFont(f); }

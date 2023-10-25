@@ -1366,7 +1366,7 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 		long long row = it.key();
 		QVector<long long> unpairedIndices = it.value();
 
-		for (int index : unpairedIndices)
+		for (long long index : unpairedIndices)
 		{
 			QString statement = tokenmaps[row].value(0).data.toString().simplified();
 			QString errorMessage = QString(QObject::tr("@ %1 | Unpaired '%2' index %3: '%4'")).arg(row + 1).arg(beginstr).arg(index).arg(statement);

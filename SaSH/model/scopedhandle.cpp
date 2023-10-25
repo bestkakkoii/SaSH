@@ -37,12 +37,6 @@ ScopedHandle::ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID)
 		createToolhelp32Snapshot(dwFlags, th32ProcessID);
 }
 
-ScopedHandle::ScopedHandle(DWORD dwProcess, bool bAutoClose)
-	: enableAutoClose_(bAutoClose)
-{
-	openProcess(dwProcess);
-}
-
 void ScopedHandle::reset(DWORD dwProcessId)
 {
 	if (NULL != dwProcessId)
@@ -65,12 +59,6 @@ void ScopedHandle::reset(HANDLE handle)
 		closeHandle();
 		handle_ = handle;
 	}
-}
-
-ScopedHandle::ScopedHandle(int dwProcess, bool bAutoClose)
-	: enableAutoClose_(bAutoClose)
-{
-	openProcess(static_cast<DWORD>(dwProcess));
 }
 
 ScopedHandle::ScopedHandle(long long dwProcess, bool bAutoClose)

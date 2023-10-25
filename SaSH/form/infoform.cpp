@@ -81,9 +81,20 @@ InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 
 	setCurrentPage(defaultPage);
 
+	connect(&timer, &QTimer::timeout, this, &InfoForm::updateInfo, Qt::QueuedConnection);
+
 	hide();
 	setUpdatesEnabled(false);
 	blockSignals(true);
+}
+
+void InfoForm::updateInfo()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	if (injector.worker.isNull())
+		return;
+
+	injector.worker->updateBattleTimeInfo();
 }
 
 void InfoForm::setCurrentPage(long long defaultPage)
@@ -97,12 +108,11 @@ void InfoForm::setCurrentPage(long long defaultPage)
 InfoForm::~InfoForm()
 {
 	qDebug() << "InfoForm is destroyed!";
-	timer->stop();
-	delete timer;
 }
 
 void InfoForm::showEvent(QShowEvent* e)
 {
+	timer.start(1);
 	setUpdatesEnabled(true);
 	blockSignals(false);
 	update();
@@ -111,6 +121,7 @@ void InfoForm::showEvent(QShowEvent* e)
 }
 void InfoForm::closeEvent(QCloseEvent* e)
 {
+	timer.stop();
 	setUpdatesEnabled(false);
 	blockSignals(true);
 	util::FormSettingManager formManager(this);

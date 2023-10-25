@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <listview.h>
 #include <qmath.h>
 
-constexpr int MAX_LIST_COUNT = 1024;
+constexpr long long MAX_LIST_COUNT = 1024;
 
 #pragma region StringListModel
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,12 +32,12 @@ StringListModel::StringListModel(QObject* parent)
 }
 
 
-void StringListModel::append(const QString& str, int color)
+void StringListModel::append(const QString& str, long long color)
 {
 	QVector<QString> list;
 	QVector<long long> colorlist;
 	getAllList(list, colorlist);
-	int size = list.size();
+	long long size = list.size();
 
 	if (size >= MAX_LIST_COUNT)
 	{
@@ -61,7 +61,7 @@ QString StringListModel::takeFirst()
 	QVector<QString> list;
 	QVector<long long> colorlist;
 	getAllList(list, colorlist);
-	int size = list.size();
+	long long size = list.size();
 	QString str = "";
 
 	beginRemoveRows(QModelIndex(), 0, 0);
@@ -80,9 +80,9 @@ void StringListModel::remove(const QString& str)
 	QVector<QString> list;
 	QVector<long long> colorlist;
 	getAllList(list, colorlist);
-	int size = list.size();
+	long long size = list.size();
 
-	int index = list.indexOf(str);
+	long long index = list.indexOf(str);
 	if (index >= 0 && index < size)
 	{
 		beginRemoveRows(QModelIndex(), index, index);
@@ -103,12 +103,12 @@ void StringListModel::clear()
 }
 
 // 用于排序的比较函数，按整数值进行比较
-bool pairCompare(const QPair<int, QString>& pair1, const QPair<int, QString>& pair2)
+bool pairCompare(const QPair<long long, QString>& pair1, const QPair<long long, QString>& pair2)
 {
 	return pair1.first < pair2.first;
 }
 
-bool pairCompareGreaerString(const QPair<int, QString>& pair1, const QPair<int, QString>& pair2)
+bool pairCompareGreaerString(const QPair<long long, QString>& pair1, const QPair<long long, QString>& pair2)
 {
 	return pair1.second > pair2.second;
 }
@@ -123,10 +123,10 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 		QVector<QString> list;
 		QVector<long long> colorlist;
 		getAllList(list, colorlist);
-		int size = list.size();
-		QVector<QPair<int, QString>> pairVector;
+		long long size = list.size();
+		QVector<QPair<long long, QString>> pairVector;
 
-		for (int i = 0; i < size; ++i)
+		for (long long i = 0; i < size; ++i)
 		{
 			pairVector.append(qMakePair(colorlist.value(i), list.value(i)));
 		}
@@ -137,7 +137,7 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 		colorlist.clear();
 
 		size = pairVector.size();
-		for (int i = 0; i < size; ++i)
+		for (long long i = 0; i < size; ++i)
 		{
 			colorlist.append(pairVector.value(i).first);
 			list.append(pairVector.value(i).second);
@@ -150,10 +150,10 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 		QVector<QString> list;
 		QVector<long long> colorlist;
 		getAllList(list, colorlist);
-		int size = list.size();
-		QVector<QPair<int, QString>> pairVector;
+		long long size = list.size();
+		QVector<QPair<long long, QString>> pairVector;
 
-		for (int i = 0; i < size; ++i)
+		for (long long i = 0; i < size; ++i)
 		{
 			pairVector.append(qMakePair(colorlist.value(i), list.value(i)));
 		}
@@ -163,7 +163,7 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 		list.clear();
 		colorlist.clear();
 		size = pairVector.size();
-		for (int i = size - 1; i >= 0; --i)
+		for (long long i = size - 1; i >= 0; --i)
 		{
 			colorlist.append(pairVector.value(i).first);
 			list.append(pairVector.value(i).second);
@@ -204,10 +204,10 @@ QMap<int, QVariant> StringListModel::itemData(const QModelIndex& index) const
 {
 	QMap<int, QVariant> map;
 
-	int i = index.row();
+	long long i = index.row();
 
 	QVector<QString> list = getList();
-	int size = list.size();
+	long long size = list.size();
 	if (i >= 0 && i < size)
 		map.insert(Qt::DisplayRole, list.value(i));
 
@@ -225,7 +225,7 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 	case Qt::DisplayRole:
 	{
 		QVector<QString> list = getList();
-		int i = index.row();
+		long long i = index.row();
 		if (i < 0 || i >= list.size())
 			return QVariant();
 		return list.value(i);
@@ -239,7 +239,7 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 	case Qt::DecorationRole:
 	{
 		QVector<QString> list = getList();
-		int i = index.row();
+		long long i = index.row();
 		QString data = list.value(i);
 		if (data.contains("[錯誤]") || data.contains("[error]") || data.contains("错误"))
 		{
@@ -259,7 +259,7 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 	case Qt::ForegroundRole:
 	{
 
-		static const QHash<int, QColor> hash = {
+		static const QHash<long long, QColor> hash = {
 			//{ 0, QColor(241,241,241) },
 			//{ 1, QColor(0,255,255) },
 			//{ 2, QColor(255,0,255) },
@@ -295,8 +295,8 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 		static const QBrush colorOther(QColor(212, 212, 212));
 
 		QVector<long long> colorlist = getColorList();
-		int i = index.row();
-		int size = colorlist.size();
+		long long i = index.row();
+		long long size = colorlist.size();
 		if (i >= size || i < 0)
 			return QColor(241, 241, 241);
 
@@ -319,7 +319,7 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 			return colorInfo;
 		}
 
-		int color = colorlist.value(i);
+		long long color = colorlist.value(i);
 		return hash.value(color, QColor(241, 241, 241));
 	}
 	default:
@@ -333,8 +333,8 @@ bool StringListModel::setData(const QModelIndex& index, const QVariant& value, i
 	if (role == Qt::EditRole)
 	{
 		QVector<QString> list = getList();
-		int i = index.row();
-		int size = list.size();
+		long long i = index.row();
+		long long size = list.size();
 		if (i >= 0 && i < size)
 		{
 			list.replace(index.row(), value.toString());
@@ -346,12 +346,12 @@ bool StringListModel::setData(const QModelIndex& index, const QVariant& value, i
 	return false;
 }
 
-void StringListModel::swapRowUp(int source)
+void StringListModel::swapRowUp(long long source)
 {
 	QVector<QString> list;
 	QVector<long long> colorlist;
 	getAllList(list, colorlist);
-	int size = list.size();
+	long long size = list.size();
 
 	if (source > 0 && source < size)
 	{
@@ -364,12 +364,12 @@ void StringListModel::swapRowUp(int source)
 		endMoveRows();
 	}
 }
-void StringListModel::swapRowDown(int source)
+void StringListModel::swapRowDown(long long source)
 {
 	QVector<QString> list;
 	QVector<long long> colorlist;
 	getAllList(list, colorlist);
-	int size = list.size();
+	long long size = list.size();
 
 	if (source >= 0 && source + 1 < size)
 	{
@@ -391,10 +391,10 @@ public:
 
 	virtual QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
 	{
-		int height = QStyledItemDelegate::sizeHint(option, index).height();
+		long long height = QStyledItemDelegate::sizeHint(option, index).height();
 		QString text = index.data(Qt::DisplayRole).toString();
 		QFontMetrics fm(option.font);
-		int width = fm.horizontalAdvance(text) * 10;
+		long long width = fm.horizontalAdvance(text) * 10;
 		return QSize(width, height);
 	}
 
@@ -488,7 +488,7 @@ void ListView::setModel(StringListModel* model)
 	}
 }
 
-void ListView::append(const QString& str, int color)
+void ListView::append(const QString& str, long long color)
 {
 	StringListModel* old_mod = (StringListModel*)this->model();
 	if (old_mod)
@@ -509,14 +509,14 @@ void ListView::clear()
 		old_mod->clear();
 }
 
-void ListView::swapRowUp(int source)
+void ListView::swapRowUp(long long source)
 {
 	StringListModel* old_mod = (StringListModel*)this->model();
 	if (old_mod)
 		old_mod->swapRowUp(source);
 }
 
-void ListView::swapRowDown(int source)
+void ListView::swapRowDown(long long source)
 {
 	StringListModel* old_mod = (StringListModel*)this->model();
 	if (old_mod)

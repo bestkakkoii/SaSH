@@ -454,7 +454,7 @@ void MainObject::mainProc()
 	for (;;)
 	{
 		if (!nodelay)
-			QThread::msleep(1);
+			QThread::msleep(100);
 		else
 			nodelay = false;
 
@@ -474,7 +474,10 @@ void MainObject::mainProc()
 		}
 
 		if (injector.worker.isNull())
+		{
+			QThread::yieldCurrentThread();
 			continue;
+		}
 
 		//自動釋放記憶體
 		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(5ll * 60ll * 1000ll))
@@ -507,19 +510,19 @@ void MainObject::mainProc()
 		if (bCheckedAutoBattle)
 		{
 			if (W == 10) // 位於戰鬥畫面
-				injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+				injector.postMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 			else if (W == 9) // 位於非戰鬥畫面
-				injector.sendMessage(kSetBlockPacket, injector.worker->getBattleFlag(), NULL); // 禁止阻擋戰鬥封包
+				injector.postMessage(kSetBlockPacket, injector.worker->getBattleFlag(), NULL); // 禁止阻擋戰鬥封包
 		}
 		// 允許 快速戰鬥
 		else if (bCheckedFastBattle)
 		{
 			if (W == 10)// 強退戰鬥畫面
 				injector.worker->setGameStatus(7);
-			injector.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
+			injector.postMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
 		}
 		else // 不允許 快速戰鬥 和 自動戰鬥
-			injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+			injector.postMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 
 		//登出按下，異步登出
 		if (injector.getEnableHash(util::kLogOutEnable))
@@ -611,6 +614,11 @@ void MainObject::mainProc()
 			injector.postMessage(kBattleTimeExtend, bChecked, NULL);
 		}
 
+		if (bCheckedFastBattle || bCheckedAutoBattle)
+			injector.postMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
+		else
+			injector.postMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
+
 		//其他所有功能
 		long long status = checkAndRunFunctions();
 
@@ -625,15 +633,11 @@ void MainObject::mainProc()
 		}
 		else if (status == 2)//平時
 		{
-
+			//檢查開關 (隊伍、交易、名片...等等)
+			checkEtcFlag();
 		}
 		else if (status == 3)//戰鬥中
 		{
-			if (bCheckedFastBattle || bCheckedAutoBattle)
-				injector.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
-			else
-				injector.sendMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
-
 			injector.worker->doBattleWork(true);
 		}
 		else//錯誤
@@ -800,9 +804,6 @@ long long MainObject::checkAndRunFunctions()
 		{
 			battle_run_once_flag_ = true;
 		}
-
-		//檢查開關 (隊伍、交易、名片...等等)
-		checkEtcFlag();
 
 		return 2;
 	}

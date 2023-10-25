@@ -311,12 +311,19 @@ void Parser::initialize(Parser* pparent)
 	}
 
 #pragma region init
-	lua_.set_function("checkdaily", [this](std::string smisson)->long long
+	lua_.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->long long
 		{
 			Injector& injector = Injector::getInstance(getIndex());
 			QString mission = util::toQString(smisson);
 
-			return injector.worker->checkJobDailyState(mission);
+			long long timeout = 5000;
+			if (otimeout.is<long long>())
+				timeout = otimeout.as<long long>();
+
+			if (!injector.worker.isNull())
+				return injector.worker->checkJobDailyState(mission, timeout);
+			else
+				return -1;
 		});
 
 
