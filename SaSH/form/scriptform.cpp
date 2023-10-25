@@ -122,35 +122,38 @@ void ScriptForm::onScriptStarted()
 
 void ScriptForm::onScriptPaused()
 {
+	Injector& injector = Injector::getInstance(getIndex());
 	if (interpreter_ != nullptr)
 	{
-		if (!interpreter_->isPaused())
+		if (!injector.isPaused())
 		{
 			ui.pushButton_script_pause->setText(tr("resume"));
-			interpreter_->paused();
+			injector.paused();
 		}
 	}
 }
 
 void ScriptForm::onScriptResumed()
 {
+	Injector& injector = Injector::getInstance(getIndex());
 	if (interpreter_ != nullptr)
 	{
-		if (interpreter_->isPaused())
+		if (injector.isPaused())
 		{
 			ui.pushButton_script_pause->setText(tr("pause"));
-			interpreter_->resumed();
+			injector.resumed();
 		}
 	}
 }
 
 void ScriptForm::onScriptStoped()
 {
+	Injector& injector = Injector::getInstance(getIndex());
 	if (interpreter_ != nullptr)
 	{
 		interpreter_->stop();
-		if (interpreter_->isPaused())
-			interpreter_->resumed();
+		if (injector.isPaused())
+			injector.resumed();
 	}
 }
 
@@ -185,9 +188,10 @@ void ScriptForm::onButtonClicked()
 	}
 	else if (name == "pushButton_script_pause")
 	{
+		Injector& injector = Injector::getInstance(currentIndex);
 		if (interpreter_ != nullptr)
 		{
-			if (!interpreter_->isPaused())
+			if (!injector.isPaused())
 				emit signalDispatcher.scriptPaused();
 			else
 				emit signalDispatcher.scriptResumed();

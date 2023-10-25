@@ -2694,7 +2694,7 @@ QVariantList& Parser::getArgsRef()
 		return emptyArgs_;
 }
 
-//行跳轉
+//行數跳轉
 bool Parser::jump(long long line, bool noStack)
 {
 	long long currentLine = getCurrentLine();
@@ -2717,7 +2717,7 @@ void Parser::jumpto(long long line, bool noStack)
 	setCurrentLine(currentLine);
 }
 
-//標記跳轉
+//標記、函數跳轉或執行關鍵命令
 bool Parser::jump(const QString& name, bool noStack)
 {
 	QString newName = name.toLower();
@@ -2773,7 +2773,7 @@ bool Parser::jump(const QString& name, bool noStack)
 
 	long long currentLine = getCurrentLine();
 	if (!noStack)
-		jmpStack_.push(currentLine + 1);
+		jmpStack_.push(currentLine + 1);//行號入棧
 
 	long long jumpLineCount = jumpLine - currentLine;
 
@@ -3784,7 +3784,7 @@ void Parser::processTokens()
 
 	pLua_->setMax(size());
 
-	//同步模式時清空所有marker並重置UI顯示的堆棧訊息
+	//同步模式時清空所有非break marker
 	if (mode_ == kSync)
 	{
 		emit signalDispatcher.addErrorMarker(-1, false);
@@ -3819,7 +3819,10 @@ void Parser::processTokens()
 
 		currentType = getCurrentFirstTokenType();
 
-		skip = currentType == RESERVE::TK_WHITESPACE || currentType == RESERVE::TK_COMMENT || currentType == RESERVE::TK_UNK || (luaBegin_ && currentType != RESERVE::TK_LUAEND);
+		skip = currentType == RESERVE::TK_WHITESPACE
+			|| currentType == RESERVE::TK_COMMENT
+			|| currentType == RESERVE::TK_UNK
+			|| (luaBegin_ && currentType != RESERVE::TK_LUAEND);
 
 		if (currentType == TK_FUNCTION)
 		{
@@ -4057,17 +4060,17 @@ void Parser::exportVarInfo()
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))//檢查是否為調試模式
 		return;
 
-	if (!injector.isScriptEditorOpened.load(std::memory_order_acquire))
+	if (!injector.isScriptEditorOpened.load(std::memory_order_acquire))//檢查編輯器是否打開
 		return;
 
 	QVariantHash varhash;
 	QVariantHash localHash = getLocalVars();
 
 	QString key;
-	for (auto it = localHash.cbegin(); it != localHash.cend(); ++it)
+	for (auto it = localHash.constBegin(); it != localHash.constEnd(); ++it)
 	{
 		key = QString("local|%1").arg(it.key());
 		varhash.insert(key, it.value());

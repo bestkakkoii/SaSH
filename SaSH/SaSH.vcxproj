@@ -167,7 +167,7 @@
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);$(Qt_LIBS_)</AdditionalDependencies>
     </Link>
     <QtTranslation>
-      <BuildAction>lupdate</BuildAction>
+      <BuildAction>false</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
       <Command>cd  "$(SolutionDir)$(ProjectName)\translations"

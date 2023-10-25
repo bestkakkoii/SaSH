@@ -310,7 +310,7 @@ bool Interpreter::waitfor(long long timeout, std::function<bool()> exprfun)
 
 	for (;;)
 	{
-		checkPause();
+		injector.checkPause();
 
 		if (isInterruptionRequested())
 			break;
@@ -451,11 +451,11 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 	if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 	{
-		paused();
+		injector.paused();
 		emit signalDispatcher.scriptPaused();
 	}
 
-	checkPause();
+	injector.checkPause();
 
 	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 		return 1;
@@ -468,7 +468,7 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 		return 1;//檢查是否有中斷點
 	}
 
-	paused();
+	injector.paused();
 
 	if (breakMarkers.contains(currentLine))
 	{
@@ -486,7 +486,7 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 	emit signalDispatcher.addForwardMarker(currentLine, true);
 
-	checkPause();
+	injector.checkPause();
 
 	return 1;
 }
@@ -531,10 +531,9 @@ void Interpreter::proc()
 //檢查是否戰鬥，如果是則等待，並在戰鬥結束後停滯一段時間
 bool Interpreter::checkBattleThenWait()
 {
-	checkPause();
-
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
+	injector.checkPause();
 
 	if (injector.worker.isNull())
 		return false;
@@ -555,7 +554,7 @@ bool Interpreter::checkBattleThenWait()
 			if (injector.worker.isNull())
 				break;
 
-			checkPause();
+			injector.checkPause();
 
 			if (!injector.worker->getBattleFlag())
 				break;
@@ -574,10 +573,9 @@ bool Interpreter::checkBattleThenWait()
 
 bool Interpreter::checkOnlineThenWait()
 {
-	checkPause();
-
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
+	injector.checkPause();
 
 	if (injector.worker.isNull())
 		return false;
@@ -599,7 +597,7 @@ bool Interpreter::checkOnlineThenWait()
 			if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 				break;
 
-			checkPause();
+			injector.checkPause();
 
 			if (injector.worker->getOnlineFlag())
 				break;

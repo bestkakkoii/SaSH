@@ -159,6 +159,34 @@ public:
 
 	[[nodiscard]] inline HWND __fastcall getParentWidget() const { return parentWidget_; }
 
+	inline bool __fastcall isPaused() const { return isPaused_; }
+
+	inline void __fastcall checkPause()
+	{
+		std::unique_lock<std::mutex> lock(pausedMutex_);
+		if (isPaused_.load(std::memory_order_acquire))
+		{
+			pausedCondition_.wait(lock);
+		}
+	}
+
+	inline void __fastcall paused()
+	{
+		pausedMutex_.lock();
+		isPaused_.store(true, std::memory_order_release);
+		pausedMutex_.unlock();
+	}
+
+	inline void __fastcall resumed()
+	{
+		{
+			pausedMutex_.lock();
+			isPaused_.store(false, std::memory_order_release);
+			pausedMutex_.unlock();
+		}
+		pausedCondition_.notify_all();
+	}
+
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
 	{
@@ -238,6 +266,9 @@ private:
 	ScopedHandle processHandle_;
 	HWND parentWidget_ = nullptr;//主窗口句柄
 
+	std::atomic_bool isPaused_ = false;
+	std::condition_variable pausedCondition_;
+	std::mutex pausedMutex_;
 
 	long long nowChatRowCount_ = 0;
 

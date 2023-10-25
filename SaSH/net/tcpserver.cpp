@@ -6138,9 +6138,9 @@ bool Worker::asyncBattleAction(bool canDelay)
 	//自動戰鬥打開 或 快速戰鬥打開且處於戰鬥場景
 	bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
 	bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable);
-	fastChecked = fastChecked || (normalChecked && getWorldStatus() == 9);
-	normalChecked = normalChecked || (fastChecked && getWorldStatus() == 10);
-	if (normalChecked && !checkWG(10, 4) || (!fastChecked && !normalChecked))
+	bool fastEnabled = (getWorldStatus() == 9) && ((fastChecked) || (normalChecked));
+	bool normalEnabled = (getWorldStatus() == 10) && ((normalChecked) || (fastChecked));
+	if (normalEnabled && !checkWG(10, 4) || (!fastEnabled && !normalEnabled))
 	{
 		return false;
 	}
@@ -6191,9 +6191,6 @@ bool Worker::asyncBattleAction(bool canDelay)
 				lssproto_EO_send(0);
 		};
 
-	if (battleCharAlreadyActed.load(std::memory_order_acquire) && battlePetAlreadyActed.load(std::memory_order_acquire))
-		return false;
-
 	battledata_t bt = getBattleData();
 
 	//人物和寵物分開發 TODO 修正多個BA人物多次發出戰鬥指令的問題
@@ -6204,14 +6201,6 @@ bool Worker::asyncBattleAction(bool canDelay)
 			delay();
 		//解析人物戰鬥邏輯並發送指令
 		playerDoBattleWork(bt);
-	}
-
-	PC pc = getPC();
-	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
-	{
-		battlePetAlreadyActed.store(true, std::memory_order_release);
-		setCurrentRoundEnd();
-		return true;
 	}
 
 	//TODO 修正寵物指令在多個BA時候重覆發送的問題
@@ -11733,6 +11722,10 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		setBattleData(bt);
 
+		//切換標誌為可動作狀態
+		battleCharAlreadyActed.store(false, std::memory_order_release);
+		battlePetAlreadyActed.store(false, std::memory_order_release);
+
 		if (!isAllieAllDead && bt.allies.isEmpty())
 			isAllieAllDead = true;
 		if (!isEnemyAllDead && bt.enemies.isEmpty())
@@ -11743,9 +11736,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 			return;
 		}
 
-		//切換標誌為可動作狀態
-		battleCharAlreadyActed.store(false, std::memory_order_release);
-		battlePetAlreadyActed.store(false, std::memory_order_release);
 		doBattleWork(true);
 		break;
 	}
@@ -11993,8 +11983,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 				++i;
 				break;
 			}
-			}
-		}
+	}
+}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
@@ -12520,7 +12510,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12877,9 +12867,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+		}
 #endif
-			}
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -12910,7 +12900,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+	}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13174,7 +13164,7 @@ void Worker::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-			}
+}
 		}
 #endif
 #pragma endregion

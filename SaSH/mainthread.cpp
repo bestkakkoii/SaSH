@@ -454,7 +454,7 @@ void MainObject::mainProc()
 	for (;;)
 	{
 		if (!nodelay)
-			QThread::msleep(100);
+			QThread::msleep(1);
 		else
 			nodelay = false;
 
@@ -500,6 +500,117 @@ void MainObject::mainProc()
 
 		checkControl();
 
+		bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
+		bool bCheckedAutoBattle = injector.getEnableHash(util::kAutoBattleEnable);
+		long long W = injector.worker->getWorldStatus();
+		// 允許 自動戰鬥
+		if (bCheckedAutoBattle)
+		{
+			if (W == 10) // 位於戰鬥畫面
+				injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+			else if (W == 9) // 位於非戰鬥畫面
+				injector.sendMessage(kSetBlockPacket, injector.worker->getBattleFlag(), NULL); // 禁止阻擋戰鬥封包
+		}
+		// 允許 快速戰鬥
+		else if (bCheckedFastBattle)
+		{
+			if (W == 10)// 強退戰鬥畫面
+				injector.worker->setGameStatus(7);
+			injector.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
+		}
+		else // 不允許 快速戰鬥 和 自動戰鬥
+			injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+
+		//登出按下，異步登出
+		if (injector.getEnableHash(util::kLogOutEnable))
+		{
+			injector.setEnableHash(util::kLogOutEnable, false);
+			if (!injector.worker.isNull())
+				injector.worker->logOut();
+		}
+
+		//EO按下，異步發送EO
+		if (injector.getEnableHash(util::kEchoEnable))
+		{
+			injector.setEnableHash(util::kEchoEnable, false);
+			if (!injector.worker.isNull())
+				injector.worker->EO();
+		}
+
+		//回點按下，異步回點
+		if (injector.getEnableHash(util::kLogBackEnable))
+		{
+			injector.setEnableHash(util::kLogBackEnable, false);
+			if (!injector.worker.isNull())
+				injector.worker->logBack();
+		}
+
+		//異步快速走路
+		bool bChecked = injector.getEnableHash(util::kFastWalkEnable);
+		if (flagFastWalkEnable_ != bChecked)
+		{
+			flagFastWalkEnable_ = bChecked;
+			injector.postMessage(kEnableFastWalk, bChecked, NULL);
+		}
+
+		//異步橫衝直撞 (穿牆)
+		bChecked = injector.getEnableHash(util::kPassWallEnable);
+		if (flagPassWallEnable_ != bChecked)
+		{
+			flagPassWallEnable_ = bChecked;
+			injector.postMessage(kEnablePassWall, bChecked, NULL);
+		}
+
+		//異步鎖定畫面
+		bChecked = injector.getEnableHash(util::kLockImageEnable);
+		if (flagLockImageEnable_ != bChecked)
+		{
+			flagLockImageEnable_ = bChecked;
+			injector.postMessage(kEnableImageLock, bChecked, NULL);
+		}
+
+		//異步資源優化
+		bChecked = injector.getEnableHash(util::kOptimizeEnable);
+		if (flagOptimizeEnable_ != bChecked)
+		{
+			flagOptimizeEnable_ = bChecked;
+			injector.postMessage(kEnableOptimize, bChecked, NULL);
+		}
+
+		//異步關閉特效
+		bChecked = injector.getEnableHash(util::kCloseEffectEnable);
+		if (flagCloseEffectEnable_ != bChecked)
+		{
+			flagCloseEffectEnable_ = bChecked;
+			injector.postMessage(kEnableEffect, !bChecked, NULL);
+		}
+
+		//異步鎖定時間
+		bChecked = injector.getEnableHash(util::kLockTimeEnable);
+		value = injector.getValueHash(util::kLockTimeValue);
+		if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
+		{
+			flagLockTimeEnable_ = bChecked;
+			flagLockTimeValue_ = value;
+			injector.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
+		}
+
+		//隱藏人物按下，異步隱藏
+		bChecked = injector.getEnableHash(util::kHideCharacterEnable);
+		if (flagHideCharacterEnable_ != bChecked)
+		{
+			flagHideCharacterEnable_ = bChecked;
+			injector.postMessage(kEnableCharShow, !bChecked, NULL);
+		}
+
+		//異步戰鬥99秒
+		bChecked = injector.getEnableHash(util::kBattleTimeExtendEnable);
+		if (flagBattleTimeExtendEnable_ != bChecked)
+		{
+			flagBattleTimeExtendEnable_ = bChecked;
+			injector.postMessage(kBattleTimeExtend, bChecked, NULL);
+		}
+
 		//其他所有功能
 		long long status = checkAndRunFunctions();
 
@@ -514,114 +625,16 @@ void MainObject::mainProc()
 		}
 		else if (status == 2)//平時
 		{
-			//登出按下，異步登出
-			if (injector.getEnableHash(util::kLogOutEnable))
-			{
-				injector.setEnableHash(util::kLogOutEnable, false);
-				if (!injector.worker.isNull())
-					injector.worker->logOut();
-			}
 
-			//回點按下，異步回點
-			if (injector.getEnableHash(util::kLogBackEnable))
-			{
-				injector.setEnableHash(util::kLogBackEnable, false);
-				if (!injector.worker.isNull())
-					injector.worker->logBack();
-			}
-
-			//EO按下，異步發送EO
-			if (injector.getEnableHash(util::kEchoEnable))
-			{
-				injector.setEnableHash(util::kEchoEnable, false);
-				if (!injector.worker.isNull())
-					injector.worker->EO();
-			}
-
-			//異步快速走路
-			bool bChecked = injector.getEnableHash(util::kFastWalkEnable);
-			if (flagFastWalkEnable_ != bChecked)
-			{
-				flagFastWalkEnable_ = bChecked;
-				injector.postMessage(kEnableFastWalk, bChecked, NULL);
-			}
-
-			//異步橫衝直撞 (穿牆)
-			bChecked = injector.getEnableHash(util::kPassWallEnable);
-			if (flagPassWallEnable_ != bChecked)
-			{
-				flagPassWallEnable_ = bChecked;
-				injector.postMessage(kEnablePassWall, bChecked, NULL);
-			}
-
-			//異步鎖定畫面
-			bChecked = injector.getEnableHash(util::kLockImageEnable);
-			if (flagLockImageEnable_ != bChecked)
-			{
-				flagLockImageEnable_ = bChecked;
-				injector.postMessage(kEnableImageLock, bChecked, NULL);
-			}
-
-			//異步資源優化
-			bChecked = injector.getEnableHash(util::kOptimizeEnable);
-			if (flagOptimizeEnable_ != bChecked)
-			{
-				flagOptimizeEnable_ = bChecked;
-				injector.postMessage(kEnableOptimize, bChecked, NULL);
-			}
-
-			//異步關閉特效
-			bChecked = injector.getEnableHash(util::kCloseEffectEnable);
-			if (flagCloseEffectEnable_ != bChecked)
-			{
-				flagCloseEffectEnable_ = bChecked;
-				injector.postMessage(kEnableEffect, !bChecked, NULL);
-			}
-
-			//異步鎖定時間
-			bChecked = injector.getEnableHash(util::kLockTimeEnable);
-			value = injector.getValueHash(util::kLockTimeValue);
-			if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
-			{
-				flagLockTimeEnable_ = bChecked;
-				flagLockTimeValue_ = value;
-				injector.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
-			}
-
-			//隱藏人物按下，異步隱藏
-			bChecked = injector.getEnableHash(util::kHideCharacterEnable);
-			if (flagHideCharacterEnable_ != bChecked)
-			{
-				flagHideCharacterEnable_ = bChecked;
-				injector.postMessage(kEnableCharShow, !bChecked, NULL);
-			}
-
-			//快速戰鬥，阻止戰鬥封包
-			bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-			if (flagFastBattleEnable_ != bCheckedFastBattle)
-			{
-				flagFastBattleEnable_ = bCheckedFastBattle;
-				injector.sendMessage(kSetBlockPacket, bCheckedFastBattle, NULL);
-			}
 		}
 		else if (status == 3)//戰鬥中
 		{
-			//異步戰鬥99秒
-			bool bChecked = injector.getEnableHash(util::kBattleTimeExtendEnable);
-			if (flagBattleTimeExtendEnable_ != bChecked)
-			{
-				flagBattleTimeExtendEnable_ = bChecked;
-				injector.postMessage(kBattleTimeExtend, bChecked, NULL);
-			}
+			if (bCheckedFastBattle || bCheckedAutoBattle)
+				injector.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
+			else
+				injector.sendMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
 
-			//戰鬥面板開關，當非快戰狀態下，只要打開自動戰鬥或快速戰鬥都禁用戰鬥面板
-			bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-			bChecked = injector.getEnableHash(util::kAutoBattleEnable) || bCheckedFastBattle;
-			if (flagBattleDialogEnable_ != !bChecked)
-			{
-				flagBattleDialogEnable_ = !bChecked;
-				injector.sendMessage(kEnableBattleDialog, !bChecked, NULL);
-			}
+			injector.worker->doBattleWork(true);
 		}
 		else//錯誤
 		{
@@ -799,9 +812,6 @@ long long MainObject::checkAndRunFunctions()
 		{
 			battle_run_once_flag_ = false;
 		}
-
-		injector.worker->doBattleWork(true);
-
 		return 3;
 	}
 }
@@ -1045,14 +1055,29 @@ void MissionThread::autoJoin()
 {
 	long long index = getIndex();
 	QSet<QPoint> blockList;
+	Injector& injector = Injector::getInstance(index);
+
+	constexpr long long MAX_SINGLE_STEP = 3;
+	map_t map;
+	std::vector<QPoint> path;
+	QPoint current_point;
+	QPoint newpoint;
+	mapunit_t unit = {};
+	long long dir = -1;
+	long long floor = injector.worker->getFloor();
+	long long len = MAX_SINGLE_STEP;
+	long long size = 0;
+	CAStar astar;
+	PC ch = {};
+	long long actionType = 0;
+	QString leader;
+
 	for (;;)
 	{
-		QThread::msleep(500);
-
+		//如果主線程關閉則自動退出
 		if (isInterruptionRequested())
 			return;
 
-		Injector& injector = Injector::getInstance(index);
 		if (injector.worker.isNull())
 			return;
 
@@ -1062,23 +1087,22 @@ void MissionThread::autoJoin()
 		if (!injector.getEnableHash(util::kAutoJoinEnable))
 			return;
 
-		if (!injector.worker->getOnlineFlag())
-			continue;
-
-		if (injector.worker->getBattleFlag())
-			continue;
-
-		QString leader = injector.getStringHash(util::kAutoFunNameString);
+		leader = injector.getStringHash(util::kAutoFunNameString);
 		if (leader.isEmpty())
-			continue;
+			return;
 
-		PC ch = injector.worker->getPC();
-		long long actionType = injector.getValueHash(util::kAutoFunTypeValue);
+		if (!injector.worker->mapAnalyzer.getMapDataByFloor(floor, &map))
+		{
+			injector.worker->mapAnalyzer.readFromBinary(index, floor, injector.worker->getFloorName(), false);
+		}
+
+		ch = injector.worker->getPC();
+		actionType = injector.getValueHash(util::kAutoFunTypeValue);
 		if (actionType == 0)
 		{
 			//檢查隊長是否正確
 			if (ch.status & CHR_STATUS_LEADER)
-				continue;
+				return;
 
 			if (ch.status & CHR_STATUS_PARTY)
 			{
@@ -1092,127 +1116,93 @@ void MissionThread::autoJoin()
 			}
 		}
 
-		constexpr long long MAX_SINGLE_STEP = 3;
-		map_t map;
-		std::vector<QPoint> path;
-		QPoint current_point;
-		QPoint newpoint;
-		mapunit_t unit = {};
-		long long dir = -1;
-		long long floor = injector.worker->getFloor();
-		long long len = MAX_SINGLE_STEP;
-		long long size = 0;
-		CAStar astar;
+		leader = injector.getStringHash(util::kAutoFunNameString);
+		if (leader.isEmpty())
+			break;
 
+		if (isInterruptionRequested())
+			return;
+
+		//如果人物不在線上則自動退出
+		if (!injector.worker->getOnlineFlag())
+		{
+			QThread::msleep(500);
+			continue;
+		}
+
+		if (injector.worker->getBattleFlag())
+		{
+			QThread::msleep(500);
+			continue;
+		}
+
+		ch = injector.worker->getPC();
+
+		if (floor != injector.worker->getFloor())
+			break;
+
+		QString freeName = "";
+		if (leader.count("|") == 1)
+		{
+			QStringList list = leader.split(util::rexOR);
+			if (list.size() == 2)
+			{
+				leader = list.value(0);
+				freeName = list.value(1);
+			}
+		}
+
+		//查找目標人物所在坐標
+		if (!injector.worker->findUnit(leader, util::OBJ_HUMAN, &unit, freeName))
+			break;
+
+		//如果和目標人物處於同一個坐標則向隨機方向移動一格
+		current_point = injector.worker->getPoint();
+		if (current_point == unit.p)
+		{
+			injector.worker->move(current_point + util::fix_point.value(QRandomGenerator::global()->bounded(0, 7)));
+			QThread::msleep(200);
+			continue;
+		}
+
+		//計算最短離靠近目標人物的坐標和面相的方向
+		dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(index, astar, floor, current_point, unit.p, &newpoint, false, -1);
+		if (-1 == dir)
+			return;
+
+		if (current_point == newpoint)
+		{
+			actionType = injector.getValueHash(util::kAutoFunTypeValue);
+			if (actionType == 0)
+			{
+				injector.worker->setCharFaceDirection(dir, true);
+				injector.worker->setTeamState(true);
+				continue;
+			}
+		}
+
+		if (!injector.worker->mapAnalyzer.calcNewRoute(index, astar, floor, current_point, newpoint, blockList, &path))
+			return;
+
+		len = MAX_SINGLE_STEP;
+		size = static_cast<long long>(path.size()) - 1;
+
+		//步長 如果path大小 小於步長 就遞減步長
 		for (;;)
 		{
-			//如果主線程關閉則自動退出
-			if (isInterruptionRequested())
-				return;
-
-			if (injector.worker.isNull())
-				return;
-
-			if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
-				return;
-
-			if (!injector.getEnableHash(util::kAutoJoinEnable))
-				return;
-
-			leader = injector.getStringHash(util::kAutoFunNameString);
-			if (leader.isEmpty())
+			if (!(size < len))
 				break;
-
-			//如果人物不在線上則自動退出
-			if (!injector.worker->getOnlineFlag())
-				break;
-
-			if (injector.worker->getBattleFlag())
-				continue;
-
-			ch = injector.worker->getPC();
-			if (leader == ch.name)//隊長正確
-				break;
-
-			if (floor != injector.worker->getFloor())
-				break;
-
-			QString freeName = "";
-			if (leader.count("|") == 1)
-			{
-				QStringList list = leader.split(util::rexOR);
-				if (list.size() == 2)
-				{
-					leader = list.value(0);
-					freeName = list.value(1);
-				}
-			}
-
-			//查找目標人物所在坐標
-			if (!injector.worker->findUnit(leader, util::OBJ_HUMAN, &unit, freeName))
-				break;
-
-			//如果和目標人物處於同一個坐標則向隨機方向移動一格
-			current_point = injector.worker->getPoint();
-			if (current_point == unit.p)
-			{
-				injector.worker->move(current_point + util::fix_point.value(QRandomGenerator::global()->bounded(0, 7)));
-				continue;
-			}
-
-			//計算最短離靠近目標人物的坐標和面相的方向
-			dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(index, astar, floor, current_point, unit.p, &newpoint, false, -1);
-			if (-1 == dir)
-				break;
-
-			if (current_point == newpoint)
-				break;
-
-			if (current_point != newpoint)
-			{
-				if (!injector.worker->mapAnalyzer.getMapDataByFloor(floor, &map))
-				{
-					injector.worker->mapAnalyzer.readFromBinary(index, floor, injector.worker->getFloorName(), false);
-					continue;
-				}
-
-				if (!injector.worker->mapAnalyzer.calcNewRoute(index, astar, floor, current_point, newpoint, blockList, &path))
-					break;
-
-				len = MAX_SINGLE_STEP;
-				size = static_cast<long long>(path.size()) - 1;
-
-				//步長 如果path大小 小於步長 就遞減步長
-				for (;;)
-				{
-					if (!(size < len))
-						break;
-					--len;
-				}
-
-				//如果步長小於1 就不動
-				if (len < 0)
-					break;
-
-				if (len >= static_cast<long long>(path.size()))
-					break;
-
-				injector.worker->move(path.at(len));
-			}
-			else
-				break;
+			--len;
 		}
 
-		if (leader.isEmpty())
-			continue;
+		//如果步長小於1 就不動
+		if (len < 0)
+			break;
 
-		actionType = injector.getValueHash(util::kAutoFunTypeValue);
-		if (actionType == 0)
-		{
-			injector.worker->setCharFaceDirection(dir, true);
-			injector.worker->setTeamState(true);
-			continue;
-		}
+		if (len >= static_cast<long long>(path.size()))
+			break;
+
+		injector.worker->move(path.at(len));
 	}
 }
 
@@ -1561,6 +1551,7 @@ void MissionThread::asyncFindPath()
 	QPoint dst = args_.value(0).toPoint();
 	injector.worker->findPathAsync(dst);
 }
+
 #if 0
 //自動鎖寵排程
 void MainObject::checkAutoLockSchedule()

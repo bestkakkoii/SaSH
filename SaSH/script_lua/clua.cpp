@@ -277,7 +277,8 @@ void __fastcall luadebug::checkStopAndPause(const sol::this_state& s)
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
 		return;
 	}
-	pLua->checkPause();
+
+	injector.checkPause();
 }
 
 bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
@@ -537,7 +538,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 			return;//檢查是否有中斷點
 		}
 
-		pLua->paused();
+		injector.paused();
 
 		if (breakMarkers.contains(currentLine))
 		{

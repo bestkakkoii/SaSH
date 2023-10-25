@@ -177,6 +177,7 @@ public:
 		return isInterruptionRequested_.load(std::memory_order_acquire);
 	}
 
+#if 0
 	inline bool __fastcall isPaused() const { return isPaused_; }
 
 	inline void __fastcall checkPause()
@@ -187,6 +188,7 @@ public:
 			pausedCondition_.wait(lock);
 		}
 	}
+#endif
 
 public slots:
 	void requestInterruption()
@@ -195,12 +197,13 @@ public slots:
 		isInterruptionRequested_.store(true, std::memory_order_release);
 	}
 
-	inline void reset()
+	void reset()
 	{
 		std::unique_lock<std::shared_mutex> lock(rwLock_);
 		isInterruptionRequested_.store(false, std::memory_order_release);
 	}
 
+#if 0
 	void paused()
 	{
 		pausedMutex_.lock();
@@ -217,6 +220,7 @@ public slots:
 		}
 		pausedCondition_.notify_all();
 	}
+#endif
 
 private:
 	//QSharedPointer<ExceptionHandler> exceptionHandler_ = QSharedPointer<ExceptionHandler>::create();
@@ -224,7 +228,9 @@ private:
 	std::atomic_bool isInterruptionRequested_ = false;
 	mutable std::shared_mutex rwLock_;
 
+#if 0
 	std::atomic_bool isPaused_ = false;
 	std::condition_variable pausedCondition_;
 	std::mutex pausedMutex_;
+#endif
 };
