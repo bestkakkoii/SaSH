@@ -4392,9 +4392,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			pet[index]["modelid"] = p.modelid;
 
-			pet[index]["pos"] = p.index;
+			pet[index]["pos"] = p.index;//寵物顯示的位置
 
-			pet[index]["index"] = index;
+			pet[index]["index"] = index;//寵物實際的索引
 
 			PetState state = p.state;
 			QString str = hash.key(state, "");
@@ -4429,28 +4429,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			item[index]["memo"] = util::toConstData(it.memo);
 
-			if (it.name == "惡魔寶石" || it.name == "恶魔宝石")
-			{
-				static QRegularExpression rex("(\\d+)");
-				QRegularExpressionMatch match = rex.match(it.memo);
-				if (match.hasMatch())
-				{
-					QString str = match.captured(1);
-					bool ok = false;
-					long long dura = str.toLongLong(&ok);
-					if (ok)
-						item[index]["count"] = dura;
-				}
-			}
+			item[index]["count"] = it.count;
 
 			item[index]["dura"] = it.damage;
 
 			item[index]["lv"] = it.level;
-
-			if (it.valid && it.stack == 0)
-				it.stack = 1;
-			else if (!it.valid)
-				it.stack = 0;
 
 			item[index]["stack"] = it.stack;
 

@@ -696,6 +696,7 @@ void MainObject::inGameInitialize()
 	injector.worker->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
 	injector.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
 	injector.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
+	injector.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 long long MainObject::checkAndRunFunctions()

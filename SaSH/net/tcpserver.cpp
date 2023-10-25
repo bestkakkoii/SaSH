@@ -496,7 +496,6 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 
 	if (preStr.startsWith("bpk|"))
 	{
-		//long long value = mem::read<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
 		isBattleDialogReady.store(true, std::memory_order_release);
 		doBattleWork(true);
 		return true;
@@ -1742,10 +1741,11 @@ QString Worker::getChatHistory(long long index)
 	if (index > total)
 		return "\0";
 
-	//int maxptr = mem::read<int>(hProcess, hModule + 0x146278);
-
-	constexpr long long MAX_CHAT_BUFFER = 0x10C;
+	constexpr long long MAX_CHAT_BUFFER = 268;
 	long long ptr = hModule + kOffsetChatBuffer + ((total - index) * MAX_CHAT_BUFFER);
+	long long maxptr = static_cast<long long>(mem::read<int>(hProcess, hModule + kOffsetChatBufferMaxPointer));
+	if (ptr > maxptr)
+		return "\0";
 
 	return mem::readString(hProcess, ptr, MAX_CHAT_BUFFER, true);
 }
@@ -2100,13 +2100,10 @@ long long Worker::getDir()
 	long long hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
 	long long dir = static_cast<long long>((mem::read<int>(hProcess, hModule + kOffsetDir) + 5) % 8);
-	if (pc_.dir != dir)
-	{
-		pc_.dir = dir;
-		QPoint point = nowPoint_;
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-		emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2(%3)").arg(point.x()).arg(point.y()).arg(g_dirStrHash.value(getDir())));
-	}
+	pc_.dir = dir;
+	QPoint point = nowPoint_;
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2(%3)").arg(point.x()).arg(point.y()).arg(g_dirStrHash.value(dir)));
 
 	return dir;
 }
@@ -2129,12 +2126,9 @@ QPoint Worker::getPoint()
 
 	QPoint point(x, y);
 
-	if (nowPoint_ != point)
-	{
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-		emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2(%3)").arg(point.x()).arg(point.y()).arg(g_dirStrHash.value(getDir())));
-		nowPoint_ = point;
-	}
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2(%3)").arg(point.x()).arg(point.y()).arg(g_dirStrHash.value(getDir())));
+	nowPoint_ = point;
 
 	return point;
 }
@@ -2153,14 +2147,11 @@ long long Worker::getFloor()
 		return 0;
 
 	long long floor = static_cast<long long>(mem::read<int>(hProcess, hModule + kOffsetNowFloor));
-	if (floor != nowFloor_.load(std::memory_order_acquire))
-	{
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-		QString mapname = nowFloorName_.get();
-		emit signalDispatcher.updateNpcList(floor);
-		emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(mapname).arg(floor));
-		nowFloor_.store(floor, std::memory_order_release);
-	}
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	QString mapname = nowFloorName_.get();
+	emit signalDispatcher.updateNpcList(floor);
+	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(mapname).arg(floor));
+	nowFloor_.store(floor, std::memory_order_release);
 	return floor;
 }
 
@@ -2179,14 +2170,11 @@ QString Worker::getFloorName()
 
 	QString mapname = mem::readString(hProcess, hModule + kOffsetNowFloorName, FLOOR_NAME_LEN, true);
 	makeStringFromEscaped(mapname);
-	if (mapname != nowFloorName_)
-	{
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-		long long floor = nowFloor_.load(std::memory_order_acquire);
-		emit signalDispatcher.updateNpcList(floor);
-		emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(mapname).arg(floor));
-		nowFloorName_ = mapname;
-	}
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	long long floor = nowFloor_.load(std::memory_order_acquire);
+	emit signalDispatcher.updateNpcList(floor);
+	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(mapname).arg(floor));
+	nowFloorName_ = mapname;
 
 	return mapname;
 }
@@ -2587,30 +2575,45 @@ void Worker::updateItemByMemory()
 	long long hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
 
-	constexpr long long item_offest = 0x184;
 	QHash<long long, ITEM> items = item_.toHash();
 	QStringList itemNames;
 
 	for (long long i = 0; i < MAX_ITEM; ++i)
 	{
-		items[i].valid = mem::read<short>(hProcess, hModule + 0x422C028 + i * item_offest) > 0;
+		items[i].valid = mem::read<short>(hProcess, hModule + kOffestItemValid + i * kItemStructSize) > 0;
 		if (!items[i].valid)
 		{
 			items.remove(i);
 			continue;
 		}
 
-		items[i].name = mem::readString(hProcess, hModule + 0x422C032 + i * item_offest, ITEM_NAME_LEN, true, false);
+		items[i].name = mem::readString(hProcess, hModule + kOffsetItemName + i * kItemStructSize, ITEM_NAME_LEN, true, false);
 		makeStringFromEscaped(items[i].name);
-		items[i].memo = mem::readString(hProcess, hModule + 0x422C060 + i * item_offest, ITEM_MEMO_LEN, true, false);
+
+		items[i].memo = mem::readString(hProcess, hModule + kOffsetItemMemo + i * kItemStructSize, ITEM_MEMO_LEN, true, false);
 		makeStringFromEscaped(items[i].memo);
+
+		if (items[i].name == "惡魔寶石" || items[i].name == "恶魔宝石")
+		{
+			static QRegularExpression rex("(\\d+)");
+			QRegularExpressionMatch match = rex.match(items[i].memo);
+			if (match.hasMatch())
+			{
+				QString str = match.captured(1);
+				bool ok = false;
+				long long dura = str.toLongLong(&ok);
+				if (ok)
+					items[i].count = dura;
+			}
+		}
+
 		if (i >= CHAR_EQUIPPLACENUM)
-			items[i].stack = mem::read<short>(hProcess, hModule + 0x422BF58 + i * item_offest);
+			items[i].stack = mem::read<short>(hProcess, hModule + kOffsetItemStack + i * kItemStructSize);
 
 		if (items.value(i).stack == 0)
 			items[i].stack = 1;
 
-		QString damage = mem::readString(hProcess, hModule + 0x422C0B5 + i * item_offest, 12, true, false);
+		QString damage = mem::readString(hProcess, hModule + kOffsetItemDurability + i * kItemStructSize, 12, true, false);
 		damage.remove("%");
 		damage.remove("％");
 		bool ok = false;
@@ -2929,12 +2932,9 @@ void Worker::setPoint(const QPoint& point)
 	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
 		return;
 
-	if (nowPoint_ != point)
-	{
-		nowPoint_ = point;
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2(%3)").arg(point.x()).arg(point.y()).arg(g_dirStrHash.value(getDir())));
-	}
+	nowPoint_ = point;
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2(%3)").arg(point.x()).arg(point.y()).arg(g_dirStrHash.value(getDir())));
 
 	if (mem::read<int>(hProcess, hModule + kOffsetNowX) != point.x())
 		mem::write<int>(hProcess, hModule + kOffsetNowX, point.x());
@@ -3212,8 +3212,8 @@ bool Worker::isDialogVisible()
 	HANDLE hProcess = injector.getProcess();
 	long long hModule = injector.getProcessModule();
 
-	bool bret = mem::read<int>(hProcess, hModule + 0xB83EC) != -1;
-	bool custombret = mem::read<int>(hProcess, hModule + 0x4200000) > 0;
+	bool bret = mem::read<int>(hProcess, hModule + kOffsetDialogType) != -1;
+	bool custombret = mem::read<int>(hProcess, hModule + kOffsetDialogValid) > 0;
 	return bret && custombret;
 }
 #pragma endregion
@@ -4118,6 +4118,9 @@ void Worker::unlockSecurityCode(const QString& code)
 
 	std::string scode = util::fromUnicode(code);
 	lssproto_WN_send(getPoint(), kDialogSecurityCode, -1, NULL, const_cast<char*>(scode.c_str()));
+
+	Injector& injector = Injector::getInstance(getIndex());
+	injector.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 void Worker::windowPacket(const QString& command, long long dialogid, long long unitid)
@@ -5434,6 +5437,22 @@ long long Worker::setCharFaceToPoint(const QPoint& pos)
 	return dir;
 }
 
+void Worker::setCharModelDir(long long dir)
+{
+	//這裡是用來使遊戲動畫跟著轉向
+	long long currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	HANDLE hProcess = injector.getProcess();
+	long long hModule = injector.getProcessModule();
+	long long newdir = (dir + 3) % 8;
+	long long p = static_cast<long long>(mem::read<int>(hProcess, hModule + 0x422E3AC));
+	if (p > 0)
+	{
+		mem::write<int>(hProcess, hModule + 0x422BE94, newdir);
+		mem::write<int>(hProcess, p + 0x150, newdir);
+	}
+}
+
 //轉向 (根據方向索引自動轉換成A-H)
 void Worker::setCharFaceDirection(long long dir, bool noWindow)
 {
@@ -5452,18 +5471,7 @@ void Worker::setCharFaceDirection(long long dir, bool noWindow)
 	if (getBattleFlag())
 		return;
 
-	//這裡是用來使遊戲動畫跟著轉向
-	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	HANDLE hProcess = injector.getProcess();
-	long long hModule = injector.getProcessModule();
-	long long newdir = (dir + 3) % 8;
-	long long p = static_cast<long long>(mem::read<int>(hProcess, hModule + 0x422E3AC));
-	if (p > 0)
-	{
-		mem::write<int>(hProcess, hModule + 0x422BE94, newdir);
-		mem::write<int>(hProcess, p + 0x150, newdir);
-	}
+	setCharModelDir(dir);
 }
 
 //轉向 使用方位字符串
@@ -5500,18 +5508,7 @@ void Worker::setCharFaceDirection(const QString& dirStr)
 	if (getBattleFlag())
 		return;
 
-	//這裡是用來使遊戲動畫跟著轉向
-	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	HANDLE hProcess = injector.getProcess();
-	long long hModule = injector.getProcessModule();
-	long long newdir = (dir + 3) % 8;
-	long long p = static_cast<long long>(mem::read<int>(hProcess, hModule + 0x422E3AC));
-	if (p > 0)
-	{
-		mem::write<int>(hProcess, hModule + 0x422BE94, newdir);
-		mem::write<int>(hProcess, p + 0x150, newdir);
-	}
+	setCharModelDir(dir);
 }
 #pragma endregion
 
@@ -6177,7 +6174,6 @@ bool Worker::asyncBattleAction(bool canDelay)
 			//通知結束這一回合
 			if (normalChecked)
 			{
-				//mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
 				long long G = getGameStatus();
 				if (G == 4)
 				{
@@ -6253,12 +6249,6 @@ long long Worker::playerDoBattleWork(const battledata_t& bt)
 
 	} while (false);
 
-	//if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
-	//	mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E4, 0, sizeof(short));
-	//else
-	//
-
-	//
 	return 1;
 }
 
@@ -10898,16 +10888,16 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 		"2\n請選擇寵物", "2\n请选择宠物",
 		"2\n請選擇要從倉庫取出的寵物", "2\n请选择要从仓库取出的宠物"
 	};
+
 	static const QStringList BankItemList = {
 		 "1|寄放店|要領取什么呢？|項目有很多|這樣子就可以了嗎？|", "1|寄放店|要领取什么呢？|项目有很多|这样子就可以了吗？|",
 		 "1|寄放店|要賣什么呢？|項目有很多|這樣子就可以了嗎？|", "1|寄放店|要卖什么呢？|项目有很多|这样子就可以了吗？|"
 	};
-	static const QStringList FirstWarningList = {
-		"上一次離線時間", "上一次离线时间"
-	};
+
 	static const QStringList SecurityCodeList = {
 		 "安全密碼進行解鎖", "安全密码进行解锁"
 	};
+
 	static const QStringList KNPCList = {
 		//zh_TW
 		"如果能贏過我的"/*院藏*/, "如果想通過"/*近藏*/, "吼"/*紅暴*/, "你想找麻煩"/*七兄弟*/, "多謝～。",
@@ -11077,14 +11067,6 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	data = data.simplified();
-	for (const QString& it : FirstWarningList)
-	{
-		if (data.contains(it, Qt::CaseInsensitive))
-		{
-			injector.sendMessage(kDistoryDialog, NULL, NULL);
-			return;
-		}
-	}
 
 	for (const QString& it : SecurityCodeList)
 	{
@@ -11095,11 +11077,9 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 		if (!securityCode.isEmpty())
 		{
 			unlockSecurityCode(securityCode);
-			injector.sendMessage(kDistoryDialog, NULL, NULL);
 			return;
 		}
 	}
-
 
 	if (injector.getEnableHash(util::kKNPCEnable))
 	{
@@ -11112,7 +11092,6 @@ void Worker::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 			}
 		}
 	}
-
 
 }
 
@@ -11983,8 +11962,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 				++i;
 				break;
 			}
-	}
-}
+			}
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
@@ -12377,19 +12356,8 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	QString id;
-#ifdef _MESSAGE_FRONT_
-	QString msg1;
-	char* msg;
-#else
 	QString msg;
-#endif
 
-#ifdef _MESSAGE_FRONT_
-	msg1[0] = 0xA1;
-	msg1[1] = 0xF4;
-	msg1[2] = 0;
-	msg = msg1 + 2;
-#endif
 	QString message = util::toUnicode(cmessage);
 	makeStringFromEscaped(message);
 	if (message.isEmpty())
@@ -12510,7 +12478,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12867,9 +12835,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-		}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -12900,7 +12868,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-	}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13164,7 +13132,7 @@ void Worker::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-}
+			}
 		}
 #endif
 #pragma endregion
@@ -14211,6 +14179,21 @@ void Worker::lssproto_S_recv(char* cdata)
 				makeStringFromEscaped(temp);
 
 				item.memo = temp;
+
+				if (item.name == "惡魔寶石" || item.name == "恶魔宝石")
+				{
+					static QRegularExpression rex("(\\d+)");
+					QRegularExpressionMatch match = rex.match(item.memo);
+					if (match.hasMatch())
+					{
+						QString str = match.captured(1);
+						bool ok = false;
+						long long dura = str.toLongLong(&ok);
+						if (ok)
+							item.count = dura;
+					}
+				}
+
 				item.modelid = getIntegerToken(data, "|", no + 5);
 				item.field = getIntegerToken(data, "|", no + 6);
 				item.target = getIntegerToken(data, "|", no + 7);
@@ -14240,6 +14223,8 @@ void Worker::lssproto_S_recv(char* cdata)
 				item.stack = temp.toLongLong();
 				if (item.stack == 0)
 					item.stack = 1;
+				else if (item.stack == -1)
+					item.stack = 0;
 
 				getStringToken(data, "|", no + 12, temp);
 				makeStringFromEscaped(temp);

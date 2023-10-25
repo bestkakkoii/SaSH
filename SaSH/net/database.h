@@ -551,10 +551,23 @@ enum GameDataOffest
 	kOffsetTeamState = 0x4230B24,
 	kOffsetEV = 0x41602BC,
 	kOffsetChatBuffer = 0x144D88,
+	kOffsetChatBufferMaxPointer = 0x146278,
 	kOffsetChatBufferMaxCount = 0x14A4F8,
 	kOffestMouseClick = 0x41F1BC4,
 	kOffestMouseX = 0x41F1B98,
 	kOffestMouseY = 0x41F1B9C,
+
+	//item
+	kItemStructSize = 388,
+	kOffestItemValid = 0x422C028,
+	kOffsetItemName = 0x422C032,
+	kOffsetItemMemo = 0x422C060,
+	kOffsetItemDurability = 0x422C0B5,
+	kOffsetItemStack = 0x422BF58,
+
+	//dialog
+	kOffsetDialogType = 0xB83EC,
+	kOffsetDialogValid = 0x4200000,//Custom
 };
 
 typedef enum tagCHAR_EquipPlace
@@ -1024,6 +1037,7 @@ typedef struct tagITEM
 	long long damage = 0;
 	//custom
 	long long maxStack = -1;
+	long long count = 0;
 
 	QString name = "";
 	QString name2 = "";

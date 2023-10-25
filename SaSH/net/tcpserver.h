@@ -358,6 +358,7 @@ public://actions
 
 	void __fastcall setWindowTitle(QString formatStr);
 private:
+	void __fastcall setCharModelDir(long long dir);
 
 	void __fastcall refreshItemInfo(long long index);
 
