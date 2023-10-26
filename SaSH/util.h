@@ -1000,9 +1000,10 @@ namespace util
 		{
 			// 繁體系統要轉回簡體體否則遊戲視窗會亂碼
 			long long size = lstrlenW(wstr.c_str());
-			QScopedArrayPointer <wchar_t> wbuf(q_check_ptr(new wchar_t[size + 1]()));
-			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.get(), size, NULL, NULL, NULL);
-			qstr = util::toQString(wbuf.get());
+			//QScopedArrayPointer <wchar_t> wbuf(q_check_ptr(new wchar_t[size + 1]()));
+			wchar_t wbuf[8192] = {};
+			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf, size, NULL, NULL, NULL);
+			qstr = util::toQString(wbuf);
 		}
 
 		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");

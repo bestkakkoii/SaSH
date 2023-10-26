@@ -1092,8 +1092,6 @@ MainForm::MainForm(long long index, QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
-	connect(this, &MainForm::resetControlTextLanguage, this, &MainForm::onResetControlTextLanguage, Qt::QueuedConnection);
-
 	pInfoForm_.hide();
 	mapWidget_.hide();
 	pScriptEditor_.hide();
@@ -1159,7 +1157,6 @@ MainForm::MainForm(long long index, QWidget* parent)
 	onUpdateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 
 	onResetControlTextLanguage();
-
 }
 
 MainForm::~MainForm()
@@ -1515,13 +1512,6 @@ bool MainForm::onResetControlTextLanguage()
 	ui.progressBar_pcmp->onCurrentValueChanged(255, 9999, 9999);
 	ui.progressBar_pethp->onCurrentValueChanged(255, 9999, 9999);
 	ui.progressBar_ridehp->onCurrentValueChanged(255, 9999, 9999);
-
-
-	emit pGeneralForm_.resetControlTextLanguage();
-
-	emit pInfoForm_.resetControlTextLanguage();
-
-	emit pOtherForm_.resetControlTextLanguage();
 
 	return true;
 }

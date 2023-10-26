@@ -6155,10 +6155,10 @@ bool Worker::asyncBattleAction(bool canDelay)
 				QThread::msleep(delay);
 		};
 
-	auto setCurrentRoundEnd = [this, &injector, normalChecked]()
+	auto setCurrentRoundEnd = [this, &injector, normalEnabled]()
 		{
 			//通知結束這一回合
-			if (normalChecked)
+			if (normalEnabled)
 			{
 				long long G = getGameStatus();
 				if (G == 4)
@@ -6188,12 +6188,11 @@ bool Worker::asyncBattleAction(bool canDelay)
 	//TODO 修正寵物指令在多個BA時候重覆發送的問題
 	if (!battlePetAlreadyActed.load(std::memory_order_acquire))
 	{
-		if (petDoBattleWork(bt) != -1)
-		{
-			battlePetAlreadyActed.store(true, std::memory_order_release);
-			setCurrentRoundEnd();
-			return true;
-		}
+		long long nret = petDoBattleWork(bt);
+
+		battlePetAlreadyActed.store(true, std::memory_order_release);
+		setCurrentRoundEnd();
+		return nret != -1;
 	}
 
 	return false;

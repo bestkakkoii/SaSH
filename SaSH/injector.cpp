@@ -71,44 +71,6 @@ void Injector::reset(long long index)//static
 	instance->currentServerListIndex = 0;
 	instance->scriptThreadId = 0;
 	instance->IS_INJECT_OK = false;
-#if 0
-	//紀錄當前設置
-	QHash<util::UserSetting, bool> enableHash = instance->getEnablesHash();
-	QHash<util::UserSetting, long long> valueHash = instance->getValuesHash();
-	QHash<util::UserSetting, QString> stringHash = instance->getStringsHash();
-
-	QStringList _serverNameList = instance->serverNameList.get();
-
-	QStringList _subServerNameList = instance->subServerNameList.get();
-
-	long long _currentServerListIndex = instance->currentServerListIndex;
-
-	QString _currentScriptFileName = instance->currentScriptFileName;
-
-	HWND _hWnd = instance->getParentWidget();
-
-	instance->deleteLater();
-	instance = new Injector(index);
-	if (instance != nullptr)
-	{
-		//恢復設置
-		instance->setValuesHash(valueHash);
-		instance->setEnablesHash(enableHash);
-		instance->setStringsHash(stringHash);
-
-		instance->serverNameList.set(_serverNameList);
-
-		instance->subServerNameList.set(_subServerNameList);
-
-		instance->currentServerListIndex = _currentServerListIndex;
-
-		instance->currentScriptFileName = _currentScriptFileName;
-
-		instance->setParentWidget(_hWnd);
-
-		instances.insert(index, instance);
-	}
-#endif
 }
 
 Injector::CreateProcessResult Injector::createProcess(Injector::process_information_t& pi)
@@ -325,7 +287,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("Dll is not exist at %1").arg(applicationDirPath));
 			break;
-		}
+	}
 
 		QFileInfo fi(dllPath);
 		if (!fi.exists())
@@ -504,12 +466,12 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		bret = true;
 		IS_INJECT_OK = true;
-	} while (false);
+} while (false);
 
-	if (!bret)
-		pi_ = {};
+if (!bret)
+pi_ = {};
 
-	return bret;
+return bret;
 }
 
 bool Injector::isWindowAlive() const

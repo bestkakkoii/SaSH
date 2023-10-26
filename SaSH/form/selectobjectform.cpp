@@ -26,7 +26,7 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 	ui.setupUi(this);
 	setFont(util::getFont());
 	util::setWidget(this);
-	setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_QuitOnClose);
 	setWindowFlags(Qt::Tool | Qt::Dialog | Qt::WindowCloseButtonHint);
 	setModal(true);
 

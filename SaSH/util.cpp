@@ -159,13 +159,15 @@ bool __fastcall mem::writeString(HANDLE hProcess, unsigned long long baseAddress
 	const char* pBuffer = ba.constData();
 	unsigned long long len = ba.size();
 
-	QScopedArrayPointer <char> p(q_check_ptr(new char[len + 1]()));
-	memset(p.get(), 0, len + 1);
+	//QScopedArrayPointer <char> p(q_check_ptr(new char[len + 1]()));
+	char p[8192] = {};
 
-	_snprintf_s(p.get(), len + 1, _TRUNCATE, "%s\0", pBuffer);
+	if (len + 1 < sizeof(p))
+		_snprintf_s(p, len + 1, _TRUNCATE, "%s\0", pBuffer);
+	else
+		_snprintf_s(p, sizeof(p), _TRUNCATE, "%s\0", pBuffer);
 
-	BOOL ret = write(hProcess, baseAddress, p.get(), len + 1);
-	p.reset(nullptr);
+	BOOL ret = write(hProcess, baseAddress, p, len + 1);
 
 	return ret == TRUE;
 }
@@ -1961,67 +1963,65 @@ bool __fastcall util::fileDialogShow(const QString& name, long long acceptType, 
 	if (retstring != nullptr)
 		retstring->clear();
 
-	std::unique_ptr<QFileDialog> dialog(new QFileDialog(pparent));
-	if (dialog == nullptr)
-		return false;
+	QFileDialog dialog(pparent);
 
-	dialog->setAttribute(Qt::WA_QuitOnClose);
-	dialog->setModal(false);
-	dialog->setAcceptMode(static_cast<QFileDialog::AcceptMode>(acceptType));
+	dialog.setAttribute(Qt::WA_QuitOnClose);
+	dialog.setModal(false);
+	dialog.setAcceptMode(static_cast<QFileDialog::AcceptMode>(acceptType));
 
 	QFileInfo fileInfo(name);
-	dialog->setDefaultSuffix(fileInfo.suffix());
+	dialog.setDefaultSuffix(fileInfo.suffix());
 
-	dialog->setFileMode(QFileDialog::AnyFile);
+	dialog.setFileMode(QFileDialog::AnyFile);
 	//dialog->setFilter(QDir::Filters::
 	//dialog->setHistory(const QStringList & paths)
 	//dialog->setIconProvider(QFileIconProvider * provider)
 	//dialog->setItemDelegate(QAbstractItemDelegate * delegate)
-	dialog->setLabelText(QFileDialog::LookIn, QObject::tr("Look in:"));
-	dialog->setLabelText(QFileDialog::FileName, QObject::tr("File name:"));
-	dialog->setLabelText(QFileDialog::FileType, QObject::tr("File type:"));
-	dialog->setLabelText(QFileDialog::Accept, QObject::tr("Open"));
-	dialog->setLabelText(QFileDialog::Reject, QObject::tr("Cancel"));
+	dialog.setLabelText(QFileDialog::LookIn, QObject::tr("Look in:"));
+	dialog.setLabelText(QFileDialog::FileName, QObject::tr("File name:"));
+	dialog.setLabelText(QFileDialog::FileType, QObject::tr("File type:"));
+	dialog.setLabelText(QFileDialog::Accept, QObject::tr("Open"));
+	dialog.setLabelText(QFileDialog::Reject, QObject::tr("Cancel"));
 
-	dialog->setNameFilter("*.txt *.lua *.json *.exe");
+	dialog.setNameFilter("*.txt *.lua *.json *.exe");
 
 	if (!name.isEmpty())
 	{
 		QStringList filters;
 		filters << name;
-		dialog->setNameFilters(filters);
+		dialog.setNameFilters(filters);
 	}
 
-	dialog->setOption(QFileDialog::ShowDirsOnly, false);
-	dialog->setOption(QFileDialog::DontResolveSymlinks, true);
-	dialog->setOption(QFileDialog::DontConfirmOverwrite, true);
-	dialog->setOption(QFileDialog::DontUseNativeDialog, true);
-	dialog->setOption(QFileDialog::ReadOnly, true);
-	dialog->setOption(QFileDialog::HideNameFilterDetails, false);
-	dialog->setOption(QFileDialog::DontUseCustomDirectoryIcons, true);
+	dialog.setOption(QFileDialog::ShowDirsOnly, false);
+	dialog.setOption(QFileDialog::DontResolveSymlinks, true);
+	dialog.setOption(QFileDialog::DontConfirmOverwrite, true);
+	dialog.setOption(QFileDialog::DontUseNativeDialog, true);
+	dialog.setOption(QFileDialog::ReadOnly, true);
+	dialog.setOption(QFileDialog::HideNameFilterDetails, false);
+	dialog.setOption(QFileDialog::DontUseCustomDirectoryIcons, true);
 
 	//dialog->setProxyModel(QAbstractProxyModel * proxyModel)
 	QList<QUrl> urls;
 	urls << QUrl::fromLocalFile(util::applicationDirPath())
 		<< QUrl::fromLocalFile(QStandardPaths::standardLocations(QStandardPaths::MusicLocation).first());
 
-	dialog->setSidebarUrls(urls);
-	dialog->setSupportedSchemes(QStringList());
-	dialog->setViewMode(QFileDialog::ViewMode::List);
+	dialog.setSidebarUrls(urls);
+	dialog.setSupportedSchemes(QStringList());
+	dialog.setViewMode(QFileDialog::ViewMode::List);
 
 	//directory
 	//自身目錄往上一層
 	QString directory = util::applicationDirPath();
 	directory = QDir::toNativeSeparators(directory);
 	directory = QDir::cleanPath(directory + QDir::separator() + "..");
-	dialog->setDirectory(directory);
+	dialog.setDirectory(directory);
 
 	do
 	{
-		if (dialog->exec() != QDialog::Accepted)
+		if (dialog.exec() != QDialog::Accepted)
 			break;
 
-		QStringList fileNames = dialog->selectedFiles();
+		QStringList fileNames = dialog.selectedFiles();
 		if (fileNames.isEmpty())
 			break;
 

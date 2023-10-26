@@ -47,9 +47,6 @@ public:
 	virtual ~InfoForm();
 	void setCurrentPage(long long page);
 
-signals:
-	void resetControlTextLanguage();
-
 public slots:
 	void onResetControlTextLanguage();
 	void onApplyHashSettingsToUI();

@@ -29,8 +29,6 @@ OtherForm::OtherForm(long long index, QWidget* parent)
 	ui.setupUi(this);
 	setFont(util::getFont());
 
-	connect(this, &OtherForm::resetControlTextLanguage, this, &OtherForm::onResetControlTextLanguage, Qt::QueuedConnection);
-
 	util::setTab(ui.tabWidge_other);
 
 	QStringList nameCheckList;
@@ -122,6 +120,13 @@ OtherForm::OtherForm(long long index, QWidget* parent)
 
 OtherForm::~OtherForm()
 {
+}
+
+void OtherForm::showEvent(QShowEvent* e)
+{
+	onResetControlTextLanguage();
+	setAttribute(Qt::WA_Mapped);
+	QWidget::showEvent(e);
 }
 
 void OtherForm::groupBoxClicked(bool checked)

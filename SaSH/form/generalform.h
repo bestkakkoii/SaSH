@@ -14,9 +14,6 @@ public:
 	GeneralForm(long long index, QWidget* parent);
 	virtual ~GeneralForm();
 
-signals:
-	void resetControlTextLanguage();
-
 public slots:
 	void onApplyHashSettingsToUI();
 

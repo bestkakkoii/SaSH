@@ -56,13 +56,10 @@ private:
 
 inline bool createSelectTargetForm(long long index, long long type, QString* dst, QWidget* perent)
 {
-	SelectTargetForm* pObjForm = q_check_ptr(new SelectTargetForm(index, type, dst, perent));
-	if (pObjForm)
+	SelectTargetForm pObjForm(index, type, dst, perent);
+	if (pObjForm.exec() == QDialog::Accepted)
 	{
-		if (pObjForm->exec() == QDialog::Accepted)
-		{
-			return true;
-		}
+		return true;
 	}
 	return false;
 }

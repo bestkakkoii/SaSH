@@ -18,7 +18,6 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 {
 	ui.setupUi(this);
 	setFont(util::getFont());
-	connect(this, &GeneralForm::resetControlTextLanguage, this, &GeneralForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::setStartButtonEnabled, ui.pushButton_start, &PushButton::setEnabled, Qt::QueuedConnection);
@@ -122,6 +121,7 @@ GeneralForm::~GeneralForm()
 
 void GeneralForm::showEvent(QShowEvent* e)
 {
+	onResetControlTextLanguage();
 	setAttribute(Qt::WA_Mapped);
 	QWidget::showEvent(e);
 }

@@ -503,27 +503,6 @@ void MainObject::mainProc()
 
 		checkControl();
 
-		bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-		bool bCheckedAutoBattle = injector.getEnableHash(util::kAutoBattleEnable);
-		long long W = injector.worker->getWorldStatus();
-		// 允許 自動戰鬥
-		if (bCheckedAutoBattle)
-		{
-			if (W == 10) // 位於戰鬥畫面
-				injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
-			else if (W == 9) // 位於非戰鬥畫面
-				injector.sendMessage(kSetBlockPacket, injector.worker->getBattleFlag(), NULL); // 禁止阻擋戰鬥封包
-		}
-		// 允許 快速戰鬥
-		else if (bCheckedFastBattle)
-		{
-			if (W == 10)// 強退戰鬥畫面
-				injector.worker->setGameStatus(7);
-			injector.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
-		}
-		else // 不允許 快速戰鬥 和 自動戰鬥
-			injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
-
 		//登出按下，異步登出
 		if (injector.getEnableHash(util::kLogOutEnable))
 		{
@@ -614,11 +593,6 @@ void MainObject::mainProc()
 			injector.postMessage(kBattleTimeExtend, bChecked, NULL);
 		}
 
-		if (bCheckedFastBattle || bCheckedAutoBattle)
-			injector.postMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
-		else
-			injector.postMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
-
 		//其他所有功能
 		long long status = checkAndRunFunctions();
 
@@ -635,9 +609,43 @@ void MainObject::mainProc()
 		{
 			//檢查開關 (隊伍、交易、名片...等等)
 			checkEtcFlag();
+
+			bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
+			bool bCheckedAutoBattle = injector.getEnableHash(util::kAutoBattleEnable);
+			long long W = injector.worker->getWorldStatus();
+			// 允許 自動戰鬥
+			if (bCheckedAutoBattle)
+			{
+				injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+			}
+			// 允許 快速戰鬥
+			else if (bCheckedFastBattle)
+			{
+				if (W == 10)// 強退戰鬥畫面
+					injector.worker->setGameStatus(7);
+				injector.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
+			}
+			else // 不允許 快速戰鬥 和 自動戰鬥
+				injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+
+
 		}
 		else if (status == 3)//戰鬥中
 		{
+			bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
+			bool bCheckedAutoBattle = injector.getEnableHash(util::kAutoBattleEnable);
+			long long W = injector.worker->getWorldStatus();
+			if (bCheckedFastBattle)
+			{
+				if (W == 10)// 強退戰鬥畫面
+					injector.worker->setGameStatus(7);
+			}
+
+			if (bCheckedFastBattle || bCheckedAutoBattle)
+				injector.postMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
+			else
+				injector.postMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
+
 			injector.worker->doBattleWork(true);
 		}
 		else//錯誤

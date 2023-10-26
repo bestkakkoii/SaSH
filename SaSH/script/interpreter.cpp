@@ -41,17 +41,6 @@ Interpreter::~Interpreter()
 {
 	requestInterruption();
 	futureSync_.waitForFinished();
-
-	if (thread_ != nullptr)
-	{
-		if (thread_->isRunning())
-		{
-			thread_->quit();
-			thread_->wait();
-		}
-
-		thread_->deleteLater();
-	}
 	qDebug() << "Interpreter is destroyed!";
 }
 

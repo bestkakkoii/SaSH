@@ -79,18 +79,17 @@ private:
 inline bool createSelectObjectForm(SelectObjectForm::TitleType type, const QStringList srcselectlist, const QStringList& srclist, QStringList* dst, QWidget* perent)
 {
 	QStringList recviveList;
-	SelectObjectForm* pObjForm = q_check_ptr(new SelectObjectForm(type, perent));
-	if (pObjForm != nullptr)
+	SelectObjectForm ObjForm(type, perent);
+
+	ObjForm.setRecviveList(&recviveList);
+	ObjForm.setList(srclist);
+	ObjForm.setSelectList(srcselectlist);
+	if (ObjForm.exec() == QDialog::Accepted)
 	{
-		pObjForm->setRecviveList(&recviveList);
-		pObjForm->setList(srclist);
-		pObjForm->setSelectList(srcselectlist);
-		if (pObjForm->exec() == QDialog::Accepted)
-		{
-			if (dst)
-				*dst = recviveList;
-			return true;
-		}
+		if (dst)
+			*dst = recviveList;
+		return true;
 	}
+
 	return false;
 }

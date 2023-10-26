@@ -30,9 +30,6 @@ public:
 
 	virtual ~OtherForm();
 
-signals:
-	void resetControlTextLanguage();
-
 public slots:
 	void onApplyHashSettingsToUI();
 
@@ -50,11 +47,7 @@ private slots:
 	void onListWidgetDoubleClicked(QListWidgetItem* item);
 
 protected:
-	virtual void showEvent(QShowEvent* e) override
-	{
-		setAttribute(Qt::WA_Mapped);
-		QWidget::showEvent(e);
-	}
+	virtual void showEvent(QShowEvent* e) override;
 
 private:
 	void updateComboboxAutoFunNameList(const QStringList& textList);

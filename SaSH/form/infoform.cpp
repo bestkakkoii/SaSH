@@ -65,8 +65,6 @@ InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 
 	util::setTab(ui.tabWidget);
 
-	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::QueuedConnection);
-
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &InfoForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
