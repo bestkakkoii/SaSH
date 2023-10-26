@@ -47,10 +47,7 @@ InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 	windowflag |= Qt::WindowType::Tool;
 	setWindowFlag(Qt::WindowType::Tool);
 
-	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::QueuedConnection);
-
 	ui.tabWidget->clear();
-
 
 	ui.tabWidget->addTab(&pBattleInfoForm_, tr("battleinfo"));
 
@@ -67,6 +64,8 @@ InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 	ui.tabWidget->addTab(&pAfkInfoForm_, tr("afkinfo"));
 
 	util::setTab(ui.tabWidget);
+
+	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
