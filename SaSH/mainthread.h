@@ -93,6 +93,9 @@ private:
 	void __fastcall checkEtcFlag();
 	//void checkAutoAbility();
 
+public:
+	QThread thread;
+
 private:
 
 	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
@@ -148,7 +151,6 @@ private:
 	bool flagSwitcherWorldEnable_ = false;
 
 	QVector<MissionThread*> autoThreads_;
-
 };
 
 class ThreadManager : public QObject
@@ -167,7 +169,7 @@ public:
 	inline void close()
 	{
 		QMutexLocker locker(&mutex_);
-		QList<long long> keys = threads_.keys();
+		QList<long long> keys = objects_.keys();
 		for (auto& key : keys)
 		{
 			close(key);
@@ -177,10 +179,10 @@ public:
 	inline void wait(long long index)
 	{
 		QMutexLocker locker(&mutex_);
-		if (threads_.contains(index))
+		if (objects_.contains(index))
 		{
-			auto thread_ = threads_.value(index);
-			thread_->wait();
+			auto thread_ = objects_.value(index);
+			thread_->thread.wait();
 		}
 	}
 
@@ -195,12 +197,11 @@ public:
 	[[nodiscard]] inline long long size() const
 	{
 		QMutexLocker locker(&mutex_);
-		return threads_.size();
+		return objects_.size();
 	}
 
 private:
 	mutable QMutex mutex_;
-	QHash<long long, QThread*> threads_;
 	QHash<long long, MainObject*> objects_;
 
 };

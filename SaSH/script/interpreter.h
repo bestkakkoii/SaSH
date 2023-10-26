@@ -165,7 +165,7 @@ private:
 	Parser* pParentParser_ = nullptr;
 	Interpreter* pParentInterpreter_ = nullptr;
 
-	QThread* thread_ = nullptr;
+	QThread thread_;
 	Parser parser_;
 	long long beginLine_ = 0;
 

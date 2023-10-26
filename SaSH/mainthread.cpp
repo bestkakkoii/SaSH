@@ -246,9 +246,6 @@ bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* p
 {
 	std::ignore = parent;
 	QMutexLocker locker(&mutex_);
-	if (threads_.contains(index))
-		return false;
-
 	if (objects_.contains(index))
 		return false;
 
@@ -258,18 +255,8 @@ bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* p
 		if (nullptr == object)
 			break;
 
-		QThread* thread = q_check_ptr(new QThread(this));
-		if (nullptr == thread)
-			break;
-
-		thread->setObjectName(QString("thread_%1").arg(index));
-
-		object->moveToThread(thread);
-
-		threads_.insert(index, thread);
 		objects_.insert(index, object);
 
-		connect(thread, &QThread::started, object, &MainObject::run, Qt::QueuedConnection);
 		//after delete must set nullptr
 		connect(object, &MainObject::finished, this, [this]()
 			{
@@ -277,25 +264,19 @@ bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* p
 				if (nullptr == object)
 					return;
 
-				QThread* thread_ = object->thread();
-				if (nullptr == thread_)
-					return;
-
 				long long index = object->getIndex();
-				threads_.remove(index);
 				objects_.remove(index);
 
 				qDebug() << "recv MainObject::finished, start cleanning";
-				thread_->quit();
-				thread_->wait();
-				thread_->deleteLater();
-				thread_ = nullptr;
+				object->thread.quit();
+				object->thread.wait();
 				object->deleteLater();
 				object = nullptr;
 				Injector::reset(index);
 
 			}, Qt::QueuedConnection);
-		thread->start();
+
+		object->thread.start();
 
 		if (ppObj != nullptr)
 			*ppObj = object;
@@ -308,17 +289,14 @@ bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* p
 void ThreadManager::close(long long index)
 {
 	QMutexLocker locker(&mutex_);
-	if (threads_.contains(index) && objects_.contains(index))
+	if (objects_.contains(index))
 	{
-		auto thread_ = threads_.take(index);
-		auto object_ = objects_.take(index);
-		object_->requestInterruption();
-		thread_->quit();
-		thread_->wait();
-		thread_->deleteLater();
-		thread_ = nullptr;
-		object_->deleteLater();
-		object_ = nullptr;
+		MainObject* object = objects_.take(index);
+		object->thread.quit();
+		object->thread.wait();
+		object->requestInterruption();
+		object->deleteLater();
+		object = nullptr;
 		Injector::reset(index);
 	}
 }
@@ -327,7 +305,9 @@ MainObject::MainObject(long long index, QObject* parent)
 	: ThreadPlugin(index, parent)
 	, autoThreads_(MissionThread::kMaxAutoMission, nullptr)
 {
-
+	moveToThread(&thread);
+	connect(this, &MainObject::finished, &thread, &QThread::quit);
+	connect(&thread, &QThread::started, this, &MainObject::run);
 }
 
 MainObject::~MainObject()
@@ -451,10 +431,17 @@ void MainObject::mainProc()
 	mem::freeUnuseMemory(injector.getProcess());
 
 	bool nodelay = false;
+	bool bCheckedFastBattle = false;
+	bool bCheckedAutoBattle = false;
+	bool bChecked = false;
+	long long value = 0;
+	long long status = 0;
+	long long W = 0;
+
 	for (;;)
 	{
 		if (!nodelay)
-			QThread::msleep(100);
+			QThread::msleep(50);
 		else
 			nodelay = false;
 
@@ -494,7 +481,7 @@ void MainObject::mainProc()
 		injector.worker->setWindowTitle(injector.getStringHash(util::kTitleFormatString));
 
 		//異步加速
-		long long value = injector.getValueHash(util::kSpeedBoostValue);
+		value = injector.getValueHash(util::kSpeedBoostValue);
 		if (flagSetBoostValue_ != value)
 		{
 			flagSetBoostValue_ = value;
@@ -528,7 +515,7 @@ void MainObject::mainProc()
 		}
 
 		//異步快速走路
-		bool bChecked = injector.getEnableHash(util::kFastWalkEnable);
+		bChecked = injector.getEnableHash(util::kFastWalkEnable);
 		if (flagFastWalkEnable_ != bChecked)
 		{
 			flagFastWalkEnable_ = bChecked;
@@ -594,7 +581,7 @@ void MainObject::mainProc()
 		}
 
 		//其他所有功能
-		long long status = checkAndRunFunctions();
+		status = checkAndRunFunctions();
 
 		//這裡是預留的暫時沒作用
 		if (status == 1)//非登入狀態
@@ -610,9 +597,9 @@ void MainObject::mainProc()
 			//檢查開關 (隊伍、交易、名片...等等)
 			checkEtcFlag();
 
-			bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-			bool bCheckedAutoBattle = injector.getEnableHash(util::kAutoBattleEnable);
-			long long W = injector.worker->getWorldStatus();
+			bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
+			bCheckedAutoBattle = injector.getEnableHash(util::kAutoBattleEnable);
+			W = injector.worker->getWorldStatus();
 			// 允許 自動戰鬥
 			if (bCheckedAutoBattle)
 			{
@@ -627,14 +614,12 @@ void MainObject::mainProc()
 			}
 			else // 不允許 快速戰鬥 和 自動戰鬥
 				injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
-
-
 		}
 		else if (status == 3)//戰鬥中
 		{
-			bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-			bool bCheckedAutoBattle = injector.getEnableHash(util::kAutoBattleEnable);
-			long long W = injector.worker->getWorldStatus();
+			bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
+			bCheckedAutoBattle = injector.getEnableHash(util::kAutoBattleEnable);
+			W = injector.worker->getWorldStatus();
 			if (bCheckedFastBattle)
 			{
 				if (W == 10)// 強退戰鬥畫面
@@ -642,11 +627,12 @@ void MainObject::mainProc()
 			}
 
 			if (bCheckedFastBattle || bCheckedAutoBattle)
+			{
 				injector.postMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
+				injector.worker->doBattleWork(true);
+			}
 			else
 				injector.postMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
-
-			injector.worker->doBattleWork(true);
 		}
 		else//錯誤
 		{
@@ -1136,13 +1122,13 @@ void MissionThread::autoJoin()
 		//如果人物不在線上則自動退出
 		if (!injector.worker->getOnlineFlag())
 		{
-			QThread::msleep(500);
+			QThread::msleep(100);
 			continue;
 		}
 
 		if (injector.worker->getBattleFlag())
 		{
-			QThread::msleep(500);
+			QThread::msleep(100);
 			continue;
 		}
 
@@ -1171,7 +1157,7 @@ void MissionThread::autoJoin()
 		if (current_point == unit.p)
 		{
 			injector.worker->move(current_point + util::fix_point.value(QRandomGenerator::global()->bounded(0, 7)));
-			QThread::msleep(200);
+			QThread::msleep(100);
 			continue;
 		}
 

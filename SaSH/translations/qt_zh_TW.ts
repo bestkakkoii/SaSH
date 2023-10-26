@@ -2797,7 +2797,7 @@ New version:%2</source>
 <context>
     <name>MainObject</name>
     <message>
-        <location filename="../mainthread.cpp" line="708"/>
+        <location filename="../mainthread.cpp" line="688"/>
         <source>Welcome to use SaSH，For more information please visit %1</source>
         <translation>歡迎使用石器助手輔助程式，更多資訊請前往 %1</translation>
     </message>
@@ -2806,22 +2806,22 @@ New version:%2</source>
         <translation type="vanished">你的帳號為測試帳號，到期日為：%1</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="710"/>
+        <location filename="../mainthread.cpp" line="690"/>
         <source>StoneAge SaSH forum url:%1, newest version is %2</source>
         <translation>石器助手論壇網址：%1，最新為%2版</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="709"/>
+        <location filename="../mainthread.cpp" line="689"/>
         <source>You are using %1 account, due date is:%2</source>
         <translation>你的賬號為%1帳號，到期日為：%2</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="709"/>
+        <location filename="../mainthread.cpp" line="689"/>
         <source>trial</source>
         <translation>測試</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="709"/>
+        <location filename="../mainthread.cpp" line="689"/>
         <source>subscribed</source>
         <translation>正式</translation>
     </message>
@@ -2830,19 +2830,19 @@ New version:%2</source>
         <translation type="vanished">第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;回合時間: %3 秒&#x3000;&#x3000;累積時間: %4 分鐘</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="851"/>
-        <location filename="../mainthread.cpp" line="876"/>
+        <location filename="../mainthread.cpp" line="831"/>
+        <location filename="../mainthread.cpp" line="856"/>
         <source>%1 (avg exp: %2)</source>
         <translation>%1 (平均每小時經驗: %2)</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="858"/>
+        <location filename="../mainthread.cpp" line="838"/>
         <source>%1 (avg gold: %2)</source>
         <translation>%1 (平均每小時石幣: %2)</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="844"/>
-        <location filename="../mainthread.cpp" line="870"/>
+        <location filename="../mainthread.cpp" line="824"/>
+        <location filename="../mainthread.cpp" line="850"/>
         <source>%1→%2 (avg level: %3)</source>
         <translation>%1→%2 (平均每小時等級: %3)</translation>
     </message>
@@ -4248,7 +4248,7 @@ New version:%2</source>
         <translation>[警告] &lt;尋路&gt;地圖已變更，放棄尋路</translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="807"/>
+        <location filename="../script/interpreter.cpp" line="805"/>
         <location filename="../script/lexer.cpp" line="123"/>
         <location filename="../script/parser.cpp" line="1885"/>
         <location filename="../script_lua/clua.cpp" line="432"/>
@@ -4256,7 +4256,7 @@ New version:%2</source>
         <translation>[錯誤]</translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="807"/>
+        <location filename="../script/interpreter.cpp" line="805"/>
         <location filename="../script/lexer.cpp" line="125"/>
         <location filename="../script_lua/clua.cpp" line="432"/>
         <source>[warn]</source>
@@ -4827,32 +4827,32 @@ New version:%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="615"/>
+        <location filename="../script/interpreter.cpp" line="613"/>
         <source>File name expected but got nothing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="658"/>
+        <location filename="../script/interpreter.cpp" line="656"/>
         <source>Invalid path of file &apos;%1&apos; expected a file but got a directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="667"/>
+        <location filename="../script/interpreter.cpp" line="665"/>
         <source>Invalid suffix of file &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="681"/>
+        <location filename="../script/interpreter.cpp" line="679"/>
         <source>original path &apos;%1&apos; of file not exist, try to auto search but found nothing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="686"/>
+        <location filename="../script/interpreter.cpp" line="684"/>
         <source>[warn]original path &apos;%1&apos; of file not exist, auto search and found file at &apos;%2&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="771"/>
+        <location filename="../script/interpreter.cpp" line="769"/>
         <source>String expected but got nothing</source>
         <translation type="unfinished"></translation>
     </message>

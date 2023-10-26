@@ -50,14 +50,12 @@ void Interpreter::doFileWithThread(long long beginLine, const QString& fileName)
 	std::ignore = fileName;
 	beginLine_ = beginLine;
 
-	thread_ = new QThread();
-
-	moveToThread(thread_);
-	connect(this, &Interpreter::finished, thread_, &QThread::quit, Qt::QueuedConnection);
-	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
-	connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
-	connect(thread_, &QThread::started, this, &Interpreter::proc, Qt::QueuedConnection);
-	thread_->start();
+	moveToThread(&thread_);
+	connect(this, &Interpreter::finished, &thread_, &QThread::quit, Qt::QueuedConnection);
+	//connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
+	//connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
+	connect(&thread_, &QThread::started, this, &Interpreter::proc, Qt::QueuedConnection);
+	thread_.start();
 }
 
 //同線程下執行腳本文件(實例新的interpreter)
@@ -119,13 +117,13 @@ void Interpreter::doString(QString content)
 		return;
 
 	openLibs();
-	thread_ = new QThread();
-	moveToThread(thread_);
-	connect(this, &Interpreter::finished, thread_, &QThread::quit, Qt::QueuedConnection);
-	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
-	connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
-	connect(thread_, &QThread::started, this, &Interpreter::onRunString, Qt::QueuedConnection);
-	thread_->start();
+
+	moveToThread(&thread_);
+	connect(this, &Interpreter::finished, &thread_, &QThread::quit, Qt::QueuedConnection);
+	//connect(&thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
+	//connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
+	connect(&thread_, &QThread::started, this, &Interpreter::onRunString, Qt::QueuedConnection);
+	thread_.start();
 }
 
 void Interpreter::onRunString()

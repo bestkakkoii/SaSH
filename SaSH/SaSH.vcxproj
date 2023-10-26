@@ -274,7 +274,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <QtTranslation>
-      <BuildAction>lupdate</BuildAction>
+      <BuildAction>false</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
       <Command>
