@@ -3871,8 +3871,8 @@ void Parser::processTokens()
 		}
 		case TK_EXIT:
 		{
-			name.clear();
 			requestInterruption();
+			injector.IS_SCRIPT_INTERRUPT.store(true, std::memory_order_release);
 			break;
 		}
 		case TK_MULTIVAR:
@@ -4021,6 +4021,11 @@ void Parser::processTokens()
 			qDebug() << "Unexpected token type:" << currentType;
 			break;
 		}
+		}
+
+		if (isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+		{
+			break;
 		}
 
 		//導出變量訊息

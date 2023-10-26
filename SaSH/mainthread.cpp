@@ -510,19 +510,19 @@ void MainObject::mainProc()
 		if (bCheckedAutoBattle)
 		{
 			if (W == 10) // 位於戰鬥畫面
-				injector.postMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+				injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 			else if (W == 9) // 位於非戰鬥畫面
-				injector.postMessage(kSetBlockPacket, injector.worker->getBattleFlag(), NULL); // 禁止阻擋戰鬥封包
+				injector.sendMessage(kSetBlockPacket, injector.worker->getBattleFlag(), NULL); // 禁止阻擋戰鬥封包
 		}
 		// 允許 快速戰鬥
 		else if (bCheckedFastBattle)
 		{
 			if (W == 10)// 強退戰鬥畫面
 				injector.worker->setGameStatus(7);
-			injector.postMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
+			injector.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
 		}
 		else // 不允許 快速戰鬥 和 自動戰鬥
-			injector.postMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+			injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 
 		//登出按下，異步登出
 		if (injector.getEnableHash(util::kLogOutEnable))
