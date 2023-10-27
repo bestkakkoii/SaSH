@@ -41,9 +41,13 @@ long long CLuaSystem::sleep(long long t, sol::this_state s)
 
 		if (i % 1000 > 0)
 			QThread::msleep(static_cast<DWORD>(i) % 1000UL);
+		luadebug::checkStopAndPause(s);
 	}
 	else if (t > 0)
+	{
 		QThread::msleep(static_cast<DWORD>(t));
+		luadebug::checkStopAndPause(s);
+	}
 
 	return TRUE;
 }

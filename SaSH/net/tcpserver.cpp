@@ -310,8 +310,14 @@ void Socket::onReadyRead()
 		{
 			//封包入隊列
 			injector.worker->readQueue_.enqueue(std::move(badata));
+			if (netFuture_.isRunning())
+				return;
 			//通知處理
-			injector.worker->processRead();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+			netFuture_ = QtConcurrent::run(injector.worker.get(), &Worker::processRead);
+#else
+			netFuture_ = QtConcurrent::run(&Worker::processRead, injector.worker.get());
+#endif
 		}
 		return;
 	}
@@ -2146,7 +2152,6 @@ long long Worker::getFloor()
 	long long floor = static_cast<long long>(mem::read<int>(hProcess, hModule + kOffsetNowFloor));
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	QString mapname = nowFloorName_.get();
-	emit signalDispatcher.updateNpcList(floor);
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(mapname).arg(floor));
 	nowFloor_.store(floor, std::memory_order_release);
 	return floor;
@@ -2169,7 +2174,6 @@ QString Worker::getFloorName()
 	makeStringFromEscaped(mapname);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	long long floor = nowFloor_.load(std::memory_order_acquire);
-	emit signalDispatcher.updateNpcList(floor);
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(mapname).arg(floor));
 	nowFloorName_ = mapname;
 
@@ -11151,10 +11155,6 @@ void Worker::lssproto_EF_recv(long long effect, long long level, char* coption)
 	//Injector& injector = Injector::getInstance(currentIndex);
 	//if (!getOnlineFlag())
 	//	return;
-
-	//SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	//long long floor = getFloor();
-	//emit signalDispatcher.updateNpcList(floor);
 }
 
 //求救
@@ -11338,6 +11338,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
+				}
+				else
+				{
+					if (i == battleCharCurrentPos.load(std::memory_order_acquire))
+						doBattleWork(true);
+					else if (i == battleCharCurrentPos.load(std::memory_order_acquire) + 5)
+						doBattleWork(false);
 				}
 			}
 
@@ -11690,8 +11697,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 		{
 			return;
 		}
-
-		doBattleWork(true);
 		break;
 	}
 	case 'U':

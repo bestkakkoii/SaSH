@@ -190,12 +190,17 @@ void hookProc(lua_State* L, lua_Debug* ar)
 
 	if (ar->event == LUA_MASKRET || ar->event == LUA_MASKLINE || ar->event == LUA_MASKCALL)
 	{
+		luadebug::checkStopAndPause(s);
+
 		if (!lua["_THIS_PARSER"].valid())
 			return;
 
 		Parser* pparser = lua["_THIS_PARSER"].get<Parser*>();
 		if (pparser == nullptr)
 			return;
+
+		if (pparser->isInterruptionRequested())
+			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
 
 		lua.set("_LINE_", pparser->getCurrentLine() + 1);
 

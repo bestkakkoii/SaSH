@@ -399,7 +399,12 @@ void Interpreter::openLibs()
 long long Interpreter::scriptCallBack(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	Injector& injector = Injector::getInstance(currentIndex);
+
 	if (isInterruptionRequested())
+		return 0;
+
+	if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 		return 0;
 
 	Parser* pparent = parser_.getParent();
@@ -431,8 +436,6 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 	if (skip)
 		return 1;
 
-	Injector& injector = Injector::getInstance(currentIndex);
-
 	if (parser_.getMode() == Parser::kSync)
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getToken().size(), false);
 
@@ -443,6 +446,9 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 	}
 
 	injector.checkPause();
+
+	if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+		return 0;
 
 	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 		return 1;
@@ -474,6 +480,9 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 	emit signalDispatcher.addForwardMarker(currentLine, true);
 
 	injector.checkPause();
+
+	if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+		return 0;
 
 	return 1;
 }

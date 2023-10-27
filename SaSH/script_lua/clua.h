@@ -103,7 +103,7 @@ namespace luadebug
 	void __fastcall tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1 = 0, const QVariant& p2 = 0, const QVariant& p3 = 0, const QVariant& p4 = 0);
 
 
-	void __fastcall checkStopAndPause(const sol::this_state& s);
+	bool __fastcall checkStopAndPause(const sol::this_state& s);
 	bool __fastcall checkBattleThenWait(const sol::this_state& s);
 	bool __fastcall checkOnlineThenWait(const sol::this_state& s);
 

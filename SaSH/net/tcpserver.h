@@ -50,6 +50,7 @@ private:
 
 	long long index_ = -1;
 	bool init = false;
+	QFuture<void> netFuture_;
 };
 
 class Worker : public ThreadPlugin, public Lssproto

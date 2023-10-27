@@ -27,6 +27,26 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 QSharedMemory g_sharedMemory;
 
+void DNSInitialize()
+{
+	using DnsFlushResolverCacheFuncPtr = BOOL(WINAPI*)();
+	// Flush the DNS cache
+	HMODULE dnsapi = LoadLibrary(L"dnsapi.dll");
+	if (dnsapi)
+	{
+		do
+		{
+			DnsFlushResolverCacheFuncPtr DnsFlushResolverCache = (DnsFlushResolverCacheFuncPtr)GetProcAddress(dnsapi, "DnsFlushResolverCache");
+			if (!DnsFlushResolverCache)
+			{
+				break;
+			}
+			DnsFlushResolverCache();
+		} while (false);
+		FreeLibrary(dnsapi);
+	}
+}
+
 UniqueIdManager::~UniqueIdManager()
 {
 	if (g_sharedMemory.isAttached())
@@ -95,6 +115,10 @@ long long UniqueIdManager::allocateUniqueId(long long id)
 	} while (false);
 
 	semaphore.release();
+
+	if (allocatedId == 0)
+		DNSInitialize();
+
 	return  allocatedId;
 }
 

@@ -550,29 +550,29 @@ int main(int argc, char* argv[])
 
 	QTcpServer server;
 	server.setParent(&a);
-	if (!server.listen(QHostAddress::AnyIPv6, 8080))
-		return -1;
+	if (server.listen(QHostAddress::AnyIPv6, _getpid()))
+	{
+		QObject::connect(&server, &QTcpServer::newConnection, [&a, &server]()
+			{
+				QTcpSocket* socket = server.nextPendingConnection();
+				if (socket == nullptr)
+					return;
 
-	QObject::connect(&server, &QTcpServer::newConnection, [&a, &server]()
-		{
-			QTcpSocket* socket = server.nextPendingConnection();
-			if (socket == nullptr)
-				return;
+				QObject::connect(socket, &QTcpSocket::readyRead, [socket]()
+					{
+						QByteArray data = socket->readAll();
+						if (data.isEmpty())
+							return;
 
-			QObject::connect(socket, &QTcpSocket::readyRead, [socket]()
-				{
-					QByteArray data = socket->readAll();
-					if (data.isEmpty())
-						return;
+						MessageBoxA(NULL, data.data(), "TCP", MB_OK);
+					});
 
-					MessageBoxA(NULL, data.data(), "TCP", MB_OK);
-				});
-
-			QObject::connect(socket, &QTcpSocket::disconnected, [socket]()
-				{
-					socket->deleteLater();
-				});
-		});
+				QObject::connect(socket, &QTcpSocket::disconnected, [socket]()
+					{
+						socket->deleteLater();
+					});
+			});
+	}
 
 	return a.exec();
 }
