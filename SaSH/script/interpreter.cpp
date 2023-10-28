@@ -516,7 +516,6 @@ void Interpreter::proc()
 
 
 	injector.IS_SCRIPT_FLAG.store(false, std::memory_order_release);
-	injector.IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
 
 	isRunning_.store(false, std::memory_order_release);
 

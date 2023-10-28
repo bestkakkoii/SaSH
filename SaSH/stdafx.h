@@ -8,10 +8,10 @@
 #define QT_USE_QSTRINGBUILDER
 #endif
 
-#ifdef QT_NO_DEBUG
-#define QT_NO_DEBUG_OUTPUT
-#define QT_NO_INFO_OUTPUT
-#endif
+//#ifdef QT_NO_DEBUG
+//#define QT_NO_DEBUG_OUTPUT
+//#define QT_NO_INFO_OUTPUT
+//#endif
 
 #ifndef DISABLE_COPY
 #define DISABLE_COPY(Class) \

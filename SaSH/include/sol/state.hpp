@@ -1,4 +1,4 @@
-// sol2
+﻿// sol2
 
 // The MIT License (MIT)
 
@@ -39,14 +39,14 @@ namespace sol {
 		}
 
 		state(lua_CFunction panic, lua_Alloc alfunc, void* alpointer = nullptr)
-		: unique_base(lua_newstate(alfunc, alpointer)), state_view(unique_base::get()) {
+			: unique_base(lua_newstate(alfunc, alpointer)), state_view(unique_base::get()) {
 			set_default_state(unique_base::get(), panic);
 		}
 
 		state(const state&) = delete;
 		state(state&&) = default;
 		state& operator=(const state&) = delete;
-		state& operator=(state&& that) {
+		state& operator=(state&& that) noexcept {
 			state_view::operator=(std::move(that));
 			unique_base::operator=(std::move(that));
 			return *this;

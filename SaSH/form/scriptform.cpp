@@ -149,6 +149,7 @@ void ScriptForm::onScriptResumed()
 void ScriptForm::onScriptStoped()
 {
 	Injector& injector = Injector::getInstance(getIndex());
+	injector.IS_SCRIPT_INTERRUPT.store(true, std::memory_order_release);
 	if (interpreter_ != nullptr)
 	{
 		interpreter_->stop();
@@ -189,21 +190,14 @@ void ScriptForm::onButtonClicked()
 	else if (name == "pushButton_script_pause")
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
-		if (interpreter_ != nullptr)
-		{
-			if (!injector.isPaused())
-				emit signalDispatcher.scriptPaused();
-			else
-				emit signalDispatcher.scriptResumed();
-		}
-
+		if (!injector.isPaused())
+			emit signalDispatcher.scriptPaused();
+		else
+			emit signalDispatcher.scriptResumed();
 	}
 	else if (name == "pushButton_script_stop")
 	{
-		if (interpreter_ != nullptr)
-		{
-			emit signalDispatcher.scriptStoped();
-		}
+		emit signalDispatcher.scriptStoped();
 	}
 }
 

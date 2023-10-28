@@ -1,4 +1,4 @@
-// The MIT License (MIT)
+﻿// The MIT License (MIT)
 
 // Copyright (c) 2013-2022 Rapptz, ThePhD and contributors
 
@@ -85,14 +85,16 @@
 #elif (defined(__GNUC__) && __GNUC__ < 8 && !defined(__clang__))
 #ifndef SOL_TL_GCC_LESS_8_TRIVIALLY_COPY_CONSTRUCTIBLE_MUTEX
 #define SOL_TL_GCC_LESS_8_TRIVIALLY_COPY_CONSTRUCTIBLE_MUTEX
-namespace sol { namespace detail {
-	template <class T>
-	struct is_trivially_copy_constructible : std::is_trivially_copy_constructible<T> { };
+namespace sol {
+	namespace detail {
+		template <class T>
+		struct is_trivially_copy_constructible : std::is_trivially_copy_constructible<T> { };
 #ifdef _GLIBCXX_VECTOR
-	template <class T, class A>
-	struct is_trivially_copy_constructible<std::vector<T, A>> : std::is_trivially_copy_constructible<T> { };
+		template <class T, class A>
+		struct is_trivially_copy_constructible<std::vector<T, A>> : std::is_trivially_copy_constructible<T> { };
 #endif
-}} // namespace sol::detail
+	}
+} // namespace sol::detail
 #endif
 
 #define SOL_TL_OPTIONAL_IS_TRIVIALLY_COPY_CONSTRUCTIBLE(T) sol::detail::is_trivially_copy_constructible<T>::value
@@ -155,24 +157,24 @@ namespace sol {
 #define SOL_TL_OPTIONAL_LIBCXX_MEM_FN_WORKAROUND
 #endif
 
-// In C++11 mode, there's an issue in libc++'s std::mem_fn
-// which results in a hard-error when using it in a noexcept expression
-// in some cases. This is a check to workaround the common failing case.
+		// In C++11 mode, there's an issue in libc++'s std::mem_fn
+		// which results in a hard-error when using it in a noexcept expression
+		// in some cases. This is a check to workaround the common failing case.
 #ifdef SOL_TL_OPTIONAL_LIBCXX_MEM_FN_WORKAROUND
 		template <class T>
 		struct is_pointer_to_non_const_member_func : std::false_type { };
 		template <class T, class Ret, class... Args>
-		struct is_pointer_to_non_const_member_func<Ret (T::*)(Args...)> : std::true_type { };
+		struct is_pointer_to_non_const_member_func<Ret(T::*)(Args...)> : std::true_type { };
 		template <class T, class Ret, class... Args>
-		struct is_pointer_to_non_const_member_func<Ret (T::*)(Args...)&> : std::true_type { };
+		struct is_pointer_to_non_const_member_func<Ret(T::*)(Args...)&> : std::true_type { };
 		template <class T, class Ret, class... Args>
-		struct is_pointer_to_non_const_member_func<Ret (T::*)(Args...) &&> : std::true_type { };
+		struct is_pointer_to_non_const_member_func<Ret(T::*)(Args...)&&> : std::true_type { };
 		template <class T, class Ret, class... Args>
-		struct is_pointer_to_non_const_member_func<Ret (T::*)(Args...) volatile> : std::true_type { };
+		struct is_pointer_to_non_const_member_func<Ret(T::*)(Args...) volatile> : std::true_type { };
 		template <class T, class Ret, class... Args>
-		struct is_pointer_to_non_const_member_func<Ret (T::*)(Args...) volatile&> : std::true_type { };
+		struct is_pointer_to_non_const_member_func<Ret(T::*)(Args...) volatile&> : std::true_type { };
 		template <class T, class Ret, class... Args>
-		struct is_pointer_to_non_const_member_func<Ret (T::*)(Args...) volatile&&> : std::true_type { };
+		struct is_pointer_to_non_const_member_func<Ret(T::*)(Args...) volatile&&> : std::true_type { };
 
 		template <class T>
 		struct is_const_or_const_ref : std::false_type { };
@@ -186,17 +188,17 @@ namespace sol {
 		// https://stackoverflow.com/questions/38288042/c11-14-invoke-workaround
 		template <typename Fn, typename... Args,
 #ifdef SOL_TL_OPTIONAL_LIBCXX_MEM_FN_WORKAROUND
-		     typename = enable_if_t<!(is_pointer_to_non_const_member_func<Fn>::value && is_const_or_const_ref<Args...>::value)>,
+			typename = enable_if_t<!(is_pointer_to_non_const_member_func<Fn>::value&& is_const_or_const_ref<Args...>::value)>,
 #endif
-		     typename = enable_if_t<std::is_member_pointer<decay_t<Fn>>::value>, int = 0>
+			typename = enable_if_t<std::is_member_pointer<decay_t<Fn>>::value>, int = 0>
 		constexpr auto invoke(Fn&& f, Args&&... args) noexcept(noexcept(std::mem_fn(f)(std::forward<Args>(args)...)))
-		     -> decltype(std::mem_fn(f)(std::forward<Args>(args)...)) {
+			-> decltype(std::mem_fn(f)(std::forward<Args>(args)...)) {
 			return std::mem_fn(f)(std::forward<Args>(args)...);
 		}
 
 		template <typename Fn, typename... Args, typename = enable_if_t<!std::is_member_pointer<decay_t<Fn>>::value>>
 		constexpr auto invoke(Fn&& f, Args&&... args) noexcept(noexcept(std::forward<Fn>(f)(std::forward<Args>(args)...)))
-		     -> decltype(std::forward<Fn>(f)(std::forward<Args>(args)...)) {
+			-> decltype(std::forward<Fn>(f)(std::forward<Args>(args)...)) {
 			return std::forward<Fn>(f)(std::forward<Args>(args)...);
 		}
 
@@ -255,28 +257,28 @@ namespace sol {
 
 		template <class T, class U>
 		using enable_forward_value = detail::enable_if_t<std::is_constructible<T, U&&>::value && !std::is_same<detail::decay_t<U>, in_place_t>::value
-		     && !std::is_same<optional<T>, detail::decay_t<U>>::value>;
+			&& !std::is_same<optional<T>, detail::decay_t<U>>::value>;
 
 		template <class T, class U, class Other>
 		using enable_from_other = detail::enable_if_t<std::is_constructible<T, Other>::value && !std::is_constructible<T, optional<U>&>::value
-		     && !std::is_constructible<T, optional<U>&&>::value && !std::is_constructible<T, const optional<U>&>::value
-		     && !std::is_constructible<T, const optional<U>&&>::value && !std::is_convertible<optional<U>&, T>::value
-		     && !std::is_convertible<optional<U>&&, T>::value && !std::is_convertible<const optional<U>&, T>::value
-		     && !std::is_convertible<const optional<U>&&, T>::value>;
+			&& !std::is_constructible<T, optional<U>&&>::value && !std::is_constructible<T, const optional<U>&>::value
+			&& !std::is_constructible<T, const optional<U>&&>::value && !std::is_convertible<optional<U>&, T>::value
+			&& !std::is_convertible<optional<U>&&, T>::value && !std::is_convertible<const optional<U>&, T>::value
+			&& !std::is_convertible<const optional<U>&&, T>::value>;
 
 		template <class T, class U>
 		using enable_assign_forward = detail::enable_if_t<!std::is_same<optional<T>, detail::decay_t<U>>::value
-		     && !detail::conjunction<std::is_scalar<T>, std::is_same<T, detail::decay_t<U>>>::value && std::is_constructible<T, U>::value
-		     && std::is_assignable<T&, U>::value>;
+			&& !detail::conjunction<std::is_scalar<T>, std::is_same<T, detail::decay_t<U>>>::value&& std::is_constructible<T, U>::value
+			&& std::is_assignable<T&, U>::value>;
 
 		template <class T, class U, class Other>
-		using enable_assign_from_other = detail::enable_if_t<std::is_constructible<T, Other>::value && std::is_assignable<T&, Other>::value
-		     && !std::is_constructible<T, optional<U>&>::value && !std::is_constructible<T, optional<U>&&>::value
-		     && !std::is_constructible<T, const optional<U>&>::value && !std::is_constructible<T, const optional<U>&&>::value
-		     && !std::is_convertible<optional<U>&, T>::value && !std::is_convertible<optional<U>&&, T>::value
-		     && !std::is_convertible<const optional<U>&, T>::value && !std::is_convertible<const optional<U>&&, T>::value
-		     && !std::is_assignable<T&, optional<U>&>::value && !std::is_assignable<T&, optional<U>&&>::value
-		     && !std::is_assignable<T&, const optional<U>&>::value && !std::is_assignable<T&, const optional<U>&&>::value>;
+		using enable_assign_from_other = detail::enable_if_t<std::is_constructible<T, Other>::value&& std::is_assignable<T&, Other>::value
+			&& !std::is_constructible<T, optional<U>&>::value && !std::is_constructible<T, optional<U>&&>::value
+			&& !std::is_constructible<T, const optional<U>&>::value && !std::is_constructible<T, const optional<U>&&>::value
+			&& !std::is_convertible<optional<U>&, T>::value && !std::is_convertible<optional<U>&&, T>::value
+			&& !std::is_convertible<const optional<U>&, T>::value && !std::is_convertible<const optional<U>&&, T>::value
+			&& !std::is_assignable<T&, optional<U>&>::value && !std::is_assignable<T&, optional<U>&&>::value
+			&& !std::is_assignable<T&, const optional<U>&>::value && !std::is_assignable<T&, const optional<U>&&>::value>;
 
 #ifdef _MSC_VER
 		// TODO make a version which works with MSVC
@@ -295,7 +297,7 @@ namespace sol {
 			template <class T>
 			tag swap(T&, T&);
 			template <class T, std::size_t N>
-			tag swap(T (&a)[N], T (&b)[N]);
+			tag swap(T(&a)[N], T(&b)[N]);
 
 			// helper functions to test if an unqualified swap is possible, and if it
 			// becomes std::swap
@@ -311,7 +313,7 @@ namespace sol {
 
 			template <class T>
 			struct is_std_swap_noexcept
-			: std::integral_constant<bool, std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_assignable<T>::value> { };
+				: std::integral_constant<bool, std::is_nothrow_move_constructible<T>::value&& std::is_nothrow_move_assignable<T>::value> { };
 
 			template <class T, std::size_t N>
 			struct is_std_swap_noexcept<T[N]> : is_std_swap_noexcept<T> { };
@@ -322,21 +324,21 @@ namespace sol {
 
 		template <class T, class U = T>
 		struct is_swappable : std::integral_constant<bool,
-		                           decltype(detail::swap_adl_tests::can_swap<T, U>(0))::value
-		                                && (!decltype(detail::swap_adl_tests::uses_std<T, U>(0))::value
-		                                     || (std::is_move_assignable<T>::value && std::is_move_constructible<T>::value))> { };
+			decltype(detail::swap_adl_tests::can_swap<T, U>(0))::value
+			&& (!decltype(detail::swap_adl_tests::uses_std<T, U>(0))::value
+				|| (std::is_move_assignable<T>::value && std::is_move_constructible<T>::value))> { };
 
 		template <class T, std::size_t N>
 		struct is_swappable<T[N], T[N]> : std::integral_constant<bool,
-		                                       decltype(detail::swap_adl_tests::can_swap<T[N], T[N]>(0))::value
-		                                            && (!decltype(detail::swap_adl_tests::uses_std<T[N], T[N]>(0))::value || is_swappable<T, T>::value)> { };
+			decltype(detail::swap_adl_tests::can_swap<T[N], T[N]>(0))::value
+			&& (!decltype(detail::swap_adl_tests::uses_std<T[N], T[N]>(0))::value || is_swappable<T, T>::value)> { };
 
 		template <class T, class U = T>
 		struct is_nothrow_swappable
-		: std::integral_constant<bool,
-		       is_swappable<T, U>::value
-		            && ((decltype(detail::swap_adl_tests::uses_std<T, U>(0))::value&& detail::swap_adl_tests::is_std_swap_noexcept<T>::value)
-		                 || (!decltype(detail::swap_adl_tests::uses_std<T, U>(0))::value&& detail::swap_adl_tests::is_adl_swap_noexcept<T, U>::value))> { };
+			: std::integral_constant<bool,
+			is_swappable<T, U>::value
+			&& ((decltype(detail::swap_adl_tests::uses_std<T, U>(0))::value&& detail::swap_adl_tests::is_std_swap_noexcept<T>::value)
+				|| (!decltype(detail::swap_adl_tests::uses_std<T, U>(0))::value && detail::swap_adl_tests::is_adl_swap_noexcept<T, U>::value))> { };
 #endif
 
 		// The storage base manages the actual storage, and correctly propagates
@@ -361,7 +363,7 @@ namespace sol {
 			struct dummy { };
 			union {
 				dummy m_dummy;
-				T m_value;
+				T m_value = {};
 			};
 
 			bool m_has_value;
@@ -426,13 +428,13 @@ namespace sol {
 				return this->m_has_value;
 			}
 
-			SOL_TL_OPTIONAL_11_CONSTEXPR T& get() & {
+			SOL_TL_OPTIONAL_11_CONSTEXPR T& get()& {
 				return this->m_value;
 			}
 			SOL_TL_OPTIONAL_11_CONSTEXPR const T& get() const& {
 				return this->m_value;
 			}
-			SOL_TL_OPTIONAL_11_CONSTEXPR T&& get() && {
+			SOL_TL_OPTIONAL_11_CONSTEXPR T&& get()&& {
 				return std::move(this->m_value);
 			}
 #ifndef SOL_TL_OPTIONAL_NO_CONSTRR
@@ -471,11 +473,11 @@ namespace sol {
 			optional_copy_base& operator=(optional_copy_base&& rhs) = default;
 		};
 
-// This class manages conditionally having a trivial move constructor
-// Unfortunately there's no way to achieve this in GCC < 5 AFAIK, since it
-// doesn't implement an analogue to std::is_trivially_move_constructible. We
-// have to make do with a non-trivial move constructor even if T is trivially
-// move constructible
+		// This class manages conditionally having a trivial move constructor
+		// Unfortunately there's no way to achieve this in GCC < 5 AFAIK, since it
+		// doesn't implement an analogue to std::is_trivially_move_constructible. We
+		// have to make do with a non-trivial move constructor even if T is trivially
+		// move constructible
 #ifndef SOL_TL_OPTIONAL_GCC49
 		template <class T, bool = std::is_trivially_move_constructible<T>::value>
 		struct optional_move_base : optional_copy_base<T> {
@@ -506,8 +508,8 @@ namespace sol {
 
 		// This class manages conditionally having a trivial copy assignment operator
 		template <class T,
-		     bool = SOL_TL_OPTIONAL_IS_TRIVIALLY_COPY_ASSIGNABLE(T) && SOL_TL_OPTIONAL_IS_TRIVIALLY_COPY_CONSTRUCTIBLE(T)
-		          && SOL_TL_OPTIONAL_IS_TRIVIALLY_DESTRUCTIBLE(T)>
+			bool = SOL_TL_OPTIONAL_IS_TRIVIALLY_COPY_ASSIGNABLE(T) && SOL_TL_OPTIONAL_IS_TRIVIALLY_COPY_CONSTRUCTIBLE(T)
+			&& SOL_TL_OPTIONAL_IS_TRIVIALLY_DESTRUCTIBLE(T)>
 		struct optional_copy_assign_base : optional_move_base<T> {
 			using optional_move_base<T>::optional_move_base;
 		};
@@ -527,14 +529,14 @@ namespace sol {
 			optional_copy_assign_base& operator=(optional_copy_assign_base&& rhs) = default;
 		};
 
-// This class manages conditionally having a trivial move assignment operator
-// Unfortunately there's no way to achieve this in GCC < 5 AFAIK, since it
-// doesn't implement an analogue to std::is_trivially_move_assignable. We have
-// to make do with a non-trivial move assignment operator even if T is trivially
-// move assignable
+		// This class manages conditionally having a trivial move assignment operator
+		// Unfortunately there's no way to achieve this in GCC < 5 AFAIK, since it
+		// doesn't implement an analogue to std::is_trivially_move_assignable. We have
+		// to make do with a non-trivial move assignment operator even if T is trivially
+		// move assignable
 #ifndef SOL_TL_OPTIONAL_GCC49
 		template <class T,
-		     bool = std::is_trivially_destructible<T>::value&& std::is_trivially_move_constructible<T>::value&& std::is_trivially_move_assignable<T>::value>
+			bool = std::is_trivially_destructible<T>::value&& std::is_trivially_move_constructible<T>::value&& std::is_trivially_move_assignable<T>::value>
 		struct optional_move_assign_base : optional_copy_assign_base<T> {
 			using optional_copy_assign_base<T>::optional_copy_assign_base;
 		};
@@ -555,7 +557,7 @@ namespace sol {
 			optional_move_assign_base& operator=(const optional_move_assign_base& rhs) = default;
 
 			optional_move_assign_base& operator=(optional_move_assign_base&& rhs) noexcept(
-			     std::is_nothrow_move_constructible<T>::value&& std::is_nothrow_move_assignable<T>::value) {
+				std::is_nothrow_move_constructible<T>::value&& std::is_nothrow_move_assignable<T>::value) {
 				this->assign(std::move(rhs));
 				return *this;
 			}
@@ -601,8 +603,8 @@ namespace sol {
 
 		// optional_delete_assign_base will conditionally delete copy and move
 		// constructors depending on whether T is copy/move constructible + assignable
-		template <class T, bool EnableCopy = (std::is_copy_constructible<T>::value && std::is_copy_assignable<T>::value),
-		     bool EnableMove = (std::is_move_constructible<T>::value && std::is_move_assignable<T>::value)>
+		template <class T, bool EnableCopy = (std::is_copy_constructible<T>::value&& std::is_copy_assignable<T>::value),
+			bool EnableMove = (std::is_move_constructible<T>::value&& std::is_move_assignable<T>::value)>
 		struct optional_delete_assign_base {
 			optional_delete_assign_base() = default;
 			optional_delete_assign_base(const optional_delete_assign_base&) = default;
@@ -638,9 +640,9 @@ namespace sol {
 			optional_delete_assign_base& operator=(optional_delete_assign_base&&) noexcept = delete;
 		};
 
-	} // namespace detail
+		} // namespace detail
 
-	/// \brief A tag type to represent an empty optional
+		/// \brief A tag type to represent an empty optional
 	using nullopt_t = std::nullopt_t;
 
 	/// \brief Represents an empty optional
@@ -673,18 +675,18 @@ namespace sol {
 	/// the optional object.
 	template <class T>
 	class optional : private detail::optional_move_assign_base<T>,
-	                 private detail::optional_delete_ctor_base<T>,
-	                 private detail::optional_delete_assign_base<T> {
+		private detail::optional_delete_ctor_base<T>,
+		private detail::optional_delete_assign_base<T> {
 		using base = detail::optional_move_assign_base<T>;
 
 		static_assert(!std::is_same<T, in_place_t>::value, "instantiation of optional with in_place_t is ill-formed");
 		static_assert(!std::is_same<detail::decay_t<T>, nullopt_t>::value, "instantiation of optional with nullopt_t is ill-formed");
 
 	public:
-// The different versions for C++14 and 11 are needed because deduced return
-// types are not SFINAE-safe. This provides better support for things like
-// generic lambdas. C.f.
-// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0826r0.html
+		// The different versions for C++14 and 11 are needed because deduced return
+		// types are not SFINAE-safe. This provides better support for things like
+		// generic lambdas. C.f.
+		// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0826r0.html
 #if defined(SOL_TL_OPTIONAL_CXX14) && !defined(SOL_TL_OPTIONAL_GCC49) && !defined(SOL_TL_OPTIONAL_GCC54) && !defined(SOL_TL_OPTIONAL_GCC55)
 		/// \group and_then
 		/// Carries out some operation which returns an optional on the stored
@@ -697,7 +699,7 @@ namespace sol {
 		/// \group and_then
 		/// \synopsis template <class F> \n constexpr auto and_then(F &&f) &;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR auto and_then(F&& f) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR auto and_then(F&& f)& {
 			using result = detail::invoke_result_t<F, T&>;
 			static_assert(detail::is_optional<result>::value, "F must return an optional");
 
@@ -707,7 +709,7 @@ namespace sol {
 		/// \group and_then
 		/// \synopsis template <class F> \n constexpr auto and_then(F &&f) &&;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR auto and_then(F&& f) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR auto and_then(F&& f)&& {
 			using result = detail::invoke_result_t<F, T&&>;
 			static_assert(detail::is_optional<result>::value, "F must return an optional");
 
@@ -747,7 +749,7 @@ namespace sol {
 		/// \group and_then
 		/// \synopsis template <class F> \n constexpr auto and_then(F &&f) &;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR detail::invoke_result_t<F, T&> and_then(F&& f) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR detail::invoke_result_t<F, T&> and_then(F&& f)& {
 			using result = detail::invoke_result_t<F, T&>;
 			static_assert(detail::is_optional<result>::value, "F must return an optional");
 
@@ -757,7 +759,7 @@ namespace sol {
 		/// \group and_then
 		/// \synopsis template <class F> \n constexpr auto and_then(F &&f) &&;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR detail::invoke_result_t<F, T&&> and_then(F&& f) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR detail::invoke_result_t<F, T&&> and_then(F&& f)&& {
 			using result = detail::invoke_result_t<F, T&&>;
 			static_assert(detail::is_optional<result>::value, "F must return an optional");
 
@@ -798,14 +800,14 @@ namespace sol {
 		/// \group map
 		/// \synopsis template <class F> constexpr auto map(F &&f) &;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR auto map(F&& f) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR auto map(F&& f)& {
 			return optional_map_impl(*this, std::forward<F>(f));
 		}
 
 		/// \group map
 		/// \synopsis template <class F> constexpr auto map(F &&f) &&;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR auto map(F&& f) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR auto map(F&& f)&& {
 			return optional_map_impl(std::move(*this), std::forward<F>(f));
 		}
 
@@ -833,14 +835,14 @@ namespace sol {
 		/// \group map
 		/// \synopsis template <class F> auto map(F &&f) &;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR decltype(optional_map_impl(std::declval<optional&>(), std::declval<F&&>())) map(F&& f) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR decltype(optional_map_impl(std::declval<optional&>(), std::declval<F&&>())) map(F&& f)& {
 			return optional_map_impl(*this, std::forward<F>(f));
 		}
 
 		/// \group map
 		/// \synopsis template <class F> auto map(F &&f) &&;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR decltype(optional_map_impl(std::declval<optional&&>(), std::declval<F&&>())) map(F&& f) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR decltype(optional_map_impl(std::declval<optional&&>(), std::declval<F&&>())) map(F&& f)&& {
 			return optional_map_impl(std::move(*this), std::forward<F>(f));
 		}
 
@@ -871,7 +873,7 @@ namespace sol {
 		/// \group or_else
 		/// \synopsis template <class F> optional<T> or_else (F &&f) &;
 		template <class F, detail::enable_if_ret_void<F>* = nullptr>
-		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f) & {
+		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f)& {
 			if (has_value())
 				return *this;
 
@@ -881,14 +883,14 @@ namespace sol {
 
 		/// \exclude
 		template <class F, detail::disable_if_ret_void<F>* = nullptr>
-		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f) & {
+		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f)& {
 			return has_value() ? *this : std::forward<F>(f)();
 		}
 
 		/// \group or_else
 		/// \synopsis template <class F> optional<T> or_else (F &&f) &&;
 		template <class F, detail::enable_if_ret_void<F>* = nullptr>
-		optional<T> or_else(F&& f) && {
+		optional<T> or_else(F&& f)&& {
 			if (has_value())
 				return std::move(*this);
 
@@ -898,7 +900,7 @@ namespace sol {
 
 		/// \exclude
 		template <class F, detail::disable_if_ret_void<F>* = nullptr>
-		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f) && {
+		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f)&& {
 			return has_value() ? std::move(*this) : std::forward<F>(f)();
 		}
 
@@ -945,13 +947,13 @@ namespace sol {
 		///
 		/// \group map_or
 		template <class F, class U>
-		U map_or(F&& f, U&& u) & {
+		U map_or(F&& f, U&& u)& {
 			return has_value() ? detail::invoke(std::forward<F>(f), **this) : std::forward<U>(u);
 		}
 
 		/// \group map_or
 		template <class F, class U>
-		U map_or(F&& f, U&& u) && {
+		U map_or(F&& f, U&& u)&& {
 			return has_value() ? detail::invoke(std::forward<F>(f), std::move(**this)) : std::forward<U>(u);
 		}
 
@@ -979,7 +981,7 @@ namespace sol {
 		/// \group map_or_else
 		/// \synopsis template <class F, class U> \n auto map_or_else(F &&f, U &&u) &;
 		template <class F, class U>
-		detail::invoke_result_t<U> map_or_else(F&& f, U&& u) & {
+		detail::invoke_result_t<U> map_or_else(F&& f, U&& u)& {
 			return has_value() ? detail::invoke(std::forward<F>(f), **this) : std::forward<U>(u)();
 		}
 
@@ -987,7 +989,7 @@ namespace sol {
 		/// \synopsis template <class F, class U> \n auto map_or_else(F &&f, U &&u)
 		/// &&;
 		template <class F, class U>
-		detail::invoke_result_t<U> map_or_else(F&& f, U&& u) && {
+		detail::invoke_result_t<U> map_or_else(F&& f, U&& u)&& {
 			return has_value() ? detail::invoke(std::forward<F>(f), std::move(**this)) : std::forward<U>(u)();
 		}
 
@@ -1013,12 +1015,12 @@ namespace sol {
 		template <class U>
 		constexpr optional<typename std::decay<U>::type> conjunction(U&& u) const {
 			using result = optional<detail::decay_t<U>>;
-			return has_value() ? result { u } : result { nullopt };
+			return has_value() ? result{ u } : result{ nullopt };
 		}
 
 		/// \returns `rhs` if `*this` is empty, otherwise the current value.
 		/// \group disjunction
-		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(const optional& rhs) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(const optional& rhs)& {
 			return has_value() ? *this : rhs;
 		}
 
@@ -1028,7 +1030,7 @@ namespace sol {
 		}
 
 		/// \group disjunction
-		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(const optional& rhs) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(const optional& rhs)&& {
 			return has_value() ? std::move(*this) : rhs;
 		}
 
@@ -1040,7 +1042,7 @@ namespace sol {
 #endif
 
 		/// \group disjunction
-		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(optional&& rhs) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(optional&& rhs)& {
 			return has_value() ? *this : std::move(rhs);
 		}
 
@@ -1050,7 +1052,7 @@ namespace sol {
 		}
 
 		/// \group disjunction
-		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(optional&& rhs) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(optional&& rhs)&& {
 			return has_value() ? std::move(*this) : std::move(rhs);
 		}
 
@@ -1063,7 +1065,7 @@ namespace sol {
 
 		/// Takes the value out of the optional, leaving it empty
 		/// \group take
-		optional take() & {
+		optional take()& {
 			optional ret = *this;
 			reset();
 			return ret;
@@ -1077,7 +1079,7 @@ namespace sol {
 		}
 
 		/// \group take
-		optional take() && {
+		optional take()&& {
 			optional ret = std::move(*this);
 			reset();
 			return ret;
@@ -1119,20 +1121,20 @@ namespace sol {
 		/// \synopsis template <class... Args> constexpr explicit optional(in_place_t, Args&&... args);
 		template <class... Args>
 		constexpr explicit optional(detail::enable_if_t<std::is_constructible<T, Args...>::value, in_place_t>, Args&&... args)
-		: base(in_place, std::forward<Args>(args)...) {
+			: base(in_place, std::forward<Args>(args)...) {
 		}
 
 		/// \group in_place
 		/// \synopsis template <class U, class... Args> \n constexpr explicit optional(in_place_t, std::initializer_list<U>&, Args&&... args);
 		template <class U, class... Args>
 		SOL_TL_OPTIONAL_11_CONSTEXPR explicit optional(detail::enable_if_t<std::is_constructible<T, std::initializer_list<U>&, Args&&...>::value, in_place_t>,
-		     std::initializer_list<U> il, Args&&... args) {
+			std::initializer_list<U> il, Args&&... args) {
 			this->construct(il, std::forward<Args>(args)...);
 		}
 
 #if 0 // SOL_MODIFICATION
-      /// Constructs the stored value with `u`.
-      /// \synopsis template <class U=T> constexpr optional(U &&u);
+		/// Constructs the stored value with `u`.
+		/// \synopsis template <class U=T> constexpr optional(U &&u);
 		template <class U = T, detail::enable_if_t<std::is_convertible<U&&, T>::value>* = nullptr, detail::enable_forward_value<T, U>* = nullptr>
 		constexpr optional(U&& u) : base(in_place, std::forward<U>(u)) {
 		}
@@ -1335,7 +1337,7 @@ namespace sol {
 		/// \requires a value is stored
 		/// \group deref
 		/// \synopsis constexpr T &operator*();
-		SOL_TL_OPTIONAL_11_CONSTEXPR T& operator*() & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR T& operator*()& {
 			return this->m_value;
 		}
 
@@ -1346,7 +1348,7 @@ namespace sol {
 		}
 
 		/// \exclude
-		SOL_TL_OPTIONAL_11_CONSTEXPR T&& operator*() && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR T&& operator*()&& {
 			return std::move(this->m_value);
 		}
 
@@ -1372,7 +1374,7 @@ namespace sol {
 		/// [bad_optional_access]
 		/// \group value
 		/// \synopsis constexpr T &value();
-		SOL_TL_OPTIONAL_11_CONSTEXPR T& value() & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR T& value()& {
 			if (has_value())
 				return this->m_value;
 #if SOL_IS_OFF(SOL_EXCEPTIONS)
@@ -1393,7 +1395,7 @@ namespace sol {
 #endif // No exceptions allowed
 		}
 		/// \exclude
-		SOL_TL_OPTIONAL_11_CONSTEXPR T&& value() && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR T&& value()&& {
 			if (has_value())
 				return std::move(this->m_value);
 #if SOL_IS_OFF(SOL_EXCEPTIONS)
@@ -1426,7 +1428,7 @@ namespace sol {
 
 		/// \group value_or
 		template <class U>
-		SOL_TL_OPTIONAL_11_CONSTEXPR T value_or(U&& u) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR T value_or(U&& u)&& {
 			static_assert(std::is_move_constructible<T>::value && std::is_convertible<U&&, T>::value, "T must be move constructible and convertible from U");
 			return has_value() ? **this : static_cast<T>(std::forward<U>(u));
 		}
@@ -1438,7 +1440,7 @@ namespace sol {
 				this->m_has_value = false;
 			}
 		}
-	}; // namespace sol
+		}; // namespace sol
 
 	/// \group relop
 	/// \brief Compares two optional objects
@@ -1637,36 +1639,36 @@ namespace sol {
 	namespace detail {
 #ifdef SOL_TL_OPTIONAL_CXX14
 		template <class Opt, class F, class Ret = decltype(detail::invoke(std::declval<F>(), *std::declval<Opt>())),
-		     detail::enable_if_t<!std::is_void<Ret>::value>* = nullptr>
+			detail::enable_if_t<!std::is_void<Ret>::value>* = nullptr>
 		constexpr auto optional_map_impl(Opt&& opt, F&& f) {
 			return opt.has_value() ? detail::invoke(std::forward<F>(f), *std::forward<Opt>(opt)) : optional<Ret>(nullopt);
 		}
 
 		template <class Opt, class F, class Ret = decltype(detail::invoke(std::declval<F>(), *std::declval<Opt>())),
-		     detail::enable_if_t<std::is_void<Ret>::value>* = nullptr>
+			detail::enable_if_t<std::is_void<Ret>::value>* = nullptr>
 		auto optional_map_impl(Opt&& opt, F&& f) {
 			if (opt.has_value()) {
 				detail::invoke(std::forward<F>(f), *std::forward<Opt>(opt));
-				return make_optional(monostate {});
+				return make_optional(monostate{});
 			}
 
 			return optional<monostate>(nullopt);
 		}
 #else
 		template <class Opt, class F, class Ret = decltype(detail::invoke(std::declval<F>(), *std::declval<Opt>())),
-		     detail::enable_if_t<!std::is_void<Ret>::value>* = nullptr>
+			detail::enable_if_t<!std::is_void<Ret>::value>* = nullptr>
 
 		constexpr auto optional_map_impl(Opt&& opt, F&& f) -> optional<Ret> {
 			return opt.has_value() ? detail::invoke(std::forward<F>(f), *std::forward<Opt>(opt)) : optional<Ret>(nullopt);
 		}
 
 		template <class Opt, class F, class Ret = decltype(detail::invoke(std::declval<F>(), *std::declval<Opt>())),
-		     detail::enable_if_t<std::is_void<Ret>::value>* = nullptr>
+			detail::enable_if_t<std::is_void<Ret>::value>* = nullptr>
 
 		auto optional_map_impl(Opt&& opt, F&& f) -> optional<monostate> {
 			if (opt.has_value()) {
 				detail::invoke(std::forward<F>(f), *std::forward<Opt>(opt));
-				return monostate {};
+				return monostate{};
 			}
 
 			return nullopt;
@@ -1699,10 +1701,10 @@ namespace sol {
 	template <class T>
 	class optional<T&> {
 	public:
-// The different versions for C++14 and 11 are needed because deduced return
-// types are not SFINAE-safe. This provides better support for things like
-// generic lambdas. C.f.
-// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0826r0.html
+		// The different versions for C++14 and 11 are needed because deduced return
+		// types are not SFINAE-safe. This provides better support for things like
+		// generic lambdas. C.f.
+		// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0826r0.html
 #if defined(SOL_TL_OPTIONAL_CXX14) && !defined(SOL_TL_OPTIONAL_GCC49) && !defined(SOL_TL_OPTIONAL_GCC54) && !defined(SOL_TL_OPTIONAL_GCC55)
 		/// \group and_then
 		/// Carries out some operation which returns an optional on the stored
@@ -1715,7 +1717,7 @@ namespace sol {
 		/// \group and_then
 		/// \synopsis template <class F> \n constexpr auto and_then(F &&f) &;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR auto and_then(F&& f) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR auto and_then(F&& f)& {
 			using result = detail::invoke_result_t<F, T&>;
 			static_assert(detail::is_optional<result>::value, "F must return an optional");
 
@@ -1725,7 +1727,7 @@ namespace sol {
 		/// \group and_then
 		/// \synopsis template <class F> \n constexpr auto and_then(F &&f) &&;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR auto and_then(F&& f) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR auto and_then(F&& f)&& {
 			using result = detail::invoke_result_t<F, T&>;
 			static_assert(detail::is_optional<result>::value, "F must return an optional");
 
@@ -1765,7 +1767,7 @@ namespace sol {
 		/// \group and_then
 		/// \synopsis template <class F> \n constexpr auto and_then(F &&f) &;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR detail::invoke_result_t<F, T&> and_then(F&& f) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR detail::invoke_result_t<F, T&> and_then(F&& f)& {
 			using result = detail::invoke_result_t<F, T&>;
 			static_assert(detail::is_optional<result>::value, "F must return an optional");
 
@@ -1775,7 +1777,7 @@ namespace sol {
 		/// \group and_then
 		/// \synopsis template <class F> \n constexpr auto and_then(F &&f) &&;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR detail::invoke_result_t<F, T&> and_then(F&& f) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR detail::invoke_result_t<F, T&> and_then(F&& f)&& {
 			using result = detail::invoke_result_t<F, T&>;
 			static_assert(detail::is_optional<result>::value, "F must return an optional");
 
@@ -1816,14 +1818,14 @@ namespace sol {
 		/// \group map
 		/// \synopsis template <class F> constexpr auto map(F &&f) &;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR auto map(F&& f) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR auto map(F&& f)& {
 			return detail::optional_map_impl(*this, std::forward<F>(f));
 		}
 
 		/// \group map
 		/// \synopsis template <class F> constexpr auto map(F &&f) &&;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR auto map(F&& f) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR auto map(F&& f)&& {
 			return detail::optional_map_impl(std::move(*this), std::forward<F>(f));
 		}
 
@@ -1851,14 +1853,14 @@ namespace sol {
 		/// \group map
 		/// \synopsis template <class F> auto map(F &&f) &;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR decltype(detail::optional_map_impl(std::declval<optional&>(), std::declval<F&&>())) map(F&& f) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR decltype(detail::optional_map_impl(std::declval<optional&>(), std::declval<F&&>())) map(F&& f)& {
 			return detail::optional_map_impl(*this, std::forward<F>(f));
 		}
 
 		/// \group map
 		/// \synopsis template <class F> auto map(F &&f) &&;
 		template <class F>
-		SOL_TL_OPTIONAL_11_CONSTEXPR decltype(detail::optional_map_impl(std::declval<optional&&>(), std::declval<F&&>())) map(F&& f) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR decltype(detail::optional_map_impl(std::declval<optional&&>(), std::declval<F&&>())) map(F&& f)&& {
 			return detail::optional_map_impl(std::move(*this), std::forward<F>(f));
 		}
 
@@ -1888,7 +1890,7 @@ namespace sol {
 		/// \group or_else
 		/// \synopsis template <class F> optional<T> or_else (F &&f) &;
 		template <class F, detail::enable_if_ret_void<F>* = nullptr>
-		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f) & {
+		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f)& {
 			if (has_value())
 				return *this;
 
@@ -1898,14 +1900,14 @@ namespace sol {
 
 		/// \exclude
 		template <class F, detail::disable_if_ret_void<F>* = nullptr>
-		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f) & {
+		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f)& {
 			return has_value() ? *this : std::forward<F>(f)();
 		}
 
 		/// \group or_else
 		/// \synopsis template <class F> optional<T> or_else (F &&f) &&;
 		template <class F, detail::enable_if_ret_void<F>* = nullptr>
-		optional<T> or_else(F&& f) && {
+		optional<T> or_else(F&& f)&& {
 			if (has_value())
 				return std::move(*this);
 
@@ -1915,7 +1917,7 @@ namespace sol {
 
 		/// \exclude
 		template <class F, detail::disable_if_ret_void<F>* = nullptr>
-		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f) && {
+		optional<T> SOL_TL_OPTIONAL_11_CONSTEXPR or_else(F&& f)&& {
 			return has_value() ? std::move(*this) : std::forward<F>(f)();
 		}
 
@@ -1962,13 +1964,13 @@ namespace sol {
 		///
 		/// \group map_or
 		template <class F, class U>
-		U map_or(F&& f, U&& u) & {
+		U map_or(F&& f, U&& u)& {
 			return has_value() ? detail::invoke(std::forward<F>(f), **this) : std::forward<U>(u);
 		}
 
 		/// \group map_or
 		template <class F, class U>
-		U map_or(F&& f, U&& u) && {
+		U map_or(F&& f, U&& u)&& {
 			return has_value() ? detail::invoke(std::forward<F>(f), std::move(**this)) : std::forward<U>(u);
 		}
 
@@ -1996,7 +1998,7 @@ namespace sol {
 		/// \group map_or_else
 		/// \synopsis template <class F, class U> \n auto map_or_else(F &&f, U &&u) &;
 		template <class F, class U>
-		detail::invoke_result_t<U> map_or_else(F&& f, U&& u) & {
+		detail::invoke_result_t<U> map_or_else(F&& f, U&& u)& {
 			return has_value() ? detail::invoke(std::forward<F>(f), **this) : std::forward<U>(u)();
 		}
 
@@ -2004,7 +2006,7 @@ namespace sol {
 		/// \synopsis template <class F, class U> \n auto map_or_else(F &&f, U &&u)
 		/// &&;
 		template <class F, class U>
-		detail::invoke_result_t<U> map_or_else(F&& f, U&& u) && {
+		detail::invoke_result_t<U> map_or_else(F&& f, U&& u)&& {
 			return has_value() ? detail::invoke(std::forward<F>(f), std::move(**this)) : std::forward<U>(u)();
 		}
 
@@ -2030,12 +2032,12 @@ namespace sol {
 		template <class U>
 		constexpr optional<typename std::decay<U>::type> conjunction(U&& u) const {
 			using result = optional<detail::decay_t<U>>;
-			return has_value() ? result { u } : result { nullopt };
+			return has_value() ? result{ u } : result{ nullopt };
 		}
 
 		/// \returns `rhs` if `*this` is empty, otherwise the current value.
 		/// \group disjunction
-		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(const optional& rhs) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(const optional& rhs)& {
 			return has_value() ? *this : rhs;
 		}
 
@@ -2045,7 +2047,7 @@ namespace sol {
 		}
 
 		/// \group disjunction
-		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(const optional& rhs) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(const optional& rhs)&& {
 			return has_value() ? std::move(*this) : rhs;
 		}
 
@@ -2057,7 +2059,7 @@ namespace sol {
 #endif
 
 		/// \group disjunction
-		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(optional&& rhs) & {
+		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(optional&& rhs)& {
 			return has_value() ? *this : std::move(rhs);
 		}
 
@@ -2067,7 +2069,7 @@ namespace sol {
 		}
 
 		/// \group disjunction
-		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(optional&& rhs) && {
+		SOL_TL_OPTIONAL_11_CONSTEXPR optional disjunction(optional&& rhs)&& {
 			return has_value() ? std::move(*this) : std::move(rhs);
 		}
 
@@ -2080,7 +2082,7 @@ namespace sol {
 
 		/// Takes the value out of the optional, leaving it empty
 		/// \group take
-		optional take() & {
+		optional take()& {
 			optional ret = *this;
 			reset();
 			return ret;
@@ -2094,7 +2096,7 @@ namespace sol {
 		}
 
 		/// \group take
-		optional take() && {
+		optional take()&& {
 			optional ret = std::move(*this);
 			reset();
 			return ret;
@@ -2285,7 +2287,7 @@ namespace sol {
 		T* m_value;
 	};
 
-} // namespace sol
+	} // namespace sol
 
 namespace std {
 	// TODO SFINAE

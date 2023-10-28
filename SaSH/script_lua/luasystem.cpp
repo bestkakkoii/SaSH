@@ -194,9 +194,11 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 		if (color != -2 && (color < 0 || color > 10))
 			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 2, QObject::tr("invalid value of 'color'"));
 	}
-	else if (ocolor == sol::lua_nil)
+	else if (ocolor == sol::lua_nil || ocolor.is<long long>() && ocolor.as<long long>() == -1)
 	{
-		color = QRandomGenerator64().bounded(0, 10);
+		std::random_device rd;
+		std::mt19937_64 gen(rd());
+		color = std::uniform_int_distribution<long long>(0, 10)(gen);
 	}
 
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());

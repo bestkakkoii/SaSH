@@ -237,8 +237,8 @@ void hookProc(lua_State* L, lua_Debug* ar)
 
 		if (pparser->isInterruptionRequested())
 			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
-		else
-			luadebug::checkStopAndPause(s);
+
+		luadebug::checkStopAndPause(s);
 	}
 }
 
@@ -3945,11 +3945,11 @@ void Parser::processTokens()
 			processVariableCAOs();
 			break;
 		}
-		case TK_FORMAT:
-		{
-			processFormation();
-			break;
-		}
+		//case TK_FORMAT:
+		//{
+		//	processFormation();
+		//	break;
+		//}
 		case TK_GOTO:
 		{
 			if (processGoto())
@@ -4976,26 +4976,18 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			long long index = i + 1;
 
-			dlg[index] = util::toConstData(text);
+			if (visible)
+				dlg[index] = util::toConstData(text);
+			else
+				dlg[index] = "";
 		}
 
-		if (visible)
-		{
-			dialog_t dialog = injector.worker->currentDialog.get();
-			dlg["id"] = dialog.dialogid;
-			dlg["unitid"] = dialog.unitid;
-			dlg["type"] = dialog.windowtype;
-			dlg["buttontext"] = util::toConstData(dialog.linebuttontext.join("|"));
-			dlg["button"] = dialog.buttontype;
-		}
-		else
-		{
-			dlg["id"] = 0;
-			dlg["unitid"] = 0;
-			dlg["type"] = 0;
-			dlg["buttontext"] = "";
-			dlg["button"] = 0;
-		}
+		dialog_t dialog = injector.worker->currentDialog.get();
+		dlg["id"] = dialog.dialogid;
+		dlg["unitid"] = dialog.unitid;
+		dlg["type"] = dialog.windowtype;
+		dlg["buttontext"] = util::toConstData(dialog.linebuttontext.join("|"));
+		dlg["button"] = dialog.buttontype;
 
 		dlg["contains"] = [this, currentIndex](std::string str, sol::this_state s)->bool
 			{

@@ -113,7 +113,7 @@ enum RESERVE
 	//基礎類
 	TK_CMD,				//(其他 關鍵命令)
 	TK_MULTIVAR,		//多個變量
-	TK_FORMAT,			// 格式化後將新數值字符串賦值給變量
+	//TK_FORMAT,			// 格式化後將新數值字符串賦值給變量
 	TK_INCDEC,			// 自增自減
 	TK_CAOS,			// CAOS命令
 	TK_EXPR,			// 表達式

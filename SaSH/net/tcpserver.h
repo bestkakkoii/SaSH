@@ -542,6 +542,7 @@ private:
 	long long mailHistoryWndPageNo = 0;
 #pragma endregion
 
+	QMutex battleWorkLock_;
 public:
 	util::SafeQueue<QByteArray> readQueue_;
 

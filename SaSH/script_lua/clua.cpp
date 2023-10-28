@@ -744,10 +744,38 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("send", &CLuaSystem::send, &luaSystem_);
 	lua.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
 	lua.set_function("openlog", &CLuaSystem::openlog, &luaSystem_);
-	lua.set_function("printf", &CLuaSystem::print, &luaSystem_);
+	lua.set_function("_print", &CLuaSystem::print, &luaSystem_);
+
+	lua.set_function("printf", [](sol::object ovalue, sol::object ocolor, sol::this_state s)->long long
+		{
+			sol::state_view lua(s);
+			if (!ocolor.is<long long>() || ocolor.as<long long>() < -2 || ocolor.as<long long>() > 11)
+			{
+				ocolor = sol::make_object(lua, sol::lua_nil);
+			}
+
+			sol::protected_function print = lua["_print"];
+			if (!print.valid())
+				return 0;
+
+			if (ovalue.is<std::string>())
+			{
+				sol::protected_function format = lua["format"];
+				if (!format.valid())
+					return 0;
+
+				sol::object o = format.call(ovalue.as<std::string>());
+				if (!o.valid())
+					return 0;
+
+				return print.call(o, ocolor).get<long long>();
+			}
+
+			return print.call(ovalue, ocolor).get<long long>();
+		});
+
 	//直接覆蓋print會無效,改成在腳本內中轉覆蓋
 	lua.safe_script(R"(
-		_print = print;
 		print = printf;
 	)");
 
@@ -1047,7 +1075,7 @@ void CLua::proc()
 				try
 				{
 					retObject = loaded_chunk;
-				}
+			}
 				catch (...)
 				{
 					if (!isSubScript_)
@@ -1122,16 +1150,16 @@ void CLua::proc()
 					tableStrs << tr("> (unknown type of data)");
 				}
 				tableStrs << ">";
-			}
 		}
+	}
 
 		luadebug::logExport(s, tableStrs, 0);
-	} while (false);
+} while (false);
 
-	isRunning_.store(false, std::memory_order_release);
-	emit finished();
+isRunning_.store(false, std::memory_order_release);
+emit finished();
 
-	long long currentIndex = getIndex();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.scriptFinished();
-}
+long long currentIndex = getIndex();
+SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+emit signalDispatcher.scriptFinished();
+	}

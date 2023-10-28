@@ -2399,8 +2399,8 @@ QGroupBox {
 		virtual ~SafeVector() = default;
 
 	private:
-		QVector<T> data_;
-		T defaultValue_;
+		QVector<T> data_ = QVector<T>();
+		T defaultValue_ = T();
 		mutable QReadWriteLock lock_;
 	};
 

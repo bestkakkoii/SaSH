@@ -1748,9 +1748,9 @@ QString Worker::getChatHistory(long long index)
 
 	constexpr long long MAX_CHAT_BUFFER = 268;
 	long long ptr = hModule + kOffsetChatBuffer + ((total - index) * MAX_CHAT_BUFFER);
-	long long maxptr = static_cast<long long>(mem::read<int>(hProcess, hModule + kOffsetChatBufferMaxPointer));
-	if (ptr > maxptr)
-		return "\0";
+	//long long maxptr = static_cast<long long>(mem::read<int>(hProcess, hModule + kOffsetChatBufferMaxPointer));
+	//if (ptr > maxptr)
+		//return "\0";
 
 	return mem::readString(hProcess, ptr, MAX_CHAT_BUFFER, true);
 }
@@ -6118,6 +6118,8 @@ bool Worker::asyncBattleAction(bool canDelay)
 
 	if (isInterruptionRequested())
 		return false;
+
+	QMutexLocker lock(&battleWorkLock_);
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -11697,6 +11699,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 		{
 			return;
 		}
+
+		doBattleWork(true);
 		break;
 	}
 	case 'U':
