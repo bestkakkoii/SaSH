@@ -342,7 +342,7 @@ void Socket::onReadyRead()
 		injector.worker.reset(new Worker(index, this, nullptr));
 		connect(injector.worker.get(), &Worker::write, this, &Socket::onWrite, Qt::QueuedConnection);
 		qDebug() << "tcp ok";
-		injector.IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
+		injector.IS_TCP_CONNECTION_OK_TO_USE = true;
 	}
 }
 
@@ -1480,13 +1480,13 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 //檢查是否在戰鬥中
 bool Worker::getBattleFlag()
 {
-	return IS_BATTLE_FLAG.load(std::memory_order_acquire) || getWorldStatus() == 10;
+	return IS_BATTLE_FLAG || getWorldStatus() == 10;
 }
 
 //檢查是否在線
 bool Worker::getOnlineFlag() const
 {
-	return IS_ONLINE_FLAG.load(std::memory_order_acquire);
+	return IS_ONLINE_FLAG;
 }
 
 //用於判斷畫面的狀態的數值 (9平時 10戰鬥 <8非登入)
@@ -2802,7 +2802,7 @@ void Worker::setGameStatus(long long g)
 //切換是否在戰鬥中的標誌
 void Worker::setBattleFlag(bool enable)
 {
-	IS_BATTLE_FLAG.store(enable, std::memory_order_release);
+	IS_BATTLE_FLAG = enable;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	emit signalDispatcher.updateStatusLabelTextChanged(enable ? util::kLabelStatusInBattle : util::kLabelStatusInNormal);
@@ -2843,13 +2843,12 @@ void Worker::setBattleFlag(bool enable)
 
 void Worker::setOnlineFlag(bool enable)
 {
-	IS_ONLINE_FLAG.store(enable, std::memory_order_release);
-
-
 	if (!enable)
 	{
 		setBattleEnd();
 	}
+
+	IS_ONLINE_FLAG = enable;
 }
 
 void Worker::setWindowTitle(QString formatStr)
@@ -3221,6 +3220,9 @@ bool Worker::isDialogVisible()
 //元神歸位
 void Worker::EO()
 {
+	if (!getOnlineFlag())
+		return;
+
 #ifdef _DEBUG
 	//測試用區塊
 #endif
@@ -3240,6 +3242,9 @@ void Worker::EO()
 //登出
 void Worker::logOut()
 {
+	if (!getOnlineFlag())
+		return;
+
 	lssproto_CharLogout_send(0);
 	setWorldStatus(7);
 	setGameStatus(0);
@@ -3248,6 +3253,9 @@ void Worker::logOut()
 //回點
 void Worker::logBack()
 {
+	if (!getOnlineFlag())
+		return;
+
 	if (getBattleFlag())
 		lssproto_BU_send(0);//退出觀戰
 	lssproto_CharLogout_send(1);
@@ -6003,8 +6011,8 @@ void Worker::setBattleEnd()
 	lssproto_Echo_send(const_cast<char*>("hoge"));
 
 	//重置動作人寵標誌避免重複發送
-	battleCharAlreadyActed.store(true, std::memory_order_release);
-	battlePetAlreadyActed.store(true, std::memory_order_release);
+	//battleCharAlreadyActed.store(true, std::memory_order_release);
+	//battlePetAlreadyActed.store(true, std::memory_order_release);
 
 	battlePetDisableList_.clear();
 
@@ -6052,12 +6060,11 @@ void Worker::doBattleWork(bool canDelay)
 	{
 		//紀錄動作前的回合
 		long long recordedRound = battleCurrentRound.load(std::memory_order_acquire);
-		if (!asyncBattleAction(canDelay))
-			return;
+		asyncBattleAction(canDelay);
 
 		Injector& injector = Injector::getInstance(getIndex());
 		long long resendDelay = injector.getValueHash(util::kBattleResendDelayValue);
-		if (resendDelay >= 1000 && battleCurrentRound.load(std::memory_order_acquire) > 0 && !battleBackupFuture_.isRunning())
+		if (resendDelay >= 999999 && battleCurrentRound.load(std::memory_order_acquire) > 0 && !battleBackupFuture_.isRunning())
 			battleBackupFuture_ = QtConcurrent::run([this, recordedRound, canDelay]()
 				{
 					//備用
@@ -6099,8 +6106,8 @@ void Worker::doBattleWork(bool canDelay)
 						QThread::msleep(100);
 					}
 
-					battleCharAlreadyActed.store(false, std::memory_order_release);
-					battlePetAlreadyActed.store(false, std::memory_order_release);
+					//battleCharAlreadyActed.store(false, std::memory_order_release);
+					//battlePetAlreadyActed.store(false, std::memory_order_release);
 					asyncBattleAction(false);
 				});
 	}
@@ -6118,8 +6125,6 @@ bool Worker::asyncBattleAction(bool canDelay)
 
 	if (isInterruptionRequested())
 		return false;
-
-	QMutexLocker lock(&battleWorkLock_);
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -6182,9 +6187,9 @@ bool Worker::asyncBattleAction(bool canDelay)
 	battledata_t bt = getBattleData();
 
 	//人物和寵物分開發 TODO 修正多個BA人物多次發出戰鬥指令的問題
-	if (!battleCharAlreadyActed.load(std::memory_order_acquire))
+	//if (!battleCharAlreadyActed.load(std::memory_order_acquire))
 	{
-		battleCharAlreadyActed.store(true, std::memory_order_release);
+		//battleCharAlreadyActed.store(true, std::memory_order_release);
 		if (canDelay)
 			delay();
 		//解析人物戰鬥邏輯並發送指令
@@ -6192,11 +6197,11 @@ bool Worker::asyncBattleAction(bool canDelay)
 	}
 
 	//TODO 修正寵物指令在多個BA時候重覆發送的問題
-	if (!battlePetAlreadyActed.load(std::memory_order_acquire))
+	//if (!battlePetAlreadyActed.load(std::memory_order_acquire))
 	{
 		long long nret = petDoBattleWork(bt);
 
-		battlePetAlreadyActed.store(true, std::memory_order_release);
+		//battlePetAlreadyActed.store(true, std::memory_order_release);
 		setCurrentRoundEnd();
 		return nret != -1;
 	}
@@ -11341,13 +11346,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
 				}
-				else
-				{
-					if (i == battleCharCurrentPos.load(std::memory_order_acquire))
-						doBattleWork(true);
-					else if (i == battleCharCurrentPos.load(std::memory_order_acquire) + 5)
-						doBattleWork(false);
-				}
 			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
@@ -11687,8 +11685,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 		setBattleData(bt);
 
 		//切換標誌為可動作狀態
-		battleCharAlreadyActed.store(false, std::memory_order_release);
-		battlePetAlreadyActed.store(false, std::memory_order_release);
+		//battleCharAlreadyActed.store(false, std::memory_order_release);
+		//battlePetAlreadyActed.store(false, std::memory_order_release);
 
 		if (!isAllieAllDead && bt.allies.isEmpty())
 			isAllieAllDead = true;
@@ -15150,13 +15148,13 @@ void Worker::findPathAsync(const QPoint& dst)
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.IS_FINDINGPATH.store(true, std::memory_order_release);
+	injector.IS_FINDINGPATH = true;
 
 	long long floor = getFloor();
 	QPoint src(getPoint());
 	if (src == dst)
 	{
-		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+		injector.IS_FINDINGPATH = false;
 		emit findPathFinished();
 		return;
 	}
@@ -15182,7 +15180,7 @@ void Worker::findPathAsync(const QPoint& dst)
 		if (!getOnlineFlag())
 			break;
 
-		if (!injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+		if (!injector.IS_FINDINGPATH)
 			break;
 
 		if (timer.hasExpired(60000))
@@ -15220,12 +15218,12 @@ void Worker::findPathAsync(const QPoint& dst)
 			{
 				if (isInterruptionRequested())
 				{
-					injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+					injector.IS_FINDINGPATH = false;
 					emit findPathFinished();
 					return;
 				}
 
-				if (!injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+				if (!injector.IS_FINDINGPATH)
 				{
 					emit findPathFinished();
 					return;
@@ -15247,13 +15245,13 @@ void Worker::findPathAsync(const QPoint& dst)
 		if (!src.isNull() && src == dst)
 		{
 			move(dst);
-			injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+			injector.IS_FINDINGPATH = false;
 			emit findPathFinished();
 			return;
 		}
 	}
 
-	injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+	injector.IS_FINDINGPATH = false;
 	emit findPathFinished();
 }
 

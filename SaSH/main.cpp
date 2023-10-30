@@ -376,7 +376,7 @@ int main(int argc, char* argv[])
 	QSurfaceFormat::setDefaultFormat(format);
 
 	QApplication::setDesktopSettingsAware(true);
-	QApplication::setApplicationDisplayName("SaSH");
+	QApplication::setApplicationDisplayName(QString("[%1]").arg(_getpid()));
 	QApplication::setQuitOnLastWindowClosed(true);
 
 	//////// 以上必須在 QApplication a(argc, argv); 之前設置否則無效 ////////
@@ -558,17 +558,30 @@ int main(int argc, char* argv[])
 				if (socket == nullptr)
 					return;
 
+				static bool isopen = false;
+				if (!isopen)
+				{
+					isopen = true;
+					CreateConsole();
+				}
+
+				std::cout << "client IP: \"" << socket->peerAddress().toString().toStdString() << "\":" << socket->peerPort() << " connected." << std::endl;
+
 				QObject::connect(socket, &QTcpSocket::readyRead, [socket]()
 					{
 						QByteArray data = socket->readAll();
 						if (data.isEmpty())
 							return;
-
-						MessageBoxA(NULL, data.data(), "TCP", MB_OK);
+						std::cout << std::string(data.constData()) << std::endl;
+						QString replyHead = QString("[%1]:").arg(socket->peerPort());
+						data.prepend(replyHead.toUtf8());
+						socket->write(data);
+						socket->waitForBytesWritten();
 					});
 
 				QObject::connect(socket, &QTcpSocket::disconnected, [socket]()
 					{
+						std::cout << "client IP: \"" << socket->peerAddress().toString().toStdString() << "\":" << socket->peerPort() << " disconnected." << std::endl;
 						socket->deleteLater();
 					});
 			});

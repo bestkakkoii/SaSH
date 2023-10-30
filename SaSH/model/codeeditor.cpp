@@ -323,7 +323,7 @@ void CodeEditor::dropEvent(QDropEvent* e)
 		return;
 
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_FLAG)
 		return;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());

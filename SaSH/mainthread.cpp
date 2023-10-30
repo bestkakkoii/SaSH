@@ -384,7 +384,7 @@ void MainObject::run()
 		for (;;)
 		{
 			//檢查TCP是否握手成功
-			if (injector.IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire))
+			if (injector.IS_TCP_CONNECTION_OK_TO_USE)
 				break;
 
 			if (isInterruptionRequested())
@@ -410,17 +410,20 @@ void MainObject::run()
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
+		emit signalDispatcher.scriptResumed();
+
 		//進入主循環
 		mainProc();
 	} while (false);
 
 	//開始逐步停止所有功能
 	requestInterruption();
+
 	//強制關閉遊戲進程
 	injector.close();
 	if (SignalDispatcher::contains(getIndex()))
 	{
-		emit signalDispatcher.scriptStoped();
+		emit signalDispatcher.scriptPaused();
 		emit signalDispatcher.nodifyAllStop();
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 	}
@@ -436,11 +439,6 @@ void MainObject::run()
 		}
 	}
 	autoThreads_.clear();
-
-	while (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
-	{
-		QThread::msleep(100);
-	}
 
 	//通知線程結束
 	emit finished();
@@ -610,10 +608,6 @@ void MainObject::mainProc()
 		//這裡是預留的暫時沒作用
 		if (status == 1)//非登入狀態
 		{
-			if (!isFirstLogin_)
-				QThread::msleep(1000);
-			else
-				QThread::msleep(50);
 			nodelay = true;
 		}
 		else if (status == 2)//平時
@@ -651,10 +645,7 @@ void MainObject::mainProc()
 			}
 
 			if (bCheckedFastBattle || bCheckedAutoBattle)
-			{
 				injector.postMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
-				injector.worker->doBattleWork(true);
-			}
 			else
 				injector.postMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
 		}
@@ -667,11 +658,14 @@ void MainObject::mainProc()
 	}
 }
 
-void MainObject::inGameInitialize()
+bool MainObject::inGameInitialize()
 {
+	if (isInterruptionRequested())
+		return false;
+
 	Injector& injector = Injector::getInstance(getIndex());
 	if (injector.worker.isNull())
-		return;
+		return false;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
@@ -680,13 +674,16 @@ void MainObject::inGameInitialize()
 	for (;;)
 	{
 		if (isInterruptionRequested())
-			return;
+			return false;
 
 		if (injector.worker.isNull())
-			return;
+			return false;
+
+		if (!injector.isWindowAlive())
+			return false;
 
 		if (timer.hasExpired(10000))
-			return;
+			return false;
 
 		if (injector.worker->checkWG(9, 3))
 			break;
@@ -719,6 +716,8 @@ void MainObject::inGameInitialize()
 	injector.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
 	injector.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
 	injector.sendMessage(kDistoryDialog, NULL, NULL);
+
+	return true;
 }
 
 long long MainObject::checkAndRunFunctions()
@@ -783,12 +782,10 @@ long long MainObject::checkAndRunFunctions()
 	//每次登入後只會執行一次
 	if (login_run_once_flag_)
 	{
-		login_run_once_flag_ = false;
-		inGameInitialize();
+		if (!inGameInitialize())
+			return 0;
 
-		//首次登入標誌
-		if (isFirstLogin_)
-			isFirstLogin_ = false;
+		login_run_once_flag_ = false;
 	}
 
 	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.worker->loginTimer.elapsed(), true));

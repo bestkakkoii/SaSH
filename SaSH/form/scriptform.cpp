@@ -96,13 +96,11 @@ void ScriptForm::onScriptStarted()
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_FLAG)
 		return;
 
 	if (interpreter_ != nullptr)
 	{
-		interpreter_->requestInterruption();
-
 		if (interpreter_->isRunning())
 			return;
 	}
@@ -135,9 +133,9 @@ void ScriptForm::onScriptPaused()
 
 void ScriptForm::onScriptResumed()
 {
-	Injector& injector = Injector::getInstance(getIndex());
 	if (interpreter_ != nullptr)
 	{
+		Injector& injector = Injector::getInstance(getIndex());
 		if (injector.isPaused())
 		{
 			ui.pushButton_script_pause->setText(tr("pause"));
@@ -149,13 +147,9 @@ void ScriptForm::onScriptResumed()
 void ScriptForm::onScriptStoped()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	injector.IS_SCRIPT_INTERRUPT.store(true, std::memory_order_release);
-	if (interpreter_ != nullptr)
-	{
-		interpreter_->stop();
-		if (injector.isPaused())
-			injector.resumed();
-	}
+	injector.stopScript();
+	if (injector.isPaused())
+		injector.resumed();
 }
 
 //腳本結束信號槽
@@ -184,7 +178,7 @@ void ScriptForm::onButtonClicked()
 	if (name == "pushButton_script_start")
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire) && QFile::exists(injector.currentScriptFileName))
+		if (!injector.IS_SCRIPT_FLAG && QFile::exists(injector.currentScriptFileName))
 			emit signalDispatcher.scriptStarted();
 	}
 	else if (name == "pushButton_script_pause")
@@ -358,7 +352,7 @@ void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTab
 	selectedRow_ = row;
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_FLAG)
 		return;
 
 	if (row == 0)
@@ -392,7 +386,7 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 	{
 		long long currentIndex = getIndex();
 		Injector& injector = Injector::getInstance(currentIndex);
-		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_FLAG)
 			break;
 
 		/*得到文件路徑*/
@@ -421,7 +415,7 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 		if (!fileinfo.isFile())
 			break;
 
-		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		if (!injector.IS_SCRIPT_FLAG)
 			injector.currentScriptFileName = strpath;
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);

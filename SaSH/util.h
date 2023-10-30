@@ -136,13 +136,15 @@ namespace mem
 	long __fastcall getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max);
 	ULONG64 __fastcall getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName);
 #ifndef _WIN64
-	bool __fastcall injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);
+	bool __fastcall injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd = nullptr);
 #endif
-	bool __fastcall injectBy64(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//兼容64位注入32位
+	bool __fastcall injectBy64(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd = nullptr);//兼容64位注入32位
 #if 0
 	bool __fastcall inject(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//32注入32
 #endif
 	bool __fastcall enumProcess(QVector<long long>* pprocesses, const QString& moduleName);
+
+	bool __fastcall isProcessExist(long long pid);
 }
 
 namespace util

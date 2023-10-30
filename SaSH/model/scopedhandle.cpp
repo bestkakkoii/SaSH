@@ -196,7 +196,6 @@ void ScopedHandle::createThreadEx(HANDLE ProcessHandle, PVOID StartRoutine, PVOI
 		LARGE_INTEGER pTimeout = {};
 		pTimeout.QuadPart = -1ll * 10000000ll;
 		MINT::NtWaitForSingleObject(hThread, FALSE, &pTimeout);
-		QThread::msleep(2000);
 		addHandleCount();
 		handle_ = hThread;
 		hThread = nullptr;

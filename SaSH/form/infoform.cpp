@@ -40,7 +40,6 @@ InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 
 	setAttribute(Qt::WA_QuitOnClose);
 	setAttribute(Qt::WA_StyledBackground, true);
-
 	util::setWidget(this);
 
 	Qt::WindowFlags windowflag = this->windowFlags();
@@ -109,7 +108,7 @@ InfoForm::~InfoForm()
 
 void InfoForm::showEvent(QShowEvent* e)
 {
-	timer.start(1);
+	timer.start(10);
 	setUpdatesEnabled(true);
 	blockSignals(false);
 	update();

@@ -321,7 +321,7 @@ ScriptEditor::~ScriptEditor()
 	usageTimer_.stop();
 	qDebug() << "~ScriptEditor";
 	Injector& injector = Injector::getInstance(getIndex());
-	injector.isScriptEditorOpened.store(false, std::memory_order_release);
+	injector.IS_SCRIPT_EDITOR_OPENED = false;
 }
 
 void ScriptEditor::showEvent(QShowEvent* e)
@@ -338,13 +338,13 @@ void ScriptEditor::showEvent(QShowEvent* e)
 	QMainWindow::showEvent(e);
 
 	Injector& injector = Injector::getInstance(getIndex());
-	injector.isScriptEditorOpened.store(true, std::memory_order_release);
+	injector.IS_SCRIPT_EDITOR_OPENED = true;
 }
 
 void ScriptEditor::closeEvent(QCloseEvent* e)
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	injector.isScriptEditorOpened.store(false, std::memory_order_release);
+	injector.IS_SCRIPT_EDITOR_OPENED = false;
 
 	setUpdatesEnabled(false);
 	blockSignals(true);
@@ -609,7 +609,7 @@ void ScriptEditor::fileSave(QString content)
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_FLAG)
 		return;
 
 	const QString directoryName(util::applicationDirPath() + "/script");
@@ -721,7 +721,7 @@ void ScriptEditor::loadFile(const QString& fileName)
 	if (isReadOnly)
 		ui.widget->setReadOnly(true);
 
-	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_FLAG)
 	{
 		onScriptStartMode();
 	}
@@ -1005,7 +1005,7 @@ void ScriptEditor::onSetStaticLabelLineText(int line, int index)
 void ScriptEditor::on_widget_cursorPositionChanged(int line, int index)
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+	if (!injector.IS_SCRIPT_FLAG)
 		onSetStaticLabelLineText(line, index);
 }
 
@@ -1576,7 +1576,7 @@ void ScriptEditor::onApplyHashSettingsToUI()
 	if (pSpeedSpinBox != nullptr)
 		pSpeedSpinBox->setValue(injector.getValueHash(util::kScriptSpeedValue));
 
-	ui.actionDebug->setChecked(injector.isScriptDebugModeEnable.load(std::memory_order_acquire));
+	ui.actionDebug->setChecked(injector.IS_SCRIPT_DEBUG_ENABLE);
 }
 
 void ScriptEditor::onWidgetModificationChanged(bool changed)
@@ -1599,7 +1599,7 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 	{
 		long long currnetIndex = getIndex();
 		Injector& injector = Injector::getInstance(currnetIndex);
-		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_FLAG)
 			break;
 
 		/*得到文件路徑*/
@@ -1637,7 +1637,7 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 		injector.error_markers.clear();
 		injector.step_markers.clear();
 
-		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		if (!injector.IS_SCRIPT_FLAG)
 			injector.currentScriptFileName = strpath;
 
 		emit signalDispatcher.loadFileToTable(strpath);
@@ -1691,7 +1691,7 @@ void ScriptEditor::onScriptLabelRowTextChanged(int line, int, bool)
 	if (line < 0)
 		line = 1;
 
-	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+	if (!injector.IS_SCRIPT_DEBUG_ENABLE)
 	{
 		onSetStaticLabelLineText(line - 1, NULL);
 		return;
@@ -1786,7 +1786,7 @@ void ScriptEditor::onActionTriggered()
 
 	if (name == "actionStart")
 	{
-		if (injector.step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		if (injector.step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG)
 		{
 			emit signalDispatcher.scriptStarted();
 		}
@@ -1886,7 +1886,7 @@ void ScriptEditor::onActionTriggered()
 
 	if (name == "actionDebug")
 	{
-		injector.isScriptDebugModeEnable.store(pAction->isChecked(), std::memory_order_release);
+		injector.IS_SCRIPT_DEBUG_ENABLE = pAction->isChecked();
 		return;
 	}
 }
@@ -2413,7 +2413,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 			varType = QObject::tr("Table");
 			QStringList treeTexts = { field, key, "", QString("(%1)").arg(varType) };
 			pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
-			assert(pNode != nullptr);
+			__assume(pNode != nullptr);
 			if (pNode == nullptr)
 				continue;
 
@@ -2470,7 +2470,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 
 		QStringList treeTexts = { field, key.isEmpty() ? util::toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) };
 		pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
-		assert(pNode != nullptr);
+		__assume(pNode != nullptr);
 		if (pNode == nullptr)
 			continue;
 
@@ -2561,7 +2561,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 					{
 						QStringList treeTexts = { field, varName, "", QString("(%1)").arg(varType) };
 						pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
-						assert(pNode != nullptr);
+						__assume(pNode != nullptr);
 						if (pNode == nullptr)
 							continue;
 
@@ -2610,7 +2610,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 
 			QStringList treeTexts = { field, varName, varValueStr, QString("(%1)").arg(varType) };
 			pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
-			assert(pNode != nullptr);
+			__assume(pNode != nullptr);
 			if (pNode == nullptr)
 				continue;
 

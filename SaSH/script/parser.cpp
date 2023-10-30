@@ -199,9 +199,6 @@ void hookProc(lua_State* L, lua_Debug* ar)
 		if (pparser == nullptr)
 			return;
 
-		if (pparser->isInterruptionRequested())
-			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
-
 		lua.set("_LINE_", pparser->getCurrentLine() + 1);
 
 		//獲取區域變量數值
@@ -235,15 +232,12 @@ void hookProc(lua_State* L, lua_Debug* ar)
 			lua_pop(L, 1);
 		}
 
-		if (pparser->isInterruptionRequested())
-			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
-
 		luadebug::checkStopAndPause(s);
 	}
 }
 
 Parser::Parser(long long index)
-	: ThreadPlugin(index, nullptr)
+	: Indexer(index)
 	, lexer_(index)
 	, counter_(new Counter())
 	, globalNames_(new QStringList())
@@ -252,9 +246,6 @@ Parser::Parser(long long index)
 	, pLua_(new CLua(index))
 {
 	qDebug() << "Parser is created!!";
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Parser::requestInterruption, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &Parser::requestInterruption, Qt::QueuedConnection);
 }
 
 Parser::~Parser()
@@ -499,7 +490,7 @@ void Parser::initialize(Parser* pparent)
 			QElapsedTimer timer; timer.start();
 			for (;;)
 			{
-				if (isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+				if (injector.IS_SCRIPT_INTERRUPT)
 					return sol::lua_nil;
 				if (timer.hasExpired(timeout))
 					break;
@@ -764,9 +755,10 @@ void Parser::initialize(Parser* pparent)
 
 			if (var.toLongLong() == 987654321ll)
 			{
-				requestInterruption();
 				insertGlobalVar("vret", "nil");
 				luadebug::showErrorMsg(s, luadebug::WARN_LEVEL, QObject::tr("force stop by user input stop code"));
+				Injector& injector = Injector::getInstance(getIndex());
+				injector.stopScript();
 				return sol::lua_nil;
 			}
 
@@ -1939,7 +1931,8 @@ QVariant Parser::luaDoString(QString expr)
 		sol::error err = loaded_chunk;
 		QString errStr = util::toQString(err.what());
 		handleError(kLuaError, errStr);
-		requestInterruption();
+		Injector& injector = Injector::getInstance(getIndex());
+		injector.stopScript();
 		return "nil";
 	}
 
@@ -2553,7 +2546,8 @@ void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 				sol::error err = loaded_chunk;
 				QString errStr = util::toQString(err.what());
 				handleError(kLuaError, errStr);
-				requestInterruption();
+				Injector& injector = Injector::getInstance(getIndex());
+				injector.stopScript();
 				return;
 			}
 		}
@@ -2758,7 +2752,8 @@ bool Parser::jump(const QString& name, bool noStack)
 	}
 	else if (newName == "exit")
 	{
-		requestInterruption();
+		Injector& injector = Injector::getInstance(getIndex());
+		injector.stopScript();
 		return true;
 	}
 
@@ -3482,7 +3477,7 @@ void Parser::processDelay()
 		long long size = extraDelay / 1000ll;
 		for (i = 0; i < size; ++i)
 		{
-			if (isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+			if (injector.IS_SCRIPT_INTERRUPT)
 				return;
 			QThread::msleep(1000L);
 		}
@@ -3812,7 +3807,7 @@ void Parser::processTokens()
 
 	for (;;)
 	{
-		if (isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_INTERRUPT)
 		{
 			break;
 		}
@@ -3845,7 +3840,7 @@ void Parser::processTokens()
 		if (!skip)
 		{
 			processDelay();
-			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+			if (injector.IS_SCRIPT_DEBUG_ENABLE)
 			{
 				QThread::msleep(1);
 			}
@@ -3876,8 +3871,7 @@ void Parser::processTokens()
 		}
 		case TK_EXIT:
 		{
-			requestInterruption();
-			injector.IS_SCRIPT_INTERRUPT.store(true, std::memory_order_release);
+			injector.stopScript();
 			break;
 		}
 		case TK_MULTIVAR:
@@ -3890,7 +3884,7 @@ void Parser::processTokens()
 			if (!processLuaCode())
 			{
 				name.clear();
-				requestInterruption();
+				injector.stopScript();
 			}
 			break;
 		}
@@ -4028,7 +4022,7 @@ void Parser::processTokens()
 		}
 		}
 
-		if (isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_INTERRUPT)
 		{
 			break;
 		}
@@ -4045,11 +4039,9 @@ void Parser::processTokens()
 	if (mode_ == kSync && !skip)
 		exportVarInfo();
 
-	requestInterruption();
-
 	if (&signalDispatcher != nullptr)
 	{
-		if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire) && !isSubScript())
+		if (injector.IS_SCRIPT_DEBUG_ENABLE && !isSubScript())
 		{
 			emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script report : valid %1，error %2，comment %3，space %4 ==========")
 				.arg(counter_->validCommand).arg(counter_->error).arg(counter_->comment).arg(counter_->space));
@@ -4077,10 +4069,10 @@ void Parser::exportVarInfo()
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))//檢查是否為調試模式
+	if (!injector.IS_SCRIPT_DEBUG_ENABLE)//檢查是否為調試模式
 		return;
 
-	if (!injector.isScriptEditorOpened.load(std::memory_order_acquire))//檢查編輯器是否打開
+	if (!injector.IS_SCRIPT_EDITOR_OPENED)//檢查編輯器是否打開
 		return;
 
 	QVariantHash varhash;
@@ -4988,6 +4980,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		dlg["type"] = dialog.windowtype;
 		dlg["buttontext"] = util::toConstData(dialog.linebuttontext.join("|"));
 		dlg["button"] = dialog.buttontype;
+		dlg["data"] = util::toConstData(dialog.data);
 
 		dlg["contains"] = [this, currentIndex](std::string str, sol::this_state s)->bool
 			{
@@ -5286,7 +5279,6 @@ void Parser::processLocalVariable()
 		exprTo(preExpr, &firstValue);
 		if (firstValue.toLongLong() == 987654321ll)
 		{
-			requestInterruption();
 			return;
 		}
 
@@ -5352,7 +5344,6 @@ void Parser::processVariable()
 		exprTo(preExpr, &firstValue);
 		if (firstValue.toLongLong() == 987654321ll)
 		{
-			requestInterruption();
 			return;
 		}
 
@@ -5398,7 +5389,6 @@ void Parser::processVariable()
 			exprTo(preExpr, &varValue);
 			if (firstValue.toLongLong() == 987654321ll)
 			{
-				requestInterruption();
 				return;
 			}
 

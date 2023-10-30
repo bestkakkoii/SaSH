@@ -187,6 +187,11 @@ public:
 		pausedCondition_.notify_all();
 	}
 
+	inline void stopScript()
+	{
+		IS_SCRIPT_INTERRUPT = true;
+	}
+
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
 	{
@@ -221,16 +226,13 @@ private:
 #endif
 
 public:
+	SafeFlag IS_INJECT_OK = false;//是否注入成功
+
+	SafeFlag IS_TCP_CONNECTION_OK_TO_USE = false;
+
+	SafeFlag IS_SCRIPT_EDITOR_OPENED = false;
+
 	QString currentGameExePath;//當前使用的遊戲進程完整路徑
-
-	static Server server;//與遊戲TCP通信專用
-	QSharedPointer<Worker> worker;
-
-	std::atomic_bool IS_SCRIPT_FLAG = false;//主腳本是否運行
-	std::atomic_bool IS_SCRIPT_INTERRUPT = false;//主腳本是否中斷
-	std::atomic_bool IS_FINDINGPATH = false;
-
-	QString currentScriptFileName;//當前運行的主腳本完整路徑
 
 	StringListModel scriptLogModel; //腳本日誌模型
 
@@ -240,13 +242,10 @@ public:
 
 	util::SafeData<QStringList> subServerNameList;
 
-	long long currentServerListIndex = 0;
-
-	std::atomic_bool isScriptDebugModeEnable = false;
-
-	std::atomic_bool isScriptEditorOpened = false;
-
 	unsigned long long scriptThreadId = 0;
+
+	static Server server;//與遊戲TCP通信專用
+	QSharedPointer<Worker> worker;
 
 	Autil autil;
 
@@ -257,21 +256,32 @@ public:
 	util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
 	util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
 
-	bool IS_INJECT_OK = false;//是否注入成功
-	std::atomic_bool IS_TCP_CONNECTION_OK_TO_USE = false;
+public:
+	SafeFlag IS_SCRIPT_FLAG = false;//主腳本是否運行 //DO NOT RESET!!!
+
+	SafeFlag IS_SCRIPT_INTERRUPT = false;//主腳本是否中斷 //DO NOT RESET!!!
+
+	SafeFlag IS_FINDINGPATH = false;//DO NOT RESET!!!
+
+	SafeFlag IS_SCRIPT_DEBUG_ENABLE = false;//DO NOT RESET!!!
+
+	long long currentServerListIndex = 0;//DO NOT RESET!!!
+
+	QString currentScriptFileName;//當前運行的主腳本完整路徑 //DO NOT RESET!!!
+
 private:
-	unsigned long long hGameModule_ = 0x400000UL;
-	HMODULE hookdllModule_ = NULL;
+	unsigned long long hGameModule_ = 0x400000ULL;
 	process_information_t pi_ = {};
 	ScopedHandle processHandle_;
 	HWND parentWidget_ = nullptr;//主窗口句柄
+	HMODULE hookdllModule_ = nullptr;
 
+private:
 	std::atomic_bool isPaused_ = false;
 	std::condition_variable pausedCondition_;
 	std::mutex pausedMutex_;
 
-	long long nowChatRowCount_ = 0;
-
+private:
 	util::SafeHash<util::UserData, QVariant> userData_hash_ = {
 		{ util::kUserItemNames, QStringList() },
 

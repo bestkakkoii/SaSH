@@ -143,7 +143,7 @@ void MapWidget::showEvent(QShowEvent*)
 	blockSignals(false);
 
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	if (injector.IS_FINDINGPATH)
 	{
 		ui.pushButton_findPath->setEnabled(false);
 	}
@@ -166,9 +166,9 @@ void MapWidget::closeEvent(QCloseEvent*)
 {
 	QMutexLocker lock(&missionThreadMutex_);
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	if (injector.IS_FINDINGPATH)
 	{
-		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+		injector.IS_FINDINGPATH = false;
 	}
 
 	if (missionThread_ != nullptr)
@@ -556,7 +556,7 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_FLAG)
 		return;
 
 	if (injector.worker.isNull())
@@ -565,9 +565,9 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	if (injector.IS_FINDINGPATH)
 	{
-		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+		injector.IS_FINDINGPATH = false;
 	}
 
 	if (missionThread_ != nullptr)
@@ -757,10 +757,10 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (!injector.isValid())
 		return;
 
-	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_FLAG)
 		return;
 
-	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	if (injector.IS_FINDINGPATH)
 		return;
 
 	if (injector.worker.isNull())
@@ -769,9 +769,9 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	if (injector.IS_FINDINGPATH)
 	{
-		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+		injector.IS_FINDINGPATH = false;
 	}
 
 	if (missionThread_ != nullptr)
@@ -803,7 +803,7 @@ void MapWidget::onClear()
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+	injector.IS_FINDINGPATH = false;
 }
 
 void MapWidget::updateNpcListAllContents(const QVariant& d)
@@ -865,10 +865,10 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (!injector.isValid())
 		return;
 
-	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_FLAG)
 		return;
 
-	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	if (injector.IS_FINDINGPATH)
 		return;
 
 	if (injector.worker.isNull())
@@ -925,9 +925,9 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 	else
 	{
-		if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+		if (injector.IS_FINDINGPATH)
 		{
-			injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+			injector.IS_FINDINGPATH = false;
 		}
 
 		if (missionThread_ != nullptr)
@@ -993,9 +993,9 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		}
 	}
 
-	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	if (injector.IS_FINDINGPATH)
 	{
-		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+		injector.IS_FINDINGPATH = false;
 	}
 
 	if (missionThread_ != nullptr)

@@ -258,30 +258,20 @@ bool __fastcall luadebug::isInterruptionRequested(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_INTERRUPT)
 		return true;
 
-	CLua* pLua = lua["_THIS"].get<CLua*>();
-	if (pLua == nullptr)
-		return false;
-
-	return pLua->isInterruptionRequested();
+	return false;
 }
 
 bool __fastcall luadebug::checkStopAndPause(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 
-	if (isInterruptionRequested(s))
-	{
-		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
-		return true;
-	}
-
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
 	injector.checkPause();
 
-	return false;
+	return injector.IS_SCRIPT_INTERRUPT;
 }
 
 bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
@@ -329,13 +319,11 @@ bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 		bret = true;
 		for (;;)
 		{
-			if (isInterruptionRequested(s))
+			if (checkStopAndPause(s))
 				break;
 
 			if (!injector.worker.isNull())
 				break;
-
-			checkStopAndPause(s);
 
 			if (!injector.worker->getBattleFlag())
 				break;
@@ -362,8 +350,9 @@ void __fastcall luadebug::processDelay(const sol::this_state& s)
 		long long size = extraDelay / 1000ll;
 		for (i = 0; i < size; ++i)
 		{
-			if (isInterruptionRequested(s))
+			if (checkStopAndPause(s))
 				return;
+
 			QThread::msleep(1000L);
 		}
 		if (extraDelay % 1000ll > 0ll)
@@ -447,9 +436,7 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 	QElapsedTimer timer; timer.start();
 	for (;;)
 	{
-		checkStopAndPause(s);
-
-		if (isInterruptionRequested(s))
+		if (checkStopAndPause(s))
 			break;
 
 		if (timer.hasExpired(timeout))
@@ -515,7 +502,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
 		processDelay(s);
-		if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_DEBUG_ENABLE)
 		{
 			QThread::msleep(1);
 		}
@@ -590,9 +577,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 CLua::CLua(long long index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
 	qDebug() << "CLua 1";
 }
 
@@ -600,9 +584,6 @@ CLua::CLua(long long index, const QString& content, QObject* parent)
 	: ThreadPlugin(index, parent)
 	, scriptContent_(content)
 {
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
 	qDebug() << "CLua 2";
 }
 
@@ -1075,7 +1056,7 @@ void CLua::proc()
 				try
 				{
 					retObject = loaded_chunk;
-			}
+				}
 				catch (...)
 				{
 					if (!isSubScript_)
@@ -1150,16 +1131,16 @@ void CLua::proc()
 					tableStrs << tr("> (unknown type of data)");
 				}
 				tableStrs << ">";
+			}
 		}
-	}
 
 		luadebug::logExport(s, tableStrs, 0);
-} while (false);
+	} while (false);
 
-isRunning_.store(false, std::memory_order_release);
-emit finished();
+	isRunning_.store(false, std::memory_order_release);
+	emit finished();
 
-long long currentIndex = getIndex();
-SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-emit signalDispatcher.scriptFinished();
-	}
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.scriptFinished();
+}

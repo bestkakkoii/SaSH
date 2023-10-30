@@ -426,7 +426,7 @@ ULONG64 __fastcall mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QStr
 }
 
 #ifndef _WIN64
-bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule)
+bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd)
 {
 	HMODULE hModule = nullptr;
 	QElapsedTimer timer; timer.start();
@@ -483,7 +483,16 @@ bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hPr
 			if (timer.hasExpired(3000))
 				break;
 
-			QThread::msleep(100);
+			if (!mem::isProcessExist(dwProcessId))
+				return false;
+
+			if (hWnd != nullptr)
+			{
+				if (!IsWindow(hWnd))
+					return false;
+			}
+
+			QThread::msleep(10);
 		}
 
 		if (phDllModule != nullptr)
@@ -499,7 +508,7 @@ bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hPr
 }
 #endif
 
-bool __fastcall mem::injectBy64(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule)
+bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd)
 {
 	QElapsedTimer timer; timer.start();
 	static unsigned char data[128] = {
@@ -576,9 +585,31 @@ bool __fastcall mem::injectBy64(long long index, HANDLE hProcess, QString dllPat
 			emit signalDispatcher.messageBoxShow(QObject::tr("Create remote thread failed"), QMessageBox::Icon::Critical);
 			return false;
 		}
+
+		QElapsedTimer timer; timer.start();
+		for (;;)
+		{
+			mem::read(hProcess, injectdata, sizeof(InjectData), &d);
+
+			if (d.remoteModule != NULL)
+				break;
+
+			if (timer.hasExpired(3000))
+				break;
+
+			if (!mem::isProcessExist(dwProcessId))
+				return false;
+
+			if (hWnd != nullptr)
+			{
+				if (!IsWindow(hWnd))
+					return false;
+			}
+
+			QThread::msleep(10);
+		}
 	}
 
-	mem::read(hProcess, injectdata, sizeof(InjectData), &d);
 	if (d.lastError != 0)
 	{
 		//取得錯誤訊息
@@ -692,7 +723,7 @@ bool __fastcall mem::inject(long long index, HANDLE hProcess, QString dllPath, H
 			LocalFree(p);
 		}
 		return false;
-	}
+}
 
 	if (phDllModule != nullptr)
 		*phDllModule = reinterpret_cast<HMODULE>(d.remoteModule);
@@ -749,6 +780,12 @@ bool __fastcall mem::enumProcess(QVector<long long>* pprocesses, const QString& 
 	}
 
 	return true;
+}
+
+bool __fastcall mem::isProcessExist(long long pid)
+{
+	ScopedHandle hProcess(pid);
+	return hProcess.isValid();
 }
 #pragma endregion
 
@@ -1884,7 +1921,7 @@ bool __fastcall util::readFileFilter(const QString& fileName, QString& content, 
 #else
 		return false;
 #endif
-}
+	}
 	content.replace("\r\n", "\n");
 	return true;
 }

@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QStack>
 #include <functional>
 
-#include "threadplugin.h"
+#include <model/indexer.h>
 #include "util.h"
 #include "script_lua/clua.h"
 
@@ -333,7 +333,7 @@ enum JumpBehavior
 };
 
 class Interpreter;
-class Parser : public ThreadPlugin
+class Parser : public QObject, public Indexer
 {
 	Q_OBJECT
 public:

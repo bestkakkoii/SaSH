@@ -505,6 +505,9 @@
     <ClInclude Include="3rdparty\zip.h">
       <Filter>Source Files\3rdparty</Filter>
     </ClInclude>
+    <ClInclude Include="model\safeflag.h">
+      <Filter>Source Files\model</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="form\selecttargetform.ui">

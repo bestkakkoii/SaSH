@@ -238,7 +238,7 @@ bool __fastcall findPathProcess(
 	if (src == dst)
 		return true;//已經抵達
 
-	if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_DEBUG_ENABLE)
 	{
 		output = QObject::tr("<findpath>start searching the path");
 		luadebug::logExport(s, output, 4);
@@ -257,7 +257,7 @@ bool __fastcall findPathProcess(
 	}
 
 	long long cost = static_cast<long long>(timer.elapsed());
-	if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_DEBUG_ENABLE)
 	{
 		output = QObject::tr("<findpath>path found, from %1, %2 to %3, %4 cost:%5 step:%6")
 			.arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y()).arg(cost).arg(path.size());
@@ -279,12 +279,13 @@ bool __fastcall findPathProcess(
 
 	for (;;)
 	{
-		luadebug::checkStopAndPause(s);
+		if (luadebug::checkStopAndPause(s))
+			return false;
 		luadebug::checkOnlineThenWait(s);
 
 		if (injector.worker.isNull())
 		{
-			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+			if (injector.IS_SCRIPT_DEBUG_ENABLE)
 			{
 				output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 				luadebug::logExport(s, output, 10);
@@ -331,10 +332,11 @@ bool __fastcall findPathProcess(
 				{
 					QThread::msleep(500);
 
-					luadebug::checkStopAndPause(s);
+					if (luadebug::checkStopAndPause(s))
+						return false;
 					if (injector.worker.isNull())
 					{
-						if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+						if (injector.IS_SCRIPT_DEBUG_ENABLE)
 						{
 							output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 							luadebug::logExport(s, output, 10);
@@ -354,10 +356,11 @@ bool __fastcall findPathProcess(
 
 					QThread::msleep(500);
 
-					luadebug::checkStopAndPause(s);
+					if (luadebug::checkStopAndPause(s))
+						return false;
 					if (injector.worker.isNull())
 					{
-						if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+						if (injector.IS_SCRIPT_DEBUG_ENABLE)
 						{
 							output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 							luadebug::logExport(s, output, 10);
@@ -379,7 +382,7 @@ bool __fastcall findPathProcess(
 				if (src.isNull() || src != dst)
 					continue;
 
-				if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+				if (injector.IS_SCRIPT_DEBUG_ENABLE)
 				{
 					output = QObject::tr("<findpath>arrived destination, cost:%1").arg(cost);
 					luadebug::logExport(s, output, 4);
@@ -387,7 +390,8 @@ bool __fastcall findPathProcess(
 				return true;//已抵達true
 			}
 
-			luadebug::checkStopAndPause(s);
+			if (luadebug::checkStopAndPause(s))
+				return false;
 
 			if (!injector.worker->mapAnalyzer.calcNewRoute(currentIndex, astar, floor, src, dst, blockList, &path))
 			{
@@ -406,10 +410,11 @@ bool __fastcall findPathProcess(
 		if (blockDetectTimer.hasExpired(5000))
 		{
 			blockDetectTimer.restart();
-			luadebug::checkStopAndPause(s);
+			if (luadebug::checkStopAndPause(s))
+				return false;
 			if (injector.worker.isNull())
 			{
-				if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+				if (injector.IS_SCRIPT_DEBUG_ENABLE)
 				{
 					output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 					luadebug::logExport(s, output, 10);
@@ -417,14 +422,15 @@ bool __fastcall findPathProcess(
 				break;
 			}
 
-			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+			if (injector.IS_SCRIPT_DEBUG_ENABLE)
 			{
 				output = QObject::tr("[warn] <findpath>detedted player ware blocked");
 				luadebug::logExport(s, output, 10);
 			}
 			injector.worker->EO();
 			QThread::msleep(500);
-			luadebug::checkStopAndPause(s);
+			if (luadebug::checkStopAndPause(s))
+				return false;
 
 			//查看前方是否存在NPC阻擋
 			QPoint blockPoint;
@@ -459,10 +465,11 @@ bool __fastcall findPathProcess(
 				continue;
 			}
 
-			luadebug::checkStopAndPause(s);
+			if (luadebug::checkStopAndPause(s))
+				return false;
 			if (injector.worker.isNull())
 			{
-				if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+				if (injector.IS_SCRIPT_DEBUG_ENABLE)
 				{
 					output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 					luadebug::logExport(s, output, 10);
@@ -485,10 +492,11 @@ bool __fastcall findPathProcess(
 			continue;
 		}
 
-		luadebug::checkStopAndPause(s);
+		if (luadebug::checkStopAndPause(s))
+			return false;
 		if (injector.worker.isNull())
 		{
-			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+			if (injector.IS_SCRIPT_DEBUG_ENABLE)
 			{
 				output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 				luadebug::logExport(s, output, 10);
@@ -498,7 +506,7 @@ bool __fastcall findPathProcess(
 
 		if (timer.hasExpired(timeout))
 		{
-			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+			if (injector.IS_SCRIPT_DEBUG_ENABLE)
 			{
 				output = QObject::tr("[warn] <findpath>stop finding path due to timeout");
 				luadebug::logExport(s, output, 10);
@@ -508,7 +516,7 @@ bool __fastcall findPathProcess(
 
 		if (injector.worker->getFloor() != current_floor)
 		{
-			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+			if (injector.IS_SCRIPT_DEBUG_ENABLE)
 			{
 				output = QObject::tr("[warn] <findpath>stop finding path due to floor changed");
 				luadebug::logExport(s, output, 10);
@@ -542,7 +550,8 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 	if (injector.worker.isNull())
 		return FALSE;
 
-	luadebug::checkStopAndPause(s);
+	if (luadebug::checkStopAndPause(s))
+		return FALSE;
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
@@ -596,7 +605,8 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 	CAStar astar;
 	auto findNpcCallBack = [&injector, &astar, currentIndex, &s](const QString& name, QPoint& dst, long long* pdir)->bool
 		{
-			luadebug::checkStopAndPause(s);
+			if (luadebug::checkStopAndPause(s))
+				return false;
 
 			mapunit_s unit;
 			if (!injector.worker->findUnit(name, util::OBJ_NPC, &unit, ""))

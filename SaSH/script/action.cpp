@@ -694,10 +694,7 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 
 	for (long long petIndex = min; petIndex <= max; ++petIndex)
 	{
-		if (isInterruptionRequested())
-			return Parser::kNoChange;
-
-		if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_INTERRUPT)
 			return Parser::kNoChange;
 
 		if (injector.worker.isNull())
@@ -714,9 +711,6 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 		bool bret = false;
 		for (;;)
 		{
-			if (isInterruptionRequested())
-				return Parser::kNoChange;
-
 			if (injector.worker.isNull())
 				return Parser::kServerNotReady;
 

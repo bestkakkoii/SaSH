@@ -463,8 +463,8 @@ private: //lockers
 	mutable QMutex moveLock_;
 
 private:
-	std::atomic_bool IS_BATTLE_FLAG = false;
-	std::atomic_bool IS_ONLINE_FLAG = false;
+	SafeFlag IS_BATTLE_FLAG = false;
+	SafeFlag IS_ONLINE_FLAG = false;
 
 	QElapsedTimer eottlTimer;//伺服器響應時間(MS)
 	QElapsedTimer connectingTimer;
@@ -542,7 +542,6 @@ private:
 	long long mailHistoryWndPageNo = 0;
 #pragma endregion
 
-	QMutex battleWorkLock_;
 public:
 	util::SafeQueue<QByteArray> readQueue_;
 

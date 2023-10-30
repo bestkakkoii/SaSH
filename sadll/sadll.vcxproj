@@ -102,25 +102,28 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>Async</ExceptionHandling>
       <AssemblerOutput>All</AssemblerOutput>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp14</LanguageStandard>
       <InlineFunctionExpansion />
       <IntrinsicFunctions />
       <FavorSizeOrSpeed />
       <OmitFramePointers />
       <EnableFiberSafeOptimizations />
       <WholeProgramOptimization />
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <LanguageStandard_C>Default</LanguageStandard_C>
       <SupportJustMyCode />
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableUAC>true</EnableUAC>
       <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
-      <GenerateMapFile>true</GenerateMapFile>
-      <MapExports>true</MapExports>
-      <AssemblyDebug>true</AssemblyDebug>
+      <GenerateMapFile>
+      </GenerateMapFile>
+      <MapExports>
+      </MapExports>
+      <AssemblyDebug>
+      </AssemblyDebug>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <FixedBaseAddress>
       </FixedBaseAddress>
@@ -173,7 +176,8 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <IntrinsicFunctions>
+      </IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;SADLL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -182,14 +186,20 @@
       <AdditionalIncludeDirectories>$(SolutionDir)SaSH\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <AssemblerOutput>All</AssemblerOutput>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <InlineFunctionExpansion>
+      </InlineFunctionExpansion>
+      <FavorSizeOrSpeed>
+      </FavorSizeOrSpeed>
+      <OmitFramePointers>
+      </OmitFramePointers>
+      <EnableFiberSafeOptimizations>
+      </EnableFiberSafeOptimizations>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <WholeProgramOptimization>
+      </WholeProgramOptimization>
       <LanguageStandard_C>Default</LanguageStandard_C>
       <SupportJustMyCode />
+      <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -199,13 +209,16 @@
       <EnableUAC>true</EnableUAC>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
       <AdditionalLibraryDirectories>$(SolutionDir)SaSH\lib\;$(SolutionDir)$(ProjectName)\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <GenerateMapFile>true</GenerateMapFile>
-      <MapExports>true</MapExports>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <GenerateMapFile>
+      </GenerateMapFile>
+      <MapExports>
+      </MapExports>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <FixedBaseAddress>
       </FixedBaseAddress>
-      <AssemblyDebug>true</AssemblyDebug>
+      <AssemblyDebug>
+      </AssemblyDebug>
       <SetChecksum>false</SetChecksum>
     </Link>
   </ItemDefinitionGroup>
