@@ -342,7 +342,6 @@ private:
 	CLua* parent_ = nullptr;
 	QThread thread_;
 	DWORD tid_ = 0UL;
-	QElapsedTimer scriptTimer_;
 	QString scriptContent_;
 	bool isSubScript_ = false;
 	bool isDebug_ = false;

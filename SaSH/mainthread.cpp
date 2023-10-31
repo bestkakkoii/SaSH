@@ -349,7 +349,7 @@ void MainObject::run()
 
 	Injector::process_information_t process_info;
 	remove_thread_reason = util::REASON_NO_ERROR;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	do
 	{
 		//檢查服務端是否實例化
@@ -399,7 +399,7 @@ void MainObject::run()
 				break;
 			}
 
-			if (timer.hasExpired(15000))
+			if (timer.hasExpired(sa::MAX_TIMEOUT))
 			{
 				remove_thread_reason = util::REASON_TCP_CONNECTION_TIMEOUT;
 				break;
@@ -449,7 +449,7 @@ void MainObject::run()
 void MainObject::mainProc()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	QElapsedTimer freeMemTimer; freeMemTimer.start();
+	util::Timer freeMemTimer;
 
 	mem::freeUnuseMemory(injector.getProcess());
 
@@ -672,7 +672,7 @@ bool MainObject::inGameInitialize()
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
 	//等待完全進入登入後的遊戲畫面
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	for (;;)
 	{
 		if (isInterruptionRequested())
@@ -684,7 +684,7 @@ bool MainObject::inGameInitialize()
 		if (!injector.isWindowAlive())
 			return false;
 
-		if (timer.hasExpired(10000))
+		if (timer.hasExpired(sa::MAX_TIMEOUT))
 			return false;
 
 		if (injector.worker->checkWG(9, 3))
@@ -790,7 +790,7 @@ long long MainObject::checkAndRunFunctions()
 		login_run_once_flag_ = false;
 	}
 
-	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.worker->loginTimer.elapsed(), true));
+	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.worker->loginTimer.cost(), true));
 
 	//更新掛機數據到UI
 	updateAfkInfos();
@@ -842,7 +842,7 @@ void MainObject::updateAfkInfos()
 	if (injector.worker.isNull())
 		return;
 
-	long long duration = injector.worker->loginTimer.elapsed();
+	long long duration = injector.worker->loginTimer.cost();
 	emit signalDispatcher.updateAfkInfoTable(0, util::formatMilliseconds(duration));
 
 	util::AfkRecorder recorder = injector.worker->recorder[0];
@@ -902,7 +902,8 @@ void MainObject::checkControl()
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (injector.worker->loginTimer.elapsed() < 10000)
+	//超過10秒才能執行否則會崩潰
+	if (!injector.worker->loginTimer.hasExpired(10000))
 		return;
 
 	//異步關閉聲音
@@ -1179,7 +1180,7 @@ void MissionThread::autoJoin()
 		current_point = injector.worker->getPoint();
 		if (current_point == unit.p)
 		{
-			injector.worker->move(current_point + util::fix_point.value(QRandomGenerator::global()->bounded(0, 7)));
+			injector.worker->move(current_point + util::fix_point.value(util::rnd::get(0, 7)));
 			QThread::msleep(100);
 			continue;
 		}
@@ -1328,12 +1329,8 @@ void MissionThread::autoWalk()
 				else
 				{
 					//取隨機數
-					std::random_device rd;
-					std::mt19937_64 gen(rd());
-					std::uniform_int_distribution<long long> distributionX(current_pos.x() - walk_len, current_pos.x() + walk_len);
-					std::uniform_int_distribution<long long> distributionY(current_pos.y() - walk_len, current_pos.y() + walk_len);
-					x = distributionX(gen);
-					y = distributionY(gen);
+					x = util::rnd::get(current_pos.x() - walk_len, current_pos.x() + walk_len);
+					y = util::rnd::get(current_pos.y() - walk_len, current_pos.y() + walk_len);
 				}
 
 				//每次循環切換方向

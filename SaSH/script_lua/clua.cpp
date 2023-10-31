@@ -288,7 +288,7 @@ bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 	bool bret = false;
 	if (!injector.worker->getOnlineFlag())
 	{
-		QElapsedTimer timer; timer.start();
+		util::Timer timer;
 		bret = true;
 		for (;;)
 		{
@@ -321,7 +321,7 @@ bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 	bool bret = false;
 	if (injector.worker->getBattleFlag())
 	{
-		QElapsedTimer timer; timer.start();
+		util::Timer timer;
 		bret = true;
 		for (;;)
 		{
@@ -439,7 +439,7 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 	sol::state_view lua(s.lua_state());
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
 	bool bret = false;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	for (;;)
 	{
 		if (checkStopAndPause(s))
@@ -779,14 +779,13 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("delch", &CLuaSystem::delch, &luaSystem_);
 	lua.set_function("menu", &CLuaSystem::menu, &luaSystem_);
 
-	lua.new_usertype<QElapsedTimer>("Timer",
+	lua.new_usertype<util::Timer>("Timer",
 		sol::call_constructor,
-		sol::constructors<QElapsedTimer()>(),
+		sol::constructors<util::Timer()>(),
 
-		"start", &QElapsedTimer::start,
-		"restart", &QElapsedTimer::restart,
-		"expired", &QElapsedTimer::hasExpired,
-		"get", &QElapsedTimer::elapsed
+		"restart", &util::Timer::restart,
+		"expired", &util::Timer::hasExpired,
+		"get", &util::Timer::cost
 	);
 
 	lua.set_function("say", &CLuaSystem::talk, &luaSystem_);

@@ -148,7 +148,6 @@ std::vector<T> Shuffle(const std::vector<T>& v)
 	std::vector<T> result = v;
 	std::random_device rd;
 	std::mt19937_64 gen(rd());
-	//std::default_random_engine eng(rd());
 #if _MSVC_LANG > 201703L
 	std::ranges::shuffle(result, gen);
 #else
@@ -487,7 +486,7 @@ void Parser::initialize(Parser* pparent)
 			injector.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.on();
 			injector.worker->createRemoteDialog(type, buttonFlag, text);
 			bool bret = false;
-			QElapsedTimer timer; timer.start();
+			util::Timer timer;
 			for (;;)
 			{
 				if (injector.IS_SCRIPT_INTERRUPT.get())
@@ -644,15 +643,14 @@ void Parser::initialize(Parser* pparent)
 
 	timer["new"] = [this](sol::this_state s)->long long
 		{
-			QSharedPointer<QElapsedTimer> timer(QSharedPointer<QElapsedTimer>::create());
+			QSharedPointer<util::Timer> timer(QSharedPointer<util::Timer>::create());
 			if (timer.isNull())
 				return 0;
 
-			timer->start();
 			unsigned long long id = 0;
 			for (;;)
 			{
-				id = QRandomGenerator64::global()->generate64();
+				id = util::rnd::get<long long>();
 				if (timerMap_.contains(id))
 					continue;
 
@@ -668,11 +666,11 @@ void Parser::initialize(Parser* pparent)
 			if (id == 0)
 				return 0;
 
-			QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
+			QSharedPointer<util::Timer> timer = timerMap_.value(id);
 			if (timer == nullptr)
 				return 0;
 
-			return timer->elapsed();
+			return timer->cost();
 		};
 
 	timer["gets"] = [this](long long id, sol::this_state s)->long long
@@ -680,11 +678,11 @@ void Parser::initialize(Parser* pparent)
 			if (id == 0)
 				return 0;
 
-			QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
+			QSharedPointer<util::Timer> timer = timerMap_.value(id);
 			if (timer == nullptr)
 				return 0;
 
-			return timer->elapsed() / 1000;
+			return timer->cost() / 1000;
 		};
 
 	timer["getstr"] = [this](long long id, sol::this_state s)->std::string
@@ -692,11 +690,11 @@ void Parser::initialize(Parser* pparent)
 			if (id == 0)
 				return "";
 
-			QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
+			QSharedPointer<util::Timer> timer = timerMap_.value(id);
 			if (timer == nullptr)
 				return "";
 
-			long long time = timer->elapsed();
+			long long time = timer->cost();
 			QString formated = util::formatMilliseconds(time);
 			return util::toConstData(formated);
 		};
@@ -706,7 +704,7 @@ void Parser::initialize(Parser* pparent)
 			if (id == 0)
 				return "";
 
-			QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
+			QSharedPointer<util::Timer> timer = timerMap_.value(id);
 			if (timer == nullptr)
 				return false;
 
@@ -1195,12 +1193,10 @@ void Parser::initialize(Parser* pparent)
 
 	lua_.set_function("rnd", [this](sol::object omin, sol::object omax, sol::this_state s)->long long
 		{
-			std::random_device rd;
-			std::mt19937_64 gen(rd());
 			long long result = 0;
 			if (omin == sol::lua_nil && omax == sol::lua_nil)
 			{
-				result = gen();
+				util::rnd::get(&result);
 				insertGlobalVar("vret", result);
 				return result;
 			}
@@ -1216,18 +1212,15 @@ void Parser::initialize(Parser* pparent)
 
 			if ((min > 0 && max == 0) || (min == max))
 			{
-				std::uniform_int_distribution<long long> distribution(0, min);
-				result = distribution(gen);
+				util::rnd::get(&result, 0LL, min);
 			}
 			else if (min > max)
 			{
-				std::uniform_int_distribution<long long> distribution(max, min);
-				result = distribution(gen);
+				util::rnd::get(&result, max, min);
 			}
 			else
 			{
-				std::uniform_int_distribution<long long> distribution(min, max);
-				result = distribution(gen);
+				util::rnd::get(&result, min, max);
 			}
 
 			insertGlobalVar("vret", result);
@@ -3221,7 +3214,8 @@ void Parser::processFormation()
 		if ((varName.startsWith("out", Qt::CaseInsensitive) && varName.contains(rexOut)) || varName.toLower() == "out")
 		{
 			QRegularExpressionMatch match = rexOut.match(varName);
-			long long color = QRandomGenerator::global()->bounded(0, 10);
+			long long color;
+			util::rnd::get(&color, 0LL, 10LL);
 			if (match.hasMatch())
 			{
 				QString str = match.captured(1);
@@ -3253,7 +3247,8 @@ void Parser::processFormation()
 		else if ((varName.startsWith("say", Qt::CaseInsensitive) && varName.contains(rexOut)) || varName.toLower() == "say")
 		{
 			QRegularExpressionMatch match = rexOut.match(varName);
-			long long color = QRandomGenerator::global()->bounded(0, 10);
+			long long color;
+			util::rnd::get(&color, 0LL, 10LL);
 			if (match.hasMatch())
 			{
 				QString str = match.captured(1);
@@ -3803,7 +3798,7 @@ void Parser::processTokens()
 	RESERVE currentType = TK_UNK;
 	QString name;
 
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 
 	for (;;)
 	{
@@ -4056,7 +4051,7 @@ void Parser::processTokens()
 				path = path.mid(indexScript + dirName.size());
 
 			emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
-				.arg("'" + path + "' " + (isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok"))).arg(util::formatMilliseconds(timer.elapsed())));
+				.arg("'" + path + "' " + (isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok"))).arg(util::formatMilliseconds(timer.cost())));
 			injector.log.close();
 		}
 	}
@@ -4885,7 +4880,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		sol::meta::unqualified_t<sol::table> battle = lua_["battle"];
 
 		battle["count"] = injector.worker->battle_total.get();
-		battle["dura"] = injector.worker->battleDurationTimer.elapsed() / 1000.0;
+		battle["dura"] = injector.worker->battleDurationTimer.cost() / 1000.0;
 		battle["time"] = injector.worker->battle_total_time.get() / 1000.0 / 60.0;
 		battle["cost"] = injector.worker->battle_one_round_time.get() / 1000.0;
 		battle["round"] = injector.worker->battleCurrentRound.get() + 1;

@@ -466,8 +466,8 @@ private:
 	safe::Flag IS_BATTLE_FLAG = false;//是否在戰鬥中
 	safe::Flag IS_ONLINE_FLAG = false;//是否在線上
 
-	QElapsedTimer eottlTimer;//伺服器響應時間(MS)
-	QElapsedTimer connectingTimer;//登入連接時間(MS)
+	util::Timer eoTTLTimer;//伺服器響應時間(MS)
+	util::Timer connectingTimer;//登入連接時間(MS)
 	safe::Flag petEnableEscapeForTemp = false;//寵物臨時設置逃跑模式(觸發調用DoNothing)
 	long long tempCatchPetTargetIndex = -1;//臨時捕捉寵物目標索引
 
@@ -573,10 +573,10 @@ public:
 	safe::Flag isEOTTLSend = false;
 	safe::Integer lastEOTime = 0;
 
-	QElapsedTimer loginTimer;
-	QElapsedTimer battleDurationTimer;
-	QElapsedTimer normalDurationTimer;
-	QElapsedTimer oneRoundDurationTimer;
+	util::Timer loginTimer;
+	util::Timer battleDurationTimer;
+	util::Timer normalDurationTimer;
+	util::Timer oneRoundDurationTimer;
 
 	safe::Integer battleCurrentRound = 0;
 	safe::Integer battle_total_time = 0;
@@ -597,7 +597,7 @@ public:
 	QPair<long long, QVector<sa::bankpet_t>> currentBankPetList;
 	safe::Vector<sa::ITEM> currentBankItemList;
 
-	QElapsedTimer repTimer;
+	util::Timer repTimer;
 	util::AfkRecorder recorder[1 + sa::MAX_PET] = {};
 
 	safe::Data<sa::dialog_t> currentDialog = {};

@@ -380,13 +380,6 @@ Worker::Worker(long long index, Socket* socket, QObject* parent)
 	, mapAnalyzer(index)
 {
 	std::ignore = socket;
-	loginTimer.start();
-	battleDurationTimer.start();
-	oneRoundDurationTimer.start();
-	normalDurationTimer.start();
-	eottlTimer.start();
-	connectingTimer.start();
-	repTimer.start();
 
 	Injector& injector = Injector::getInstance(index);
 	injector.autil.util_Init();
@@ -2197,7 +2190,7 @@ long long Worker::checkJobDailyState(const QString& missionName, long long timeo
 
 	IS_WAITFOR_JOBDAILY_FLAG.on();
 	lssproto_JOBDAILY_send(const_cast<char*>("dyedye"));
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 
 	for (;;)
 	{
@@ -2753,7 +2746,7 @@ void Worker::updateBattleTimeInfo()
 	long long bp = 0;
 	long long field = 0;
 
-	time = battleDurationTimer.elapsed() / 1000.0;
+	time = battleDurationTimer.cost() / 1000.0;
 	cost = battle_one_round_time.get() / 1000.0;
 	total_time = battle_total_time.get() / 1000.0 / 60.0;
 
@@ -3246,7 +3239,7 @@ void Worker::EO()
 	lssproto_EO_send(0);
 	lastEOTime.set(-1);
 	isEOTTLSend.on();
-	eottlTimer.restart();
+	eoTTLTimer.restart();
 	lssproto_Echo_send(const_cast<char*>("hoge"));
 }
 //登出
@@ -3326,7 +3319,7 @@ bool Worker::login(long long s)
 	QString password = injector.getStringHash(util::kGamePasswordString);
 
 	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 
 	auto backToFirstPage = [this, &signalDispatcher, &injector, s]()
 		{
@@ -3619,7 +3612,7 @@ bool Worker::login(long long s)
 			if (x <= 0)
 				break;
 
-			if (timer.hasExpired(1000))
+			if (timer.hasExpired(1500))
 				break;
 
 		}
@@ -3734,7 +3727,7 @@ bool Worker::login(long long s)
 				if (x <= 0)
 					break;
 
-				if (timer.hasExpired(1000))
+				if (timer.hasExpired(1500))
 					break;
 
 			}
@@ -3771,7 +3764,7 @@ bool Worker::login(long long s)
 				if (x >= 640)
 					break;
 
-				if (timer.hasExpired(1000))
+				if (timer.hasExpired(1500))
 					break;
 
 			}
@@ -3813,7 +3806,7 @@ bool Worker::login(long long s)
 	}
 	case util::kStatusConnecting:
 	{
-		if (connectingTimer.hasExpired(10000))
+		if (connectingTimer.hasExpired(sa::MAX_TIMEOUT))
 		{
 			setWorldStatus(7);
 			setGameStatus(0);
@@ -4289,14 +4282,14 @@ bool Worker::addPoint(long long skillid, long long amt)
 	if (amt > pc.point)
 		amt = pc.point;
 
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	for (long long i = 0; i < amt; ++i)
 	{
 		IS_WAITFOT_SKUP_RECV.on();
 		lssproto_SKUP_send(skillid);
 		for (;;)
 		{
-			if (timer.hasExpired(1000))
+			if (timer.hasExpired(1500))
 				break;
 
 			if (getBattleFlag())
@@ -5329,7 +5322,7 @@ void Worker::downloadMap(long long floor)
 	std::wstring wtitle;
 
 	announce(QString("floor %1 downloadMapXSize: %2 downloadMapYSize: %3 totalBlocks: %4").arg(floor).arg(downloadMapXSize_).arg(downloadMapYSize_).arg(totalBlocks));
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 
 	do
 	{
@@ -5367,11 +5360,11 @@ void Worker::downloadMap(long long floor)
 
 	//清空尋路地圖數據、數據重讀、圖像重繪
 	mapAnalyzer.clear(floor);
-	announce(QString("floor %1 complete cost: %2 ms").arg(floor).arg(timer.elapsed()));
+	announce(QString("floor %1 complete cost: %2 ms").arg(floor).arg(timer.cost()));
 	announce(QString("floor %1 reload now").arg(floor));
 	timer.restart();
 	mapAnalyzer.readFromBinary(currentIndex, floor, getFloorName(), false, true);
-	announce(QString("floor %1 reload complete cost: %2 ms").arg(floor).arg(timer.elapsed()));
+	announce(QString("floor %1 reload complete cost: %2 ms").arg(floor).arg(timer.cost()));
 }
 
 //轉移
@@ -5801,7 +5794,7 @@ bool Worker::tradeStart(const QString& name, long long timeout)
 
 	lssproto_TD_send(const_cast<char*>("D|D"));
 
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	for (;;)
 	{
 		if (!getOnlineFlag())
@@ -6042,9 +6035,9 @@ void Worker::setBattleEnd()
 
 	battlePetDisableList_.clear();
 
-	long long battleDuation = battleDurationTimer.elapsed();
+	long long battleDuation = battleDurationTimer.cost();
 	if (battleDuation > 0ll)
-		battle_total_time.add(battleDurationTimer.elapsed());
+		battle_total_time.add(battleDurationTimer.cost());
 	setBattleFlag(false);
 
 	normalDurationTimer.restart();
@@ -6100,7 +6093,7 @@ void Worker::doBattleWork(bool canDelay)
 					if (resendDelay <= 0)
 						return;
 
-					QElapsedTimer timer; timer.start();
+					util::Timer timer;
 					for (;;)
 					{
 						if (isInterruptionRequested())
@@ -11318,7 +11311,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		emit signalDispatcher.battleTableAllItemResetColor();
 
-		battle_one_round_time.set(oneRoundDurationTimer.elapsed());
+		battle_one_round_time.set(oneRoundDurationTimer.cost());
 		oneRoundDurationTimer.restart();
 
 		bool ok = false;
@@ -12157,7 +12150,7 @@ void Worker::lssproto_Echo_recv(char* test)
 {
 	if (isEOTTLSend.get())
 	{
-		long long time = eottlTimer.elapsed();
+		long long time = eoTTLTimer.cost();
 		lastEOTime.set(time);
 		isEOTTLSend.off();
 		announce(QObject::tr("server response time:%1ms").arg(time));//伺服器響應時間:xxxms
@@ -12532,7 +12525,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12582,7 +12575,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12642,7 +12635,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 #endif
 #endif
 #endif
-			}
+	}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -12904,9 +12897,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13044,7 +13037,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13202,7 +13195,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}
@@ -15226,7 +15219,7 @@ void Worker::findPathAsync(const QPoint& dst)
 
 	CAStar astar;
 	std::vector<QPoint> path;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	QSet<QPoint> blockList;
 
 	QPoint point;
@@ -15276,7 +15269,7 @@ void Worker::findPathAsync(const QPoint& dst)
 		bool bret = false;
 		if (getBattleFlag())
 		{
-			QElapsedTimer stimer; stimer.start();
+			util::Timer stimer;
 			bret = true;
 			for (;;)
 			{

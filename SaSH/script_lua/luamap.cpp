@@ -246,7 +246,7 @@ bool __fastcall findPathProcess(
 
 	CAStar astar;
 	std::vector<QPoint> path;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	QSet<QPoint> blockList;
 
 	if (!injector.worker->mapAnalyzer.calcNewRoute(currentIndex, astar, floor, src, dst, blockList, &path))
@@ -256,7 +256,7 @@ bool __fastcall findPathProcess(
 		return false;
 	}
 
-	long long cost = static_cast<long long>(timer.elapsed());
+	long long cost = static_cast<long long>(timer.cost());
 	if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 	{
 		output = QObject::tr("<findpath>path found, from %1, %2 to %3, %4 cost:%5 step:%6")
@@ -272,7 +272,7 @@ bool __fastcall findPathProcess(
 	timer.restart();
 
 	//用於檢測卡點
-	QElapsedTimer blockDetectTimer; blockDetectTimer.start();
+	util::Timer blockDetectTimer;
 	QPoint lastPoint = src;
 	QPoint lastTryPoint;
 	long long recordedStep = -1;
@@ -327,7 +327,7 @@ bool __fastcall findPathProcess(
 			src = getPos();
 			if (!src.isNull() && src == dst)
 			{
-				cost = timer.elapsed();
+				cost = timer.cost();
 				if (cost > 5000)
 				{
 					QThread::msleep(500);
@@ -407,7 +407,7 @@ bool __fastcall findPathProcess(
 			src = getPos();
 		}
 
-		if (blockDetectTimer.hasExpired(5000))
+		if (blockDetectTimer.hasExpired(sa::MAX_TIMEOUT))
 		{
 			blockDetectTimer.restart();
 			if (luadebug::checkStopAndPause(s))

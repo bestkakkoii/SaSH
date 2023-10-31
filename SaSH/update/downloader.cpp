@@ -835,13 +835,13 @@ void Downloader::overwriteCurrentExecutable()
 
 		//move to current
 		{
-			QElapsedTimer timer; timer.start();
+			util::Timer timer;
 			if (QFile::exists(szBackup7zFilePath))
 			{
 				while (!QFile::rename(szBackup7zFilePath, szBackup7zNewFilePath))
 				{
 					QThread::msleep(1000);
-					if (timer.hasExpired(30000ll))
+					if (timer.hasExpired(30000))
 					{
 						break;
 					}

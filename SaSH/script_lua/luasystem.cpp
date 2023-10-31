@@ -91,7 +91,7 @@ long long CLuaSystem::eo(sol::this_state s)
 
 	luadebug::checkBattleThenWait(s);
 
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	injector.worker->EO();
 
 	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !Injector::getInstance(currentIndex).worker->isEOTTLSend.get(); });
@@ -199,9 +199,7 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 	}
 	else if (ocolor == sol::lua_nil || ocolor.is<long long>() && ocolor.as<long long>() == -1)
 	{
-		std::random_device rd;
-		std::mt19937_64 gen(rd());
-		color = std::uniform_int_distribution<long long>(0, 10)(gen);
+		util::rnd::get(&color, 0LL, 10LL);
 	}
 
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());

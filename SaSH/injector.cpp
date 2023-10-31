@@ -24,7 +24,6 @@ Server Injector::server;
 safe::Hash<long long, Injector*> Injector::instances;
 
 constexpr long long MessageTimeout = 3000;
-constexpr long long MAX_TIMEOUT = 10000;
 
 Injector::Injector(long long index)
 	: Indexer(index)
@@ -269,7 +268,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	}
 
 	bool bret = 0;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	QString dllPath = "\0";
 	pi.hWnd = nullptr;
 
@@ -319,7 +318,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 				return false;
 			}
 
-			if (timer.hasExpired(MAX_TIMEOUT))
+			if (timer.hasExpired(sa::MAX_TIMEOUT))
 			{
 				//emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
 				break;
@@ -335,7 +334,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			break;
 		}
 
-		qDebug() << "HWND OK, cost:" << timer.elapsed() << "ms";
+		qDebug() << "HWND OK, cost:" << timer.cost() << "ms";
 
 		//紀錄線程ID(目前沒有使用到只是先記錄著)
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
@@ -370,7 +369,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 				return false;
 			}
 
-			if (timer.hasExpired(MAX_TIMEOUT))
+			if (timer.hasExpired(sa::MAX_TIMEOUT))
 				break;
 
 			QThread::msleep(10);
@@ -382,7 +381,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		if (mem::injectByWin7(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_, pi.hWnd))
-			qDebug() << "inject cost:" << timer.elapsed() << "ms";
+			qDebug() << "inject cost:" << timer.cost() << "ms";
 		else
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
@@ -390,7 +389,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		}
 #else
 		if (mem::injectBy64(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_, pi.hWnd))
-			qDebug() << "inject cost:" << timer.elapsed() << "ms";
+			qDebug() << "inject cost:" << timer.cost() << "ms";
 		else
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
@@ -494,7 +493,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 				return false;
 			}
 
-			if (timer.hasExpired(MAX_TIMEOUT))
+			if (timer.hasExpired(sa::MAX_TIMEOUT))
 			{
 				//emit signalDispatcher.messageBoxShow(QObject::tr("SendMessageTimeoutW failed"), QMessageBox::Icon::Critical);
 				*pReason = util::REASON_INJECT_LIBRARY_FAIL;

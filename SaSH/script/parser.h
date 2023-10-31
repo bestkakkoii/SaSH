@@ -596,7 +596,7 @@ private:
 	Interpreter* pinterpreter_ = nullptr;
 	Lexer lexer_;
 
-	QHash<unsigned long long, QSharedPointer<QElapsedTimer>> timerMap_;
+	QHash<unsigned long long, QSharedPointer<util::Timer>> timerMap_;
 
 	QString scriptFileName_;
 	bool isPrivate_ = false;

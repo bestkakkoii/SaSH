@@ -429,7 +429,7 @@ ULONG64 __fastcall mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QStr
 bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd)
 {
 	HMODULE hModule = nullptr;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
 	HMODULE kernel32Module = GetModuleHandleW(L"kernel32.dll");
@@ -503,14 +503,14 @@ bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hPr
 	}
 
 	if (hModule != nullptr)
-		qDebug() << "inject OK" << "0x" + util::toQString(reinterpret_cast<long long>(hModule), 16) << "time:" << timer.elapsed() << "ms";
+		qDebug() << "inject OK" << "0x" + util::toQString(reinterpret_cast<long long>(hModule), 16) << "time:" << timer.cost() << "ms";
 	return true;
 }
 #endif
 
 bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd)
 {
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	static unsigned char data[128] = {
 		0x55,										//push ebp
 		0x8B, 0xEC,									//mov ebp,esp
@@ -568,7 +568,7 @@ bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProc
 	util::VirtualMemory remoteFunc(hProcess, sizeof(data), true);
 	mem::write(hProcess, remoteFunc, data, sizeof(data));
 
-	qDebug() << "time:" << timer.elapsed() << "ms";
+	qDebug() << "time:" << timer.cost() << "ms";
 	timer.restart();
 
 	//遠程執行線程
@@ -586,7 +586,7 @@ bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProc
 			return false;
 		}
 
-		QElapsedTimer timer; timer.start();
+		util::Timer timer;
 		for (;;)
 		{
 			mem::read(hProcess, injectdata, sizeof(InjectData), &d);
@@ -638,7 +638,7 @@ bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProc
 	if (phGameModule != nullptr)
 		*phGameModule = d.gameModule;
 
-	qDebug() << "inject OK" << "0x" + util::toQString(d.remoteModule, 16) << "time:" << timer.elapsed() << "ms";
+	qDebug() << "inject OK" << "0x" + util::toQString(d.remoteModule, 16) << "time:" << timer.cost() << "ms";
 	return d.gameModule > 0 && d.remoteModule > 0;
 }
 

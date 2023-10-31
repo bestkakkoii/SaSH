@@ -2330,6 +2330,33 @@ QGroupBox {
 		bool hasChanged_ = false;
 	};
 
+	class Timer
+	{
+	public:
+		Timer()
+		{
+			timer_.start();
+		}
+
+		long long cost() const
+		{
+			return timer_.elapsed();
+		}
+
+		bool hasExpired(long long milliseconds) const
+		{
+			return timer_.elapsed() >= milliseconds;
+		}
+
+		void restart()
+		{
+			timer_.restart();
+		}
+
+	private:
+		QElapsedTimer timer_;
+	};
+
 	//用於掛機訊息紀錄
 	typedef struct tagAfkRecorder
 	{
@@ -2361,4 +2388,49 @@ QGroupBox {
 	static const QRegularExpression rexSquareBrackets(R"(\[(\d+)\])");
 	//([\w\p{Han}]+)\[(\d+)\]
 
+
+	namespace rnd
+	{
+		// 生成指定范围内的随机整数
+		template <typename T>
+		inline T get(T min, T max)
+		{
+			std::random_device rd;
+			std::mt19937_64 gen(rd());
+			std::uniform_int_distribution<T> distribution(min, max);
+			return distribution(gen);
+		}
+
+		// 生成指定类型的随机数，自动获取最小值和最大值
+		template <typename T>
+		inline T get()
+		{
+			std::random_device rd;
+			std::mt19937_64 gen(rd());
+			std::uniform_int_distribution<T> distribution(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+			return distribution(gen);
+		}
+
+		//傳遍量指針
+		template <typename T>
+		inline void get(T* p)
+		{
+			std::random_device rd;
+			std::mt19937_64 gen(rd());
+			std::uniform_int_distribution<T> distribution(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+			if (nullptr != p)
+				*p = distribution(gen);
+		}
+
+		//傳遍量指針
+		template <typename T>
+		inline void get(T* p, T min, T max)
+		{
+			std::random_device rd;
+			std::mt19937_64 gen(rd());
+			std::uniform_int_distribution<T> distribution(min, max);
+			if (nullptr != p)
+				*p = distribution(gen);
+		}
+	}
 }

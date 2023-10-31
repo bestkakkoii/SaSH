@@ -64,7 +64,7 @@ long long Interpreter::waitpet(long long currentIndex, long long currentLine, co
 
 long long Interpreter::waitmap(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -140,7 +140,7 @@ long long Interpreter::waitmap(long long currentIndex, long long currentLine, co
 
 	if (!bret && timeout > 2000)
 		injector.worker->EO();
-	qDebug() << "init cost" << timer.elapsed() << "ms";
+	qDebug() << "init cost" << timer.cost() << "ms";
 	return checkJump(TK, 3, bret, FailedJump);
 }
 

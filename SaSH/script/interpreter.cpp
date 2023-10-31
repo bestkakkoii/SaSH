@@ -277,13 +277,18 @@ bool Interpreter::checkRelationalOperator(const TokenMap& TK, long long idx, RES
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
 bool Interpreter::waitfor(long long timeout, std::function<bool()> exprfun)
 {
+	if (nullptr == exprfun)
+		return false;
+
 	if (timeout < 0)
 		timeout = std::numeric_limits<long long>::max();
+	else if (timeout == 0)
+		return exprfun();
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	bool bret = false;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	long long delay = timeout / 10;
 	if (delay > 100)
 		delay = 100;
@@ -499,7 +504,7 @@ bool Interpreter::checkBattleThenWait()
 	bool bret = false;
 	if (injector.worker->getBattleFlag())
 	{
-		QElapsedTimer timer; timer.start();
+		util::Timer timer;
 		bret = true;
 		for (;;)
 		{
@@ -514,7 +519,7 @@ bool Interpreter::checkBattleThenWait()
 			if (!injector.worker->getBattleFlag())
 				break;
 
-			if (timer.hasExpired(60000))
+			if (timer.hasExpired(180000))
 				break;
 
 			QThread::msleep(100);
@@ -539,14 +544,14 @@ bool Interpreter::checkOnlineThenWait()
 
 	if (!injector.worker->getOnlineFlag())
 	{
-		QElapsedTimer timer; timer.start();
+		util::Timer timer;
 		bret = true;
 		for (;;)
 		{
-			if (injector.worker.isNull())
+			if (injector.IS_SCRIPT_INTERRUPT.get())
 				break;
 
-			if (injector.IS_SCRIPT_INTERRUPT.get())
+			if (injector.worker.isNull())
 				break;
 
 			injector.checkPause();
@@ -554,7 +559,7 @@ bool Interpreter::checkOnlineThenWait()
 			if (injector.worker->getOnlineFlag())
 				break;
 
-			if (timer.hasExpired(60000))
+			if (timer.hasExpired(180000))
 				break;
 
 			QThread::msleep(100);

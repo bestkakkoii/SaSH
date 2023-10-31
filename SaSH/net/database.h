@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 namespace sa
 {
 #pragma region Const
+	constexpr long long MAX_TIMEOUT = 10000;
 
 	constexpr size_t LINEBUFSIZ = 8192u;
 
