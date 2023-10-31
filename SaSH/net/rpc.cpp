@@ -200,10 +200,12 @@ void RPC::processMessage(QTcpSocket* client, const QByteArray& data)
 		bool ok;
 		qlonglong number = part.toLongLong(&ok);
 		if (ok) {
-			arguments << Q_ARG(qlonglong, number);
+			QGenericArgument argument("qlonglong", &number);
+			arguments.append(argument);
 		}
 		else {
-			arguments << Q_ARG(QString, part);
+			QGenericArgument argument("QString", part.toUtf8().constData());
+			arguments.append(argument);
 		}
 	}
 
@@ -215,8 +217,9 @@ void RPC::processMessage(QTcpSocket* client, const QByteArray& data)
 	case ReturnQString:
 	{
 		QString returnString;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		success = method.invoke(receiver, Qt::DirectConnection
-			, Q_RETURN_ARG(QString, returnString)
+			, qReturnArg(returnString)
 			, arguments.value(0)
 			, arguments.value(1)
 			, arguments.value(2)
@@ -227,6 +230,21 @@ void RPC::processMessage(QTcpSocket* client, const QByteArray& data)
 			, arguments.value(7)
 			, arguments.value(8)
 			, arguments.value(9));
+#else
+		success = method.invoke(receiver,
+			Qt::DirectConnection,
+			QGenericReturnArgument("QString", returnString.data())
+			, arguments.value(0)
+			, arguments.value(1)
+			, arguments.value(2)
+			, arguments.value(3)
+			, arguments.value(4)
+			, arguments.value(5)
+			, arguments.value(6)
+			, arguments.value(7)
+			, arguments.value(8)
+			, arguments.value(9));
+#endif
 
 		returnValue = returnString;
 		break;
@@ -234,7 +252,8 @@ void RPC::processMessage(QTcpSocket* client, const QByteArray& data)
 	case ReturnLongLong:
 	{
 		qlonglong returnLongLong = 0;
-		success = method.invoke(receiver, Qt::BlockingQueuedConnection
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		success = method.invoke(receiver, Qt::DirectConnection
 			, Q_RETURN_ARG(qlonglong, returnLongLong)
 			, arguments.value(0)
 			, arguments.value(1)
@@ -246,6 +265,21 @@ void RPC::processMessage(QTcpSocket* client, const QByteArray& data)
 			, arguments.value(7)
 			, arguments.value(8)
 			, arguments.value(9));
+#else
+		success = method.invoke(receiver,
+			Qt::DirectConnection,
+			QGenericReturnArgument("qlonglong", &returnLongLong)
+			, arguments.value(0)
+			, arguments.value(1)
+			, arguments.value(2)
+			, arguments.value(3)
+			, arguments.value(4)
+			, arguments.value(5)
+			, arguments.value(6)
+			, arguments.value(7)
+			, arguments.value(8)
+			, arguments.value(9));
+#endif
 
 		returnValue = returnLongLong;
 
@@ -253,7 +287,7 @@ void RPC::processMessage(QTcpSocket* client, const QByteArray& data)
 	}
 	case NoReturn:
 	{
-		success = method.invoke(receiver, Qt::BlockingQueuedConnection
+		success = method.invoke(receiver, Qt::DirectConnection
 			, arguments.value(0)
 			, arguments.value(1)
 			, arguments.value(2)
