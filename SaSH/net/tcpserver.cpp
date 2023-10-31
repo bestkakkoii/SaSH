@@ -1,4 +1,4 @@
-/*
+﻿/*
 				GNU GENERAL PUBLIC LICENSE
 				   Version 2, June 1991
 COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
@@ -4508,35 +4508,36 @@ void Worker::setPetState(long long petIndex, sa::PetState state)
 			setPetStandby(petIndex, state);
 			break;
 		}
-		case kDouble:
+		case sa::kDouble:
 		{
 			if (pet.loyal != 100)
 				break;
 
-			if (pc_.ridePetNo != -1)
+			if (pc.ridePetNo != -1)
 			{
-				mem::write<short>(hProcess, hModule + kOffsetRidePetIndex, -1);
+				mem::write<short>(hProcess, hModule + sa::kOffsetRidePetIndex, -1);
 				setRidePet(-1);
 			}
 
-			if (pc_.battlePetNo == petIndex)
+			if (pc.battlePetNo == petIndex)
 			{
-				mem::write<short>(hProcess, hModule + kOffsetBattlePetIndex, -1);
-				pc_.selectPetNo[petIndex] = 0;
-				mem::write<short>(hProcess, hModule + kOffsetSelectPetArray + (petIndex * sizeof(short)), 0);
+				mem::write<short>(hProcess, hModule + sa::kOffsetBattlePetIndex, -1);
+				pc.selectPetNo[petIndex] = 0;
+				pc_.set(pc);
+				mem::write<short>(hProcess, hModule + sa::kOffsetSelectPetArray + (petIndex * sizeof(short)), 0);
 				setFightPet(-1);
 			}
 
-			if (pc_.mailPetNo == petIndex)
+			if (pc.mailPetNo == petIndex)
 			{
-				mem::write<short>(hProcess, hModule + kOffsetMailPetIndex, -1);
+				mem::write<short>(hProcess, hModule + sa::kOffsetMailPetIndex, -1);
 				setPetStateSub(petIndex, 0);
 			}
 
-			pc_.selectPetNo[petIndex] = 0;
-			mem::write<short>(hProcess, hModule + kOffsetSelectPetArray + (petIndex * sizeof(short)), 0);
+			pc.selectPetNo[petIndex] = 0;
+			pc_.set(pc);
+			mem::write<short>(hProcess, hModule + sa::kOffsetSelectPetArray + (petIndex * sizeof(short)), 0);
 			setRidePet(petIndex);
-			//setPetStandby(petIndex, state);
 			setFightPet(petIndex);
 			break;
 		}
@@ -4659,8 +4660,9 @@ void Worker::checkAutoLockPet()
 		long long lockRideIndex = injector.getValueHash(util::kLockRideValue);
 		if (lockRideIndex >= 0 && lockRideIndex < sa::MAX_PET)
 		{
-		  sa::PET pet = getPet(lockRideIndex);
-			if (pet.state != PetState::kRide || pc_.ridePetNo != pc_.battlePetNo)
+			sa::PET pet = getPet(lockRideIndex);
+			sa::PC pc = getPC();
+			if (pet.state != sa::PetState::kRide || pc.ridePetNo != pc.battlePetNo)
 			{
 				lockedIndex = lockRideIndex;
 				setPetState(lockRideIndex, sa::kDouble);
@@ -10537,9 +10539,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
-#endif
 	}
+#endif
+}
 }
 
 //名片數據
@@ -10598,7 +10600,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				break;
 			}
 		}
-	}
+}
 #endif
 }
 
@@ -11428,12 +11430,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
+			}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-				}
-			}
+		}
+	}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11447,11 +11449,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-		}
+	}
 
 		setBattleData(bt);
 		break;
-	}
+}
 	case 'C':
 	{
 		sa::battledata_t bt = getBattleData();
@@ -12574,7 +12576,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12624,7 +12626,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12684,7 +12686,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 #endif
 #endif
 #endif
-	}
+			}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -12946,9 +12948,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
-#endif
 			}
+#endif
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13086,7 +13088,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13244,7 +13246,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}
