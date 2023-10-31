@@ -1195,7 +1195,7 @@ void MainForm::closeEvent(QCloseEvent* e)
 	trayIcon_.hide();
 	hide();
 
-	Injector::getInstance(getIndex()).close();
+	//Injector::getInstance(getIndex()).close();
 	UniqueIdManager::getInstance().deallocateUniqueId(getIndex());
 
 	for (const auto& it : g_mainFormHash)

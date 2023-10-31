@@ -482,9 +482,9 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
-	if (name == "checkBox_optimize")
+	if (name == "checkBox_autostartscript")
 	{
-		injector.setEnableHash(util::kOptimizeEnable, isChecked);
+		injector.setEnableHash(util::kAutoStartScriptEnable, isChecked);
 		return;
 	}
 
@@ -525,9 +525,9 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
-	if (name == "checkBox_autofreememory")
+	if (name == "checkBox_autorestart")
 	{
-		injector.setEnableHash(util::kAutoFreeMemoryEnable, isChecked);
+		injector.setEnableHash(util::kAutoRestartGameEnable, isChecked);
 		return;
 	}
 
@@ -997,12 +997,12 @@ void GeneralForm::onApplyHashSettingsToUI()
 	//support
 	ui.checkBox_hidechar->setChecked(enableHash.value(util::kHideCharacterEnable));
 	ui.checkBox_closeeffect->setChecked(enableHash.value(util::kCloseEffectEnable));
-	ui.checkBox_optimize->setChecked(enableHash.value(util::kOptimizeEnable));
+	ui.checkBox_autostartscript->setChecked(enableHash.value(util::kAutoStartScriptEnable));
 	ui.checkBox_hidewindow->setChecked(enableHash.value(util::kHideWindowEnable));
 	ui.checkBox_mute->setChecked(enableHash.value(util::kMuteEnable));
 	ui.checkBox_autojoin->setChecked(enableHash.value(util::kAutoJoinEnable));
 	ui.checkBox_locktime->setChecked(enableHash.value(util::kLockTimeEnable));
-	ui.checkBox_autofreememory->setChecked(enableHash.value(util::kAutoFreeMemoryEnable));
+	ui.checkBox_autorestart->setChecked(enableHash.value(util::kAutoRestartGameEnable));
 	ui.checkBox_showexp->setChecked(enableHash.value(util::kShowExpEnable));
 
 	//sp
@@ -1081,9 +1081,20 @@ void GeneralForm::startGameAsync()
 
 		connect(pMainObject, &MainObject::finished, this, [this]()
 			{
-				ui.pushButton_start->setEnabled(true);
+				Injector& injector = Injector::getInstance(getIndex());
+				if (!injector.getEnableHash(util::kAutoRestartGameEnable))
+					ui.pushButton_start->setEnabled(true);
+				else
+				{
+					QMetaObject::invokeMethod(this, "startGameAsync", Qt::QueuedConnection);
+				}
 			}, Qt::QueuedConnection);
 
+		if (injector.getEnableHash(util::kAutoStartScriptEnable))
+		{
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+			emit signalDispatcher.scriptStarted();
+		}
 		return;
 	} while (false);
 

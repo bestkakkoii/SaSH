@@ -58,8 +58,11 @@ public:
 
 	virtual ~SyncClient()
 	{
-		if (pclosesocket_ != nullptr)
+		if (pclosesocket_ != nullptr && INVALID_SOCKET != clientSocket_)
+		{
 			pclosesocket_(clientSocket_);
+			clientSocket_ = INVALID_SOCKET;
+		}
 		WSACleanup();
 	}
 
@@ -166,7 +169,7 @@ public:
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
-			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+			Close();
 			return FALSE;
 		}
 		else if (result == 0)
@@ -188,7 +191,7 @@ public:
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
-			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+			Close();
 			return FALSE;
 		}
 		else if (result == 0)
@@ -213,7 +216,7 @@ public:
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
-			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+			Close();
 			return FALSE;
 		}
 		else if (result == 0)
@@ -221,6 +224,18 @@ public:
 		}
 
 		return TRUE;
+	}
+
+	inline void Close()
+	{
+		if (pclosesocket_ != nullptr && INVALID_SOCKET != clientSocket_)
+		{
+			pclosesocket_(clientSocket_);
+			clientSocket_ = INVALID_SOCKET;
+		}
+
+		extern HWND g_MainHwnd;
+		PostMessageW(g_MainHwnd, kUninitialize, NULL, NULL);
 	}
 
 	inline std::wstring __fastcall getLastError()

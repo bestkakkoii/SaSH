@@ -356,7 +356,8 @@ namespace sa
 
 		//dialog
 		kOffsetDialogType = 0xB83EC,
-		kOffsetDialogValid = 0x4200000,//Custom
+		kOffsetGameInjectState = 0x4200000,//Custom
+		kOffsetDialogValid = 0x4200004,//Custom
 	};
 
 	enum CraftType

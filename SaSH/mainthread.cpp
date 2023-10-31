@@ -369,10 +369,12 @@ void MainObject::run()
 
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpened);
 
-		if (createResult == Injector::CreateAboveWindow8Success)
+		if (createResult == Injector::CreateAboveWindow8Success
+			|| createResult == Injector::CreateWithExistingProcess
+			|| createResult == Injector::CreateWithExistingProcessNoDll)
 		{
 			//注入dll 並通知客戶端要連入的port
-			if (!injector.injectLibrary(process_info, injector.server.serverPort(), &remove_thread_reason)
+			if (!injector.injectLibrary(process_info, injector.server.serverPort(), &remove_thread_reason, createResult == Injector::CreateWithExistingProcess)
 				|| (remove_thread_reason != util::REASON_NO_ERROR))
 			{
 				qDebug() << "injectLibrary failed. reason:" << remove_thread_reason;
@@ -420,8 +422,6 @@ void MainObject::run()
 	//開始逐步停止所有功能
 	requestInterruption();
 
-	//強制關閉遊戲進程
-	injector.close();
 	if (SignalDispatcher::contains(getIndex()))
 	{
 		emit signalDispatcher.scriptPaused();
@@ -490,7 +490,7 @@ void MainObject::mainProc()
 		}
 
 		//自動釋放記憶體
-		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(5ll * 60ll * 1000ll))
+		if (freeMemTimer.hasExpired(5ll * 60ll * 1000ll))
 		{
 			freeMemTimer.restart();
 			mem::freeUnuseMemory(injector.getProcess());
@@ -562,7 +562,7 @@ void MainObject::mainProc()
 		}
 
 		//異步資源優化
-		bChecked = injector.getEnableHash(util::kOptimizeEnable);
+		bChecked = true;
 		if (flagOptimizeEnable_ != bChecked)
 		{
 			flagOptimizeEnable_ = bChecked;

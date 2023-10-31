@@ -143,7 +143,7 @@ namespace mem
 #if 0
 	bool __fastcall inject(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//32注入32
 #endif
-	bool __fastcall enumProcess(QVector<long long>* pprocesses, const QString& moduleName);
+	bool __fastcall enumProcess(QVector<long long>* pprocesses, const QString& moduleName, const QString& withoutModuleName = "");
 
 	bool __fastcall isProcessExist(long long pid);
 }
@@ -430,12 +430,12 @@ namespace util
 		kEchoEnable,
 		kHideCharacterEnable,
 		kCloseEffectEnable,
-		kOptimizeEnable,
+		kAutoStartScriptEnable,
 		kHideWindowEnable,
 		kMuteEnable,
 		kAutoJoinEnable,
 		kLockTimeEnable,
-		kAutoFreeMemoryEnable,
+		kAutoRestartGameEnable,
 		kFastWalkEnable,
 		kPassWallEnable,
 		kLockMoveEnable,
@@ -717,12 +717,12 @@ namespace util
 		{ kEchoEnable, "EchoEnable" },
 		{ kHideCharacterEnable, "HideCharacterEnable" },
 		{ kCloseEffectEnable, "CloseEffectEnable" },
-		{ kOptimizeEnable, "OptimizeEnable" },
+		{ kAutoStartScriptEnable, "AutoStartScriptEnable" },
 		{ kHideWindowEnable, "HideWindowEnable" },
 		{ kMuteEnable, "MuteEnable" },
 		{ kAutoJoinEnable, "AutoJoinEnable" },
 		{ kLockTimeEnable, "LockTimeEnable" },
-		{ kAutoFreeMemoryEnable, "AutoFreeMemoryEnable" },
+		{ kAutoRestartGameEnable, "AutoRestartGameEnable" },
 		{ kFastWalkEnable, "FastWalkEnable" },
 		{ kPassWallEnable, "PassWallEnable" },
 		{ kLockMoveEnable, "LockMoveEnable" },

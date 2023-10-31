@@ -736,7 +736,7 @@ bool __fastcall mem::inject(long long index, HANDLE hProcess, QString dllPath, H
 }
 #endif
 
-bool __fastcall mem::enumProcess(QVector<long long>* pprocesses, const QString& moduleName)
+bool __fastcall mem::enumProcess(QVector<long long>* pprocesses, const QString& moduleName, const QString& withoutModuleName)
 {
 	// 创建一个进程快照
 	ScopedHandle hSnapshot(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPPROCESS, 0);
@@ -747,7 +747,7 @@ bool __fastcall mem::enumProcess(QVector<long long>* pprocesses, const QString& 
 	pe32.dwSize = sizeof(PROCESSENTRY32W);
 
 	// 遍历进程快照
-	if (Process32First(hSnapshot, &pe32))
+	if (Process32FirstW(hSnapshot, &pe32))
 	{
 		do
 		{
@@ -762,6 +762,7 @@ bool __fastcall mem::enumProcess(QVector<long long>* pprocesses, const QString& 
 			if (K32EnumProcessModules(hProcess, hModules, sizeof(hModules), &cbNeeded) == FALSE)
 				continue;
 
+			bool bret = false;
 			for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++)
 			{
 				TCHAR szModule[MAX_PATH];
@@ -769,17 +770,37 @@ bool __fastcall mem::enumProcess(QVector<long long>* pprocesses, const QString& 
 					continue;
 
 				QString moduleNameStr = QString::fromWCharArray(szModule);
-				if (!moduleNameStr.contains(moduleName, Qt::CaseInsensitive))
-					continue;
+				if (!moduleName.isEmpty())
+				{
+					if (!moduleNameStr.contains(moduleName, Qt::CaseInsensitive))
+						continue;
 
-				// 模块名称包含指定名称，将进程PID添加到QVector中
+					bret = true;
+				}
+
+				if (!withoutModuleName.isEmpty())
+				{
+					if (moduleNameStr.contains(withoutModuleName, Qt::CaseInsensitive))
+					{
+						bret = false;
+						break;
+					}
+				}
+			}
+
+			if (bret)
+			{
 				if (pprocesses != nullptr)
 					pprocesses->append(static_cast<long long>(pe32.th32ProcessID));
 			}
-		} while (Process32Next(hSnapshot, &pe32));
+
+		} while (Process32NextW(hSnapshot, &pe32));
 	}
 
-	return true;
+	if (pprocesses != nullptr)
+		return !pprocesses->isEmpty();
+	else
+		return false;
 }
 
 bool __fastcall mem::isProcessExist(long long pid)

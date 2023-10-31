@@ -488,7 +488,7 @@ void GameService::New_lssproto_B_recv(int fd, char* command)
 //WN對話框發包攔截
 void GameService::New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, const char* data)
 {
-	*CONVERT_GAMEVAR<int*>(0x4200000ul) = 0;
+	*CONVERT_GAMEVAR<int*>(0x4200004ul) = 0;
 	if ((1234 == unitid) && (4321 == dialogid))
 	{
 		std::string str = "dk|";
@@ -543,7 +543,7 @@ void GameService::New_lssproto_W2_send(int fd, int x, int y, const char* message
 void GameService::New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data)
 {
 	pCreateDialog(unk, type, button, unitid, dialogid, data);
-	*CONVERT_GAMEVAR<int*>(0x4200000ul) = 1;
+	*CONVERT_GAMEVAR<int*>(0x4200004ul) = 1;
 
 }
 #pragma endregion
@@ -1274,8 +1274,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		std::cout << "kUninitialize" << std::endl;
 #endif
 		g_GameService.uninitialize();
-		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
-		FreeLibraryAndExitThread(g_hDllModule, 0UL);
+		break;
+		//SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
+		//FreeLibraryAndExitThread(g_hDllModule, 0UL);
 	}
 	case kGetModule:
 	{
@@ -1466,151 +1467,150 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 
 BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short type, unsigned short port)
 {
-	if (isInitialized_.load(std::memory_order_acquire) == TRUE)
-		return FALSE;
-
-	isInitialized_.store(TRUE, std::memory_order_release);
-
+	g_ParenthWnd = parentHwnd;
 	index_.store(index, std::memory_order_release);
 
-	g_ParenthWnd = parentHwnd;
-
-	const UINT acp = GetACP();
-	constexpr UINT gb2312CodePage = 936U;
-	if (acp != gb2312CodePage)
+	if (isInitialized_.load(std::memory_order_acquire) == FALSE)
 	{
-		//將環境設置回簡體 8001端 99.99%都是簡體
-		SetConsoleCP(gb2312CodePage);
-		SetConsoleOutputCP(gb2312CodePage);
-		setlocale(LC_ALL, "Chinese.GB2312");
-	}
+		isInitialized_.store(TRUE, std::memory_order_release);
 
-	g_sockfd = CONVERT_GAMEVAR<int*>(0x421B404ul);//套接字
+		const UINT acp = GetACP();
+		constexpr UINT gb2312CodePage = 936U;
+		if (acp != gb2312CodePage)
+		{
+			//將環境設置回簡體 8001端 99.99%都是簡體
+			SetConsoleCP(gb2312CodePage);
+			SetConsoleOutputCP(gb2312CodePage);
+			setlocale(LC_ALL, "Chinese.GB2312");
+		}
 
-	g_world_status = CONVERT_GAMEVAR<int*>(0x4230DD8ul);
-	g_game_status = CONVERT_GAMEVAR<int*>(0x4230DF0ul);
+		g_sockfd = CONVERT_GAMEVAR<int*>(0x421B404ul);//套接字
+
+		g_world_status = CONVERT_GAMEVAR<int*>(0x4230DD8ul);
+		g_game_status = CONVERT_GAMEVAR<int*>(0x4230DF0ul);
 
 #ifdef AUTIL_H
-	Autil::PersonalKey = CONVERT_GAMEVAR<char*>(0x4AC0898ul);//封包解密密鑰
+		Autil::PersonalKey = CONVERT_GAMEVAR<char*>(0x4AC0898ul);//封包解密密鑰
 #endif
 
-	//pBattleCommandReady = CONVERT_GAMEVAR<pfnBattleCommandReady>(0x6B9A0);//戰鬥面板生成call裡面的一個小function
-	pBattleCommandReady = CONVERT_GAMEVAR<DWORD*>(0xA8CAul);
-	pPlaySound = CONVERT_GAMEVAR<pfnPlaySound>(0x88190ul);//播放音效
-	pBattleProc = CONVERT_GAMEVAR<pfnBattleProc>(0x3940ul);//戰鬥循環
-	pTimeProc = CONVERT_GAMEVAR<pfnTimeProc>(0x1E6D0ul);//刷新時間循環
-	pLssproto_EN_recv = CONVERT_GAMEVAR<pfnLssproto_EN_recv>(0x64E10ul);//進戰鬥封包
-	pLssproto_B_recv = CONVERT_GAMEVAR<pfnLssproto_B_recv>(0x64EF0ul);//戰鬥封包
-	pLssproto_WN_send = CONVERT_GAMEVAR<pfnLssproto_WN_send>(0x8FDC0ul);//對話框發送封包
-	pLssproto_TK_send = CONVERT_GAMEVAR<pfnLssproto_TK_send>(0x8F7C0ul);//喊話發送封包
-	pLssproto_W2_send = CONVERT_GAMEVAR<pfnLssproto_W2_send>(0x8EEA0ul);//喊話發送封包
-	pCreateDialog = CONVERT_GAMEVAR<pfnCreateDialog>(0x64AC0ul);//創建對話框
+		//pBattleCommandReady = CONVERT_GAMEVAR<pfnBattleCommandReady>(0x6B9A0);//戰鬥面板生成call裡面的一個小function
+		pBattleCommandReady = CONVERT_GAMEVAR<DWORD*>(0xA8CAul);
+		pPlaySound = CONVERT_GAMEVAR<pfnPlaySound>(0x88190ul);//播放音效
+		pBattleProc = CONVERT_GAMEVAR<pfnBattleProc>(0x3940ul);//戰鬥循環
+		pTimeProc = CONVERT_GAMEVAR<pfnTimeProc>(0x1E6D0ul);//刷新時間循環
+		pLssproto_EN_recv = CONVERT_GAMEVAR<pfnLssproto_EN_recv>(0x64E10ul);//進戰鬥封包
+		pLssproto_B_recv = CONVERT_GAMEVAR<pfnLssproto_B_recv>(0x64EF0ul);//戰鬥封包
+		pLssproto_WN_send = CONVERT_GAMEVAR<pfnLssproto_WN_send>(0x8FDC0ul);//對話框發送封包
+		pLssproto_TK_send = CONVERT_GAMEVAR<pfnLssproto_TK_send>(0x8F7C0ul);//喊話發送封包
+		pLssproto_W2_send = CONVERT_GAMEVAR<pfnLssproto_W2_send>(0x8EEA0ul);//喊話發送封包
+		pCreateDialog = CONVERT_GAMEVAR<pfnCreateDialog>(0x64AC0ul);//創建對話框
 
-	/*
-		sa_8001.exe+91710 - FF 25 08C04900        - jmp dword ptr [sa_8001.exe+9C008] { ->DINPUT.DirectInputCreateA }
+		/*
+			sa_8001.exe+91710 - FF 25 08C04900        - jmp dword ptr [sa_8001.exe+9C008] { ->DINPUT.DirectInputCreateA }
 
-		sa_8001.exe+91722 - FF 25 A4C24900        - jmp dword ptr [sa_8001.exe+9C2A4] { ->->KERNELBASE.GetLastError }
+			sa_8001.exe+91722 - FF 25 A4C24900        - jmp dword ptr [sa_8001.exe+9C2A4] { ->->KERNELBASE.GetLastError }
 
-		sa_8001.exe+9172E - FF 25 A8C24900        - jmp dword ptr [sa_8001.exe+9C2A8] { ->WS2_32._WSAFDIsSet }
-		sa_8001.exe+91734 - FF 25 B0C24900        - jmp dword ptr [sa_8001.exe+9C2B0] { ->WS2_32.select }
-		sa_8001.exe+9173A - FF 25 B4C24900        - jmp dword ptr [sa_8001.exe+9C2B4] { ->WS2_32.WSAStartup }
-		sa_8001.exe+91740 - FF 25 B8C24900        - jmp dword ptr [sa_8001.exe+9C2B8] { ->WS2_32.WSACleanup }
-		sa_8001.exe+91746 - FF 25 BCC24900        - jmp dword ptr [sa_8001.exe+9C2BC] { ->WS2_32.connect }
-		sa_8001.exe+9174C - FF 25 C0C24900        - jmp dword ptr [sa_8001.exe+9C2C0] { ->WS2_32.gethostbyname }
-		sa_8001.exe+91752 - FF 25 C4C24900        - jmp dword ptr [sa_8001.exe+9C2C4] { ->WS2_32.inet_addr }
-		sa_8001.exe+91758 - FF 25 C8C24900        - jmp dword ptr [sa_8001.exe+9C2C8] { ->WS2_32.ntohs }
-		sa_8001.exe+9175E - FF 25 CCC24900        - jmp dword ptr [sa_8001.exe+9C2CC] { ->WS2_32.ioctlsocket }
-		sa_8001.exe+91764 - E9 A70E8962           - jmp 62D22610
-		sa_8001.exe+91769 - CC                    - int 3
-		sa_8001.exe+9176A - FF 25 DCC24900        - jmp dword ptr [sa_8001.exe+9C2DC] { ->WSOCK32.setsockopt }
-		sa_8001.exe+91770 - FF 25 D0C24900        - jmp dword ptr [sa_8001.exe+9C2D0] { ->WSOCK32.recvfrom }
-		sa_8001.exe+91776 - FF 25 D4C24900        - jmp dword ptr [sa_8001.exe+9C2D4] { ->WS2_32.sendto }
+			sa_8001.exe+9172E - FF 25 A8C24900        - jmp dword ptr [sa_8001.exe+9C2A8] { ->WS2_32._WSAFDIsSet }
+			sa_8001.exe+91734 - FF 25 B0C24900        - jmp dword ptr [sa_8001.exe+9C2B0] { ->WS2_32.select }
+			sa_8001.exe+9173A - FF 25 B4C24900        - jmp dword ptr [sa_8001.exe+9C2B4] { ->WS2_32.WSAStartup }
+			sa_8001.exe+91740 - FF 25 B8C24900        - jmp dword ptr [sa_8001.exe+9C2B8] { ->WS2_32.WSACleanup }
+			sa_8001.exe+91746 - FF 25 BCC24900        - jmp dword ptr [sa_8001.exe+9C2BC] { ->WS2_32.connect }
+			sa_8001.exe+9174C - FF 25 C0C24900        - jmp dword ptr [sa_8001.exe+9C2C0] { ->WS2_32.gethostbyname }
+			sa_8001.exe+91752 - FF 25 C4C24900        - jmp dword ptr [sa_8001.exe+9C2C4] { ->WS2_32.inet_addr }
+			sa_8001.exe+91758 - FF 25 C8C24900        - jmp dword ptr [sa_8001.exe+9C2C8] { ->WS2_32.ntohs }
+			sa_8001.exe+9175E - FF 25 CCC24900        - jmp dword ptr [sa_8001.exe+9C2CC] { ->WS2_32.ioctlsocket }
+			sa_8001.exe+91764 - E9 A70E8962           - jmp 62D22610
+			sa_8001.exe+91769 - CC                    - int 3
+			sa_8001.exe+9176A - FF 25 DCC24900        - jmp dword ptr [sa_8001.exe+9C2DC] { ->WSOCK32.setsockopt }
+			sa_8001.exe+91770 - FF 25 D0C24900        - jmp dword ptr [sa_8001.exe+9C2D0] { ->WSOCK32.recvfrom }
+			sa_8001.exe+91776 - FF 25 D4C24900        - jmp dword ptr [sa_8001.exe+9C2D4] { ->WS2_32.sendto }
 
-	*/
+		*/
 
-	/*WSAAPI*/
-	psocket = CONVERT_GAMEVAR<pfnsocket>(0x91764ul);//::socket;
-	psend = CONVERT_GAMEVAR<pfnsend>(0x9171Cul); //::send;
-	precv = CONVERT_GAMEVAR<pfnrecv>(0x91728ul);//這裡直接勾::recv會無效，遊戲通常會複寫另一個call dword ptr指向recv
-	pclosesocket = CONVERT_GAMEVAR<pfnclosesocket>(0x91716ul);//::closesocket;
+		/*WSAAPI*/
+		psocket = CONVERT_GAMEVAR<pfnsocket>(0x91764ul);//::socket;
+		psend = CONVERT_GAMEVAR<pfnsend>(0x9171Cul); //::send;
+		precv = CONVERT_GAMEVAR<pfnrecv>(0x91728ul);//這裡直接勾::recv會無效，遊戲通常會複寫另一個call dword ptr指向recv
+		pclosesocket = CONVERT_GAMEVAR<pfnclosesocket>(0x91716ul);//::closesocket;
 
-	//pinet_addr = CONVERT_GAMEVAR<pfninet_addr>(0x9C2C4); //::inet_addr; //
-	//pntohs = ::ntohs; //CONVERT_GAMEVAR<pfnntohs>(0x9C2C8);//
+		//pinet_addr = CONVERT_GAMEVAR<pfninet_addr>(0x9C2C4); //::inet_addr; //
+		//pntohs = ::ntohs; //CONVERT_GAMEVAR<pfnntohs>(0x9C2C8);//
 
-	pconnect = ::connect;//CONVERT_GAMEVAR<pfnconnect>(0x9C2BC);
+		pconnect = ::connect;//CONVERT_GAMEVAR<pfnconnect>(0x9C2BC);
 
-	/*WINAPI*/
-	pSetWindowTextA = ::SetWindowTextA;//防止部分私服調用A類函數，導致其他語系系統的窗口標題亂碼
-	pGetTickCount = ::GetTickCount;
-	pQueryPerformanceCounter = ::QueryPerformanceCounter;
-	pTimeGetTime = ::timeGetTime;
-	pSleep = ::Sleep;
+		/*WINAPI*/
+		pSetWindowTextA = ::SetWindowTextA;//防止部分私服調用A類函數，導致其他語系系統的窗口標題亂碼
+		pGetTickCount = ::GetTickCount;
+		pQueryPerformanceCounter = ::QueryPerformanceCounter;
+		pTimeGetTime = ::timeGetTime;
+		pSleep = ::Sleep;
 
-	//禁止遊戲內切AI SE切AI會崩潰
-	DWORD paddr = CONVERT_GAMEVAR <DWORD>(0x1DF82ul);
-	util::MemoryMove(paddr, "\xB8\x00\x00\x00\x00", 5u);//只要點pgup或pgdn就會切0
-	paddr = CONVERT_GAMEVAR <DWORD>(0x1DFE6);
-	util::MemoryMove(paddr, "\xBA\x00\x00\x00\x00", 5u);//只要點pgup或pgdn就會切0
+		//禁止遊戲內切AI SE切AI會崩潰
+		DWORD paddr = CONVERT_GAMEVAR <DWORD>(0x1DF82ul);
+		util::MemoryMove(paddr, "\xB8\x00\x00\x00\x00", 5u);//只要點pgup或pgdn就會切0
+		paddr = CONVERT_GAMEVAR <DWORD>(0x1DFE6);
+		util::MemoryMove(paddr, "\xBA\x00\x00\x00\x00", 5u);//只要點pgup或pgdn就會切0
 
-	//paddr = CONVERT_GAMEVAR <DWORD>(0x1F2EF);
-	//util::MemoryMove(paddr, "\xB9\x00\x00\x00\x00", 5);
+		//paddr = CONVERT_GAMEVAR <DWORD>(0x1F2EF);
+		//util::MemoryMove(paddr, "\xB9\x00\x00\x00\x00", 5);
 
-	int* pEnableAI = CONVERT_GAMEVAR<int*>(0xD9050ul);
-	*pEnableAI = 0;
+		int* pEnableAI = CONVERT_GAMEVAR<int*>(0xD9050ul);
+		*pEnableAI = 0;
 
-	//sa_8001sf.exe+A8CA - FF 05 F0 0D 63 04        - inc [sa_8001sf.exe+4230DF0] { (2) }
-	BYTE newByte[6u] = { 0x90ui8, 0xE8ui8, 0x90ui8, 0x90ui8, 0x90ui8, 0x90ui8 }; //新數據
-	util::detour(::New_BattleCommandReady, reinterpret_cast<DWORD>(pBattleCommandReady), oldBattleCommandReadyByte, newByte, sizeof(oldBattleCommandReadyByte), 0UL);
+		//sa_8001sf.exe+A8CA - FF 05 F0 0D 63 04        - inc [sa_8001sf.exe+4230DF0] { (2) }
+		BYTE newByte[6u] = { 0x90ui8, 0xE8ui8, 0x90ui8, 0x90ui8, 0x90ui8, 0x90ui8 }; //新數據
+		util::detour(::New_BattleCommandReady, reinterpret_cast<DWORD>(pBattleCommandReady), oldBattleCommandReadyByte, newByte, sizeof(oldBattleCommandReadyByte), 0UL);
 
 #if 0
-	//禁止開頭那隻寵物亂跑
-	paddr = CONVERT_GAMEVAR<DWORD>(0x79A0Ful);
-	//sa_8001.exe+79A0F - E8 DCFAFBFF           - call sa_8001.exe+394F0s
-	util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5u);
-	//開頭那隻寵物會不會動
-	paddr = CONVERT_GAMEVAR<DWORD>(0x79A14ul);
-	//sa_8001.exe+79A14 - E8 5777F8FF           - call sa_8001.exe+1170
-	util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5u);
+		//禁止開頭那隻寵物亂跑
+		paddr = CONVERT_GAMEVAR<DWORD>(0x79A0Ful);
+		//sa_8001.exe+79A0F - E8 DCFAFBFF           - call sa_8001.exe+394F0s
+		util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5u);
+		//開頭那隻寵物會不會動
+		paddr = CONVERT_GAMEVAR<DWORD>(0x79A14ul);
+		//sa_8001.exe+79A14 - E8 5777F8FF           - call sa_8001.exe+1170
+		util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5u);
 
-	////使遊戲開頭那隻亂竄的寵物不可見
-	paddr = CONVERT_GAMEVAR<DWORD>(0x79A19ul);
-	//sa_8001.exe+79A19 - E8 224A0000           - call sa_8001.exe+7E440
-	util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5u);
+		////使遊戲開頭那隻亂竄的寵物不可見
+		paddr = CONVERT_GAMEVAR<DWORD>(0x79A19ul);
+		//sa_8001.exe+79A19 - E8 224A0000           - call sa_8001.exe+7E440
+		util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5u);
 #endif
 
-	//開始下勾子
-	DetourRestoreAfterWith();
-	DetourTransactionBegin();
-	DetourUpdateThread(g_MainThreadHandle);
+		//開始下勾子
+		DetourRestoreAfterWith();
+		DetourTransactionBegin();
+		DetourUpdateThread(g_MainThreadHandle);
 
-	//DetourAttach(&(PVOID&)psocket, ::New_socket);
-	//DetourAttach(&(PVOID&)psend, ::New_send);
-	DetourAttach(&(PVOID&)precv, ::New_recv);
-	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
-	//DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
-	//DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
-	//DetourAttach(&(PVOID&)pconnect, ::New_connect);
+		//DetourAttach(&(PVOID&)psocket, ::New_socket);
+		//DetourAttach(&(PVOID&)psend, ::New_send);
+		DetourAttach(&(PVOID&)precv, ::New_recv);
+		DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
+		//DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
+		//DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
+		//DetourAttach(&(PVOID&)pconnect, ::New_connect);
 
 
-	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
-	DetourAttach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
-	DetourAttach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
-	DetourAttach(&(PVOID&)pTimeGetTime, ::New_TimeGetTime);
-	DetourAttach(&(PVOID&)pSleep, ::New_Sleep);
+		DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
+		DetourAttach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
+		DetourAttach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
+		DetourAttach(&(PVOID&)pTimeGetTime, ::New_TimeGetTime);
+		DetourAttach(&(PVOID&)pSleep, ::New_Sleep);
 
-	DetourAttach(&(PVOID&)pPlaySound, ::New_PlaySound);
-	DetourAttach(&(PVOID&)pBattleProc, ::New_BattleProc);
-	DetourAttach(&(PVOID&)pTimeProc, ::New_TimeProc);
-	DetourAttach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
-	DetourAttach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
-	DetourAttach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
-	DetourAttach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
-	DetourAttach(&(PVOID&)pLssproto_W2_send, ::New_lssproto_W2_send);
-	DetourAttach(&(PVOID&)pCreateDialog, ::New_CreateDialog);
+		DetourAttach(&(PVOID&)pPlaySound, ::New_PlaySound);
+		DetourAttach(&(PVOID&)pBattleProc, ::New_BattleProc);
+		DetourAttach(&(PVOID&)pTimeProc, ::New_TimeProc);
+		DetourAttach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
+		DetourAttach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
+		DetourAttach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
+		DetourAttach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
+		DetourAttach(&(PVOID&)pLssproto_W2_send, ::New_lssproto_W2_send);
+		DetourAttach(&(PVOID&)pCreateDialog, ::New_CreateDialog);
 
-	DetourTransactionCommit();
+		DetourTransactionCommit();
 
-	WM_SetOptimize(true);
+		WM_SetOptimize(true);
+	}
 
 #ifdef USE_ASYNC_TCP
 	if (nullptr == asyncClient_)
@@ -1632,17 +1632,20 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 
 	return FALSE;
 #else
+
+	//與外掛連線
+	syncClient_.reset(new SyncClient(parentHwnd, index));
 	if (nullptr == syncClient_)
+		return FALSE;
+
+	syncClient_->setCloseSocketFunction(pclosesocket);
+	syncClient_->setRecvFunction(precv);
+	WM_Announce(const_cast<char*>("connect to plugin server"), 0);
+	if (syncClient_->Connect(type, port) == TRUE)
 	{
-		//與外掛連線
-		syncClient_.reset(new SyncClient(parentHwnd, index));
-		if (nullptr == syncClient_)
-			return FALSE;
-
-		syncClient_->setCloseSocketFunction(pclosesocket);
-		syncClient_->setRecvFunction(precv);
-
-		return syncClient_->Connect(type, port);
+		WM_Announce(const_cast<char*>("connected"), 0);
+		*CONVERT_GAMEVAR<int*>(0x4200000) = 1;
+		return TRUE;
 	}
 
 	return FALSE;
@@ -1652,10 +1655,10 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 //這裡的東西其實沒有太大必要，一般外掛斷開就直接關遊戲了，如果需要設計能重連才需要
 void GameService::uninitialize()
 {
-	if (isInitialized_.load(std::memory_order_acquire) == FALSE)
-		return;
+	//if (isInitialized_.load(std::memory_order_acquire) == FALSE)
+	//	return;
 
-	isInitialized_.store(FALSE, std::memory_order_release);
+	//isInitialized_.store(FALSE, std::memory_order_release);
 
 #ifdef USE_ASYNC_TCP
 	if (asyncClient_ != nullptr)
@@ -1664,6 +1667,10 @@ void GameService::uninitialize()
 	if (syncClient_ != nullptr)
 		syncClient_.reset();
 #endif
+
+	* CONVERT_GAMEVAR<int*>(0x4200000) = 0;
+
+#if 0
 
 	DetourRestoreAfterWith();
 	DetourTransactionBegin();
@@ -1696,6 +1703,7 @@ void GameService::uninitialize()
 	DetourTransactionCommit();
 
 	util::undetour(pBattleCommandReady, oldBattleCommandReadyByte, sizeof(oldBattleCommandReadyByte));
+#endif
 }
 
 void GameService::sendToServer(const std::string& str)

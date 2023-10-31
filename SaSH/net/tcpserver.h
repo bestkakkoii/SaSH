@@ -469,7 +469,7 @@ private:
 	util::Timer eoTTLTimer;//伺服器響應時間(MS)
 	util::Timer connectingTimer;//登入連接時間(MS)
 	safe::Flag petEnableEscapeForTemp = false;//寵物臨時設置逃跑模式(觸發調用DoNothing)
-	long long tempCatchPetTargetIndex = -1;//臨時捕捉寵物目標索引
+	safe::Integer tempCatchPetTargetIndex = -1;//臨時捕捉寵物目標索引
 
 	safe::Data<sa::battledata_t> battleData; //戰鬥數據
 
@@ -511,8 +511,8 @@ private:
 
 	//遊戲內當前時間相關
 	sa::LSTIME saTimeStruct = {};
-	long long serverTime = 0LL;
-	long long FirstTime = 0LL;
+	safe::Integer serverTime = 0LL;
+	safe::Integer firstServerTime = 0LL;
 
 	//交易相關
 	long long opp_showindex = 0;

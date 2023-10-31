@@ -849,11 +849,11 @@ long long CLuaSystem::set(std::string enumStr,
 			{ "斷線重連", util::kAutoReconnectEnable },
 			{ "隱藏人物", util::kHideCharacterEnable },
 			{ "關閉特效", util::kCloseEffectEnable },
-			{ "資源優化", util::kOptimizeEnable },
+			{ "自動腳本", util::kAutoStartScriptEnable },
 			{ "隱藏石器", util::kHideWindowEnable },
 			{ "屏蔽聲音", util::kMuteEnable },
 
-			{ "自動調整內存", util::kAutoFreeMemoryEnable },
+			{ "自動重啟", util::kAutoRestartGameEnable },
 			{ "快速走路", util::kFastWalkEnable },
 			{ "橫沖直撞", util::kPassWallEnable },
 			{ "鎖定原地", util::kLockMoveEnable },
@@ -985,11 +985,11 @@ long long CLuaSystem::set(std::string enumStr,
 			{ "断线重连", util::kAutoReconnectEnable },
 			{ "隐藏人物", util::kHideCharacterEnable },
 			{ "关闭特效", util::kCloseEffectEnable },
-			{ "资源优化", util::kOptimizeEnable },
+			{ "自动脚本", util::kAutoStartScriptEnable },
 			{ "隐藏石器", util::kHideWindowEnable },
 			{ "屏蔽声音", util::kMuteEnable },
 
-			{ "自动调整内存", util::kAutoFreeMemoryEnable },
+			{ "自动重启", util::kAutoRestartGameEnable },
 			{ "快速走路", util::kFastWalkEnable },
 			{ "横冲直撞", util::kPassWallEnable },
 			{ "锁定原地", util::kLockMoveEnable },
@@ -1263,11 +1263,11 @@ long long CLuaSystem::set(std::string enumStr,
 
 	case util::kHideCharacterEnable:
 	case util::kCloseEffectEnable:
-	case util::kOptimizeEnable:
+	case util::kAutoStartScriptEnable:
 	case util::kHideWindowEnable:
 	case util::kMuteEnable:
 
-	case util::kAutoFreeMemoryEnable:
+	case util::kAutoRestartGameEnable:
 	case util::kFastWalkEnable:
 	case util::kPassWallEnable:
 	case util::kLockMoveEnable:

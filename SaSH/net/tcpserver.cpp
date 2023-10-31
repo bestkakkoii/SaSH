@@ -446,11 +446,14 @@ void Worker::clear()
 	mapUnitHash.clear();
 	chatQueue.clear();
 
+	serverTime.reset();
+	firstServerTime.reset();
+
 	IS_LOCKATTACK_ESCAPE_DISABLE.off();
 	IS_WAITFOT_SKUP_RECV.off();
 
 	petEnableEscapeForTemp.off();
-	tempCatchPetTargetIndex = -1;
+	tempCatchPetTargetIndex.set(-1);
 
 	IS_WAITFOR_JOBDAILY_FLAG.off();
 	IS_WAITFOR_BANK_FLAG.off();
@@ -6033,7 +6036,7 @@ void Worker::realTimeToSATime(sa::LSTIME* lstime)
 {
 	constexpr long long era = 912766409LL + 5400LL;
 	//cary 十五
-	long long lsseconds = (QDateTime::currentMSecsSinceEpoch() - FirstTime) / 1000LL + serverTime - era;
+	long long lsseconds = (QDateTime::currentMSecsSinceEpoch() - firstServerTime.get()) / 1000LL + serverTime.get() - era;
 
 	lstime->year = lsseconds / (sa::LSTIME_SECONDS_PER_DAY * sa::LSTIME_DAYS_PER_YEAR);
 
@@ -6747,7 +6750,7 @@ void Worker::handleCharBattleLogics(const sa::battledata_t& bt)
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	tempCatchPetTargetIndex = -1;
+	tempCatchPetTargetIndex.set(-1);
 	petEnableEscapeForTemp.off(); //用於在必要的時候切換戰寵動作為逃跑模式
 
 	QStringList items;
@@ -7998,7 +8001,7 @@ void Worker::handleCharBattleLogics(const sa::battledata_t& bt)
 				sa::battleobject_t obj = battleObjects.first();
 				battleObjects.pop_front();
 				tempTarget = obj.pos;
-				tempCatchPetTargetIndex = tempTarget;
+				tempCatchPetTargetIndex.set(tempTarget);
 
 				//允許人物動作降低血量
 				bool allowCharAction = injector.getEnableHash(util::kBattleCatchCharMagicEnable);
@@ -8474,7 +8477,7 @@ void Worker::handlePetBattleLogics(const sa::battledata_t& bt)
 		if (skillIndex < 0 || skillIndex > sa::MAX_SKILL)
 			break;
 
-		long long tempTarget = tempCatchPetTargetIndex;
+		long long tempTarget = tempCatchPetTargetIndex.get();
 		if ((tempTarget != -1) && fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_ALL)))
 		{
 			sendBattlePetSkillAct(skillIndex, target);
@@ -10539,9 +10542,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-	}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -10600,7 +10603,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				break;
 			}
 		}
-}
+	}
 #endif
 }
 
@@ -11430,12 +11433,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-			}
+					}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-		}
-	}
+				}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11449,11 +11452,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-	}
+		}
 
 		setBattleData(bt);
 		break;
-}
+	}
 	case 'C':
 	{
 		sa::battledata_t bt = getBattleData();
@@ -12576,7 +12579,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12626,7 +12629,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12686,7 +12689,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 #endif
 #endif
 #endif
-			}
+	}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -12948,9 +12951,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13088,7 +13091,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13246,7 +13249,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}
@@ -13373,8 +13376,8 @@ void Worker::lssproto_S_recv(char* cdata)
 		pc.id = getIntegerToken(data, "|", 1);
 		setPC(pc);
 
-		serverTime = getIntegerToken(data, "|", 2);
-		FirstTime = QDateTime::currentMSecsSinceEpoch();
+		serverTime.set(getIntegerToken(data, "|", 2));
+		firstServerTime.set(QDateTime::currentMSecsSinceEpoch());
 		realTimeToSATime(&saTimeStruct);
 		saCurrentGameTime.set(getLSTime(&saTimeStruct));
 	}
@@ -14859,7 +14862,7 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	}
 
 	//重置對話框開啟標誌(客製)
-	mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
+	mem::write<int>(injector.getProcess(), injector.getProcessModule() + sa::kOffsetDialogValid, 0);
 
 	updateComboBoxList();
 	updateItemByMemory();

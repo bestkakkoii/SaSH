@@ -848,69 +848,69 @@
 <context>
     <name>CLua</name>
     <message>
-        <location filename="../script_lua/clua.cpp" line="984"/>
-        <location filename="../script_lua/clua.cpp" line="986"/>
+        <location filename="../script_lua/clua.cpp" line="1000"/>
+        <location filename="../script_lua/clua.cpp" line="1002"/>
         <source>========== lua error result with an EXCEPTION ==========</source>
         <translation>========== lua 因错误而抛出异常 ==========</translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1000"/>
+        <location filename="../script_lua/clua.cpp" line="1016"/>
         <source>&gt; lua script stop by flag change to false</source>
         <translation>&gt; lua 脚本因标誌位变为false而停止</translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1002"/>
+        <location filename="../script_lua/clua.cpp" line="1018"/>
         <source>&gt; lua script stop with user request</source>
         <translation>&gt; lua 脚本因用户请求而停止</translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1004"/>
+        <location filename="../script_lua/clua.cpp" line="1020"/>
         <source>&gt; lua script stop from script request</source>
         <translation>&gt; lua 脚本因脚本内的请求而停止</translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1006"/>
+        <location filename="../script_lua/clua.cpp" line="1022"/>
         <source>&gt; lua script stop from parent script request</source>
         <translation>&gt; lua 脚本因父脚本的请求而停止</translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1008"/>
+        <location filename="../script_lua/clua.cpp" line="1024"/>
         <source>&gt; lua script stop from it&apos;s distructor</source>
         <translation>&gt; lua 脚本因析构而停止</translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1012"/>
+        <location filename="../script_lua/clua.cpp" line="1028"/>
         <source>&gt; message: </source>
         <translation>&gt; 讯息: </translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1017"/>
+        <location filename="../script_lua/clua.cpp" line="1033"/>
         <source>========== lua script stop with an ERROR ==========</source>
         <translation>========== lua 因错误而停止 ==========</translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1020"/>
+        <location filename="../script_lua/clua.cpp" line="1036"/>
         <source>&gt; reason: </source>
         <translation>&gt; 原因: </translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1041"/>
+        <location filename="../script_lua/clua.cpp" line="1057"/>
         <source>========== lua script normally end ==========</source>
         <translation>========== lua 正常结束 ==========</translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1042"/>
+        <location filename="../script_lua/clua.cpp" line="1058"/>
         <source>&gt; return value:</source>
         <translation>&gt; 返回值:</translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1052"/>
-        <location filename="../script_lua/clua.cpp" line="1054"/>
+        <location filename="../script_lua/clua.cpp" line="1068"/>
+        <location filename="../script_lua/clua.cpp" line="1070"/>
         <source>========== lua normal result with EXCEPTION ==========</source>
         <translation>========== lua 正常退出但抛出异常 ==========</translation>
     </message>
     <message>
-        <location filename="../script_lua/clua.cpp" line="1120"/>
+        <location filename="../script_lua/clua.cpp" line="1136"/>
         <source>&gt; (unknown type of data)</source>
         <translation>&gt; (未知的类型)</translation>
     </message>
@@ -1593,9 +1593,8 @@
         <translation>关闭特效</translation>
     </message>
     <message>
-        <location filename="../form/generalform.ui" line="221"/>
         <source>optimize</source>
-        <translation>资源优化</translation>
+        <translation type="vanished">资源优化</translation>
     </message>
     <message>
         <location filename="../form/generalform.ui" line="705"/>
@@ -1618,9 +1617,8 @@
         <translation>锁定时间</translation>
     </message>
     <message>
-        <location filename="../form/generalform.ui" line="279"/>
         <source>auto freememory</source>
-        <translation>自动调整内存用量</translation>
+        <translation type="vanished">自动调整内存用量</translation>
     </message>
     <message>
         <source>battle fun</source>
@@ -1660,6 +1658,16 @@
         <location filename="../form/generalform.ui" line="369"/>
         <source>auto escape</source>
         <translation>自动逃跑</translation>
+    </message>
+    <message>
+        <location filename="../form/generalform.ui" line="221"/>
+        <source>auto start script</source>
+        <translation>自动脚本</translation>
+    </message>
+    <message>
+        <location filename="../form/generalform.ui" line="279"/>
+        <source>auto restart</source>
+        <translation>自动重启</translation>
     </message>
     <message>
         <location filename="../form/generalform.ui" line="353"/>
@@ -1828,26 +1836,26 @@
 <context>
     <name>InfoForm</name>
     <message>
-        <location filename="../form/infoform.cpp" line="52"/>
-        <location filename="../form/infoform.cpp" line="139"/>
+        <location filename="../form/infoform.cpp" line="51"/>
+        <location filename="../form/infoform.cpp" line="138"/>
         <source>battleinfo</source>
         <translation>战场动态</translation>
     </message>
     <message>
-        <location filename="../form/infoform.cpp" line="54"/>
-        <location filename="../form/infoform.cpp" line="140"/>
+        <location filename="../form/infoform.cpp" line="53"/>
+        <location filename="../form/infoform.cpp" line="139"/>
         <source>playerinfo</source>
         <translation>人宠资料</translation>
     </message>
     <message>
-        <location filename="../form/infoform.cpp" line="56"/>
-        <location filename="../form/infoform.cpp" line="141"/>
+        <location filename="../form/infoform.cpp" line="55"/>
+        <location filename="../form/infoform.cpp" line="140"/>
         <source>iteminfo</source>
         <translation>道具资料</translation>
     </message>
     <message>
-        <location filename="../form/infoform.cpp" line="58"/>
-        <location filename="../form/infoform.cpp" line="142"/>
+        <location filename="../form/infoform.cpp" line="57"/>
+        <location filename="../form/infoform.cpp" line="141"/>
         <source>chatinfo</source>
         <translation>说话相关</translation>
     </message>
@@ -1860,8 +1868,8 @@
         <translation type="vanished">宠物计算</translation>
     </message>
     <message>
-        <location filename="../form/infoform.cpp" line="64"/>
-        <location filename="../form/infoform.cpp" line="145"/>
+        <location filename="../form/infoform.cpp" line="63"/>
+        <location filename="../form/infoform.cpp" line="144"/>
         <source>afkinfo</source>
         <translation>挂机统计</translation>
     </message>
@@ -1870,8 +1878,8 @@
         <translation type="vanished">人物资料</translation>
     </message>
     <message>
-        <location filename="../form/infoform.cpp" line="133"/>
-        <location filename="../form/infoform.cpp" line="158"/>
+        <location filename="../form/infoform.cpp" line="132"/>
+        <location filename="../form/infoform.cpp" line="157"/>
         <source>InfoForm</source>
         <translation>人物资料</translation>
     </message>
@@ -2254,14 +2262,14 @@
 <context>
     <name>MainForm</name>
     <message>
-        <location filename="../mainform.cpp" line="1143"/>
-        <location filename="../mainform.cpp" line="1505"/>
+        <location filename="../mainform.cpp" line="1142"/>
+        <location filename="../mainform.cpp" line="1512"/>
         <source>general</source>
         <translation>一般</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1145"/>
-        <location filename="../mainform.cpp" line="1506"/>
+        <location filename="../mainform.cpp" line="1144"/>
+        <location filename="../mainform.cpp" line="1513"/>
         <source>map</source>
         <translation>地图</translation>
     </message>
@@ -2270,29 +2278,29 @@
         <translation type="vanished">挂机</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1147"/>
-        <location filename="../mainform.cpp" line="1507"/>
+        <location filename="../mainform.cpp" line="1146"/>
+        <location filename="../mainform.cpp" line="1514"/>
         <source>other</source>
         <translation>其他</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1149"/>
-        <location filename="../mainform.cpp" line="1508"/>
+        <location filename="../mainform.cpp" line="1148"/>
+        <location filename="../mainform.cpp" line="1515"/>
         <source>script</source>
         <translation>脚本</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1499"/>
+        <location filename="../mainform.cpp" line="1506"/>
         <source>char</source>
         <translation>人物</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1501"/>
+        <location filename="../mainform.cpp" line="1508"/>
         <source>pet</source>
         <translation>战宠</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1502"/>
+        <location filename="../mainform.cpp" line="1509"/>
         <source>ride</source>
         <translation>骑宠</translation>
     </message>
@@ -2301,83 +2309,83 @@
         <translation type="vanished">石器助手 - Beta %1</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1522"/>
-        <location filename="../mainform.cpp" line="1546"/>
+        <location filename="../mainform.cpp" line="1529"/>
+        <location filename="../mainform.cpp" line="1553"/>
         <source>unknown</source>
         <translation>未知</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1523"/>
+        <location filename="../mainform.cpp" line="1530"/>
         <source>not open</source>
         <translation>未开启石器</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1524"/>
+        <location filename="../mainform.cpp" line="1531"/>
         <source>opening</source>
         <translation>开启石器中</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1525"/>
+        <location filename="../mainform.cpp" line="1532"/>
         <source>opened</source>
         <translation>已开启石器</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1526"/>
+        <location filename="../mainform.cpp" line="1533"/>
         <source>logining</source>
         <translation>登入</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1527"/>
+        <location filename="../mainform.cpp" line="1534"/>
         <source>signning</source>
         <translation>签入中</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1528"/>
+        <location filename="../mainform.cpp" line="1535"/>
         <source>select server</source>
         <translation>选择伺服器</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1529"/>
+        <location filename="../mainform.cpp" line="1536"/>
         <source>select sub server</source>
         <translation>选择分伺服器</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1530"/>
+        <location filename="../mainform.cpp" line="1537"/>
         <source>getting player list</source>
         <translation>取得人物中</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1531"/>
+        <location filename="../mainform.cpp" line="1538"/>
         <source>select position</source>
         <translation>选择人物中</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1532"/>
+        <location filename="../mainform.cpp" line="1539"/>
         <source>login success</source>
         <translation>登入成功</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1533"/>
+        <location filename="../mainform.cpp" line="1540"/>
         <source>in normal</source>
         <translation>平时</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1534"/>
+        <location filename="../mainform.cpp" line="1541"/>
         <source>in battle</source>
         <translation>战斗中</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1535"/>
+        <location filename="../mainform.cpp" line="1542"/>
         <source>busy</source>
         <translation>忙碌中</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1536"/>
+        <location filename="../mainform.cpp" line="1543"/>
         <source>timeout</source>
         <translation>连线逾时</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1539"/>
+        <location filename="../mainform.cpp" line="1546"/>
         <source>disconnected</source>
         <translation>断线</translation>
     </message>
@@ -2398,7 +2406,7 @@
         <translation type="vanished">人物座标:</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1538"/>
+        <location filename="../mainform.cpp" line="1545"/>
         <source>no username or password</source>
         <translation>缺少账号或密码</translation>
     </message>
@@ -2407,17 +2415,17 @@
         <translation type="vanished">Json 文件 (*.json)</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1768"/>
+        <location filename="../mainform.cpp" line="1775"/>
         <source>info</source>
         <translation>资讯</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1764"/>
+        <location filename="../mainform.cpp" line="1771"/>
         <source>warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1766"/>
+        <location filename="../mainform.cpp" line="1773"/>
         <source>critical</source>
         <translation>错误</translation>
     </message>
@@ -2438,22 +2446,20 @@ Update process will cause all the games to be closed, are you sure to continue?<
         <translation type="vanished">没有找到新版本，您还要继续更新吗?</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1488"/>
-        <location filename="../mainform.cpp" line="1490"/>
         <source>SaSH - %1</source>
-        <translation>SaSH-%1</translation>
+        <translation type="vanished">SaSH-%1</translation>
     </message>
     <message>
         <source>basic info - count:%1, subscript:%2</source>
         <translation type="vanished">基本资料 - 接口:%1, 子脚本:%2</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1223"/>
+        <location filename="../mainform.cpp" line="1232"/>
         <source>open</source>
         <translation>开启</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1227"/>
+        <location filename="../mainform.cpp" line="1236"/>
         <source>close</source>
         <translation>关闭</translation>
     </message>
@@ -2474,7 +2480,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
 更新会导致所有游戏和外挂都被关闭, 您确定要更新吗?</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1540"/>
+        <location filename="../mainform.cpp" line="1547"/>
         <source>connecting</source>
         <translation>连线中</translation>
     </message>
@@ -2495,7 +2501,7 @@ No new version available. Do you still want to update?</source>
 没有找到新版本，您还要继续更新吗?</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1537"/>
+        <location filename="../mainform.cpp" line="1544"/>
         <source>login failed</source>
         <translation>登入失败</translation>
     </message>
@@ -2524,17 +2530,17 @@ No new version available. Do you still want to update?</source>
         <translation type="vanished">脚本运行中</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="256"/>
-        <location filename="../mainform.cpp" line="296"/>
-        <location filename="../mainform.cpp" line="411"/>
+        <location filename="../mainform.cpp" line="257"/>
+        <location filename="../mainform.cpp" line="297"/>
+        <location filename="../mainform.cpp" line="413"/>
         <location filename="../mainform.cpp" line="795"/>
         <location filename="../mainform.cpp" line="812"/>
         <source>server is off</source>
         <translation>[远]服务端未启动</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="263"/>
-        <location filename="../mainform.cpp" line="321"/>
+        <location filename="../mainform.cpp" line="264"/>
+        <location filename="../mainform.cpp" line="323"/>
         <location filename="../mainform.cpp" line="608"/>
         <location filename="../mainform.cpp" line="674"/>
         <location filename="../mainform.cpp" line="828"/>
@@ -2544,35 +2550,35 @@ No new version available. Do you still want to update?</source>
         <translation>[远]不合法的LPARAM</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="271"/>
+        <location filename="../mainform.cpp" line="272"/>
         <source>content is empty</source>
         <translation>[远]内容为空</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="314"/>
+        <location filename="../mainform.cpp" line="316"/>
         <source>already run</source>
         <translation>[远]已在执行了</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="328"/>
+        <location filename="../mainform.cpp" line="330"/>
         <location filename="../mainform.cpp" line="842"/>
         <source>path is empty</source>
         <translation>[远]路径为空</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="339"/>
-        <location filename="../mainform.cpp" line="352"/>
+        <location filename="../mainform.cpp" line="341"/>
+        <location filename="../mainform.cpp" line="354"/>
         <location filename="../mainform.cpp" line="849"/>
         <source>file not exist</source>
         <translation>[远]文件不存在</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="375"/>
+        <location filename="../mainform.cpp" line="377"/>
         <source>not run yet</source>
         <translation>[远]尚未运行</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="393"/>
+        <location filename="../mainform.cpp" line="395"/>
         <source>server already on</source>
         <translation>[远]服务端已经开启了</translation>
     </message>
@@ -2670,29 +2676,29 @@ No new version available. Do you still want to update?</source>
         <translation type="vanished">取消</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1462"/>
+        <location filename="../mainform.cpp" line="1471"/>
         <source>Do you still want to update?</source>
         <translation>您确定还要继续更新吗？</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1448"/>
+        <location filename="../mainform.cpp" line="1457"/>
         <source>Current version:%1
 New version:%2</source>
         <translation>当前版本:%1
 最后上传版本:%2</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1452"/>
+        <location filename="../mainform.cpp" line="1461"/>
         <source>Update process will cause all the games to be closed, are you sure to continue?</source>
         <translation>更新程序会导致所有外挂和游戏都被关闭，您确定要继续吗？</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1456"/>
+        <location filename="../mainform.cpp" line="1465"/>
         <source>New version were found</source>
         <translation>找到新版本</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1466"/>
+        <location filename="../mainform.cpp" line="1475"/>
         <source>No new version available</source>
         <translation>没有可用的新版本</translation>
     </message>
@@ -2705,14 +2711,14 @@ New version:%2</source>
         <translation type="vanished">取消</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1807"/>
-        <location filename="../mainform.cpp" line="1810"/>
+        <location filename="../mainform.cpp" line="1814"/>
+        <location filename="../mainform.cpp" line="1817"/>
         <source>yes</source>
         <translation>是</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1808"/>
-        <location filename="../mainform.cpp" line="1811"/>
+        <location filename="../mainform.cpp" line="1815"/>
+        <location filename="../mainform.cpp" line="1818"/>
         <source>no</source>
         <translation>否</translation>
     </message>
@@ -2725,17 +2731,17 @@ New version:%2</source>
         <translation type="vanished">隐藏详细资讯...</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1541"/>
+        <location filename="../mainform.cpp" line="1548"/>
         <source>no account and password</source>
         <translation>未输入账密</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1542"/>
+        <location filename="../mainform.cpp" line="1549"/>
         <source>no account</source>
         <translation>未输入账号</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="1543"/>
+        <location filename="../mainform.cpp" line="1550"/>
         <source>no password</source>
         <translation>未输入密码</translation>
     </message>
@@ -2797,7 +2803,7 @@ New version:%2</source>
 <context>
     <name>MainObject</name>
     <message>
-        <location filename="../mainthread.cpp" line="688"/>
+        <location filename="../mainthread.cpp" line="717"/>
         <source>Welcome to use SaSH，For more information please visit %1</source>
         <translation>欢迎使用石器助手辅助程式，更多资讯请前往 %1</translation>
     </message>
@@ -2806,22 +2812,22 @@ New version:%2</source>
         <translation type="vanished">你的帐号为测试帐号，到期日为：%1</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="690"/>
+        <location filename="../mainthread.cpp" line="719"/>
         <source>StoneAge SaSH forum url:%1, newest version is %2</source>
         <translation>石器助手论坛网址：%1，最新为%2版</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="689"/>
+        <location filename="../mainthread.cpp" line="718"/>
         <source>You are using %1 account, due date is:%2</source>
         <translation>你的账号为%1帐号，到期日为：%2</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="689"/>
+        <location filename="../mainthread.cpp" line="718"/>
         <source>trial</source>
         <translation>测试</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="689"/>
+        <location filename="../mainthread.cpp" line="718"/>
         <source>subscribed</source>
         <translation>正式</translation>
     </message>
@@ -2830,19 +2836,19 @@ New version:%2</source>
         <translation type="vanished">第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;回合时间: %3 秒&#x3000;&#x3000;累积时间: %4 分钟</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="831"/>
-        <location filename="../mainthread.cpp" line="856"/>
+        <location filename="../mainthread.cpp" line="860"/>
+        <location filename="../mainthread.cpp" line="885"/>
         <source>%1 (avg exp: %2)</source>
         <translation>%1 (平均每小时经验: %2)</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="838"/>
+        <location filename="../mainthread.cpp" line="867"/>
         <source>%1 (avg gold: %2)</source>
         <translation>%1 (平均每小时石币: %2)</translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="824"/>
-        <location filename="../mainthread.cpp" line="850"/>
+        <location filename="../mainthread.cpp" line="853"/>
+        <location filename="../mainthread.cpp" line="879"/>
         <source>%1→%2 (avg level: %3)</source>
         <translation>%1→%2 (平均每小时等级: %3)</translation>
     </message>
@@ -3495,12 +3501,12 @@ New version:%2</source>
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../mainform.cpp" line="168"/>
+        <location filename="../mainform.cpp" line="169"/>
         <source>system</source>
         <translation>系统</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="141"/>
+        <location filename="../mainform.cpp" line="142"/>
         <source>hide</source>
         <translation>隐藏外挂</translation>
     </message>
@@ -3509,22 +3515,22 @@ New version:%2</source>
         <translation type="vanished">帐号资讯</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="145"/>
+        <location filename="../mainform.cpp" line="146"/>
         <source>website</source>
         <translation>关于</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="148"/>
+        <location filename="../mainform.cpp" line="149"/>
         <source>close</source>
         <translation>关闭外挂</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="169"/>
+        <location filename="../mainform.cpp" line="170"/>
         <source>other</source>
         <translation>其他</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="155"/>
+        <location filename="../mainform.cpp" line="156"/>
         <source>otherinfo</source>
         <translation>其他资料</translation>
     </message>
@@ -3537,10 +3543,10 @@ New version:%2</source>
         <translation type="vanished">脚本编辑</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9996"/>
-        <location filename="../net/tcpserver.cpp" line="10049"/>
-        <location filename="../net/tcpserver.cpp" line="10105"/>
-        <location filename="../net/tcpserver.cpp" line="10268"/>
+        <location filename="../net/tcpserver.cpp" line="10081"/>
+        <location filename="../net/tcpserver.cpp" line="10134"/>
+        <location filename="../net/tcpserver.cpp" line="10190"/>
+        <location filename="../net/tcpserver.cpp" line="10353"/>
         <source>use %1 to %2</source>
         <translation>对 %2 使用 %1</translation>
     </message>
@@ -3561,12 +3567,12 @@ New version:%2</source>
         <translation type="vanished">对 %2 使用 道具 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10134"/>
+        <location filename="../net/tcpserver.cpp" line="10219"/>
         <source>defense</source>
         <translation>防御</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10149"/>
+        <location filename="../net/tcpserver.cpp" line="10234"/>
         <source>escape</source>
         <translation>逃跑</translation>
     </message>
@@ -3575,232 +3581,232 @@ New version:%2</source>
         <translation type="vanished">捕捉 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10201"/>
+        <location filename="../net/tcpserver.cpp" line="10286"/>
         <source>switch pet to %1</source>
         <translation>战宠切换成 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10221"/>
         <location filename="../net/tcpserver.cpp" line="10306"/>
+        <location filename="../net/tcpserver.cpp" line="10391"/>
         <source>do nothing</source>
         <translation>什麽都不做</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10567"/>
+        <location filename="../net/tcpserver.cpp" line="10653"/>
         <source>player exp:</source>
         <translation>人物经验:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10568"/>
+        <location filename="../net/tcpserver.cpp" line="10654"/>
         <source>ride exp:</source>
         <translation>骑宠经验:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10569"/>
+        <location filename="../net/tcpserver.cpp" line="10655"/>
         <source>pet exp:</source>
         <translation>战宠经验:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10665"/>
+        <location filename="../net/tcpserver.cpp" line="10751"/>
         <source>rewards:</source>
         <translation>掉落物品:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="12098"/>
+        <location filename="../net/tcpserver.cpp" line="12210"/>
         <source>server response time:%1ms</source>
         <translation>伺服器响应时间:%1ms</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="12491"/>
+        <location filename="../net/tcpserver.cpp" line="12603"/>
         <source>Tell you:</source>
         <translation>告诉你：</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="13588"/>
-        <location filename="../net/tcpserver.cpp" line="13948"/>
+        <location filename="../net/tcpserver.cpp" line="13703"/>
+        <location filename="../net/tcpserver.cpp" line="14065"/>
         <source>%1(%2tr)</source>
         <translation>%1(%2转)</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2508"/>
+        <location filename="../net/tcpserver.cpp" line="2516"/>
         <source>head</source>
         <translation>头部</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2508"/>
+        <location filename="../net/tcpserver.cpp" line="2516"/>
         <source>body</source>
         <translation>身体</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2508"/>
+        <location filename="../net/tcpserver.cpp" line="2516"/>
         <source>righthand</source>
         <translation>右手</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2508"/>
+        <location filename="../net/tcpserver.cpp" line="2516"/>
         <source>leftacc</source>
         <translation>左饰</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2509"/>
+        <location filename="../net/tcpserver.cpp" line="2517"/>
         <source>rightacc</source>
         <translation>右饰</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2509"/>
+        <location filename="../net/tcpserver.cpp" line="2517"/>
         <source>belt</source>
         <translation>腰带</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2509"/>
+        <location filename="../net/tcpserver.cpp" line="2517"/>
         <source>lefthand</source>
         <translation>左手</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2509"/>
+        <location filename="../net/tcpserver.cpp" line="2517"/>
         <source>shoes</source>
         <translation>鞋子</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2510"/>
+        <location filename="../net/tcpserver.cpp" line="2518"/>
         <source>gloves</source>
         <translation>手套</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2759"/>
+        <location filename="../net/tcpserver.cpp" line="2769"/>
         <source>(normal)</source>
         <translation>(正常)</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2757"/>
+        <location filename="../net/tcpserver.cpp" line="2767"/>
         <source>(be surprised)</source>
         <translation>(遭遇偷袭)</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9953"/>
+        <location filename="../net/tcpserver.cpp" line="10038"/>
         <source>use attack [%1]%2</source>
         <translation>对 [%1]%2 使用 攻击</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9992"/>
+        <location filename="../net/tcpserver.cpp" line="10077"/>
         <source>use magic %1 to [%2]%3</source>
         <translation>对 [%2]%3 使用精灵 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10045"/>
+        <location filename="../net/tcpserver.cpp" line="10130"/>
         <source>use skill %1 to [%2]%3</source>
         <translation>对 [%2]%3 使用技能 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10101"/>
+        <location filename="../net/tcpserver.cpp" line="10186"/>
         <source>use item %1 to [%2]%3</source>
         <translation>对 [%2]%3 使用道具 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10172"/>
+        <location filename="../net/tcpserver.cpp" line="10257"/>
         <source>catch [%1]%2</source>
         <translation>捕捉 [%1]%2</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10264"/>
+        <location filename="../net/tcpserver.cpp" line="10349"/>
         <source>use %1 to [%2]%3</source>
         <translation>对 [%2]%3 使用 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9046"/>
+        <location filename="../net/tcpserver.cpp" line="9130"/>
         <source>all allies</source>
         <translation>我方全体</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2755"/>
+        <location filename="../net/tcpserver.cpp" line="2765"/>
         <source>(surprise)</source>
         <translation>(出奇不意)</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9048"/>
+        <location filename="../net/tcpserver.cpp" line="9132"/>
         <source>all enemies</source>
         <translation>敌方全体</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9050"/>
+        <location filename="../net/tcpserver.cpp" line="9134"/>
         <source>all field</source>
         <translation>场地</translation>
     </message>
     <message>
         <location filename="../form/scripteditor.cpp" line="2605"/>
-        <location filename="../net/tcpserver.cpp" line="9052"/>
-        <location filename="../script/parser.cpp" line="4268"/>
+        <location filename="../net/tcpserver.cpp" line="9136"/>
+        <location filename="../script/parser.cpp" line="4260"/>
         <location filename="../script_lua/clua.h" line="48"/>
         <source>unknown</source>
         <translation>未知</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="149"/>
+        <location filename="../mainform.cpp" line="150"/>
         <source>close game</source>
         <translation>关闭游戏</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="158"/>
+        <location filename="../mainform.cpp" line="159"/>
         <source>map</source>
         <translation>大地图</translation>
     </message>
     <message>
-        <location filename="../util.cpp" line="1850"/>
+        <location filename="../util.cpp" line="1908"/>
         <source>%1 day %2 hour %3 min %4 sec %5 msec</source>
         <translation>%1 日 %2 时 %3 分 %4 秒 %5 毫秒</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="162"/>
+        <location filename="../mainform.cpp" line="163"/>
         <source>save</source>
         <translation>储存设置</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="163"/>
+        <location filename="../mainform.cpp" line="164"/>
         <source>load</source>
         <translation>读取设置</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="170"/>
+        <location filename="../mainform.cpp" line="171"/>
         <source>file</source>
         <translation>档案</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2014"/>
+        <location filename="../net/tcpserver.cpp" line="2019"/>
         <source>dead</source>
         <translation>阵亡</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2016"/>
+        <location filename="../net/tcpserver.cpp" line="2021"/>
         <source>poisoned</source>
         <translation>中毒</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2018"/>
+        <location filename="../net/tcpserver.cpp" line="2023"/>
         <source>paralyzed</source>
         <translation>麻痺</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2020"/>
+        <location filename="../net/tcpserver.cpp" line="2025"/>
         <source>sleep</source>
         <translation>昏睡</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2022"/>
+        <location filename="../net/tcpserver.cpp" line="2027"/>
         <source>petrified</source>
         <translation>石化</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2043"/>
+        <location filename="../net/tcpserver.cpp" line="2048"/>
         <source>dizzy</source>
         <translation>眩晕</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2026"/>
+        <location filename="../net/tcpserver.cpp" line="2031"/>
         <source>confused</source>
         <translation>混乱</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2028"/>
+        <location filename="../net/tcpserver.cpp" line="2033"/>
         <source>hidden</source>
         <translation>隐藏</translation>
     </message>
@@ -3818,7 +3824,7 @@ New version:%2</source>
         <translation type="vanished">&lt;寻路&gt;成功找到路径，耗时：%1</translation>
     </message>
     <message>
-        <location filename="../script_lua/luamap.cpp" line="384"/>
+        <location filename="../script_lua/luamap.cpp" line="387"/>
         <source>&lt;findpath&gt;arrived destination, cost:%1</source>
         <translation>&lt;寻路&gt;已到达目的地，耗时：%1</translation>
     </message>
@@ -3831,7 +3837,7 @@ New version:%2</source>
         <translation type="vanished">&lt;寻路&gt;地图已变更，放弃寻路</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10262"/>
+        <location filename="../net/tcpserver.cpp" line="10347"/>
         <source>self</source>
         <translation>自己</translation>
     </message>
@@ -3880,7 +3886,7 @@ New version:%2</source>
         <translation type="vanished">设置变数 [%1] 的数值</translation>
     </message>
     <message>
-        <location filename="../script/action.cpp" line="1045"/>
+        <location filename="../script/action.cpp" line="1040"/>
         <source>record equip:[%1]%2</source>
         <translation>记录身上装备:[%1]%2</translation>
     </message>
@@ -3953,12 +3959,12 @@ New version:%2</source>
         <translation type="vanished">备份</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2868"/>
+        <location filename="../net/tcpserver.cpp" line="2877"/>
         <source>left</source>
         <translation>左</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2868"/>
+        <location filename="../net/tcpserver.cpp" line="2877"/>
         <source>right</source>
         <translation>右</translation>
     </message>
@@ -3979,18 +3985,18 @@ New version:%2</source>
         <translation type="vanished">速度</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="165"/>
+        <location filename="../mainform.cpp" line="166"/>
         <source>checkupdate</source>
         <translation>检查更新</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="1830"/>
+        <location filename="../script/parser.cpp" line="1820"/>
         <source>unknown error</source>
         <translation>未知的错误</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="1876"/>
-        <location filename="../script/parser.cpp" line="1878"/>
+        <location filename="../script/parser.cpp" line="1866"/>
+        <location filename="../script/parser.cpp" line="1868"/>
         <source>argument error</source>
         <translation>参数错误</translation>
     </message>
@@ -4031,7 +4037,7 @@ New version:%2</source>
         <translation type="vanished">%1 时 %2 分 %3 秒</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="1844"/>
+        <location filename="../script/parser.cpp" line="1834"/>
         <source>label incorrect or not exist</source>
         <translation>标记错误或不存在</translation>
     </message>
@@ -4064,27 +4070,27 @@ New version:%2</source>
         <translation type="vanished">&lt;语法错误&gt;在声明区域变量 &apos;%1&apos; 之前不应包含 &apos;&amp;&apos; 于行号: %2</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2030"/>
+        <location filename="../net/tcpserver.cpp" line="2035"/>
         <source>reverse</source>
         <translation>反转</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2082"/>
+        <location filename="../net/tcpserver.cpp" line="2087"/>
         <source>earth</source>
         <translation>地</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2084"/>
+        <location filename="../net/tcpserver.cpp" line="2089"/>
         <source>water</source>
         <translation>水</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2086"/>
+        <location filename="../net/tcpserver.cpp" line="2091"/>
         <source>fire</source>
         <translation>火</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2088"/>
+        <location filename="../net/tcpserver.cpp" line="2093"/>
         <source>wind</source>
         <translation>风</translation>
     </message>
@@ -4093,12 +4099,12 @@ New version:%2</source>
         <translation type="vanished">&lt;寻路&gt;成功找到路径，耗时：%1 步数:%2</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="1852"/>
+        <location filename="../script/parser.cpp" line="1842"/>
         <source>unknown command: %1</source>
         <translation>未知的命令:%1</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="146"/>
+        <location filename="../mainform.cpp" line="147"/>
         <source>scriptdoc</source>
         <translation>脚本文档</translation>
     </message>
@@ -4111,17 +4117,17 @@ New version:%2</source>
         <translation type="vanished">&lt;语法错误&gt; &apos;%2&apos; 缺少与之配对的 &apos;%1&apos; 于行号: %3</translation>
     </message>
     <message>
-        <location filename="../script_lua/luamap.cpp" line="564"/>
-        <location filename="../script_lua/luamap.cpp" line="571"/>
-        <location filename="../script_lua/luamap.cpp" line="718"/>
-        <location filename="../script_lua/luamap.cpp" line="726"/>
-        <location filename="../script_lua/luasystem.cpp" line="236"/>
-        <location filename="../script_lua/luasystem.cpp" line="273"/>
+        <location filename="../script_lua/luamap.cpp" line="573"/>
+        <location filename="../script_lua/luamap.cpp" line="580"/>
+        <location filename="../script_lua/luamap.cpp" line="728"/>
+        <location filename="../script_lua/luamap.cpp" line="736"/>
+        <location filename="../script_lua/luasystem.cpp" line="243"/>
+        <location filename="../script_lua/luasystem.cpp" line="280"/>
         <source>invalid value type</source>
         <translation>数值类型不合法</translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="242"/>
+        <location filename="../script_lua/luasystem.cpp" line="249"/>
         <source>invalid value of &apos;type&apos;</source>
         <translation>&apos;type&apos; 数值不合法</translation>
     </message>
@@ -4174,17 +4180,17 @@ New version:%2</source>
         <translation type="vanished">lua 错误: %1</translation>
     </message>
     <message>
-        <location filename="../util.cpp" line="1867"/>
+        <location filename="../util.cpp" line="1925"/>
         <source>%1 day %2 hour %3 min %4 sec</source>
         <translation>%1 日 %2 时 %3 分 %4 秒</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="1837"/>
+        <location filename="../script/parser.cpp" line="1827"/>
         <source>server not ready</source>
         <translation>服务端未准备完成</translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="191"/>
+        <location filename="../script_lua/luasystem.cpp" line="198"/>
         <source>invalid value of &apos;color&apos;</source>
         <translation>数值 &apos;color&apos; 不合法</translation>
     </message>
@@ -4223,7 +4229,7 @@ New version:%2</source>
     </message>
     <message>
         <location filename="../script_lua/luamap.cpp" line="254"/>
-        <location filename="../script_lua/luamap.cpp" line="394"/>
+        <location filename="../script_lua/luamap.cpp" line="398"/>
         <source>[error] &lt;findpath&gt;unable to findpath from %1, %2 to %3, %4</source>
         <translation>[错误] &lt;寻路&gt;找不到从 %1, %2 到 %3, %4 路径</translation>
     </message>
@@ -4233,32 +4239,32 @@ New version:%2</source>
         <translation>&lt;寻路&gt;成功找到从 %1, %2 到 %3, %4 的路径，耗时：%5 步数:%6</translation>
     </message>
     <message>
-        <location filename="../script_lua/luamap.cpp" line="422"/>
+        <location filename="../script_lua/luamap.cpp" line="427"/>
         <source>[warn] &lt;findpath&gt;detedted player ware blocked</source>
         <translation>[警告] &lt;寻路&gt;检测到人物卡点</translation>
     </message>
     <message>
-        <location filename="../script_lua/luamap.cpp" line="503"/>
+        <location filename="../script_lua/luamap.cpp" line="511"/>
         <source>[warn] &lt;findpath&gt;stop finding path due to timeout</source>
         <translation>[警告] &lt;寻路&gt;超时，放弃寻路</translation>
     </message>
     <message>
-        <location filename="../script_lua/luamap.cpp" line="513"/>
+        <location filename="../script_lua/luamap.cpp" line="521"/>
         <source>[warn] &lt;findpath&gt;stop finding path due to floor changed</source>
         <translation>[警告] &lt;寻路&gt;地图已变更，放弃寻路</translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="805"/>
-        <location filename="../script/lexer.cpp" line="123"/>
-        <location filename="../script/parser.cpp" line="1885"/>
-        <location filename="../script_lua/clua.cpp" line="432"/>
+        <location filename="../script/interpreter.cpp" line="775"/>
+        <location filename="../script/lexer.cpp" line="122"/>
+        <location filename="../script/parser.cpp" line="1875"/>
+        <location filename="../script_lua/clua.cpp" line="429"/>
         <source>[error]</source>
         <translation>[错误]</translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="805"/>
-        <location filename="../script/lexer.cpp" line="125"/>
-        <location filename="../script_lua/clua.cpp" line="432"/>
+        <location filename="../script/interpreter.cpp" line="775"/>
+        <location filename="../script/lexer.cpp" line="124"/>
+        <location filename="../script_lua/clua.cpp" line="429"/>
         <source>[warn]</source>
         <translation>[警告]</translation>
     </message>
@@ -4284,13 +4290,13 @@ New version:%2</source>
         <translation>@ %1 | 未完成配对的符号 &apos;%2&apos; 索引位置 %3: &apos;%4&apos;</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="1859"/>
-        <location filename="../script/parser.cpp" line="1885"/>
+        <location filename="../script/parser.cpp" line="1849"/>
+        <location filename="../script/parser.cpp" line="1875"/>
         <source>@ %1 | detail:%2</source>
         <translation>@ %1 | 详细讯息:%2</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="2934"/>
+        <location filename="../script/parser.cpp" line="2927"/>
         <source>@ %1 | Invalid local variable type expacted &apos;%2&apos; but got &apos;%3&apos;</source>
         <translation>@ %1 | 传入了不合法的参数类型，参数要求类型为 &apos;%2&apos; 但输入类型为 &apos;%3&apos;</translation>
     </message>
@@ -4305,7 +4311,7 @@ New version:%2</source>
         <translation>@ %1 |  &apos;%3&apos; 中出现多于的 &apos;%2&apos;</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2974"/>
+        <location filename="../net/tcpserver.cpp" line="2983"/>
         <source>(cost:%1)</source>
         <translation>(消耗:%1)</translation>
     </message>
@@ -4322,12 +4328,12 @@ New version:%2</source>
         <translation>@ %1 | &apos;%2&apos; 必须放置在功能\函数中</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="1865"/>
+        <location filename="../script/parser.cpp" line="1855"/>
         <source>[lua]:%1</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="4061"/>
+        <location filename="../script/parser.cpp" line="4053"/>
         <source> ========== script result : %1，cost %2 ==========</source>
         <translation> ========== 脚本执行结果 : %1，耗时 %2 ==========</translation>
     </message>
@@ -4403,17 +4409,17 @@ New version:%2</source>
         <translation>无符号超长整数型</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="4062"/>
+        <location filename="../script/parser.cpp" line="4054"/>
         <source>sub-ok</source>
         <translation>子脚本-成功</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="4062"/>
+        <location filename="../script/parser.cpp" line="4054"/>
         <source>main-ok</source>
         <translation>主脚本-成功</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="151"/>
+        <location filename="../mainform.cpp" line="152"/>
         <source>closeAll</source>
         <translation>关闭全部</translation>
     </message>
@@ -4466,68 +4472,63 @@ New version:%2</source>
         <translation>未知类型</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="325"/>
         <source>EnumWindows failed</source>
-        <translation>枚举窗口失败</translation>
+        <translation type="vanished">枚举窗口失败</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="338"/>
         <source>OpenProcess failed</source>
-        <translation>打开进程句柄失败</translation>
+        <translation type="vanished">打开进程句柄失败</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="371"/>
         <source>Injected dll module is null</source>
-        <translation>注入的插件模块基址为空</translation>
+        <translation type="vanished">注入的插件模块基址为空</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="378"/>
         <source>Game module is null</source>
-        <translation>游戏模块基址为空</translation>
+        <translation type="vanished">游戏模块基址为空</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="411"/>
         <source>Remote virtualmemory alloc failed</source>
-        <translation>远程虚拟内存分配失败</translation>
+        <translation type="vanished">远程虚拟内存分配失败</translation>
     </message>
     <message>
         <location filename="../util.cpp" line="472"/>
-        <location filename="../util.cpp" line="576"/>
+        <location filename="../util.cpp" line="585"/>
         <source>Create remote thread failed</source>
         <translation>创建远程线程失败</translation>
     </message>
     <message>
-        <location filename="../util.cpp" line="598"/>
+        <location filename="../util.cpp" line="629"/>
         <source>Inject fail, error code from client: %1, %2</source>
         <translation>注入失败，来自客户端回传的错误讯息: %1, %2</translation>
     </message>
     <message>
-        <location filename="../util.cpp" line="691"/>
+        <location filename="../util.cpp" line="722"/>
         <source>Inject fail, error code: %1, %2</source>
         <translation>注入失败，客户端错误讯息: %1, %2</translation>
     </message>
     <message>
-        <location filename="../util.cpp" line="1980"/>
+        <location filename="../util.cpp" line="2038"/>
         <source>Look in:</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../util.cpp" line="1981"/>
+        <location filename="../util.cpp" line="2039"/>
         <source>File name:</source>
         <translation>文件名称:</translation>
     </message>
     <message>
-        <location filename="../util.cpp" line="1982"/>
+        <location filename="../util.cpp" line="2040"/>
         <source>File type:</source>
         <translation>文件类型:</translation>
     </message>
     <message>
-        <location filename="../util.cpp" line="1983"/>
+        <location filename="../util.cpp" line="2041"/>
         <source>Open</source>
         <translation>打开</translation>
     </message>
     <message>
-        <location filename="../util.cpp" line="1984"/>
+        <location filename="../util.cpp" line="2042"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -4538,7 +4539,7 @@ New version:%2</source>
     </message>
     <message>
         <location filename="../util.cpp" line="438"/>
-        <location filename="../util.cpp" line="634"/>
+        <location filename="../util.cpp" line="665"/>
         <source>GetModuleHandleW failed</source>
         <translation>取模块基址失败</translation>
     </message>
@@ -4548,12 +4549,12 @@ New version:%2</source>
         <translation>取函数入口地址失败</translation>
     </message>
     <message>
-        <location filename="../script_lua/luamap.cpp" line="289"/>
-        <location filename="../script_lua/luamap.cpp" line="339"/>
-        <location filename="../script_lua/luamap.cpp" line="362"/>
-        <location filename="../script_lua/luamap.cpp" line="414"/>
-        <location filename="../script_lua/luamap.cpp" line="467"/>
-        <location filename="../script_lua/luamap.cpp" line="493"/>
+        <location filename="../script_lua/luamap.cpp" line="290"/>
+        <location filename="../script_lua/luamap.cpp" line="341"/>
+        <location filename="../script_lua/luamap.cpp" line="365"/>
+        <location filename="../script_lua/luamap.cpp" line="419"/>
+        <location filename="../script_lua/luamap.cpp" line="474"/>
+        <location filename="../script_lua/luamap.cpp" line="501"/>
         <source>[warn] &lt;findpath&gt;stop finding path due to interruption</source>
         <translation>[警告] &lt;寻路&gt;收到中止请求，停止寻路</translation>
     </message>
@@ -4562,134 +4563,131 @@ New version:%2</source>
         <translation type="vanished"> ========== 报告 : 错误 %1 个，其他 %2 个 ==========</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="4049"/>
+        <location filename="../script/parser.cpp" line="4041"/>
         <source> ========== script report : valid %1，error %2，comment %3，space %4 ==========</source>
         <translation> ========== 脚本报告 : 有效命令 %1 个，错误 %2 个，註释 %3 个，空行 %4 个 ==========</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2024"/>
+        <location filename="../net/tcpserver.cpp" line="2029"/>
         <source>drunk</source>
         <translation>酒醉</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2032"/>
+        <location filename="../net/tcpserver.cpp" line="2037"/>
         <source>weaken</source>
         <translation>虚弱</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2035"/>
+        <location filename="../net/tcpserver.cpp" line="2040"/>
         <source>deep poison</source>
         <translation>剧毒</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2037"/>
+        <location filename="../net/tcpserver.cpp" line="2042"/>
         <source>barrier</source>
         <translation>魔障</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2039"/>
+        <location filename="../net/tcpserver.cpp" line="2044"/>
         <source>no cast</source>
         <translation>沉默</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2041"/>
+        <location filename="../net/tcpserver.cpp" line="2046"/>
         <source>sars</source>
         <translation>毒煞</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2045"/>
+        <location filename="../net/tcpserver.cpp" line="2050"/>
         <source>entwine</source>
         <translation>树缠</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2047"/>
+        <location filename="../net/tcpserver.cpp" line="2052"/>
         <source>dragnet</source>
         <translation>天网</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2049"/>
+        <location filename="../net/tcpserver.cpp" line="2054"/>
         <source>ice crack</source>
         <translation>冰爆</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2051"/>
+        <location filename="../net/tcpserver.cpp" line="2056"/>
         <source>oblivion</source>
         <translation>遗忘</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2053"/>
+        <location filename="../net/tcpserver.cpp" line="2058"/>
         <source>ice arrow</source>
         <translation>冰箭</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2055"/>
+        <location filename="../net/tcpserver.cpp" line="2060"/>
         <source>blood worms</source>
         <translation>血蛊</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2057"/>
+        <location filename="../net/tcpserver.cpp" line="2062"/>
         <source>sign</source>
         <translation>一针</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2059"/>
+        <location filename="../net/tcpserver.cpp" line="2064"/>
         <source>cary</source>
         <translation>挑拨</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2061"/>
+        <location filename="../net/tcpserver.cpp" line="2066"/>
         <source>fire enclose</source>
         <translation>火附</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2063"/>
+        <location filename="../net/tcpserver.cpp" line="2068"/>
         <source>ice enclose</source>
         <translation>冰附</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2065"/>
+        <location filename="../net/tcpserver.cpp" line="2070"/>
         <source>thunder enclose</source>
         <translation>雷附</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2067"/>
+        <location filename="../net/tcpserver.cpp" line="2072"/>
         <source>water enclose</source>
         <translation>水附</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2069"/>
+        <location filename="../net/tcpserver.cpp" line="2074"/>
         <source>fear</source>
         <translation>恐惧</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2071"/>
+        <location filename="../net/tcpserver.cpp" line="2076"/>
         <source>change</source>
         <translation>变身</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="1859"/>
+        <location filename="../script/parser.cpp" line="1849"/>
         <source>[info]</source>
         <translation>[资讯]</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="156"/>
+        <location filename="../mainform.cpp" line="157"/>
         <source>scripteditor</source>
         <translation>脚本编辑器</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="418"/>
         <source>Remote virtualmemory write failed</source>
-        <translation>远程内存写入失败</translation>
+        <translation type="vanished">远程内存写入失败</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="443"/>
         <source>SendMessageTimeoutW failed</source>
-        <translation>消息发送失败</translation>
+        <translation type="vanished">消息发送失败</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="433"/>
         <source>Remote dll initialize failed</source>
-        <translation>远成初始化失败</translation>
+        <translation type="vanished">远成初始化失败</translation>
     </message>
     <message>
         <location filename="../util.cpp" line="459"/>
@@ -4697,27 +4695,27 @@ New version:%2</source>
         <translation>远程内存空间分配失败</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="13588"/>
+        <location filename="../net/tcpserver.cpp" line="13703"/>
         <source>L:%1</source>
         <translation>运:%1</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="142"/>
+        <location filename="../mainform.cpp" line="143"/>
         <source>hidebar</source>
         <translation>隐藏进度条</translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="143"/>
+        <location filename="../mainform.cpp" line="144"/>
         <source>hidecontrol</source>
         <translation>隐藏控制台</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="6091"/>
+        <location filename="../net/tcpserver.cpp" line="6175"/>
         <source>[warn]Battle command transmission timeout, initiating backup instructions.</source>
         <translation>[警告]战斗指令超时，启动备用指令.</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2746"/>
+        <location filename="../net/tcpserver.cpp" line="2756"/>
         <source>%1 count no %2 round duration: %3 sec cost: %4 sec total time: %5 minues</source>
         <translation>%1 局 %2 回合 局时: %3 秒 回合时: %4 秒 累积时: %5 分</translation>
     </message>
@@ -4730,86 +4728,85 @@ New version:%2</source>
         <translation type="obsolete">己</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.h" line="66"/>
+        <location filename="../net/tcpserver.h" line="67"/>
         <source>North</source>
         <translation>北</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.h" line="67"/>
+        <location filename="../net/tcpserver.h" line="68"/>
         <source>ENorth</source>
         <translation>东北</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.h" line="68"/>
+        <location filename="../net/tcpserver.h" line="69"/>
         <source>East</source>
         <translation>东</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.h" line="69"/>
+        <location filename="../net/tcpserver.h" line="70"/>
         <source>ESouth</source>
         <translation>东南</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.h" line="70"/>
+        <location filename="../net/tcpserver.h" line="71"/>
         <source>South</source>
         <translation>南</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.h" line="71"/>
+        <location filename="../net/tcpserver.h" line="72"/>
         <source>WSouth</source>
         <translation>西南</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.h" line="72"/>
+        <location filename="../net/tcpserver.h" line="73"/>
         <source>West</source>
         <translation>西</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.h" line="73"/>
+        <location filename="../net/tcpserver.h" line="74"/>
         <source>WNorth</source>
         <translation>西北</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="4261"/>
+        <location filename="../script/parser.cpp" line="4253"/>
         <source>noon</source>
         <translation>中午</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="4262"/>
+        <location filename="../script/parser.cpp" line="4254"/>
         <source>evening</source>
         <translation>下午</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="4263"/>
+        <location filename="../script/parser.cpp" line="4255"/>
         <source>night</source>
         <translation>晚上</translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="4264"/>
+        <location filename="../script/parser.cpp" line="4256"/>
         <source>morning</source>
         <translation>早上</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="259"/>
+        <location filename="../injector.cpp" line="393"/>
         <source>dwProcessId is null!</source>
         <translation>进程ID为空!</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="265"/>
+        <location filename="../injector.cpp" line="399"/>
         <source>pReason is null!</source>
         <translation>错误讯息指针为空!</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="281"/>
-        <location filename="../injector.cpp" line="288"/>
-        <location filename="../injector.cpp" line="295"/>
+        <location filename="../injector.cpp" line="415"/>
+        <location filename="../injector.cpp" line="422"/>
+        <location filename="../injector.cpp" line="429"/>
         <source>Dll is not exist at %1</source>
         <translation>欲注入的插件不存在于 %1</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="316"/>
         <source>EnumWindows timeout</source>
-        <translation>枚举窗口超时</translation>
+        <translation type="vanished">枚举窗口超时</translation>
     </message>
     <message>
         <location filename="../script/check.cpp" line="38"/>
@@ -4827,42 +4824,42 @@ New version:%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="613"/>
+        <location filename="../script/interpreter.cpp" line="583"/>
         <source>File name expected but got nothing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="656"/>
+        <location filename="../script/interpreter.cpp" line="626"/>
         <source>Invalid path of file &apos;%1&apos; expected a file but got a directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="665"/>
+        <location filename="../script/interpreter.cpp" line="635"/>
         <source>Invalid suffix of file &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="679"/>
+        <location filename="../script/interpreter.cpp" line="649"/>
         <source>original path &apos;%1&apos; of file not exist, try to auto search but found nothing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="684"/>
+        <location filename="../script/interpreter.cpp" line="654"/>
         <source>[warn]original path &apos;%1&apos; of file not exist, auto search and found file at &apos;%2&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/interpreter.cpp" line="769"/>
+        <location filename="../script/interpreter.cpp" line="739"/>
         <source>String expected but got nothing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="484"/>
+        <location filename="../script/parser.cpp" line="479"/>
         <source>invalid button string: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script/parser.cpp" line="764"/>
+        <location filename="../script/parser.cpp" line="757"/>
         <source>force stop by user input stop code</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4882,119 +4879,119 @@ New version:%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="106"/>
+        <location filename="../script_lua/luasystem.cpp" line="113"/>
         <source>log file name cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="340"/>
+        <location filename="../script_lua/luasystem.cpp" line="347"/>
         <source>file &apos;%1&apos; does not exist</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="515"/>
+        <location filename="../script_lua/luasystem.cpp" line="522"/>
         <source>index must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="526"/>
+        <location filename="../script_lua/luasystem.cpp" line="533"/>
         <source>type must be 1 or 2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="572"/>
-        <location filename="../script_lua/luasystem.cpp" line="581"/>
+        <location filename="../script_lua/luasystem.cpp" line="579"/>
+        <location filename="../script_lua/luasystem.cpp" line="588"/>
         <source>Invalid value of &apos;dataplacenum&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="590"/>
+        <location filename="../script_lua/luasystem.cpp" line="597"/>
         <source>character name cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="602"/>
+        <location filename="../script_lua/luasystem.cpp" line="609"/>
         <source>vit must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="608"/>
+        <location filename="../script_lua/luasystem.cpp" line="615"/>
         <source>str must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="614"/>
+        <location filename="../script_lua/luasystem.cpp" line="621"/>
         <source>tgh must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="620"/>
+        <location filename="../script_lua/luasystem.cpp" line="627"/>
         <source>dex must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="626"/>
+        <location filename="../script_lua/luasystem.cpp" line="633"/>
         <source>vit + str + tgh + dex must equal to 20</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="632"/>
+        <location filename="../script_lua/luasystem.cpp" line="639"/>
         <source>earth must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="638"/>
+        <location filename="../script_lua/luasystem.cpp" line="645"/>
         <source>water must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="644"/>
+        <location filename="../script_lua/luasystem.cpp" line="651"/>
         <source>fire must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="650"/>
+        <location filename="../script_lua/luasystem.cpp" line="657"/>
         <source>wind must above 0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="656"/>
+        <location filename="../script_lua/luasystem.cpp" line="663"/>
         <source>earth + water + fire + wind must equal to 10</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="674"/>
+        <location filename="../script_lua/luasystem.cpp" line="681"/>
         <source>hometown cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="726"/>
+        <location filename="../script_lua/luasystem.cpp" line="733"/>
         <source>index must between 1 and %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="733"/>
+        <location filename="../script_lua/luasystem.cpp" line="740"/>
         <source>password cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="788"/>
+        <location filename="../script_lua/luasystem.cpp" line="795"/>
         <source>type cannot be empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="1080"/>
+        <location filename="../script_lua/luasystem.cpp" line="1087"/>
         <source>unknown setting type: &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="1185"/>
-        <location filename="../script_lua/luasystem.cpp" line="1230"/>
-        <location filename="../script_lua/luasystem.cpp" line="1301"/>
-        <location filename="../script_lua/luasystem.cpp" line="1355"/>
-        <location filename="../script_lua/luasystem.cpp" line="1429"/>
-        <location filename="../script_lua/luasystem.cpp" line="1480"/>
-        <location filename="../script_lua/luasystem.cpp" line="1597"/>
+        <location filename="../script_lua/luasystem.cpp" line="1192"/>
+        <location filename="../script_lua/luasystem.cpp" line="1237"/>
+        <location filename="../script_lua/luasystem.cpp" line="1308"/>
+        <location filename="../script_lua/luasystem.cpp" line="1362"/>
+        <location filename="../script_lua/luasystem.cpp" line="1436"/>
+        <location filename="../script_lua/luasystem.cpp" line="1487"/>
+        <location filename="../script_lua/luasystem.cpp" line="1604"/>
         <source>the first parameter of the setting &apos;%1&apos; must be a number or boolean</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5003,7 +5000,7 @@ New version:%2</source>
         <translation type="vanished">骑</translation>
     </message>
     <message>
-        <location filename="../util.cpp" line="1855"/>
+        <location filename="../util.cpp" line="1913"/>
         <source>%1d%2h%3m%4s</source>
         <translation>%1日%2时%3分%4秒</translation>
     </message>
@@ -6446,13 +6443,13 @@ New version:%2</source>
     <message>
         <location filename="../form/scripteditor.ui" line="1661"/>
         <source>search script</source>
-        <translation type="unfinished"></translation>
+        <translation>查找脚本</translation>
     </message>
     <message>
         <location filename="../form/scripteditor.ui" line="1978"/>
         <location filename="../form/scripteditor.ui" line="2236"/>
         <source>search variable</source>
-        <translation type="unfinished"></translation>
+        <translation>查找变量</translation>
     </message>
     <message>
         <location filename="../form/scripteditor.ui" line="2255"/>
@@ -6508,12 +6505,12 @@ New version:%2</source>
 <context>
     <name>ScriptForm</name>
     <message>
-        <location filename="../form/scriptform.cpp" line="216"/>
+        <location filename="../form/scriptform.cpp" line="204"/>
         <source>command</source>
         <translation>指令</translation>
     </message>
     <message>
-        <location filename="../form/scriptform.cpp" line="216"/>
+        <location filename="../form/scriptform.cpp" line="204"/>
         <source>params</source>
         <translation>内容</translation>
     </message>
@@ -6522,19 +6519,19 @@ New version:%2</source>
         <translation type="vanished">脚本:</translation>
     </message>
     <message>
-        <location filename="../form/scriptform.cpp" line="164"/>
-        <location filename="../form/scriptform.cpp" line="372"/>
+        <location filename="../form/scriptform.cpp" line="159"/>
+        <location filename="../form/scriptform.cpp" line="360"/>
         <source>start</source>
         <translation>开始</translation>
     </message>
     <message>
-        <location filename="../form/scriptform.cpp" line="376"/>
+        <location filename="../form/scriptform.cpp" line="364"/>
         <source>mid-start</source>
         <translation>中间开始</translation>
     </message>
     <message>
-        <location filename="../form/scriptform.cpp" line="143"/>
-        <location filename="../form/scriptform.cpp" line="165"/>
+        <location filename="../form/scriptform.cpp" line="141"/>
+        <location filename="../form/scriptform.cpp" line="160"/>
         <source>pause</source>
         <translation>暂停</translation>
     </message>
@@ -6544,7 +6541,7 @@ New version:%2</source>
         <translation>行</translation>
     </message>
     <message>
-        <location filename="../form/scriptform.cpp" line="130"/>
+        <location filename="../form/scriptform.cpp" line="128"/>
         <source>resume</source>
         <translation>恢復</translation>
     </message>

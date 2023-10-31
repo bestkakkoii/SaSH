@@ -82,6 +82,41 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 		return CreateProcessResult::CreateFail;
 	}
 
+	QVector<long long> pids;
+	if (mem::enumProcess(&pids, SASH_INJECT_DLLNAME))//枚舉已經注入過sadll但狀態值為0的進程
+	{
+		for (long long pid : pids)
+		{
+			ScopedHandle hProcess(pid);
+			if (mem::read<int>(hProcess, hGameModule_ + sa::kOffsetGameInjectState) == 0)
+			{
+				pi.dwProcessId = pid;
+				processHandle_.reset(pi.dwProcessId);
+				return CreateProcessResult::CreateWithExistingProcess;
+			}
+		}
+	}
+	else if (mem::enumProcess(&pids, SASH_SUPPORT_GAMENAME, SASH_INJECT_DLLNAME))//枚舉未注入過sadll且封包KEY包含帳號或帳號相同的進程
+	{
+		QString userName = getStringHash(util::kGameAccountString);
+		if (!userName.isEmpty())
+		{
+			for (long long pid : pids)
+			{
+				ScopedHandle hProcess(pid);
+				QString remoteUserNameKey = mem::readString(hProcess, hGameModule_ + sa::kOffsetPersonalKey, 32);
+				QString remoteUserName = mem::readString(hProcess, hGameModule_ + sa::kOffsetAccount, 32);
+				if (!remoteUserNameKey.isEmpty() && remoteUserNameKey.contains(userName)
+					|| !remoteUserName.isEmpty() && remoteUserName == userName)
+				{
+					pi.dwProcessId = pid;
+					processHandle_.reset(pi.dwProcessId);
+					return CreateProcessResult::CreateWithExistingProcessNoDll;
+				}
+			}
+		}
+	}
+
 	long long nRealBin = 138;
 	long long nAdrnBin = 138;
 	long long nSprBin = 116;
@@ -250,7 +285,105 @@ DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 }
 #endif
 
-bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
+bool Injector::remoteInitialize(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
+{
+	//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
+	struct InitialData
+	{
+		long long parentHWnd = 0i64;
+		long long index = 0i64;
+		long long port = 0i64;
+		long long type = 0i64;
+	}injectdate;
+
+	enum
+	{
+		kIPv4,
+		kIPv6,
+	};
+
+	injectdate.index = getIndex();
+	injectdate.parentHWnd = reinterpret_cast<__int64>(getParentWidget());
+	injectdate.port = port;
+
+	//get windows version
+	QOperatingSystemVersion version = QOperatingSystemVersion::current();
+	if (version > QOperatingSystemVersion::Windows7)
+		injectdate.type = kIPv6;
+	else
+		injectdate.type = kIPv4;
+
+	if (!mem::isProcessExist(pi.dwProcessId))
+	{
+		*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+		return false;
+	}
+
+	if (IsWindow(pi.hWnd) == FALSE)
+	{
+		*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+		return false;
+	}
+
+	const util::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
+	if (!lpStruct.isValid())
+	{
+		//emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory alloc failed"), QMessageBox::Icon::Critical);
+		*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+		return false;
+	}
+
+	if (!mem::write(processHandle_, lpStruct, &injectdate, sizeof(InitialData)))
+	{
+		//emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory write failed"), QMessageBox::Icon::Critical);
+		*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+		return false;
+	}
+
+	util::Timer timer;
+	DWORD_PTR dwResult = 0L;
+	for (;;)
+	{
+		if (IsWindowVisible(pi_.hWnd) == TRUE)
+		{
+			if (SendMessageTimeoutW(pi_.hWnd, kInitialize, lpStruct, NULL, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, MessageTimeout, &dwResult) != 0)
+			{
+				if (dwResult == 0)
+				{
+					//emit signalDispatcher.messageBoxShow(QObject::tr("Remote dll initialize failed"), QMessageBox::Icon::Critical);
+					*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+					break;
+				}
+				break;
+			}
+		}
+
+		if (!mem::isProcessExist(pi.dwProcessId))
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			return false;
+		}
+
+		if (IsWindow(pi.hWnd) == FALSE)
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			return false;
+		}
+
+		if (timer.hasExpired(sa::MAX_TIMEOUT))
+		{
+			//emit signalDispatcher.messageBoxShow(QObject::tr("SendMessageTimeoutW failed"), QMessageBox::Icon::Critical);
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			break;
+		}
+
+		QThread::msleep(10);
+	}
+
+	return dwResult != 0;
+}
+
+bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason, bool bConnectOnly)
 {
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -350,6 +483,12 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (!processHandle_.isValid())
 			processHandle_.reset(pi.dwProcessId);
 
+		if (bConnectOnly)
+		{
+			pi_ = pi;
+			return remoteInitialize(pi, port, pReason);
+		}
+
 		timer.restart();
 		for (;;)
 		{
@@ -413,97 +552,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		pi_ = pi;
 
-		//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
-		struct InitialData
-		{
-			long long parentHWnd = 0i64;
-			long long index = 0i64;
-			long long port = 0i64;
-			long long type = 0i64;
-		}injectdate;
-
-		enum
-		{
-			kIPv4,
-			kIPv6,
-		};
-
-		injectdate.index = currentIndex;
-		injectdate.parentHWnd = reinterpret_cast<__int64>(getParentWidget());
-		injectdate.port = port;
-		if (version > QOperatingSystemVersion::Windows7)
-			injectdate.type = kIPv6;
-		else
-			injectdate.type = kIPv4;
-
-		if (!mem::isProcessExist(pi.dwProcessId))
-		{
-			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			return false;
-		}
-
-		if (IsWindow(pi.hWnd) == FALSE)
-		{
-			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			return false;
-		}
-
-		const util::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
-		if (!lpStruct.isValid())
-		{
-			//emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory alloc failed"), QMessageBox::Icon::Critical);
-			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			break;
-		}
-
-		if (!mem::write(processHandle_, lpStruct, &injectdate, sizeof(InitialData)))
-		{
-			//emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory write failed"), QMessageBox::Icon::Critical);
-			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			break;
-		}
-
-		timer.restart();
-		DWORD_PTR dwResult = 0L;
-		for (;;)
-		{
-			if (IsWindowVisible(pi_.hWnd) == TRUE)
-			{
-				if (SendMessageTimeoutW(pi_.hWnd, kInitialize, lpStruct, NULL, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, MessageTimeout, &dwResult) != 0)
-				{
-					if (dwResult == 0)
-					{
-						//emit signalDispatcher.messageBoxShow(QObject::tr("Remote dll initialize failed"), QMessageBox::Icon::Critical);
-						*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-						break;
-					}
-					break;
-				}
-			}
-
-			if (!mem::isProcessExist(pi.dwProcessId))
-			{
-				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-				return false;
-			}
-
-			if (IsWindow(pi.hWnd) == FALSE)
-			{
-				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-				return false;
-			}
-
-			if (timer.hasExpired(sa::MAX_TIMEOUT))
-			{
-				//emit signalDispatcher.messageBoxShow(QObject::tr("SendMessageTimeoutW failed"), QMessageBox::Icon::Critical);
-				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-				break;
-			}
-
-			QThread::msleep(10);
-		}
-
-		if (dwResult == 0)
+		if (!remoteInitialize(pi, port, pReason))
 			break;
 
 		//去除改變窗口大小的屬性

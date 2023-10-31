@@ -80,6 +80,8 @@ public:
 		CreateFail = 0,
 		CreateAboveWindow8Success,
 		CreateBelowWindow8Success,
+		CreateWithExistingProcess,
+		CreateWithExistingProcessNoDll,
 	};
 
 	typedef struct process_information_s
@@ -103,7 +105,9 @@ public:
 
 	CreateProcessResult __fastcall createProcess(process_information_t& pi);
 
-	bool __fastcall injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
+	bool __fastcall remoteInitialize(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
+
+	bool __fastcall injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason, bool bConnectOnly);
 
 	[[nodiscard]] bool __fastcall isWindowAlive() const;
 
@@ -427,12 +431,12 @@ private:
 
 		{ util::kHideCharacterEnable, false },
 		{ util::kCloseEffectEnable, true },
-		{ util::kOptimizeEnable, true },
+		{ util::kAutoStartScriptEnable, true },
 		{ util::kHideWindowEnable, false },
 		{ util::kMuteEnable, false },
 		{ util::kAutoJoinEnable, false },
 		{ util::kLockTimeEnable, false },
-		{ util::kAutoFreeMemoryEnable, true },
+		{ util::kAutoRestartGameEnable, true },
 		{ util::kFastWalkEnable, true },
 		{ util::kPassWallEnable, false },
 		{ util::kLockMoveEnable, false },
