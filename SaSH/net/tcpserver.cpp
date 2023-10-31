@@ -1,4 +1,4 @@
-﻿/*
+/*
 				GNU GENERAL PUBLIC LICENSE
 				   Version 2, June 1991
 COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
@@ -4508,6 +4508,38 @@ void Worker::setPetState(long long petIndex, sa::PetState state)
 			setPetStandby(petIndex, state);
 			break;
 		}
+		case kDouble:
+		{
+			if (pet.loyal != 100)
+				break;
+
+			if (pc_.ridePetNo != -1)
+			{
+				mem::write<short>(hProcess, hModule + kOffsetRidePetIndex, -1);
+				setRidePet(-1);
+			}
+
+			if (pc_.battlePetNo == petIndex)
+			{
+				mem::write<short>(hProcess, hModule + kOffsetBattlePetIndex, -1);
+				pc_.selectPetNo[petIndex] = 0;
+				mem::write<short>(hProcess, hModule + kOffsetSelectPetArray + (petIndex * sizeof(short)), 0);
+				setFightPet(-1);
+			}
+
+			if (pc_.mailPetNo == petIndex)
+			{
+				mem::write<short>(hProcess, hModule + kOffsetMailPetIndex, -1);
+				setPetStateSub(petIndex, 0);
+			}
+
+			pc_.selectPetNo[petIndex] = 0;
+			mem::write<short>(hProcess, hModule + kOffsetSelectPetArray + (petIndex * sizeof(short)), 0);
+			setRidePet(petIndex);
+			//setPetStandby(petIndex, state);
+			setFightPet(petIndex);
+			break;
+		}
 		default:
 			break;
 		}
@@ -4622,32 +4654,49 @@ void Worker::checkAutoLockPet()
 
 	long long lockedIndex = -1;
 
-	if (enableLockRide)
+	if (enableLockRide && enableLockPet && injector.getValueHash(util::kLockRideValue) == injector.getValueHash(util::kLockPetValue))
 	{
 		long long lockRideIndex = injector.getValueHash(util::kLockRideValue);
 		if (lockRideIndex >= 0 && lockRideIndex < sa::MAX_PET)
 		{
-			sa::PET pet = getPet(lockRideIndex);
-			if (pet.state != sa::PetState::kRide)
+		  sa::PET pet = getPet(lockRideIndex);
+			if (pet.state != PetState::kRide || pc_.ridePetNo != pc_.battlePetNo)
 			{
 				lockedIndex = lockRideIndex;
-				setPetState(lockRideIndex, sa::kRide);
+				setPetState(lockRideIndex, sa::kDouble);
 			}
+
 		}
 	}
-
-	if (enableLockPet)
+	else
 	{
-		long long lockPetIndex = injector.getValueHash(util::kLockPetValue);
-		if (lockPetIndex >= 0 && lockPetIndex < sa::MAX_PET)
+		if (enableLockRide)
 		{
-			sa::PET pet = getPet(lockPetIndex);
-			if (pet.state != sa::PetState::kBattle)
+			long long lockRideIndex = injector.getValueHash(util::kLockRideValue);
+			if (lockRideIndex >= 0 && lockRideIndex < sa::MAX_PET)
 			{
-				if (lockedIndex == lockPetIndex)
-					return;
+				sa::PET pet = getPet(lockRideIndex);
+				if (pet.state != sa::PetState::kRide)
+				{
+					lockedIndex = lockRideIndex;
+					setPetState(lockRideIndex, sa::kRide);
+				}
+			}
+		}
+		if (enableLockPet)
+		{
+			long long lockPetIndex = injector.getValueHash(util::kLockPetValue);
+			if (lockPetIndex >= 0 && lockPetIndex < sa::MAX_PET)
+			{
+				sa::PET pet = getPet(lockPetIndex);
+				if (pet.state != sa::PetState::kBattle)
+				{
+					if (lockedIndex == lockPetIndex)
+						return;
 
-				setPetState(lockPetIndex, sa::kBattle);
+					setPetState(lockPetIndex, sa::kBattle);
+				}
+
 			}
 		}
 	}
