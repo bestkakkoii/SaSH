@@ -36,17 +36,20 @@ long long CLuaSystem::sleep(long long t, sol::this_state s)
 		for (; i < size; ++i)
 		{
 			QThread::msleep(1000UL);
-			luadebug::checkStopAndPause(s);
+			if (luadebug::checkStopAndPause(s))
+				return FALSE;
 		}
 
 		if (i % 1000 > 0)
 			QThread::msleep(static_cast<DWORD>(i) % 1000UL);
-		luadebug::checkStopAndPause(s);
+		if (luadebug::checkStopAndPause(s))
+			return FALSE;
 	}
 	else if (t > 0)
 	{
 		QThread::msleep(static_cast<DWORD>(t));
-		luadebug::checkStopAndPause(s);
+		if (luadebug::checkStopAndPause(s))
+			return FALSE;
 	}
 
 	return TRUE;
@@ -88,12 +91,12 @@ long long CLuaSystem::eo(sol::this_state s)
 
 	luadebug::checkBattleThenWait(s);
 
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	injector.worker->EO();
 
-	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !Injector::getInstance(currentIndex).worker->isEOTTLSend.load(std::memory_order_acquire); });
+	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !Injector::getInstance(currentIndex).worker->isEOTTLSend.get(); });
 
-	long long result = bret ? injector.worker->lastEOTime.load(std::memory_order_acquire) : 0;
+	long long result = bret ? injector.worker->lastEOTime.get() : 0;
 
 	return result;
 }
@@ -194,9 +197,9 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 		if (color != -2 && (color < 0 || color > 10))
 			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 2, QObject::tr("invalid value of 'color'"));
 	}
-	else if (ocolor == sol::lua_nil)
+	else if (ocolor == sol::lua_nil || ocolor.is<long long>() && ocolor.as<long long>() == -1)
 	{
-		color = QRandomGenerator64().bounded(0, 10);
+		util::rnd::get(&color, 0LL, 10LL);
 	}
 
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
@@ -280,9 +283,9 @@ long long CLuaSystem::talk(sol::object ostr, sol::object ocolor, sol::object omo
 	if (ocolor.is<long long>())
 		color = ocolor.as<long long>();
 
-	TalkMode mode = kTalkNormal;
-	if (omode.is<long long>() && omode.as<long long>() < kTalkModeMax)
-		mode = static_cast<TalkMode>(omode.as<long long>());
+	sa::TalkMode mode = sa::kTalkNormal;
+	if (omode.is<long long>() && omode.as<long long>() < sa::kTalkModeMax)
+		mode = static_cast<sa::TalkMode>(omode.as<long long>());
 
 	injector.worker->talk(text, color, mode);
 
@@ -379,17 +382,17 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		dialogid = odialogid.as<long long>();
 
 	QString text = util::toQString(sbuttonStr);
-	BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
+	sa::BUTTON_TYPE button = sa::buttonMap.value(text.toUpper(), sa::BUTTON_NOTUSED);
 
 	if (ounitid.is<std::string>())
 	{
 		QString searchStr = util::toQString(ounitid.as<std::string>());
-		mapunit_t unit;
-		if (injector.worker->findUnit(searchStr, util::OBJ_NPC, &unit, "", unitid))
+		sa::mapunit_t unit;
+		if (injector.worker->findUnit(searchStr, sa::OBJ_NPC, &unit, "", unitid))
 		{
 			if (!injector.worker->isDialogVisible())
 				injector.worker->setCharFaceToPoint(unit.p);
-			if (button == BUTTON_NOTUSED && row == -1)
+			if (button == sa::BUTTON_NOTUSED && row == -1)
 				QThread::msleep(300);
 			unitid = unit.id;
 		}
@@ -401,9 +404,9 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		return TRUE;
 	}
 
-	if (button == BUTTON_NOTUSED)
+	if (button == sa::BUTTON_NOTUSED)
 	{
-		dialog_t dialog = injector.worker->currentDialog;
+		sa::dialog_t dialog = injector.worker->currentDialog.get();
 		QStringList textList = dialog.linebuttontext;
 		if (!textList.isEmpty())
 		{
@@ -431,7 +434,7 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		}
 	}
 
-	if (button != BUTTON_NOTUSED)
+	if (button != sa::BUTTON_NOTUSED)
 		injector.worker->press(button, dialogid, unitid);
 	else if (row != -1)
 		injector.worker->press(row, dialogid, unitid);
@@ -725,9 +728,9 @@ long long CLuaSystem::delch(long long index, std::string spsw, sol::object optio
 		return FALSE;
 
 	--index;
-	if (index < 0 || index > MAX_CHARACTER)
+	if (index < 0 || index > sa::MAX_CHARACTER)
 	{
-		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("index must between 1 and %1").arg(MAX_CHARACTER));
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("index must between 1 and %1").arg(sa::MAX_CHARACTER));
 		return FALSE;
 	}
 

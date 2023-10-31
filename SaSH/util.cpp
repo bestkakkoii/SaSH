@@ -426,10 +426,10 @@ ULONG64 __fastcall mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QStr
 }
 
 #ifndef _WIN64
-bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule)
+bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd)
 {
 	HMODULE hModule = nullptr;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
 	HMODULE kernel32Module = GetModuleHandleW(L"kernel32.dll");
@@ -483,7 +483,16 @@ bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hPr
 			if (timer.hasExpired(3000))
 				break;
 
-			QThread::msleep(100);
+			if (!mem::isProcessExist(dwProcessId))
+				return false;
+
+			if (hWnd != nullptr)
+			{
+				if (!IsWindow(hWnd))
+					return false;
+			}
+
+			QThread::msleep(10);
 		}
 
 		if (phDllModule != nullptr)
@@ -494,14 +503,14 @@ bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hPr
 	}
 
 	if (hModule != nullptr)
-		qDebug() << "inject OK" << "0x" + util::toQString(reinterpret_cast<long long>(hModule), 16) << "time:" << timer.elapsed() << "ms";
+		qDebug() << "inject OK" << "0x" + util::toQString(reinterpret_cast<long long>(hModule), 16) << "time:" << timer.cost() << "ms";
 	return true;
 }
 #endif
 
-bool __fastcall mem::injectBy64(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule)
+bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd)
 {
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	static unsigned char data[128] = {
 		0x55,										//push ebp
 		0x8B, 0xEC,									//mov ebp,esp
@@ -559,7 +568,7 @@ bool __fastcall mem::injectBy64(long long index, HANDLE hProcess, QString dllPat
 	util::VirtualMemory remoteFunc(hProcess, sizeof(data), true);
 	mem::write(hProcess, remoteFunc, data, sizeof(data));
 
-	qDebug() << "time:" << timer.elapsed() << "ms";
+	qDebug() << "time:" << timer.cost() << "ms";
 	timer.restart();
 
 	//遠程執行線程
@@ -576,9 +585,31 @@ bool __fastcall mem::injectBy64(long long index, HANDLE hProcess, QString dllPat
 			emit signalDispatcher.messageBoxShow(QObject::tr("Create remote thread failed"), QMessageBox::Icon::Critical);
 			return false;
 		}
+
+		util::Timer timer;
+		for (;;)
+		{
+			mem::read(hProcess, injectdata, sizeof(InjectData), &d);
+
+			if (d.remoteModule != NULL)
+				break;
+
+			if (timer.hasExpired(3000))
+				break;
+
+			if (!mem::isProcessExist(dwProcessId))
+				return false;
+
+			if (hWnd != nullptr)
+			{
+				if (!IsWindow(hWnd))
+					return false;
+			}
+
+			QThread::msleep(10);
+		}
 	}
 
-	mem::read(hProcess, injectdata, sizeof(InjectData), &d);
 	if (d.lastError != 0)
 	{
 		//取得錯誤訊息
@@ -607,7 +638,7 @@ bool __fastcall mem::injectBy64(long long index, HANDLE hProcess, QString dllPat
 	if (phGameModule != nullptr)
 		*phGameModule = d.gameModule;
 
-	qDebug() << "inject OK" << "0x" + util::toQString(d.remoteModule, 16) << "time:" << timer.elapsed() << "ms";
+	qDebug() << "inject OK" << "0x" + util::toQString(d.remoteModule, 16) << "time:" << timer.cost() << "ms";
 	return d.gameModule > 0 && d.remoteModule > 0;
 }
 
@@ -749,6 +780,12 @@ bool __fastcall mem::enumProcess(QVector<long long>* pprocesses, const QString& 
 	}
 
 	return true;
+}
+
+bool __fastcall mem::isProcessExist(long long pid)
+{
+	ScopedHandle hProcess(pid);
+	return hProcess.isValid();
 }
 #pragma endregion
 
@@ -1066,7 +1103,7 @@ QMap<QString, QPair<bool, QString>> util::Config::EnumString(const QString& sec,
 	return ret;
 }
 
-void util::Config::writeMapData(const QString&, const util::MapData& data)
+void util::Config::writeMapData(const QString&, const MapData& data)
 {
 	QString key = util::toQString(data.floor);
 	QJsonArray jarray;
@@ -1089,7 +1126,7 @@ void util::Config::writeMapData(const QString&, const util::MapData& data)
 }
 
 // 读取数据
-QList<util::MapData> util::Config::readMapData(const QString& key) const
+QList<util::Config::MapData> util::Config::readMapData(const QString& key) const
 {
 	QList<MapData> result;
 
@@ -1884,7 +1921,7 @@ bool __fastcall util::readFileFilter(const QString& fileName, QString& content, 
 #else
 		return false;
 #endif
-}
+	}
 	content.replace("\r\n", "\n");
 	return true;
 }

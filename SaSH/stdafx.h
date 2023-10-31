@@ -281,6 +281,8 @@ public:\
 #include <model/treewidgetitem.h>
 #include <model/tablewidget.h>
 
+#include <model/safe.h>
+
 #include <net/descrypt.h>
 #include <net/macchanger.h>
 

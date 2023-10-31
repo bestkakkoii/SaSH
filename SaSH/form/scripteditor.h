@@ -50,7 +50,7 @@ private:
 
 	void __fastcall setStepMarks();
 
-	void __fastcall setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<long long, break_marker_t>>& hash, long long liner, bool b);
+	void __fastcall setMark(CodeEditor::SymbolHandler element, safe::Hash<QString, safe::Hash<long long, break_marker_t>>& hash, long long liner, bool b);
 
 	void __fastcall reshowBreakMarker();
 

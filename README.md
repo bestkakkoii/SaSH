@@ -7,8 +7,9 @@
 <br>
 <div>
     <img alt="C++" src="https://img.shields.io/badge/c++-17-%2300599C?logo=cplusplus">
-    <img alt="Qt" src="https://img.shields.io/badge/Qt-6.7.0-%23?logo=qt">
-    <img alt="Qt" src="https://img.shields.io/badge/Windows-10%7C11-%2300599C?logo=windows">
+    <img alt="Qt5" src="https://img.shields.io/badge/Qt-5.15.2-x32%7Cx64%23?logo=qt">
+    <img alt="Qt6" src="https://img.shields.io/badge/Qt-6.7.0-x64%23?logo=qt">
+    <img alt="Windows" src="https://img.shields.io/badge/Windows-10%7C11-%2300599C?logo=windows">
 </div>
 <div>
     <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blueviolet">
@@ -35,10 +36,11 @@ This project is only for academic purposes, commercial use is prohibited. You ar
 
 ### Project Build Requirement 項目依賴
 
-- Visual Studio 2022(V17.6.5)
-- Qt Visual Studio Tools 2.10.1.2(Plugin)
+- Visual Studio 2022(V17.7.6)
+- Qt Visual Studio Tools 3.0.2(Plugin)
 - VC143 Toolset
 - QT 5.15.2 for msvc2019, win32 (x86)
+- QT 6.7.0 for msvc2019, win64 (x64)
 - Windows SDK 11 (the msvc projects uses Windows SDK version 10.0.22621.0, please redirect to your local version if you have installed a different version of Windows SDK)
 
 ---
@@ -47,7 +49,7 @@ This project is only for academic purposes, commercial use is prohibited. You ar
 
 **Qt Modules Qt模組**
 
-Gui, Widgets, Concurrent, Core, OpenGL, PrintSupport, Network, Concurrent
+Gui, Widgets, Concurrent, Core, OpenGL, Network, Concurrent
 
 **Libs 靜態庫**
 
@@ -55,90 +57,18 @@ ws2_32.lib, detours.lib
 
 **3rd Party 第三方依賴組件**
 
-Glu32.lib, OpenGL32.lib, cpr.lib, libcurl.lib(libcurl.dll), qscintilla2_qt5.lib
+Glu32.lib, OpenGL32.lib, qscintilla2_qt5.lib
 
 ---
 
 **Gernel Setting 一般設置**
 
 (/std:c++17)<br>
-(/std:c17)<br>
 (/utf-8)<br>
 
 **Default CodePage 預設編碼頁**
 
 UTF-8 with BOM
-
----
-
-### Removed Files
-
-The following files have been removed from the project:
-
-- webauthenticator.h
-- webauthenticator.cpp
-- crypto.h
-- crypto.cpp
-- sadll.cpp
-
-### Impact on Compilation
-
-Since these files have been removed, it is essential to update the remaining source code files to avoid compilation errors.
-
-1. **Update #include Directives:** Make sure to review all source files and remove any `#include` directives that reference the removed files. If there are dependencies that still need to be included, update the directives accordingly.
-
-2. **Check Function and Class References:** Verify that there are no references to functions or classes that were defined in the removed files. If such references exist, either remove them if they are no longer needed or find appropriate replacements within the existing codebase.
-
-3. **Resolve Build Errors:** After making the necessary updates, attempt to compile the project. If there are any build errors related to the removed files, address them by removing the problematic code or finding suitable replacements.
-
-### Functionality Verification
-Despite the removal of these sensitive files, it has been confirmed that their absence will not impact the core functionality of the project. All major features and functionalities remain intact.
-
-The decision to remove these files was made to prioritize the security and protection of sensitive information within the project. The codebase has been carefully reviewed and updated to ensure that the removal has minimal impact on the overall functionality.
-
-
-### Impact on functionalities
-
-1. **Script encryption and decryption:** The ability to encrypt and decrypt scripts.
-
-2. **Captcha OCR:** The capability to perform Optical Character Recognition on captchas for verification.
-
-3. **Network authentication:** The process of authenticating users or devices on the network.
-
----
-
-### 已移除的文件
-
-以下文件已從項目中移除：
-
-- webauthenticator.h
-- webauthenticator.cpp
-- crypto.h
-- crypto.cpp
-
-### 對編譯的影響
-
-由於這些文件已被移除，必須更新其餘的源代碼文件，以避免編譯錯誤。
-
-1. **更新#include指令：** 請確保檢查所有源文件，並刪除引用已移除文件的 `#include` 指令。如有仍需要引用的依賴項，請相應更新指令。
-
-2. **檢查函數和類別的引用：** 確認是否有引用在已移除文件中定義的函數或類別。若有此類引用，若不再需要，請移除它們，或在現有代碼庫中尋找合適的替代方案。
-
-3. **解決編譯錯誤：** 完成必要的更新後，嘗試編譯項目。如出現與已移除文件相關的編譯錯誤，請刪除造成問題的代碼，或尋找合適的替代方案。
-
-### 功能驗證
-
-儘管移除這些敏感文件，經確認其缺失不會影響項目的主要功能。所有主要功能和功能都保持完好。
-
-移除這些文件的決策是為了保障項目內敏感資訊的安全和保護。代碼庫已經經過仔細檢查和更新，以確保這些移除不會對整體功能造成太大影響。
-
-### 影響的功能
-
-1. **腳本加密和解密：** 無法正常進行腳本的加密和解密操作。
-
-2. **驗證碼OCR：** 無法進行驗證碼的圖片字符識別。
-
-3. **網絡驗證：** 無法順利地進行網絡驗證，即驗證用戶或設備的身份。
 
 ---
 

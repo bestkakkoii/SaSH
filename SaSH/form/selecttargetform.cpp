@@ -30,7 +30,7 @@ SelectTargetForm::SelectTargetForm(long long index, long long type, QString* dst
 	ui.setupUi(this);
 	setFont(util::getFont());
 	util::setWidget(this);
-	setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_QuitOnClose);
 	setWindowFlags(Qt::Tool | Qt::Dialog | Qt::WindowCloseButtonHint);
 	setModal(true);
 	connect(ui.buttonBox, &QDialogButtonBox::accepted, this, &SelectTargetForm::onAccept);
@@ -321,7 +321,7 @@ QString SelectTargetForm::generateShortName(unsigned long long flg)
 
 void SelectTargetForm::onUpdateTeamInfo(const QStringList& strList)
 {
-	for (long long i = 0; i <= MAX_PARTY; ++i)
+	for (long long i = 0; i <= sa::MAX_PARTY; ++i)
 	{
 		QString objName = QString("checkBox_teammate%1").arg(i);
 		QCheckBox* label = ui.groupBox->findChild<QCheckBox*>(objName);

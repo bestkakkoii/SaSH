@@ -291,6 +291,9 @@
     <ClCompile Include="mainthread.cpp">
       <Filter>Source Files\main</Filter>
     </ClCompile>
+    <ClCompile Include="net\rpc.cpp">
+      <Filter>Source Files\net</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -440,6 +443,9 @@
     <QtMoc Include="model\listwidget.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
+    <QtMoc Include="net\rpc.h">
+      <Filter>Source Files\net</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -504,6 +510,9 @@
     </ClInclude>
     <ClInclude Include="3rdparty\zip.h">
       <Filter>Source Files\3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="model\safe.h">
+      <Filter>Source Files\model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

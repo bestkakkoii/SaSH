@@ -100,7 +100,7 @@ long long CLuaItem::craft(long long type, sol::table ingres, sol::this_state s)
 		ingreList.append(str);
 	}
 
-	injector.worker->craft(static_cast<util::CraftType>(--type), ingreList);
+	injector.worker->craft(static_cast<sa::CraftType>(--type), ingreList);
 
 	return TRUE;
 }
@@ -128,9 +128,9 @@ long long CLuaItem::sell(long long itemIndex, long long unitid, long long dialog
 
 	luadebug::checkBattleThenWait(s);
 
-	if (itemIndex > 0 && itemIndex <= static_cast<long long>(MAX_ITEM - CHAR_EQUIPPLACENUM))
+	if (itemIndex > 0 && itemIndex <= static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM))
 	{
-		itemIndex = itemIndex - 1 + CHAR_EQUIPPLACENUM;
+		itemIndex = itemIndex - 1 + sa::CHAR_EQUIPPLACENUM;
 		injector.worker->sell(itemIndex, dialogid, unitid);
 
 		return TRUE;

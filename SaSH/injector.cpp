@@ -21,10 +21,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "model/listview.h"
 
 Server Injector::server;
-util::SafeHash<long long, Injector*> Injector::instances;
+safe::Hash<long long, Injector*> Injector::instances;
 
 constexpr long long MessageTimeout = 3000;
-constexpr long long MAX_TIMEOUT = 30000;
 
 Injector::Injector(long long index)
 	: Indexer(index)
@@ -54,10 +53,14 @@ void Injector::reset(long long index)//static
 		return;
 
 	Injector* instance = instances.value(index);
+	if (instance == nullptr)
+		return;
+
 	if (!instance->worker.isNull())
 	{
 		instance->worker.reset(nullptr);
 	}
+
 	instance->hGameModule_ = 0x400000ULL;
 	instance->hookdllModule_ = nullptr;
 	instance->pi_ = {};
@@ -65,12 +68,10 @@ void Injector::reset(long long index)//static
 
 	instance->autil.util_Clear();
 	instance->currentGameExePath = "";//當前使用的遊戲進程完整路徑
-	instance->IS_SCRIPT_FLAG.store(false, std::memory_order_release);//主腳本是否運行
-	instance->IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
-	instance->IS_TCP_CONNECTION_OK_TO_USE.store(false, std::memory_order_release);
-	instance->currentServerListIndex = 0;
 	instance->scriptThreadId = 0;
-	instance->IS_INJECT_OK = false;
+
+	instance->IS_TCP_CONNECTION_OK_TO_USE.off();
+	instance->IS_INJECT_OK.off();
 }
 
 Injector::CreateProcessResult Injector::createProcess(Injector::process_information_t& pi)
@@ -267,7 +268,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	}
 
 	bool bret = 0;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	QString dllPath = "\0";
 	pi.hWnd = nullptr;
 
@@ -287,7 +288,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("Dll is not exist at %1").arg(applicationDirPath));
 			break;
-	}
+		}
 
 		QFileInfo fi(dllPath);
 		if (!fi.exists())
@@ -311,9 +312,15 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 					break;
 			}
 
-			if (timer.hasExpired(MAX_TIMEOUT))
+			if (!mem::isProcessExist(pi.dwProcessId))
 			{
-				emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
+				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+				return false;
+			}
+
+			if (timer.hasExpired(sa::MAX_TIMEOUT))
+			{
+				//emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
 				break;
 			}
 
@@ -322,12 +329,12 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		if (nullptr == pi.hWnd)
 		{
-			emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows failed"), QMessageBox::Icon::Critical);
+			//emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows failed"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_ENUM_WINDOWS_FAIL;
 			break;
 		}
 
-		qDebug() << "HWND OK, cost:" << timer.elapsed() << "ms";
+		qDebug() << "HWND OK, cost:" << timer.cost() << "ms";
 
 		//紀錄線程ID(目前沒有使用到只是先記錄著)
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
@@ -335,7 +342,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		//嘗試打開進程句柄並檢查是否成功
 		if (!isHandleValid(pi.dwProcessId))
 		{
-			emit signalDispatcher.messageBoxShow(QObject::tr("OpenProcess failed"), QMessageBox::Icon::Critical);
+			//emit signalDispatcher.messageBoxShow(QObject::tr("OpenProcess failed"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_OPEN_PROCESS_FAIL;
 			break;
 		}
@@ -346,12 +353,26 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		timer.restart();
 		for (;;)
 		{
-			if (static_cast<long long>(mem::read<int>(processHandle_, hGameModule_ + kOffsetWorldStatus)) == 1
-				&& static_cast<long long>(mem::read<int>(processHandle_, hGameModule_ + kOffsetGameStatus)) == 2)
+			if (static_cast<long long>(mem::read<int>(processHandle_, hGameModule_ + sa::kOffsetWorldStatus)) == 1
+				&& static_cast<long long>(mem::read<int>(processHandle_, hGameModule_ + sa::kOffsetGameStatus)) == 2)
 				break;
 
-			if (timer.hasExpired(MAX_TIMEOUT))
+			if (!mem::isProcessExist(pi.dwProcessId))
+			{
+				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+				return false;
+			}
+
+			if (IsWindow(pi.hWnd) == FALSE)
+			{
+				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+				return false;
+			}
+
+			if (timer.hasExpired(sa::MAX_TIMEOUT))
 				break;
+
+			QThread::msleep(10);
 		}
 
 		timer.restart();
@@ -359,23 +380,33 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		//Win7
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		if (mem::injectByWin7(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_))
-			qDebug() << "inject cost:" << timer.elapsed() << "ms";
+		if (mem::injectByWin7(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_, pi.hWnd))
+			qDebug() << "inject cost:" << timer.cost() << "ms";
+		else
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			return false;
+		}
 #else
-		if (mem::injectBy64(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_))
-			qDebug() << "inject cost:" << timer.elapsed() << "ms";
+		if (mem::injectBy64(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_, pi.hWnd))
+			qDebug() << "inject cost:" << timer.cost() << "ms";
+		else
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			return false;
+		}
 #endif
 
 		if (nullptr == hookdllModule_)
 		{
-			emit signalDispatcher.messageBoxShow(QObject::tr("Injected dll module is null"), QMessageBox::Icon::Critical);
+			//emit signalDispatcher.messageBoxShow(QObject::tr("Injected dll module is null"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
 
 		if (0 == hGameModule_)
 		{
-			emit signalDispatcher.messageBoxShow(QObject::tr("Game module is null"), QMessageBox::Icon::Critical);
+			//emit signalDispatcher.messageBoxShow(QObject::tr("Game module is null"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
@@ -405,17 +436,29 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		else
 			injectdate.type = kIPv4;
 
+		if (!mem::isProcessExist(pi.dwProcessId))
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			return false;
+		}
+
+		if (IsWindow(pi.hWnd) == FALSE)
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			return false;
+		}
+
 		const util::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
 		if (!lpStruct.isValid())
 		{
-			emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory alloc failed"), QMessageBox::Icon::Critical);
+			//emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory alloc failed"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
 
 		if (!mem::write(processHandle_, lpStruct, &injectdate, sizeof(InitialData)))
 		{
-			emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory write failed"), QMessageBox::Icon::Critical);
+			//emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory write failed"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
@@ -424,13 +467,13 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		DWORD_PTR dwResult = 0L;
 		for (;;)
 		{
-			if (IsWindowVisible(pi_.hWnd))
+			if (IsWindowVisible(pi_.hWnd) == TRUE)
 			{
 				if (SendMessageTimeoutW(pi_.hWnd, kInitialize, lpStruct, NULL, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, MessageTimeout, &dwResult) != 0)
 				{
 					if (dwResult == 0)
 					{
-						emit signalDispatcher.messageBoxShow(QObject::tr("Remote dll initialize failed"), QMessageBox::Icon::Critical);
+						//emit signalDispatcher.messageBoxShow(QObject::tr("Remote dll initialize failed"), QMessageBox::Icon::Critical);
 						*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 						break;
 					}
@@ -438,9 +481,21 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 				}
 			}
 
-			if (timer.hasExpired(5000))
+			if (!mem::isProcessExist(pi.dwProcessId))
 			{
-				emit signalDispatcher.messageBoxShow(QObject::tr("SendMessageTimeoutW failed"), QMessageBox::Icon::Critical);
+				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+				return false;
+			}
+
+			if (IsWindow(pi.hWnd) == FALSE)
+			{
+				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+				return false;
+			}
+
+			if (timer.hasExpired(sa::MAX_TIMEOUT))
+			{
+				//emit signalDispatcher.messageBoxShow(QObject::tr("SendMessageTimeoutW failed"), QMessageBox::Icon::Critical);
 				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 				break;
 			}
@@ -465,13 +520,13 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
 
 		bret = true;
-		IS_INJECT_OK = true;
-} while (false);
+		IS_INJECT_OK.on();
+	} while (false);
 
-if (!bret)
-pi_ = {};
+	if (!bret)
+		pi_ = {};
 
-return bret;
+	return bret;
 }
 
 bool Injector::isWindowAlive() const
@@ -523,8 +578,8 @@ void Injector::mouseMove(long long x, long long y) const
 {
 	//LPARAM data = MAKELPARAM(x, y);
 	//sendMessage(WM_MOUSEMOVE, NULL, data);
-	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseX, x);
-	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseY, y);
+	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseX, x);
+	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseY, y);
 }
 
 //滑鼠移動 + 左鍵
@@ -538,7 +593,7 @@ void Injector::leftClick(long long x, long long y) const
 	//sendMessage(WM_LBUTTONUP, MK_LBUTTON, data);
 	//QThread::msleep(50);
 	mouseMove(x, y);
-	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseClick, 1);
+	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseClick, 1);
 }
 
 void Injector::leftDoubleClick(long long x, long long y) const
@@ -563,7 +618,7 @@ void Injector::rightClick(long long x, long long y) const
 	//sendMessage(WM_RBUTTONUP, MK_RBUTTON, data);
 	//QThread::msleep(50);
 	mouseMove(x, y);
-	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseClick, 2);
+	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseClick, 2);
 }
 
 void Injector::dragto(long long x1, long long y1, long long x2, long long y2) const

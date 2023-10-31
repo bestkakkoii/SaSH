@@ -75,7 +75,7 @@ MapForm::~MapForm()
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+	injector.IS_FINDINGPATH.off();
 }
 
 void MapForm::showEvent(QShowEvent* e)
@@ -109,10 +109,10 @@ void MapForm::onButtonClicked()
 		if (!injector.isValid())
 			return;
 
-		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_FLAG.get())
 			return;
 
-		if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+		if (injector.IS_FINDINGPATH.get())
 			return;
 
 		if (injector.worker.isNull())
@@ -121,9 +121,9 @@ void MapForm::onButtonClicked()
 		if (!injector.worker->getOnlineFlag())
 			return;
 
-		if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+		if (injector.IS_FINDINGPATH.get())
 		{
-			injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+			injector.IS_FINDINGPATH.off();
 		}
 
 		if (missionThread_ != nullptr)
@@ -152,7 +152,7 @@ void MapForm::onButtonClicked()
 	else if (name == "pushButton_findpath_stop")
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
-		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+		injector.IS_FINDINGPATH.off();
 		ui.pushButton_findpath_stop->setEnabled(false);
 		ui.pushButton_findpath_start->setEnabled(true);
 	}
@@ -190,7 +190,7 @@ void MapForm::onUpdateNpcList(long long floor)
 	ui.tableWidget_map->setHorizontalHeaderLabels(header);
 
 	QString key = util::toQString(floor);
-	QList<util::MapData> datas;
+	QList<util::Config::MapData> datas;
 	long long currentIndex = getIndex();
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
@@ -204,7 +204,7 @@ void MapForm::onUpdateNpcList(long long floor)
 	resizeTableWidgetRow(size);
 	for (long long i = 0; i < size; ++i)
 	{
-		util::MapData d = datas.value(i);
+		util::Config::MapData d = datas.value(i);
 		QPoint point(d.x, d.y);
 		npc_hash_.insert(i, point);
 
@@ -227,10 +227,10 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	if (!injector.isValid())
 		return;
 
-	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_FLAG.get())
 		return;
 
-	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	if (injector.IS_FINDINGPATH.get())
 		return;
 
 	if (injector.worker.isNull())
@@ -239,9 +239,9 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (injector.IS_FINDINGPATH.load(std::memory_order_acquire))
+	if (injector.IS_FINDINGPATH.get())
 	{
-		injector.IS_FINDINGPATH.store(false, std::memory_order_release);
+		injector.IS_FINDINGPATH.off();
 	}
 
 	if (missionThread_ != nullptr)

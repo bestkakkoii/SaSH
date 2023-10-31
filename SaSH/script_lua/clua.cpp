@@ -258,30 +258,26 @@ bool __fastcall luadebug::isInterruptionRequested(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_INTERRUPT.get())
 		return true;
 
-	CLua* pLua = lua["_THIS"].get<CLua*>();
-	if (pLua == nullptr)
-		return false;
-
-	return pLua->isInterruptionRequested();
+	return false;
 }
 
 bool __fastcall luadebug::checkStopAndPause(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 
-	if (isInterruptionRequested(s))
-	{
-		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
-		return true;
-	}
-
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
 	injector.checkPause();
 
-	return false;
+	bool isStop = injector.IS_SCRIPT_INTERRUPT.get();
+	if (isStop)
+	{
+		tryPopCustomErrorMsg(s, ERROR_FLAG_DETECT_STOP);
+	}
+
+	return isStop;
 }
 
 bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
@@ -292,7 +288,7 @@ bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 	bool bret = false;
 	if (!injector.worker->getOnlineFlag())
 	{
-		QElapsedTimer timer; timer.start();
+		util::Timer timer;
 		bret = true;
 		for (;;)
 		{
@@ -325,17 +321,15 @@ bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 	bool bret = false;
 	if (injector.worker->getBattleFlag())
 	{
-		QElapsedTimer timer; timer.start();
+		util::Timer timer;
 		bret = true;
 		for (;;)
 		{
-			if (isInterruptionRequested(s))
+			if (checkStopAndPause(s))
 				break;
 
 			if (!injector.worker.isNull())
 				break;
-
-			checkStopAndPause(s);
 
 			if (!injector.worker->getBattleFlag())
 				break;
@@ -362,8 +356,9 @@ void __fastcall luadebug::processDelay(const sol::this_state& s)
 		long long size = extraDelay / 1000ll;
 		for (i = 0; i < size; ++i)
 		{
-			if (isInterruptionRequested(s))
+			if (checkStopAndPause(s))
 				return;
+
 			QThread::msleep(1000L);
 		}
 		if (extraDelay % 1000ll > 0ll)
@@ -444,12 +439,10 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 	sol::state_view lua(s.lua_state());
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
 	bool bret = false;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	for (;;)
 	{
-		checkStopAndPause(s);
-
-		if (isInterruptionRequested(s))
+		if (checkStopAndPause(s))
 			break;
 
 		if (timer.hasExpired(timeout))
@@ -515,7 +508,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
 		processDelay(s);
-		if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 		{
 			QThread::msleep(1);
 		}
@@ -533,8 +526,8 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		QString scriptFileName = injector.currentScriptFileName;
 
-		util::SafeHash<long long, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
-		const util::SafeHash<long long, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
+		safe::Hash<long long, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
+		const safe::Hash<long long, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
 		if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 		{
 			return;//檢查是否有中斷點
@@ -590,9 +583,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 CLua::CLua(long long index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
 	qDebug() << "CLua 1";
 }
 
@@ -600,9 +590,6 @@ CLua::CLua(long long index, const QString& content, QObject* parent)
 	: ThreadPlugin(index, parent)
 	, scriptContent_(content)
 {
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
 	qDebug() << "CLua 2";
 }
 
@@ -744,10 +731,38 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("send", &CLuaSystem::send, &luaSystem_);
 	lua.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
 	lua.set_function("openlog", &CLuaSystem::openlog, &luaSystem_);
-	lua.set_function("printf", &CLuaSystem::print, &luaSystem_);
+	lua.set_function("_print", &CLuaSystem::print, &luaSystem_);
+
+	lua.set_function("printf", [](sol::object ovalue, sol::object ocolor, sol::this_state s)->long long
+		{
+			sol::state_view lua(s);
+			if (!ocolor.is<long long>() || ocolor.as<long long>() < -2 || ocolor.as<long long>() > 11)
+			{
+				ocolor = sol::make_object(lua, sol::lua_nil);
+			}
+
+			sol::protected_function print = lua["_print"];
+			if (!print.valid())
+				return 0;
+
+			if (ovalue.is<std::string>())
+			{
+				sol::protected_function format = lua["format"];
+				if (!format.valid())
+					return 0;
+
+				sol::object o = format.call(ovalue.as<std::string>());
+				if (!o.valid())
+					return 0;
+
+				return print.call(o, ocolor).get<long long>();
+			}
+
+			return print.call(ovalue, ocolor).get<long long>();
+		});
+
 	//直接覆蓋print會無效,改成在腳本內中轉覆蓋
 	lua.safe_script(R"(
-		_print = print;
 		print = printf;
 	)");
 
@@ -764,14 +779,13 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("delch", &CLuaSystem::delch, &luaSystem_);
 	lua.set_function("menu", &CLuaSystem::menu, &luaSystem_);
 
-	lua.new_usertype<QElapsedTimer>("Timer",
+	lua.new_usertype<util::Timer>("Timer",
 		sol::call_constructor,
-		sol::constructors<QElapsedTimer()>(),
+		sol::constructors<util::Timer()>(),
 
-		"start", &QElapsedTimer::start,
-		"restart", &QElapsedTimer::restart,
-		"expired", &QElapsedTimer::hasExpired,
-		"get", &QElapsedTimer::elapsed
+		"restart", &util::Timer::restart,
+		"expired", &util::Timer::hasExpired,
+		"get", &util::Timer::cost
 	);
 
 	lua.set_function("say", &CLuaSystem::talk, &luaSystem_);
@@ -953,9 +967,9 @@ void CLua::proc()
 		if (scriptContent_.simplified().isEmpty())
 			break;
 
-		max_ = scriptContent_.split("\n").size();
+		safe::AutoFlag autoFlag(&isRunning_);
 
-		isRunning_.store(true, std::memory_order_release);
+		max_ = scriptContent_.split("\n").size();
 
 		lua_State* L = lua_.lua_state();
 		sol::this_state s = L;
@@ -1128,7 +1142,6 @@ void CLua::proc()
 		luadebug::logExport(s, tableStrs, 0);
 	} while (false);
 
-	isRunning_.store(false, std::memory_order_release);
 	emit finished();
 
 	long long currentIndex = getIndex();

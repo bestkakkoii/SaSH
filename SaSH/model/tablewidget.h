@@ -144,7 +144,7 @@ QScrollBar::handle:pressed:horizontal {
 			QVBoxLayout* lay = new QVBoxLayout(button);
 			lay->setContentsMargins(0, 0, 0, 0);
 			pCornerLabel = q_check_ptr(new QLabel());
-			assert(pCornerLabel != nullptr);
+			__assume(pCornerLabel != nullptr);
 			if (pCornerLabel)
 			{
 				pCornerLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);

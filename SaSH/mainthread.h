@@ -81,7 +81,7 @@ public slots:
 	void run();
 
 private:
-	void __fastcall inGameInitialize();
+	bool __fastcall inGameInitialize();
 
 	void __fastcall mainProc();
 
@@ -99,8 +99,6 @@ public:
 private:
 
 	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
-
-	bool isFirstLogin_ = true;
 
 	bool login_run_once_flag_ = false;
 	bool battle_run_once_flag_ = false;

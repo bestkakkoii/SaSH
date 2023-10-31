@@ -26,8 +26,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <util.h>
 #include <injector.h>
 #include "script/interpreter.h"
+#include "net/rpc.h"
 
-util::SafeHash<long long, MainForm*> g_mainFormHash;
+safe::Hash<long long, MainForm*> g_mainFormHash;
 
 void MainForm::createMenu(QMenuBar* pMenuBar)
 {
@@ -297,7 +298,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 		}
 
-		interpreter->requestInterruption();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+		emit signalDispatcher.scriptStoped();
 		interpreter_hash_.remove(id);
 
 		++interfaceCount_;
@@ -309,7 +311,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_FLAG.get())
 		{
 			updateStatusText(tr("already run"));
 			return true;
@@ -370,7 +372,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		if (!injector.IS_SCRIPT_FLAG.get())
 		{
 			updateStatusText(tr("not run yet"));
 			return true;
@@ -429,12 +431,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		if (injector.worker.isNull())
 			return true;
 
-
-		bool ok = injector.IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire);
-		if (!ok)
+		if (!injector.IS_TCP_CONNECTION_OK_TO_USE.get())
 			return true;
 
-		if (injector.IS_INJECT_OK)
+		if (injector.IS_INJECT_OK.get())
 		{
 			value = 1;
 
@@ -462,7 +462,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		long long value = 0;
-		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_FLAG.get())
 			value = 1;
 
 		++interfaceCount_;
@@ -922,7 +922,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			if (position < 0 || position >= MAX_CHARACTER + 1)
+			if (position < 0 || position >= sa::MAX_CHARACTER + 1)
 			{
 				*result = 5;
 				qDebug() << __FUNCTION__ << "pos out of range:" << position;
@@ -1082,7 +1082,6 @@ MainForm::MainForm(long long index, QWidget* parent)
 	ui.setupUi(this);
 	setFont(util::getFont());
 	setAttribute(Qt::WA_StyledBackground, true);
-	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 	setFixedWidth(290);
@@ -1157,6 +1156,16 @@ MainForm::MainForm(long long index, QWidget* parent)
 	onUpdateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 
 	onResetControlTextLanguage();
+
+	RPC& rpc = RPC::getInstance();
+	rpc.reg(getIndex(), "print", "print(QString)", this);
+}
+
+QString MainForm::print(QString str)
+{
+	QByteArray ba = str.toUtf8();
+	std::cout << std::string(ba.constData()) << std::endl;
+	return QString("rt:%1").arg(str);
 }
 
 MainForm::~MainForm()
@@ -1481,13 +1490,11 @@ bool MainForm::onResetControlTextLanguage()
 	this->ui.retranslateUi(this);
 
 	long long currentIndex = getIndex();
-	QString buildTime = compile::buildDateTime(nullptr);
-	//take off year
-	buildTime = buildTime.mid(4);
+
 #ifdef _WIN64
-	setWindowTitle(QString("[%1]").arg(currentIndex) + tr("SaSH - %1").arg(buildTime).simplified().replace("SaSH", "SaSHx64"));
+	setWindowTitle(QString("[%1]SaSH64").arg(currentIndex));
 #else
-	setWindowTitle(QString("[%1]").arg(currentIndex) + tr("SaSH - %1").arg(buildTime).simplified());
+	setWindowTitle(QString("[%1]SaSH").arg(currentIndex));
 #endif
 	trayIcon_.setToolTip(windowTitle());
 
@@ -1778,7 +1785,7 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 		icon = QMessageBox::Icon::Information;
 
 	QMessageBox msgBox(this);
-	msgBox.setWindowFlags(msgBox.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+	msgBox.setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint);
 	msgBox.setModal(true);
 	msgBox.setAttribute(Qt::WA_QuitOnClose);
 	msgBox.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
@@ -1836,7 +1843,7 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 	QInputDialog inputDialog(this);
 
 	inputDialog.setAttribute(Qt::WA_QuitOnClose);
-	inputDialog.setWindowFlags(inputDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+	inputDialog.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
 	inputDialog.setModal(true);
 	inputDialog.setMinimumWidth(300);
 	inputDialog.setLabelText(newText);

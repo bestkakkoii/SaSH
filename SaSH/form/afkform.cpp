@@ -1200,7 +1200,7 @@ void AfkForm::onResetControlTextLanguage()
 			if (notBattle)
 				return;
 
-			for (long long i = 0; i < MAX_PROFESSION_SKILL; ++i)
+			for (long long i = 0; i < sa::MAX_PROFESSION_SKILL; ++i)
 			{
 				QString text = QString("%1:").arg(i + 1 + size);
 				combo->addItem(text);
@@ -1250,16 +1250,16 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_magicheal_normal, false);
 
 	//battle
-	appendNumbers(ui.comboBox_roundaction_pet_action, MAX_SKILL);
-	appendNumbers(ui.comboBox_crossaction_pet_action, MAX_SKILL);
-	appendNumbers(ui.comboBox_normalaction_pet_action, MAX_SKILL);
+	appendNumbers(ui.comboBox_roundaction_pet_action, sa::MAX_SKILL);
+	appendNumbers(ui.comboBox_crossaction_pet_action, sa::MAX_SKILL);
+	appendNumbers(ui.comboBox_normalaction_pet_action, sa::MAX_SKILL);
 
-	appendNumbers(ui.comboBox_healaction_pet_action, MAX_SKILL);
-	appendNumbers(ui.comboBox_purgaction_pet_action, MAX_SKILL);
+	appendNumbers(ui.comboBox_healaction_pet_action, sa::MAX_SKILL);
+	appendNumbers(ui.comboBox_purgaction_pet_action, sa::MAX_SKILL);
 	//catch
 	appendCharAction(ui.comboBox_autocatchpet_magic);
 
-	appendNumbers(ui.comboBox_autocatchpet_petskill, MAX_SKILL);
+	appendNumbers(ui.comboBox_autocatchpet_petskill, sa::MAX_SKILL);
 
 	ui.comboBox_autocatchpet_mode->clear();
 	ui.comboBox_autocatchpet_mode->addItems(QStringList{ tr("escape from encounter") , tr("engage in encounter") });
@@ -1453,7 +1453,7 @@ void AfkForm::onUpdateComboBoxItemText(long long type, const QStringList& textLi
 				long long nOriginalIndex = combo->currentIndex();
 
 				constexpr long long base = 3; //基礎3個動作
-				long long size = MAX_MAGIC + base + MAX_PROFESSION_SKILL;
+				long long size = sa::MAX_MAGIC + base + sa::MAX_PROFESSION_SKILL;
 				long long n = 0;
 
 				//去除多餘的
@@ -1476,7 +1476,7 @@ void AfkForm::onUpdateComboBoxItemText(long long type, const QStringList& textLi
 					{
 						text = QString("%1:%2").arg(i + 1).arg(normalActionList.value(i));
 					}
-					else if (i >= base && i < MAX_MAGIC + 3)
+					else if (i >= base && i < sa::MAX_MAGIC + 3)
 					{
 						text = QString("%1:%2:%3").arg(i + 1).arg(equipActionList.value(i - base)).arg(textList.value(i - base));
 					}
@@ -1573,14 +1573,14 @@ void AfkForm::onUpdateComboBoxItemText(long long type, const QStringList& textLi
 			};
 
 		//battle
-		appendText(ui.comboBox_normalaction_pet_action, MAX_SKILL, false);
-		appendText(ui.comboBox_crossaction_pet_action, MAX_SKILL, false);
-		appendText(ui.comboBox_roundaction_pet_action, MAX_SKILL, false);
+		appendText(ui.comboBox_normalaction_pet_action, sa::MAX_SKILL, false);
+		appendText(ui.comboBox_crossaction_pet_action, sa::MAX_SKILL, false);
+		appendText(ui.comboBox_roundaction_pet_action, sa::MAX_SKILL, false);
 
-		appendText(ui.comboBox_healaction_pet_action, MAX_SKILL, false);
-		appendText(ui.comboBox_purgaction_pet_action, MAX_SKILL, false);
+		appendText(ui.comboBox_healaction_pet_action, sa::MAX_SKILL, false);
+		appendText(ui.comboBox_purgaction_pet_action, sa::MAX_SKILL, false);
 		//catch
-		appendText(ui.comboBox_autocatchpet_petskill, MAX_SKILL, false);
+		appendText(ui.comboBox_autocatchpet_petskill, sa::MAX_SKILL, false);
 		break;
 	}
 	case util::kComboBoxItem:

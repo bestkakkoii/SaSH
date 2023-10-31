@@ -64,7 +64,7 @@ long long Interpreter::waitpet(long long currentIndex, long long currentLine, co
 
 long long Interpreter::waitmap(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -140,7 +140,7 @@ long long Interpreter::waitmap(long long currentIndex, long long currentLine, co
 
 	if (!bret && timeout > 2000)
 		injector.worker->EO();
-	qDebug() << "init cost" << timer.elapsed() << "ms";
+	qDebug() << "init cost" << timer.cost() << "ms";
 	return checkJump(TK, 3, bret, FailedJump);
 }
 
@@ -190,7 +190,7 @@ long long Interpreter::waitdlg(long long currentIndex, long long currentLine, co
 		QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 
 		long long min = 1;
-		long long max = MAX_DIALOG_LINE;
+		long long max = sa::MAX_DIALOG_LINE;
 		if (!checkRange(TK, 2, &min, &max))
 			return Parser::kArgError + 2ll;
 		if (min == max)
@@ -260,7 +260,7 @@ long long Interpreter::waitsay(long long currentIndex, long long currentLine, co
 	checkOnlineThenWait();
 
 	long long min = 1;
-	long long max = MAX_CHAT_HISTORY;
+	long long max = sa::MAX_CHAT_HISTORY;
 	if (!checkRange(TK, 1, &min, &max))
 		return Parser::kArgError + 1ll;
 	if (min == max)
@@ -439,7 +439,7 @@ long long Interpreter::waitteam(long long currentIndex, long long currentLine, c
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	PC pc = injector.worker->getPC();
+	sa::PC pc = injector.worker->getPC();
 
 	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 1, &timeout);
@@ -447,13 +447,13 @@ long long Interpreter::waitteam(long long currentIndex, long long currentLine, c
 	bool bret = false;
 	if (timeout == 0)
 	{
-		bret = (pc.status & CHR_STATUS_LEADER) || (pc.status & CHR_STATUS_PARTY);;
+		bret = (pc.status & sa::CHR_STATUS_LEADER) || (pc.status & sa::CHR_STATUS_PARTY);;
 	}
 	else
 	{
 		bret = waitfor(timeout, [&pc]()->bool
 			{
-				return (pc.status & CHR_STATUS_LEADER) || (pc.status & CHR_STATUS_PARTY);
+				return (pc.status & sa::CHR_STATUS_LEADER) || (pc.status & sa::CHR_STATUS_PARTY);
 			});
 	}
 
@@ -470,7 +470,7 @@ long long Interpreter::waititem(long long currentIndex, long long currentLine, c
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	long long min = 0, max = static_cast<long long>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
+	long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM - 1);
 	bool isEquip = false;
 	if (!checkRange(TK, 1, &min, &max))
 	{
@@ -484,12 +484,12 @@ long long Interpreter::waititem(long long currentIndex, long long currentLine, c
 		if (partStr.toLower() == "all" || partStr.toLower() == QString("全部"))
 		{
 			min = 101;
-			max = static_cast<long long>(101 + CHAR_EQUIPPLACENUM);
+			max = static_cast<long long>(101 + sa::CHAR_EQUIPPLACENUM);
 		}
 		else
 		{
-			min = equipMap.value(partStr.toLower(), CHAR_EQUIPNONE);
-			if (min == CHAR_EQUIPNONE)
+			min = sa::equipMap.value(partStr.toLower(), sa::CHAR_EQUIPNONE);
+			if (min == sa::CHAR_EQUIPNONE)
 				return Parser::kArgError + 2ll;
 			max = min;
 			isEquip = true;
@@ -498,10 +498,10 @@ long long Interpreter::waititem(long long currentIndex, long long currentLine, c
 
 	if (min < 101 && max < 101 && !isEquip)
 	{
-		min += CHAR_EQUIPPLACENUM;
-		max += CHAR_EQUIPPLACENUM;
+		min += sa::CHAR_EQUIPPLACENUM;
+		max += sa::CHAR_EQUIPPLACENUM;
 	}
-	else if (min >= 101 && max <= static_cast<long long>(100 + CHAR_EQUIPPLACENUM))
+	else if (min >= 101 && max <= static_cast<long long>(100 + sa::CHAR_EQUIPPLACENUM))
 	{
 		min -= 101;
 		max -= 101;

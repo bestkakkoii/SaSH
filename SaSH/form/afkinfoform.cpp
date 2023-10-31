@@ -56,7 +56,7 @@ void AfkInfoForm::onButtonClicked()
 		return;
 
 	injector.worker->loginTimer.restart();
-	PC pc = injector.worker->getPC();
+	sa::PC pc = injector.worker->getPC();
 	util::AfkRecorder recorder;
 	recorder.levelrecord = pc.level;
 	recorder.exprecord = pc.exp;
@@ -64,9 +64,9 @@ void AfkInfoForm::onButtonClicked()
 	recorder.deadthcount = 0;
 	injector.worker->recorder[0] = recorder;
 
-	for (long long i = 0; i < MAX_PET; ++i)
+	for (long long i = 0; i < sa::MAX_PET; ++i)
 	{
-		PET pet = injector.worker->getPet(i);
+		sa::PET pet = injector.worker->getPet(i);
 		recorder = {};
 		recorder.levelrecord = pet.level;
 		recorder.exprecord = pet.exp;
@@ -97,12 +97,12 @@ void AfkInfoForm::onResetControlTextLanguage()
 		"",
 	};
 
-	for (long long i = 0; i < MAX_PET; ++i)
+	for (long long i = 0; i < sa::MAX_PET; ++i)
 	{
 		sectionList.append(tr("pet %1 level difference").arg(i + 1));
 		sectionList.append(tr("pet %1 exp difference").arg(i + 1));
 		sectionList.append(tr("pet %1 deadth count").arg(i + 1));
-		if (i <= MAX_PET - 1)
+		if (i <= sa::MAX_PET - 1)
 			sectionList.append("");
 	}
 

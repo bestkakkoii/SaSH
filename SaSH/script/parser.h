@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QStack>
 #include <functional>
 
-#include "threadplugin.h"
+#include <model/indexer.h>
 #include "util.h"
 #include "script_lua/clua.h"
 
@@ -35,7 +35,7 @@ using CommandRegistry = std::function<long long(long long currentIndex, long lon
 //callbak
 using ParserCallBack = std::function<long long(long long currentIndex, long long currentLine, const TokenMap& token)>;
 
-using VariantSafeHash = util::SafeHash<QString, QVariant>;
+using VariantSafeHash = safe::Hash<QString, QVariant>;
 
 struct Counter
 {
@@ -333,7 +333,7 @@ enum JumpBehavior
 };
 
 class Interpreter;
-class Parser : public ThreadPlugin
+class Parser : public QObject, public Indexer
 {
 	Q_OBJECT
 public:
@@ -596,7 +596,7 @@ private:
 	Interpreter* pinterpreter_ = nullptr;
 	Lexer lexer_;
 
-	QHash<unsigned long long, QSharedPointer<QElapsedTimer>> timerMap_;
+	QHash<unsigned long long, QSharedPointer<util::Timer>> timerMap_;
 
 	QString scriptFileName_;
 	bool isPrivate_ = false;

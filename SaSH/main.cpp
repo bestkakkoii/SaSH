@@ -20,13 +20,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "mainform.h"
 #include "util.h"
 #include "injector.h"
+#include "net/rpc.h"
 #include <QCommandLineParser>
 
 #pragma comment(lib, "ws2_32.lib")
 #include <DbgHelp.h>
 #pragma comment(lib, "dbghelp.lib")
-
-
 
 void CreateConsole()
 {
@@ -376,7 +375,7 @@ int main(int argc, char* argv[])
 	QSurfaceFormat::setDefaultFormat(format);
 
 	QApplication::setDesktopSettingsAware(true);
-	QApplication::setApplicationDisplayName("SaSH");
+	QApplication::setApplicationDisplayName(QString("[%1]").arg(_getpid()));
 	QApplication::setQuitOnLastWindowClosed(true);
 
 	//////// 以上必須在 QApplication a(argc, argv); 之前設置否則無效 ////////
@@ -502,7 +501,14 @@ int main(int argc, char* argv[])
 
 	/* 實例化單個或多個主窗口 */
 
-	//CreateConsole();
+	RPC::initialize(RPC::ProtocolType::IPV6, &a);
+
+	RPC& rpc = RPC::getInstance();
+	if (rpc.listen(_getpid()))
+	{
+		qDebug() << "RPC server is listening.";
+	}
+
 
 	// 解析啟動參數
 	QCommandLineParser parser;
@@ -548,31 +554,6 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	QTcpServer server;
-	server.setParent(&a);
-	if (server.listen(QHostAddress::AnyIPv6, _getpid()))
-	{
-		QObject::connect(&server, &QTcpServer::newConnection, [&a, &server]()
-			{
-				QTcpSocket* socket = server.nextPendingConnection();
-				if (socket == nullptr)
-					return;
-
-				QObject::connect(socket, &QTcpSocket::readyRead, [socket]()
-					{
-						QByteArray data = socket->readAll();
-						if (data.isEmpty())
-							return;
-
-						MessageBoxA(NULL, data.data(), "TCP", MB_OK);
-					});
-
-				QObject::connect(socket, &QTcpSocket::disconnected, [socket]()
-					{
-						socket->deleteLater();
-					});
-			});
-	}
 
 	return a.exec();
 }

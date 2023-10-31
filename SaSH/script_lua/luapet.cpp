@@ -30,7 +30,7 @@ long long CLuaPet::setState(long long petIndex, long long state, sol::this_state
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->setPetState(--petIndex, static_cast<PetState>(state));
+	injector.worker->setPetState(--petIndex, static_cast<sa::PetState>(state));
 
 	return TRUE;
 }

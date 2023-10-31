@@ -47,7 +47,7 @@ const char* Highlighter::keywords(int set) const
 	{
 		return
 			"dlg rnd "
-			"print sleep timer msg logout logback eo button say input menu "
+			"print printf sleep timer msg logout logback eo button say input menu "
 			"talk cls set saveset loadset "
 			"chpet chname chpetname chmap "
 			"usemagic doffpet buy sell useitem doffitem swapitem pickup putitem "
@@ -129,7 +129,7 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 8://KeywordSet8//紫色
 	{
-		return "out vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR _INDEX"
+		return "vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR _INDEX"
 			"_LINE_ _FILE_ _FUNCTION_ _ROWCOUNT_ "
 			"PID HWND GAMEPID GAMEHWND GAMEHANDLE THREADID GAME WORLD INDEX "
 			"INFINITE MAXPET MAXITEM MAXCHAR MAXSKILL MAXPETSKILL MAXEQUIP MAXCHAT MAXDLG MAXENEMY MAXCARD MAXDIR MAXMAGIC "

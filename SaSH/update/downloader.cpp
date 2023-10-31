@@ -240,7 +240,7 @@ bool compress(Downloader* d, const QString& source, const QString& destination)
 		std::wstring wfullpath = szFullPath.toStdWString();
 
 		zipper::ZRESULT ret = zipper::ZipAdd(hz, wfilename.c_str(), wfullpath.c_str());
-		if (ret != ZR_OK)
+		if (ret != zipper::ZR_OK)
 		{
 			qDebug() << "ZipAdd failed" << szFullPath;
 			d->progressDialog_->setLabelText("ZipAdd failed: " + szFullPath);
@@ -272,7 +272,7 @@ bool uncompress(Downloader* d, const QString& source, const QString& destination
 	std::wstring wdestination = newDestination.toStdWString();
 
 	zipper::ZRESULT ret = zipper::SetUnzipBaseDir(hz, wdestination.c_str());
-	if (ret != ZR_OK)
+	if (ret != zipper::ZR_OK)
 	{
 		qDebug() << "SetUnzipBaseDir failed" << newDestination;
 		d->progressDialog_->setLabelText("SetUnzipBaseDir failed: " + newDestination);
@@ -282,7 +282,7 @@ bool uncompress(Downloader* d, const QString& source, const QString& destination
 
 	zipper::ZIPENTRY ze = {};
 	ret = GetZipItem(hz, -1, &ze);
-	if (ret != ZR_OK)
+	if (ret != zipper::ZR_OK)
 	{
 		qDebug() << "GetZipItem failed" << ze.index;
 		d->progressDialog_->setLabelText("GetZipItem failed with index: " + QString::number(ze.index));
@@ -297,7 +297,7 @@ bool uncompress(Downloader* d, const QString& source, const QString& destination
 	for (long long zi = 0; zi < numitems; zi++)
 	{
 		ret = GetZipItem(hz, zi, &ze);
-		if (ret != ZR_OK)
+		if (ret != zipper::ZR_OK)
 		{
 			qDebug() << "GetZipItem failed" << zi;
 			d->progressDialog_->setLabelText("GetZipItem failed with index: " + QString::number(zi));
@@ -305,7 +305,7 @@ bool uncompress(Downloader* d, const QString& source, const QString& destination
 		}
 
 		ret = UnzipItem(hz, zi, ze.name);
-		if (ret != ZR_OK)
+		if (ret != zipper::ZR_OK)
 		{
 			qDebug() << "UnzipItem failed" << zi;
 			d->progressDialog_->setLabelText("UnzipItem failed with index: " + QString::number(zi));
@@ -835,13 +835,13 @@ void Downloader::overwriteCurrentExecutable()
 
 		//move to current
 		{
-			QElapsedTimer timer; timer.start();
+			util::Timer timer;
 			if (QFile::exists(szBackup7zFilePath))
 			{
 				while (!QFile::rename(szBackup7zFilePath, szBackup7zNewFilePath))
 				{
 					QThread::msleep(1000);
-					if (timer.hasExpired(30000ll))
+					if (timer.hasExpired(30000))
 					{
 						break;
 					}

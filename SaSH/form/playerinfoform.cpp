@@ -55,9 +55,9 @@ CharInfoForm::CharInfoForm(long long index, QWidget* parent)
 		long long stone = injector.worker->getPC().gold;
 		onUpdateCharInfoStone(stone);
 
-		for (long long i = 0; i < MAX_PET; ++i)
+		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
-			PET pet = injector.worker->getPet(i);
+			sa::PET pet = injector.worker->getPet(i);
 			onUpdateCharInfoPetState(i, pet.state);
 		}
 	}
@@ -168,43 +168,43 @@ void CharInfoForm::onHeaderClicked(long long logicalIndex)
 	default:
 	{
 		long long petIndex = logicalIndex - 2;
-		if (petIndex < 0 || petIndex >= MAX_PET)
+		if (petIndex < 0 || petIndex >= sa::MAX_PET)
 			break;
 		Injector& injector = Injector::getInstance(currentIndex);
 		if (injector.worker.isNull())
 			break;
 
-		PET pet = injector.worker->getPet(petIndex);
+		sa::PET pet = injector.worker->getPet(petIndex);
 		switch (pet.state)
 		{
-		case PetState::kRest:
+		case sa::PetState::kRest:
 		{
 
-			injector.worker->setPetState(petIndex, PetState::kStandby);
+			injector.worker->setPetState(petIndex, sa::PetState::kStandby);
 			break;
 		}
-		case PetState::kStandby:
+		case sa::PetState::kStandby:
 		{
-			injector.worker->setPetState(petIndex, PetState::kBattle);
+			injector.worker->setPetState(petIndex, sa::PetState::kBattle);
 			break;
 		}
-		case PetState::kBattle:
+		case sa::PetState::kBattle:
 		{
-			injector.worker->setPetState(petIndex, PetState::kMail);
+			injector.worker->setPetState(petIndex, sa::PetState::kMail);
 			break;
 		}
-		case PetState::kMail:
+		case sa::PetState::kMail:
 		{
 
 			if (injector.worker->getPet(petIndex).loyal == 100)
-				injector.worker->setPetState(petIndex, PetState::kRide);
+				injector.worker->setPetState(petIndex, sa::PetState::kRide);
 			else
-				injector.worker->setPetState(petIndex, PetState::kRest);
+				injector.worker->setPetState(petIndex, sa::PetState::kRest);
 			break;
 		}
-		case PetState::kRide:
+		case sa::PetState::kRide:
 		{
-			injector.worker->setPetState(petIndex, PetState::kRest);
+			injector.worker->setPetState(petIndex, sa::PetState::kRest);
 			break;
 		}
 		}

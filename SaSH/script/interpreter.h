@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 constexpr long long DEFAULT_FUNCTION_TIMEOUT = 5000;
 
-class Interpreter : public ThreadPlugin
+class Interpreter : public QObject, public Indexer
 {
 	Q_OBJECT
 public:
@@ -38,7 +38,7 @@ public:
 	explicit Interpreter(long long index);
 	virtual ~Interpreter();
 
-	inline bool __fastcall isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
+	bool __fastcall isRunning() const;
 
 	void __fastcall preview(const QString& fileName);
 
@@ -47,8 +47,6 @@ public:
 	void __fastcall doFileWithThread(long long beginLine, const QString& fileName);
 
 	bool __fastcall doFile(long long beginLine, const QString& fileName, Interpreter* pinterpretter, Parser* pparser, bool issub, Parser::Mode mode);
-
-	void __fastcall stop();
 
 signals:
 	void finished();
@@ -169,8 +167,8 @@ private:
 	Parser parser_;
 	long long beginLine_ = 0;
 
-	std::atomic_bool isRunning_ = false;
+	safe::Flag isRunning_ = false;
 	ParserCallBack pCallback = nullptr;
 	QList<QSharedPointer<Interpreter>> subInterpreterList_;
-	QFutureSynchronizer<bool> futureSync_;
+	QFutureSynchronizer<bool> subThreadFutureSync_;
 };

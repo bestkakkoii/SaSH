@@ -47,8 +47,8 @@ public:
 		setCancelButtonText(tr("Cancel"));
 
 		QRect screenRect = QGuiApplication::primaryScreen()->geometry();
-		long long x = static_cast<long long>(screenRect.width() - width()) / 2;
-		long long y = static_cast<long long>(screenRect.height() - height()) / 2;
+		long long x = (static_cast<long long>(screenRect.width()) - static_cast<long long>(width())) / 2;
+		long long y = (static_cast<long long>(screenRect.height()) - static_cast<long long>(height())) / 2;
 		move(x, y);
 	}
 

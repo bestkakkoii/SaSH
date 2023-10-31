@@ -153,12 +153,12 @@ void CAStar::percolate_up(long long& hole)
 			std::swap(open_list_[hole], open_list_[parent]);
 #endif
 			hole = parent;
-	}
+		}
 		else
 		{
 			return;
 		}
-}
+	}
 }
 
 #if defined(Chebyshev_distance)
@@ -323,7 +323,7 @@ void CAStar::handle_found_node(Node*& current, Node*& destination)
 		}
 		else
 		{
-			assert(false);
+			__assume(false);
 		}
 	}
 }

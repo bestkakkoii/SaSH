@@ -273,10 +273,10 @@ void OtherForm::onButtonClicked()
 		QString typeStr = ui.comboBox_locktype->currentText().simplified();
 		long long level = ui.spinBox_lockpetslevel->value();
 		QStringList list;
-		for (long long i = 0; i < MAX_PET; ++i)
+		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
 			QString text;
-			PET pet = injector.worker->getPet(i);
+			sa::PET pet = injector.worker->getPet(i);
 			if (pet.valid && !pet.name.isEmpty())
 				text = QString("%1:%2").arg(i + 1).arg(pet.name.simplified());
 			else
@@ -307,7 +307,7 @@ void OtherForm::onButtonClicked()
 		injector.worker->setTeamState(false);
 	}
 
-	for (long long i = 1; i < MAX_PARTY; ++i)
+	for (long long i = 1; i < sa::MAX_PARTY; ++i)
 	{
 		if (name == QString("pushButton_teammate%1kick").arg(i))
 		{
@@ -465,9 +465,9 @@ void OtherForm::onComboBoxClicked()
 		QStringList list;
 		if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
 		{
-			for (long long i = 0; i < MAX_PET; ++i)
+			for (long long i = 0; i < sa::MAX_PET; ++i)
 			{
-				PET pet = injector.worker->getPet(i);
+				sa::PET pet = injector.worker->getPet(i);
 				if (pet.name.isEmpty() || !pet.valid)
 				{
 					list.append(QString("%1:").arg(i + 1));
@@ -596,7 +596,7 @@ void OtherForm::onApplyHashSettingsToUI()
 	if (ui.comboBox_lockride->count() == 0 || ui.comboBox_lockpet->count() == 0)
 	{
 		QStringList list;
-		for (long long i = 0; i < MAX_PET; ++i)
+		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
 			list.append(QString("%1:").arg(i + 1));
 		}
@@ -611,9 +611,9 @@ void OtherForm::onApplyHashSettingsToUI()
 	QStringList list;
 	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
 	{
-		for (long long i = 0; i < MAX_PET; ++i)
+		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
-			PET pet = injector.worker->getPet(i);
+			sa::PET pet = injector.worker->getPet(i);
 			if (pet.name.isEmpty() || !pet.valid)
 			{
 				list.append(QString("%1:").arg(i + 1));
@@ -668,7 +668,7 @@ void OtherForm::onApplyHashSettingsToUI()
 
 void OtherForm::onUpdateTeamInfo(const QStringList& strList)
 {
-	for (long long i = 0; i <= MAX_PARTY; ++i)
+	for (long long i = 0; i <= sa::MAX_PARTY; ++i)
 	{
 		QString objName = QString("label_teammate%1").arg(i);
 		QLabel* label = ui.groupBox_team->findChild<QLabel*>(objName);

@@ -308,7 +308,7 @@ public:
 
 	void __fastcall start();
 	void __fastcall wait();
-	inline bool __fastcall isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
+	inline bool __fastcall isRunning() const { return isRunning_.get() && !isInterruptionRequested(); }
 
 signals:
 	void finished();
@@ -342,12 +342,11 @@ private:
 	CLua* parent_ = nullptr;
 	QThread thread_;
 	DWORD tid_ = 0UL;
-	QElapsedTimer scriptTimer_;
 	QString scriptContent_;
 	bool isSubScript_ = false;
 	bool isDebug_ = false;
 	bool isHookEnabled_ = true;
-	std::atomic_bool isRunning_ = false;
+	safe::Flag isRunning_ = false;
 
 private:
 	CLuaSystem luaSystem_;

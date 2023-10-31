@@ -26,22 +26,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //#include "crypto.h"
 
 Interpreter::Interpreter(long long index)
-	: ThreadPlugin(index, nullptr)
+	: Indexer(index)
 	, parser_(index)
 {
 	qDebug() << "Interpreter is created!";
-	futureSync_.setCancelOnWait(true);
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Interpreter::requestInterruption, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &Interpreter::requestInterruption, Qt::QueuedConnection);
+	subThreadFutureSync_.setCancelOnWait(true);
 }
 
 Interpreter::~Interpreter()
 {
-	requestInterruption();
-	futureSync_.waitForFinished();
+	subThreadFutureSync_.waitForFinished();
 	qDebug() << "Interpreter is destroyed!";
+}
+
+bool Interpreter::isRunning() const
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	return isRunning_.get()
+		&& injector.IS_SCRIPT_FLAG.get() && !injector.IS_SCRIPT_INTERRUPT.get();
 }
 
 //在新線程執行腳本文件
@@ -128,9 +130,8 @@ void Interpreter::doString(QString content)
 
 void Interpreter::onRunString()
 {
-	isRunning_.store(true, std::memory_order_release);
+	safe::AutoFlag autoSafeflag(&isRunning_);
 	parser_.parse(0);
-	isRunning_.store(false, std::memory_order_release);
 	emit finished();
 }
 
@@ -153,14 +154,6 @@ void Interpreter::preview(const QString& fileName)
 	}
 
 	emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(parser_.getTokens()));
-}
-
-void Interpreter::stop()
-{
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-	emit signalDispatcher.nodifyAllScriptStop();
-	Injector& injector = Injector::getInstance(getIndex());
-	injector.IS_SCRIPT_INTERRUPT.store(true, std::memory_order_release);
 }
 
 //註冊interpreter的成員函數
@@ -284,13 +277,18 @@ bool Interpreter::checkRelationalOperator(const TokenMap& TK, long long idx, RES
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
 bool Interpreter::waitfor(long long timeout, std::function<bool()> exprfun)
 {
+	if (nullptr == exprfun)
+		return false;
+
 	if (timeout < 0)
 		timeout = std::numeric_limits<long long>::max();
+	else if (timeout == 0)
+		return exprfun();
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	bool bret = false;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	long long delay = timeout / 10;
 	if (delay > 100)
 		delay = 100;
@@ -299,10 +297,7 @@ bool Interpreter::waitfor(long long timeout, std::function<bool()> exprfun)
 	{
 		injector.checkPause();
 
-		if (isInterruptionRequested())
-			break;
-
-		if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+		if (injector.IS_SCRIPT_INTERRUPT.get())
 			break;
 
 		if (injector.worker.isNull())
@@ -401,31 +396,8 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (isInterruptionRequested())
+	if (injector.IS_SCRIPT_INTERRUPT.get())
 		return 0;
-
-	if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
-		return 0;
-
-	Parser* pparent = parser_.getParent();
-	if (pparent != &parser_)
-	{
-		if (pparent != nullptr)
-		{
-			if (pparent->isInterruptionRequested())
-				return 0;
-
-			if (pparent->getInterpreter() != nullptr && pparent->getInterpreter()->isInterruptionRequested())
-				return 0;
-		}
-	}
-
-	Interpreter* interpreter = parser_.getInterpreter();
-	if (interpreter != this)
-	{
-		if (interpreter != nullptr && interpreter->isInterruptionRequested())
-			return 0;
-	}
 
 	RESERVE currentType = TK.value(0).type;
 
@@ -447,15 +419,15 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 	injector.checkPause();
 
-	if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_INTERRUPT.get())
 		return 0;
 
-	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+	if (!injector.IS_SCRIPT_DEBUG_ENABLE.get())
 		return 1;
 
 	QString scriptFileName = parser_.getScriptFileName();
-	util::SafeHash<long long, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
-	const util::SafeHash<long long, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
+	safe::Hash<long long, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
+	const safe::Hash<long long, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
 	if (!breakMarkers.contains(currentLine) && !stepMarkers.contains(currentLine))
 	{
 		return 1;//檢查是否有中斷點
@@ -481,7 +453,7 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 	injector.checkPause();
 
-	if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+	if (injector.IS_SCRIPT_INTERRUPT.get())
 		return 0;
 
 	return 1;
@@ -489,36 +461,31 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 void Interpreter::proc()
 {
+	safe::AutoFlag autoSafeflag(&isRunning_);
 	qDebug() << "Interpreter::run()";
-	isRunning_.store(true, std::memory_order_release);
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	injector.IS_SCRIPT_FLAG.store(true, std::memory_order_release);
-	injector.IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
+	injector.IS_SCRIPT_FLAG.on();
+	injector.IS_SCRIPT_INTERRUPT.off();
 
 	parser_.initialize(&parser_);
 
 	doFile(beginLine_, injector.currentScriptFileName, this, nullptr, false, Parser::kSync);
 
+	injector.IS_SCRIPT_FLAG.off();
+
+	subInterpreterList_.clear();
+	subThreadFutureSync_.waitForFinished();
+
 	for (auto& it : subInterpreterList_)
 	{
 		if (it.isNull())
 			continue;
-
-		it->requestInterruption();
 		it.reset(nullptr);
 	}
-	subInterpreterList_.clear();
-	futureSync_.waitForFinished();
-
-
-	injector.IS_SCRIPT_FLAG.store(false, std::memory_order_release);
-	injector.IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
-
-	isRunning_.store(false, std::memory_order_release);
 
 	emit finished();
 	emit signalDispatcher.scriptFinished();
@@ -537,14 +504,11 @@ bool Interpreter::checkBattleThenWait()
 	bool bret = false;
 	if (injector.worker->getBattleFlag())
 	{
-		QElapsedTimer timer; timer.start();
+		util::Timer timer;
 		bret = true;
 		for (;;)
 		{
-			if (isInterruptionRequested())
-				break;
-
-			if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+			if (injector.IS_SCRIPT_INTERRUPT.get())
 				break;
 
 			if (injector.worker.isNull())
@@ -555,7 +519,7 @@ bool Interpreter::checkBattleThenWait()
 			if (!injector.worker->getBattleFlag())
 				break;
 
-			if (timer.hasExpired(60000))
+			if (timer.hasExpired(180000))
 				break;
 
 			QThread::msleep(100);
@@ -580,17 +544,14 @@ bool Interpreter::checkOnlineThenWait()
 
 	if (!injector.worker->getOnlineFlag())
 	{
-		QElapsedTimer timer; timer.start();
+		util::Timer timer;
 		bret = true;
 		for (;;)
 		{
-			if (isInterruptionRequested())
+			if (injector.IS_SCRIPT_INTERRUPT.get())
 				break;
 
 			if (injector.worker.isNull())
-				break;
-
-			if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 				break;
 
 			injector.checkPause();
@@ -598,7 +559,7 @@ bool Interpreter::checkOnlineThenWait()
 			if (injector.worker->getOnlineFlag())
 				break;
 
-			if (timer.hasExpired(60000))
+			if (timer.hasExpired(180000))
 				break;
 
 			QThread::msleep(100);
@@ -745,7 +706,7 @@ long long Interpreter::run(long long currentIndex, long long currentline, const 
 	}
 	else
 	{
-		futureSync_.addFuture(QtConcurrent::run([this, beginLine, fileName, varShareMode, asyncMode, currentIndex]()->bool
+		subThreadFutureSync_.addFuture(QtConcurrent::run([this, beginLine, fileName, varShareMode, asyncMode, currentIndex]()->bool
 			{
 				QSharedPointer<Interpreter> interpreter(QSharedPointer<Interpreter>::create(currentIndex));
 				if (interpreter.isNull())

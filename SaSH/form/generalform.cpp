@@ -1203,8 +1203,8 @@ void GeneralForm::createServerList()
 		ui.comboBox_subserver->addItems(subList);
 	}
 
-	injector.serverNameList = serverNameList;
-	injector.subServerNameList = subServerNameList;
+	injector.serverNameList.set(serverNameList);
+	injector.subServerNameList.set(subServerNameList);
 
 	if (current >= 0)
 		ui.comboBox_server->setCurrentIndex(current);

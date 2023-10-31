@@ -62,10 +62,10 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 
 	QRegularExpressionMatch i = re.match(cmpstr);
 	//long long count = 0;
-	QVector<long long> basev(MAX_PET, 0);
+	QVector<long long> basev(sa::MAX_PET, 0);
 	if (i.hasMatch())
 	{
-		for (long long j = 0; j < MAX_PET; ++j)
+		for (long long j = 0; j < sa::MAX_PET; ++j)
 			basev[j] = i.captured(j + 1).toLongLong();
 
 		base_level_ = basev[0];
@@ -81,9 +81,9 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 		long long currentIndex = ui.comboBox->currentIndex();
 
 		Injector& injector = Injector::getInstance(getIndex());
-		if (currentIndex >= 0 && currentIndex < MAX_PET)
+		if (currentIndex >= 0 && currentIndex < sa::MAX_PET)
 		{
-			PET pet = injector.worker->getPet(currentIndex);
+			sa::PET pet = injector.worker->getPet(currentIndex);
 			base_level_ = pet.oldlevel;
 			if (base_level_ == 0)
 				base_level_ = 1;
@@ -121,10 +121,10 @@ void PetInfoForm::on_comboBox_clicked()
 	long long current = ui.comboBox->currentIndex();
 	ui.comboBox->clear();
 
-	for (long long i = 0; i < MAX_PET; ++i)
+	for (long long i = 0; i < sa::MAX_PET; ++i)
 	{
 		QVector<long long> v;
-		PET pet = injector.worker->getPet(i);
+		sa::PET pet = injector.worker->getPet(i);
 		QString name = util::toQString(i + 1) + ":";
 		if (!pet.name.isEmpty() && pet.valid)
 		{
@@ -144,7 +144,7 @@ void PetInfoForm::on_comboBox_clicked()
 	}
 
 
-	if (current >= 0 && current < MAX_PET)
+	if (current >= 0 && current < sa::MAX_PET)
 		ui.comboBox->setCurrentIndex(current);
 	else
 		ui.comboBox->setCurrentIndex(0);

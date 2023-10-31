@@ -1,4 +1,4 @@
-// sol3
+﻿// sol3
 
 // The MIT License (MIT)
 
@@ -42,17 +42,17 @@ namespace sol {
 		}
 
 		template <typename T, std::size_t... I>
-		decltype(auto) tuple_get(std::index_sequence<I...>) && {
+		decltype(auto) tuple_get(std::index_sequence<I...>)&& {
 			return tbl.template traverse_get<T>(std::get<I>(std::move(key))...);
 		}
 
 		template <std::size_t... I, typename T>
-		void tuple_set(std::index_sequence<I...>, T&& value) & {
+		void tuple_set(std::index_sequence<I...>, T&& value)& {
 			tbl.traverse_set(std::get<I>(key)..., std::forward<T>(value));
 		}
 
 		template <std::size_t... I, typename T>
-		void tuple_set(std::index_sequence<I...>, T&& value) && {
+		void tuple_set(std::index_sequence<I...>, T&& value)&& {
 			tbl.traverse_set(std::get<I>(std::move(key))..., std::forward<T>(value));
 		}
 
@@ -82,36 +82,36 @@ namespace sol {
 		table_proxy& operator=(const table_proxy& right) {
 			return set(right);
 		}
-		table_proxy& operator=(table_proxy&& right) {
+		table_proxy& operator=(table_proxy&& right) noexcept {
 			return set(std::move(right));
 		}
 
 		template <typename T>
-		table_proxy& set(T&& item) & {
+		table_proxy& set(T&& item)& {
 			tuple_set(std::make_index_sequence<std::tuple_size_v<meta::unqualified_t<key_type>>>(), std::forward<T>(item));
 			return *this;
 		}
 
 		template <typename T>
-		table_proxy&& set(T&& item) && {
+		table_proxy&& set(T&& item)&& {
 			std::move(*this).tuple_set(std::make_index_sequence<std::tuple_size_v<meta::unqualified_t<key_type>>>(), std::forward<T>(item));
 			return std::move(*this);
 		}
 
 		template <typename... Args>
-		table_proxy& set_function(Args&&... args) & {
+		table_proxy& set_function(Args&&... args)& {
 			tbl.set_function(key, std::forward<Args>(args)...);
 			return *this;
 		}
 
 		template <typename... Args>
-		table_proxy&& set_function(Args&&... args) && {
+		table_proxy&& set_function(Args&&... args)&& {
 			tbl.set_function(std::move(key), std::forward<Args>(args)...);
 			return std::move(*this);
 		}
 
 		template <typename T, std::enable_if_t<!std::is_same_v<meta::unqualified_t<T>, table_proxy>>* = nullptr>
-		table_proxy& operator=(T&& other) & {
+		table_proxy& operator=(T&& other)& {
 			using Tu = meta::unwrap_unqualified_t<T>;
 			if constexpr (!is_lua_reference_or_proxy_v<Tu> && meta::is_invocable_v<Tu>) {
 				return set_function(std::forward<T>(other));
@@ -122,7 +122,7 @@ namespace sol {
 		}
 
 		template <typename T, std::enable_if_t<!std::is_same_v<meta::unqualified_t<T>, table_proxy>>* = nullptr>
-		table_proxy&& operator=(T&& other) && {
+		table_proxy&& operator=(T&& other)&& {
 			using Tu = meta::unwrap_unqualified_t<T>;
 			if constexpr (!is_lua_reference_or_proxy_v<Tu> && meta::is_invocable_v<Tu> && !detail::is_msvc_callable_rigged_v<T>) {
 				return std::move(*this).set_function(std::forward<T>(other));
@@ -133,12 +133,12 @@ namespace sol {
 		}
 
 		template <typename T>
-		table_proxy& operator=(std::initializer_list<T> other) & {
+		table_proxy& operator=(std::initializer_list<T> other)& {
 			return set(std::move(other));
 		}
 
 		template <typename T>
-		table_proxy&& operator=(std::initializer_list<T> other) && {
+		table_proxy&& operator=(std::initializer_list<T> other)&& {
 			return std::move(*this).set(std::move(other));
 		}
 
@@ -156,7 +156,7 @@ namespace sol {
 		}
 
 		template <typename T>
-		decltype(auto) get() && {
+		decltype(auto) get()&& {
 			using idx_seq = std::make_index_sequence<std::tuple_size_v<meta::unqualified_t<key_type>>>;
 			return std::move(*this).template tuple_get<T>(idx_seq());
 		}
@@ -201,13 +201,13 @@ namespace sol {
 		}
 
 		template <typename K>
-		decltype(auto) operator[](K&& k) & {
+		decltype(auto) operator[](K&& k)& {
 			auto keys = meta::tuplefy(key, std::forward<K>(k));
 			return table_proxy<Table, decltype(keys)>(tbl, std::move(keys));
 		}
 
 		template <typename K>
-		decltype(auto) operator[](K&& k) && {
+		decltype(auto) operator[](K&& k)&& {
 			auto keys = meta::tuplefy(std::move(key), std::forward<K>(k));
 			return table_proxy<Table, decltype(keys)>(tbl, std::move(keys));
 		}

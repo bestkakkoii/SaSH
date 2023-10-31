@@ -349,7 +349,7 @@ void MainObject::run()
 
 	Injector::process_information_t process_info;
 	remove_thread_reason = util::REASON_NO_ERROR;
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	do
 	{
 		//檢查服務端是否實例化
@@ -384,7 +384,7 @@ void MainObject::run()
 		for (;;)
 		{
 			//檢查TCP是否握手成功
-			if (injector.IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire))
+			if (injector.IS_TCP_CONNECTION_OK_TO_USE.get())
 				break;
 
 			if (isInterruptionRequested())
@@ -399,7 +399,7 @@ void MainObject::run()
 				break;
 			}
 
-			if (timer.hasExpired(15000))
+			if (timer.hasExpired(sa::MAX_TIMEOUT))
 			{
 				remove_thread_reason = util::REASON_TCP_CONNECTION_TIMEOUT;
 				break;
@@ -410,17 +410,21 @@ void MainObject::run()
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
+		if (injector.IS_SCRIPT_FLAG.get())
+			emit signalDispatcher.scriptResumed();
+
 		//進入主循環
 		mainProc();
 	} while (false);
 
 	//開始逐步停止所有功能
 	requestInterruption();
+
 	//強制關閉遊戲進程
 	injector.close();
 	if (SignalDispatcher::contains(getIndex()))
 	{
-		emit signalDispatcher.scriptStoped();
+		emit signalDispatcher.scriptPaused();
 		emit signalDispatcher.nodifyAllStop();
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 	}
@@ -437,11 +441,6 @@ void MainObject::run()
 	}
 	autoThreads_.clear();
 
-	while (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
-	{
-		QThread::msleep(100);
-	}
-
 	//通知線程結束
 	emit finished();
 	qDebug() << "emit finished()";
@@ -450,7 +449,7 @@ void MainObject::run()
 void MainObject::mainProc()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	QElapsedTimer freeMemTimer; freeMemTimer.start();
+	util::Timer freeMemTimer;
 
 	mem::freeUnuseMemory(injector.getProcess());
 
@@ -610,10 +609,7 @@ void MainObject::mainProc()
 		//這裡是預留的暫時沒作用
 		if (status == 1)//非登入狀態
 		{
-			if (!isFirstLogin_)
-				QThread::msleep(1000);
-			else
-				QThread::msleep(50);
+			QThread::msleep(50);
 			nodelay = true;
 		}
 		else if (status == 2)//平時
@@ -651,10 +647,7 @@ void MainObject::mainProc()
 			}
 
 			if (bCheckedFastBattle || bCheckedAutoBattle)
-			{
 				injector.postMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
-				injector.worker->doBattleWork(true);
-			}
 			else
 				injector.postMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
 		}
@@ -667,26 +660,32 @@ void MainObject::mainProc()
 	}
 }
 
-void MainObject::inGameInitialize()
+bool MainObject::inGameInitialize()
 {
+	if (isInterruptionRequested())
+		return false;
+
 	Injector& injector = Injector::getInstance(getIndex());
 	if (injector.worker.isNull())
-		return;
+		return false;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
 	//等待完全進入登入後的遊戲畫面
-	QElapsedTimer timer; timer.start();
+	util::Timer timer;
 	for (;;)
 	{
 		if (isInterruptionRequested())
-			return;
+			return false;
 
 		if (injector.worker.isNull())
-			return;
+			return false;
 
-		if (timer.hasExpired(10000))
-			return;
+		if (!injector.isWindowAlive())
+			return false;
+
+		if (timer.hasExpired(sa::MAX_TIMEOUT))
+			return false;
 
 		if (injector.worker->checkWG(9, 3))
 			break;
@@ -719,6 +718,8 @@ void MainObject::inGameInitialize()
 	injector.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
 	injector.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
 	injector.sendMessage(kDistoryDialog, NULL, NULL);
+
+	return true;
 }
 
 long long MainObject::checkAndRunFunctions()
@@ -767,7 +768,7 @@ long long MainObject::checkAndRunFunctions()
 
 			injector.worker->loginTimer.restart();
 			//自動登入 或 斷線重連
-			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.worker->IS_DISCONNECTED.load(std::memory_order_acquire))
+			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.worker->IS_DISCONNECTED.get())
 				injector.worker->login(status);
 			return 1;
 		}
@@ -783,15 +784,13 @@ long long MainObject::checkAndRunFunctions()
 	//每次登入後只會執行一次
 	if (login_run_once_flag_)
 	{
-		login_run_once_flag_ = false;
-		inGameInitialize();
+		if (!inGameInitialize())
+			return 0;
 
-		//首次登入標誌
-		if (isFirstLogin_)
-			isFirstLogin_ = false;
+		login_run_once_flag_ = false;
 	}
 
-	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.worker->loginTimer.elapsed(), true));
+	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.worker->loginTimer.cost(), true));
 
 	//更新掛機數據到UI
 	updateAfkInfos();
@@ -843,7 +842,7 @@ void MainObject::updateAfkInfos()
 	if (injector.worker.isNull())
 		return;
 
-	long long duration = injector.worker->loginTimer.elapsed();
+	long long duration = injector.worker->loginTimer.cost();
 	emit signalDispatcher.updateAfkInfoTable(0, util::formatMilliseconds(duration));
 
 	util::AfkRecorder recorder = injector.worker->recorder[0];
@@ -869,7 +868,7 @@ void MainObject::updateAfkInfos()
 
 	constexpr long long n = 7;
 	long long j = 0;
-	for (long long i = 0; i < MAX_PET; ++i)
+	for (long long i = 0; i < sa::MAX_PET; ++i)
 	{
 		recorder = injector.worker->recorder[i + 1];
 
@@ -903,7 +902,8 @@ void MainObject::checkControl()
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (injector.worker->loginTimer.elapsed() < 10000)
+	//超過10秒才能執行否則會崩潰
+	if (!injector.worker->loginTimer.hasExpired(10000))
 		return;
 
 	//異步關閉聲音
@@ -930,89 +930,89 @@ void MainObject::checkEtcFlag()
 		};
 
 	bool bCurrent = injector.getEnableHash(util::kSwitcherTeamEnable);
-	if (toBool(PC_ETCFLAG_GROUP) != bCurrent)
+	if (toBool(sa::PC_ETCFLAG_GROUP) != bCurrent)
 	{
 		if (bCurrent)
-			flg |= PC_ETCFLAG_GROUP;
+			flg |= sa::PC_ETCFLAG_GROUP;
 		else
-			flg &= ~PC_ETCFLAG_GROUP;
+			flg &= ~sa::PC_ETCFLAG_GROUP;
 
 		hasChange = true;
 	}
 
 	bCurrent = injector.getEnableHash(util::kSwitcherPKEnable);
-	if (toBool(PC_ETCFLAG_PK) != bCurrent)
+	if (toBool(sa::PC_ETCFLAG_PK) != bCurrent)
 	{
 		if (bCurrent)
-			flg |= PC_ETCFLAG_PK;
+			flg |= sa::PC_ETCFLAG_PK;
 		else
-			flg &= ~PC_ETCFLAG_PK;
+			flg &= ~sa::PC_ETCFLAG_PK;
 
 		hasChange = true;
 	}
 
 	bCurrent = injector.getEnableHash(util::kSwitcherCardEnable);
-	if (toBool(PC_ETCFLAG_CARD) != bCurrent)
+	if (toBool(sa::PC_ETCFLAG_CARD) != bCurrent)
 	{
 		if (bCurrent)
-			flg |= PC_ETCFLAG_CARD;
+			flg |= sa::PC_ETCFLAG_CARD;
 		else
-			flg &= ~PC_ETCFLAG_CARD;
+			flg &= ~sa::PC_ETCFLAG_CARD;
 
 		hasChange = true;
 	}
 
 	bCurrent = injector.getEnableHash(util::kSwitcherTradeEnable);
-	if (toBool(PC_ETCFLAG_TRADE) != bCurrent)
+	if (toBool(sa::PC_ETCFLAG_TRADE) != bCurrent)
 	{
 		if (bCurrent)
-			flg |= PC_ETCFLAG_TRADE;
+			flg |= sa::PC_ETCFLAG_TRADE;
 		else
-			flg &= ~PC_ETCFLAG_TRADE;
+			flg &= ~sa::PC_ETCFLAG_TRADE;
 
 		hasChange = true;
 	}
 
 	bCurrent = injector.getEnableHash(util::kSwitcherGroupEnable);
-	if (toBool(PC_ETCFLAG_PARTY_CHAT) != bCurrent)
+	if (toBool(sa::PC_ETCFLAG_PARTY_CHAT) != bCurrent)
 	{
 		if (bCurrent)
-			flg |= PC_ETCFLAG_PARTY_CHAT;
+			flg |= sa::PC_ETCFLAG_PARTY_CHAT;
 		else
-			flg &= ~PC_ETCFLAG_PARTY_CHAT;
+			flg &= ~sa::PC_ETCFLAG_PARTY_CHAT;
 
 		hasChange = true;
 	}
 
 	bCurrent = injector.getEnableHash(util::kSwitcherFamilyEnable);
-	if (toBool(PC_ETCFLAG_FM) != bCurrent)
+	if (toBool(sa::PC_ETCFLAG_FM) != bCurrent)
 	{
 		if (bCurrent)
-			flg |= PC_ETCFLAG_FM;
+			flg |= sa::PC_ETCFLAG_FM;
 		else
-			flg &= ~PC_ETCFLAG_FM;
+			flg &= ~sa::PC_ETCFLAG_FM;
 
 		hasChange = true;
 	}
 
 	bCurrent = injector.getEnableHash(util::kSwitcherJobEnable);
-	if (toBool(PC_ETCFLAG_JOB) != bCurrent)
+	if (toBool(sa::PC_ETCFLAG_JOB) != bCurrent)
 	{
 		if (bCurrent)
-			flg |= PC_ETCFLAG_JOB;
+			flg |= sa::PC_ETCFLAG_JOB;
 		else
-			flg &= ~PC_ETCFLAG_JOB;
+			flg &= ~sa::PC_ETCFLAG_JOB;
 
 		hasChange = true;
 	}
 
 	bCurrent = injector.getEnableHash(util::kSwitcherWorldEnable);
-	if (toBool(PC_ETCFLAG_WORLD) != bCurrent)
+	if (toBool(sa::PC_ETCFLAG_WORLD) != bCurrent)
 	{
 		if (bCurrent)
-			flg |= PC_ETCFLAG_WORLD;
+			flg |= sa::PC_ETCFLAG_WORLD;
 		else
-			flg &= ~PC_ETCFLAG_WORLD;
+			flg &= ~sa::PC_ETCFLAG_WORLD;
 
 		hasChange = true;
 	}
@@ -1082,13 +1082,13 @@ void MissionThread::autoJoin()
 	std::vector<QPoint> path;
 	QPoint current_point;
 	QPoint newpoint;
-	mapunit_t unit = {};
+	sa::mapunit_t unit = {};
 	long long dir = -1;
 	long long floor = injector.worker->getFloor();
 	long long len = MAX_SINGLE_STEP;
 	long long size = 0;
 	CAStar astar;
-	PC ch = {};
+	sa::PC ch = {};
 	long long actionType = 0;
 	QString leader;
 
@@ -1121,10 +1121,10 @@ void MissionThread::autoJoin()
 		if (actionType == 0)
 		{
 			//檢查隊長是否正確
-			if (ch.status & CHR_STATUS_LEADER)
+			if ((ch.status & sa::CHR_STATUS_LEADER) == sa::CHR_STATUS_LEADER)
 				return;
 
-			if (ch.status & CHR_STATUS_PARTY)
+			if ((ch.status & sa::CHR_STATUS_PARTY) == sa::CHR_STATUS_PARTY)
 			{
 				QString name = injector.worker->getParty(0).name;
 				if ((!name.isEmpty() && leader == name)
@@ -1173,14 +1173,14 @@ void MissionThread::autoJoin()
 		}
 
 		//查找目標人物所在坐標
-		if (!injector.worker->findUnit(leader, util::OBJ_HUMAN, &unit, freeName))
+		if (!injector.worker->findUnit(leader, sa::OBJ_HUMAN, &unit, freeName))
 			break;
 
 		//如果和目標人物處於同一個坐標則向隨機方向移動一格
 		current_point = injector.worker->getPoint();
 		if (current_point == unit.p)
 		{
-			injector.worker->move(current_point + util::fix_point.value(QRandomGenerator::global()->bounded(0, 7)));
+			injector.worker->move(current_point + util::fix_point.value(util::rnd::get(0, 7)));
 			QThread::msleep(100);
 			continue;
 		}
@@ -1329,12 +1329,8 @@ void MissionThread::autoWalk()
 				else
 				{
 					//取隨機數
-					std::random_device rd;
-					std::mt19937_64 gen(rd());
-					std::uniform_int_distribution<long long> distributionX(current_pos.x() - walk_len, current_pos.x() + walk_len);
-					std::uniform_int_distribution<long long> distributionY(current_pos.y() - walk_len, current_pos.y() + walk_len);
-					x = distributionX(gen);
-					y = distributionY(gen);
+					x = util::rnd::get(current_pos.x() - walk_len, current_pos.x() + walk_len);
+					y = util::rnd::get(current_pos.y() - walk_len, current_pos.y() + walk_len);
 				}
 
 				//每次循環切換方向
@@ -1415,10 +1411,10 @@ void MissionThread::autoRecordNPC()
 
 		CAStar astar;
 
-		QHash<long long, mapunit_t> units = injector.worker->mapUnitHash.toHash();
+		QHash<long long, sa::mapunit_t> units = injector.worker->mapUnitHash.toHash();
 		util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
-		for (const mapunit_t& unit : units)
+		for (const sa::mapunit_t& unit : units)
 		{
 			if (isInterruptionRequested())
 				return;
@@ -1432,7 +1428,7 @@ void MissionThread::autoRecordNPC()
 			if (injector.worker->getBattleFlag())
 				break;
 
-			if ((unit.objType != util::OBJ_NPC)
+			if ((unit.objType != sa::OBJ_NPC)
 				|| unit.name.isEmpty()
 				|| (injector.worker->getWorldStatus() != 9)
 				|| (injector.worker->getGameStatus() != 3)
@@ -1443,8 +1439,8 @@ void MissionThread::autoRecordNPC()
 
 			injector.worker->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
 
-			util::MapData d;
-			long long nowFloor = injector.worker->nowFloor_.load(std::memory_order_acquire);
+			util::Config::MapData d;
+			long long nowFloor = injector.worker->nowFloor_.get();
 			QPoint nowPoint = injector.worker->nowPoint_.get();
 
 			d.floor = nowFloor;
@@ -1543,13 +1539,13 @@ void MissionThread::autoRecordNPC()
 
 			const QString name(entranceData.value(2));
 
-			util::MapData d;
+			util::Config::MapData d;
 			d.floor = floor;
 			d.name = name;
 			d.x = x;
 			d.y = y;
 
-			mapunit_t unit;
+			sa::mapunit_t unit;
 			unit.x = x;
 			unit.y = y;
 			unit.p = pos;
@@ -1633,7 +1629,7 @@ void MainObject::checkAutoLockSchedule()
 							continue;
 						--petIndex;
 
-						if (petIndex < 0 || petIndex >= MAX_PET)
+						if (petIndex < 0 || petIndex >= sa::MAX_PET)
 							continue;
 
 						QString levelStr = args.value(1).simplified();
@@ -1717,7 +1713,7 @@ void MainObject::checkAutoLockSchedule()
 					injector.worker->setPetState(bindex, kBattle);
 			}
 
-			for (long long i = 0; i < MAX_PET; ++i)
+			for (long long i = 0; i < sa::MAX_PET; ++i)
 			{
 				if (bindex == i || rindex == i)
 					continue;

@@ -102,104 +102,110 @@ namespace zipper
 
 
 	// These are the result codes:
-#define ZR_OK         0x00000000     // nb. the pseudo-code zr-recent is never returned,
-#define ZR_RECENT     0x00000001     // but can be passed to FormatZipMessage.
-// The following come from general system stuff (e.g. files not openable)
-#define ZR_GENMASK    0x0000FF00
-#define ZR_NODUPH     0x00000100     // couldn't duplicate the handle
-#define ZR_NOFILE     0x00000200     // couldn't create/open the file
-#define ZR_NOALLOC    0x00000300     // failed to allocate some resource
-#define ZR_WRITE      0x00000400     // a general error writing to the file
-#define ZR_NOTFOUND   0x00000500     // couldn't find that file in the zip
-#define ZR_MORE       0x00000600     // there's still more data to be unzipped
-#define ZR_CORRUPT    0x00000700     // the zipfile is corrupt or not a zipfile
-#define ZR_READ       0x00000800     // a general error reading the file
-#define ZR_PASSWORD   0x00001000     // we didn't get the right password to unzip the file
-// The following come from mistakes on the part of the caller
-#define ZR_CALLERMASK 0x00FF0000
-#define ZR_ARGS       0x00010000     // general mistake with the arguments
-#define ZR_NOTMMAP    0x00020000     // tried to ZipGetMemory, but that only works on mmap zipfiles, which yours wasn't
-#define ZR_MEMSIZE    0x00030000     // the memory size is too small
-#define ZR_FAILED     0x00040000     // the thing was already failed when you called this function
-#define ZR_ENDED      0x00050000     // the zip creation has already been closed
-#define ZR_MISSIZE    0x00060000     // the indicated input file size turned out mistaken
-#define ZR_PARTIALUNZ 0x00070000     // the file had already been partially unzipped
-#define ZR_ZMODE      0x00080000     // tried to mix creating/opening a zip 
-// The following come from bugs within the zip library itself
-#define ZR_BUGMASK    0xFF000000
-#define ZR_NOTINITED  0x01000000     // initialisation didn't work
-#define ZR_SEEK       0x02000000     // trying to seek in an unseekable file
-#define ZR_NOCHANGE   0x04000000     // changed its mind on storage, but not allowed
-#define ZR_FLATE      0x05000000     // an internal error in the de/inflation code
+#ifndef ENUM_ZRESULTTYPE
+#define ENUM_ZRESULTTYPE
+	enum ZRESULTTYPE
+	{
+		ZR_OK = 0x00000000,     // nb. the pseudo-code zr-recent is never returned,
+		ZR_RECENT = 0x00000001,     // but can be passed to FormatZipMessage.
+		// The following come from general system stuff (e.g. files not openable)
+		ZR_GENMASK = 0x0000FF00,
+		ZR_NODUPH = 0x00000100,     // couldn't duplicate the handle
+		ZR_NOFILE = 0x00000200,     // couldn't create/open the file
+		ZR_NOALLOC = 0x00000300,     // failed to allocate some resource
+		ZR_WRITE = 0x00000400,     // a general error writing to the file
+		ZR_NOTFOUND = 0x00000500,     // couldn't find that file in the zip
+		ZR_MORE = 0x00000600,     // there's still more data to be unzipped
+		ZR_CORRUPT = 0x00000700,     // the zipfile is corrupt or not a zipfile
+		ZR_READ = 0x00000800,     // a general error reading the file
+		ZR_PASSWORD = 0x00001000,     // we didn't get the right password to unzip the file
+		// The following come from mistakes on the part of the caller
+		ZR_CALLERMASK = 0x00FF0000,
+		ZR_ARGS = 0x00010000,     // general mistake with the arguments
+		ZR_NOTMMAP = 0x00020000,     // tried to ZipGetMemory, but that only works on mmap zipfiles, which yours wasn't
+		ZR_MEMSIZE = 0x00030000,     // the memory size is too small
+		ZR_FAILED = 0x00040000,     // the thing was already failed when you called this function
+		ZR_ENDED = 0x00050000,     // the zip creation has already been closed
+		ZR_MISSIZE = 0x00060000,     // the indicated input file size turned out mistaken
+		ZR_PARTIALUNZ = 0x00070000,     // the file had already been partially unzipped
+		ZR_ZMODE = 0x00080000,     // tried to mix creating/opening a zip 
+		// The following come from bugs within the zip library itself
+		ZR_BUGMASK = 0xFF000000,
+		ZR_NOTINITED = 0x01000000,     // initialisation didn't work
+		ZR_SEEK = 0x02000000,     // trying to seek in an unseekable file
+		ZR_NOCHANGE = 0x04000000,     // changed its mind on storage, but not allowed
+		ZR_FLATE = 0x05000000,     // an internal error in the de/inflation code
+	};
+#endif
 
 
 
 
 
-// e.g.
-//
-// SetCurrentDirectory("c:\\docs\\stuff");
-// HZIP hz = OpenZip("c:\\stuff.zip",0);
-// ZIPENTRY ze; GetZipItem(hz,-1,&ze); int numitems=ze.index;
-// for (int i=0; i<numitems; i++)
-// { GetZipItem(hz,i,&ze);
-//   UnzipItem(hz,i,ze.name);
-// }
-// CloseZip(hz);
-//
-//
-// HRSRC hrsrc = FindResource(hInstance,MAKEINTRESOURCE(1),RT_RCDATA);
-// HANDLE hglob = LoadResource(hInstance,hrsrc);
-// void *zipbuf=LockResource(hglob);
-// unsigned int ziplen=SizeofResource(hInstance,hrsrc);
-// HZIP hz = OpenZip(zipbuf, ziplen, 0);
-//   - unzip to a membuffer -
-// ZIPENTRY ze; int i; FindZipItem(hz,"file.dat",true,&i,&ze);
-// char *ibuf = new char[ze.unc_size];
-// UnzipItem(hz,i, ibuf, ze.unc_size);
-// delete[] ibuf;
-//   - unzip to a fixed membuff -
-// ZIPENTRY ze; int i; FindZipItem(hz,"file.dat",true,&i,&ze);
-// char ibuf[1024]; ZRESULT zr=ZR_MORE; unsigned long totsize=0;
-// while (zr==ZR_MORE)
-// { zr = UnzipItem(hz,i, ibuf,1024);
-//   unsigned long bufsize=1024; if (zr==ZR_OK) bufsize=ze.unc_size-totsize;
-//   totsize+=bufsize;
-// }
-//   - unzip to a pipe -
-// HANDLE hwrite; HANDLE hthread=CreateWavReaderThread(&hwrite);
-// int i; ZIPENTRY ze; FindZipItem(hz,"sound.wav",true,&i,&ze);
-// UnzipItemHandle(hz,i, hwrite);
-// CloseHandle(hwrite);
-// WaitForSingleObject(hthread,INFINITE);
-// CloseHandle(hwrite); CloseHandle(hthread);
-//   - finished -
-// CloseZip(hz);
-// // note: no need to free resources obtained through Find/Load/LockResource
-//
-//
-// SetCurrentDirectory("c:\\docs\\pipedzipstuff");
-// HANDLE hread,hwrite; CreatePipe(&hread,&hwrite,0,0);
-// CreateZipWriterThread(hwrite);
-// HZIP hz = OpenZipHandle(hread,0);
-// for (int i=0; ; i++)
-// { ZIPENTRY ze;
-//   ZRESULT zr=GetZipItem(hz,i,&ze); if (zr!=ZR_OK) break; // no more
-//   UnzipItem(hz,i, ze.name);
-// }
-// CloseZip(hz);
-//
-//
+	// e.g.
+	//
+	// SetCurrentDirectory("c:\\docs\\stuff");
+	// HZIP hz = OpenZip("c:\\stuff.zip",0);
+	// ZIPENTRY ze; GetZipItem(hz,-1,&ze); int numitems=ze.index;
+	// for (int i=0; i<numitems; i++)
+	// { GetZipItem(hz,i,&ze);
+	//   UnzipItem(hz,i,ze.name);
+	// }
+	// CloseZip(hz);
+	//
+	//
+	// HRSRC hrsrc = FindResource(hInstance,MAKEINTRESOURCE(1),RT_RCDATA);
+	// HANDLE hglob = LoadResource(hInstance,hrsrc);
+	// void *zipbuf=LockResource(hglob);
+	// unsigned int ziplen=SizeofResource(hInstance,hrsrc);
+	// HZIP hz = OpenZip(zipbuf, ziplen, 0);
+	//   - unzip to a membuffer -
+	// ZIPENTRY ze; int i; FindZipItem(hz,"file.dat",true,&i,&ze);
+	// char *ibuf = new char[ze.unc_size];
+	// UnzipItem(hz,i, ibuf, ze.unc_size);
+	// delete[] ibuf;
+	//   - unzip to a fixed membuff -
+	// ZIPENTRY ze; int i; FindZipItem(hz,"file.dat",true,&i,&ze);
+	// char ibuf[1024]; ZRESULT zr=ZR_MORE; unsigned long totsize=0;
+	// while (zr==ZR_MORE)
+	// { zr = UnzipItem(hz,i, ibuf,1024);
+	//   unsigned long bufsize=1024; if (zr==ZR_OK) bufsize=ze.unc_size-totsize;
+	//   totsize+=bufsize;
+	// }
+	//   - unzip to a pipe -
+	// HANDLE hwrite; HANDLE hthread=CreateWavReaderThread(&hwrite);
+	// int i; ZIPENTRY ze; FindZipItem(hz,"sound.wav",true,&i,&ze);
+	// UnzipItemHandle(hz,i, hwrite);
+	// CloseHandle(hwrite);
+	// WaitForSingleObject(hthread,INFINITE);
+	// CloseHandle(hwrite); CloseHandle(hthread);
+	//   - finished -
+	// CloseZip(hz);
+	// // note: no need to free resources obtained through Find/Load/LockResource
+	//
+	//
+	// SetCurrentDirectory("c:\\docs\\pipedzipstuff");
+	// HANDLE hread,hwrite; CreatePipe(&hread,&hwrite,0,0);
+	// CreateZipWriterThread(hwrite);
+	// HZIP hz = OpenZipHandle(hread,0);
+	// for (int i=0; ; i++)
+	// { ZIPENTRY ze;
+	//   ZRESULT zr=GetZipItem(hz,i,&ze); if (zr!=ZR_OK) break; // no more
+	//   UnzipItem(hz,i, ze.name);
+	// }
+	// CloseZip(hz);
+	//
+	//
 
 
 
 
-// Now we indulge in a little skullduggery so that the code works whether
-// the user has included just zip or both zip and unzip.
-// Idea: if header files for both zip and unzip are present, then presumably
-// the cpp files for zip and unzip are both present, so we will call
-// one or the other of them based on a dynamic choice. If the header file
-// for only one is present, then we will bind to that particular one.
+	// Now we indulge in a little skullduggery so that the code works whether
+	// the user has included just zip or both zip and unzip.
+	// Idea: if header files for both zip and unzip are present, then presumably
+	// the cpp files for zip and unzip are both present, so we will call
+	// one or the other of them based on a dynamic choice. If the header file
+	// for only one is present, then we will bind to that particular one.
 	ZRESULT CloseZipU(HZIP hz);
 	unsigned int FormatZipMessageU(ZRESULT code, TCHAR* buf, unsigned int len);
 	bool IsZipHandleU(HZIP hz);

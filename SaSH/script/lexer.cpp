@@ -40,7 +40,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ "pause", TK_PAUSE },
 	{ "function", TK_FUNCTION, },
 	{ "label", TK_LABEL, },
-	{ "format", TK_FORMAT },
 	{ "if", TK_IF },
 	{ "for", TK_FOR },
 	{ "break", TK_BREAK },
@@ -317,10 +316,11 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 			raw = raw.mid(0, commentIndex).trimmed();
 
 		static const QStringList tempReplacementList = {
-			"set", "print", "msg", "dlg", "findpath", "findnpc", "rex", "regex", "rexg", "format", "run",
+			"set", "print", "printf", "msg", "dlg", "findpath", "findnpc", "rex", "regex", "rexg", "format", "run",
 			"say", "sleep", "saveset", "loadset", "lclick", "rclick", "dbclick", "dragto", "chmap", "w", "download",
 			"move", "cls", "eo", "logout", "logback", "runex", "openwindow", "rungame", "closegame", "setlogin", "dostrex",
-			"getgamestate", "loadsetex", "createch", "delch", "menu", "checkdaily", "button", "join", "leave", "kick", "send"
+			"getgamestate", "loadsetex", "createch", "delch", "menu", "checkdaily", "button", "join", "leave", "kick", "send",
+
 		};
 
 		for (const QString& it : tempReplacementList)

@@ -159,7 +159,7 @@ static const QHash<long long, QPair<long long, long long>> fill_hash = {
 
 void BattleInfoForm::onBattleTableItemForegroundColorChanged(long long index, const QColor& color)
 {
-	if (index < 0 || index > TARGET_ALL)
+	if (index < 0 || index > sa::TARGET_ALL)
 		return;
 
 	if (index == 20)
