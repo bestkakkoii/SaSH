@@ -219,7 +219,7 @@ void RPC::processMessage(QTcpSocket* client, const QByteArray& data)
 		QString returnString;
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		success = method.invoke(receiver, Qt::DirectConnection
-			, qReturnArg(returnString)
+			, Q_RETURN_ARG(QString, returnString)
 			, arguments.value(0)
 			, arguments.value(1)
 			, arguments.value(2)
