@@ -133,7 +133,7 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 				if (!injector.worker.isNull())
 				{
 					long long nMode = ui.comboBox_channel->currentIndex();
-					TalkMode mode = static_cast<TalkMode>(nMode != -1 ? nMode : kTalkNormal);
+					sa::TalkMode mode = static_cast<sa::TalkMode>(nMode != -1 ? nMode : sa::kTalkNormal);
 					if (nMode != (static_cast<long long>(channelList_.size()) - 1))
 						injector.worker->talk(text, ui.comboBox_color->currentIndex(), mode);
 					else

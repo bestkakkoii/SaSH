@@ -36,7 +36,7 @@ typedef struct qdistance_s
 
 typedef struct qmappoint_s
 {
-	util::ObjectType type = util::OBJ_UNKNOWN;
+	sa::ObjectType type = sa::OBJ_UNKNOWN;
 	QPoint p = {};
 } qmappoint_t;
 
@@ -58,7 +58,7 @@ typedef struct map_s
 	QVector<qmappoint_t> stair = {};
 	QSet<QPoint> workable = {};
 
-	QHash<QPoint, util::ObjectType> data;
+	QHash<QPoint, sa::ObjectType> data;
 	QHash<QPoint, long long> ground;
 	QHash<QPoint, long long> object;
 	QHash<QPoint, long long> flag;
@@ -81,25 +81,25 @@ static inline uint qHash(const map_t& key, uint seed) Q_DECL_NOTHROW
 }
 #endif
 
-static const QHash<util::ObjectType, QColor> MAP_COLOR_HASH = {
-	{ util::OBJ_UNKNOWN,  QColor(0, 0, 1) },		 //黑
-	{ util::OBJ_ROAD,     QColor(64, 74, 41) },	     //墨綠
-	{ util::OBJ_UP,       QColor(255, 128, 128) },   //乳紅
-	{ util::OBJ_DOWN,     QColor(128, 128, 255) },   //乳紫
-	{ util::OBJ_JUMP,     QColor(200, 200, 65) },	 //乳黃
-	{ util::OBJ_WARP,     QColor(200, 137, 48) },    //乳橘
-	{ util::OBJ_WALL,     QColor(35, 35, 35) },	     //灰黑
-	{ util::OBJ_ROCK,     QColor(46, 55, 25) },		 //灰
-	{ util::OBJ_ROCKEX,   QColor(81, 53, 28) },		 //咖啡
-	{ util::OBJ_BOUNDARY, QColor(112, 146, 190) },   //湛藍
-	{ util::OBJ_WATER,    QColor(29, 73, 97) },		 //深湛藍
-	{ util::OBJ_EMPTY,    QColor(0, 0, 1) },		 //黑
-	{ util::OBJ_NPC,      QColor(198, 211, 255) },	 //淺紫
-	{ util::OBJ_ITEM,     QColor(32, 255, 141) },	 //青綠
-	{ util::OBJ_HUMAN,    QColor(255, 194, 194) },   //淺粉
-	{ util::OBJ_PET,      QColor(149, 153, 124) },   //亞麻
-	{ util::OBJ_GOLD,     QColor(247, 255, 0) },     //黃
-	{ util::OBJ_GM,       QColor(212, 25, 25) },     //紅
+static const QHash<sa::ObjectType, QColor> MAP_COLOR_HASH = {
+	{ sa::OBJ_UNKNOWN,  QColor(0, 0, 1) },		 //黑
+	{ sa::OBJ_ROAD,     QColor(64, 74, 41) },	     //墨綠
+	{ sa::OBJ_UP,       QColor(255, 128, 128) },   //乳紅
+	{ sa::OBJ_DOWN,     QColor(128, 128, 255) },   //乳紫
+	{ sa::OBJ_JUMP,     QColor(200, 200, 65) },	 //乳黃
+	{ sa::OBJ_WARP,     QColor(200, 137, 48) },    //乳橘
+	{ sa::OBJ_WALL,     QColor(35, 35, 35) },	     //灰黑
+	{ sa::OBJ_ROCK,     QColor(46, 55, 25) },		 //灰
+	{ sa::OBJ_ROCKEX,   QColor(81, 53, 28) },		 //咖啡
+	{ sa::OBJ_BOUNDARY, QColor(112, 146, 190) },   //湛藍
+	{ sa::OBJ_WATER,    QColor(29, 73, 97) },		 //深湛藍
+	{ sa::OBJ_EMPTY,    QColor(0, 0, 1) },		 //黑
+	{ sa::OBJ_NPC,      QColor(198, 211, 255) },	 //淺紫
+	{ sa::OBJ_ITEM,     QColor(32, 255, 141) },	 //青綠
+	{ sa::OBJ_HUMAN,    QColor(255, 194, 194) },   //淺粉
+	{ sa::OBJ_PET,      QColor(149, 153, 124) },   //亞麻
+	{ sa::OBJ_GOLD,     QColor(247, 255, 0) },     //黃
+	{ sa::OBJ_GM,       QColor(212, 25, 25) },     //紅
 };
 
 class MapAnalyzer : public Indexer
@@ -142,8 +142,8 @@ private:
 
 	bool __fastcall loadFromBinary(long long currentIndex, long long floor, map_t* _map);
 
-	[[nodiscard]] util::ObjectType __fastcall getGroundType(const unsigned short data) const;
-	[[nodiscard]] util::ObjectType __fastcall getObjectType(const unsigned short data) const;
+	[[nodiscard]] sa::ObjectType __fastcall getGroundType(const unsigned short data) const;
+	[[nodiscard]] sa::ObjectType __fastcall getObjectType(const unsigned short data) const;
 
 public:
 #if 0

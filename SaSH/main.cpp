@@ -20,13 +20,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "mainform.h"
 #include "util.h"
 #include "injector.h"
+#include "net/rpc.h"
 #include <QCommandLineParser>
 
 #pragma comment(lib, "ws2_32.lib")
 #include <DbgHelp.h>
 #pragma comment(lib, "dbghelp.lib")
-
-
 
 void CreateConsole()
 {
@@ -502,7 +501,14 @@ int main(int argc, char* argv[])
 
 	/* 實例化單個或多個主窗口 */
 
-	//CreateConsole();
+	RPC::initialize(RPC::ProtocolType::IPV6, &a);
+
+	RPC& rpc = RPC::getInstance();
+	if (rpc.listen(_getpid()))
+	{
+		qDebug() << "RPC server is listening.";
+	}
+
 
 	// 解析啟動參數
 	QCommandLineParser parser;
@@ -548,44 +554,6 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	QTcpServer server;
-	server.setParent(&a);
-	if (server.listen(QHostAddress::AnyIPv6, _getpid()))
-	{
-		QObject::connect(&server, &QTcpServer::newConnection, [&a, &server]()
-			{
-				QTcpSocket* socket = server.nextPendingConnection();
-				if (socket == nullptr)
-					return;
-
-				static bool isopen = false;
-				if (!isopen)
-				{
-					isopen = true;
-					CreateConsole();
-				}
-
-				std::cout << "client IP: \"" << socket->peerAddress().toString().toStdString() << "\":" << socket->peerPort() << " connected." << std::endl;
-
-				QObject::connect(socket, &QTcpSocket::readyRead, [socket]()
-					{
-						QByteArray data = socket->readAll();
-						if (data.isEmpty())
-							return;
-						std::cout << std::string(data.constData()) << std::endl;
-						QString replyHead = QString("[%1]:").arg(socket->peerPort());
-						data.prepend(replyHead.toUtf8());
-						socket->write(data);
-						socket->waitForBytesWritten();
-					});
-
-				QObject::connect(socket, &QTcpSocket::disconnected, [socket]()
-					{
-						std::cout << "client IP: \"" << socket->peerAddress().toString().toStdString() << "\":" << socket->peerPort() << " disconnected." << std::endl;
-						socket->deleteLater();
-					});
-			});
-	}
 
 	return a.exec();
 }

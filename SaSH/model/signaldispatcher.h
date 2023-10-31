@@ -20,12 +20,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QObject>
 #include <indexer.h>
 #include "util.h"
+#include "model/safe.h"
 
 class SignalDispatcher : public QObject, public Indexer
 {
 	Q_OBJECT;
 private:
-	inline static util::SafeHash<long long, SignalDispatcher*> instances;
+	inline static safe::Hash<long long, SignalDispatcher*> instances;
 
 	explicit SignalDispatcher(long long index)
 		: Indexer(index)

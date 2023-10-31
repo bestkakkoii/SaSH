@@ -96,7 +96,7 @@ void ScriptForm::onScriptStarted()
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.get())
 		return;
 
 	if (interpreter_ != nullptr)
@@ -178,7 +178,7 @@ void ScriptForm::onButtonClicked()
 	if (name == "pushButton_script_start")
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.IS_SCRIPT_FLAG && QFile::exists(injector.currentScriptFileName))
+		if (!injector.IS_SCRIPT_FLAG.get() && QFile::exists(injector.currentScriptFileName))
 			emit signalDispatcher.scriptStarted();
 	}
 	else if (name == "pushButton_script_pause")
@@ -352,7 +352,7 @@ void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTab
 	selectedRow_ = row;
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.get())
 		return;
 
 	if (row == 0)
@@ -386,14 +386,17 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 	{
 		long long currentIndex = getIndex();
 		Injector& injector = Injector::getInstance(currentIndex);
-		if (injector.IS_SCRIPT_FLAG)
+		if (injector.IS_SCRIPT_FLAG.get())
 			break;
 
 		/*得到文件路徑*/
 		QStringList filepath;
 		TreeWidgetItem* itemfile = reinterpret_cast<TreeWidgetItem*>(item); //獲取被點擊的item
-		while (itemfile != NULL)
+		for (;;)
 		{
+			if (nullptr == itemfile)
+				break;
+
 			filepath << itemfile->text(0); //獲取itemfile名稱
 			itemfile = reinterpret_cast<TreeWidgetItem*>(itemfile->parent()); //將itemfile指向父item
 		}
@@ -415,7 +418,7 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 		if (!fileinfo.isFile())
 			break;
 
-		if (!injector.IS_SCRIPT_FLAG)
+		if (!injector.IS_SCRIPT_FLAG.get())
 			injector.currentScriptFileName = strpath;
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);

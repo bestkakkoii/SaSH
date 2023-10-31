@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "model/listview.h"
 
 Server Injector::server;
-util::SafeHash<long long, Injector*> Injector::instances;
+safe::Hash<long long, Injector*> Injector::instances;
 
 constexpr long long MessageTimeout = 3000;
 constexpr long long MAX_TIMEOUT = 10000;
@@ -71,8 +71,8 @@ void Injector::reset(long long index)//static
 	instance->currentGameExePath = "";//當前使用的遊戲進程完整路徑
 	instance->scriptThreadId = 0;
 
-	instance->IS_TCP_CONNECTION_OK_TO_USE.reset();
-	instance->IS_INJECT_OK.reset();
+	instance->IS_TCP_CONNECTION_OK_TO_USE.off();
+	instance->IS_INJECT_OK.off();
 }
 
 Injector::CreateProcessResult Injector::createProcess(Injector::process_information_t& pi)
@@ -354,8 +354,8 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		timer.restart();
 		for (;;)
 		{
-			if (static_cast<long long>(mem::read<int>(processHandle_, hGameModule_ + kOffsetWorldStatus)) == 1
-				&& static_cast<long long>(mem::read<int>(processHandle_, hGameModule_ + kOffsetGameStatus)) == 2)
+			if (static_cast<long long>(mem::read<int>(processHandle_, hGameModule_ + sa::kOffsetWorldStatus)) == 1
+				&& static_cast<long long>(mem::read<int>(processHandle_, hGameModule_ + sa::kOffsetGameStatus)) == 2)
 				break;
 
 			if (!mem::isProcessExist(pi.dwProcessId))
@@ -521,7 +521,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
 
 		bret = true;
-		IS_INJECT_OK = true;
+		IS_INJECT_OK.on();
 	} while (false);
 
 	if (!bret)
@@ -579,8 +579,8 @@ void Injector::mouseMove(long long x, long long y) const
 {
 	//LPARAM data = MAKELPARAM(x, y);
 	//sendMessage(WM_MOUSEMOVE, NULL, data);
-	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseX, x);
-	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseY, y);
+	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseX, x);
+	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseY, y);
 }
 
 //滑鼠移動 + 左鍵
@@ -594,7 +594,7 @@ void Injector::leftClick(long long x, long long y) const
 	//sendMessage(WM_LBUTTONUP, MK_LBUTTON, data);
 	//QThread::msleep(50);
 	mouseMove(x, y);
-	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseClick, 1);
+	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseClick, 1);
 }
 
 void Injector::leftDoubleClick(long long x, long long y) const
@@ -619,7 +619,7 @@ void Injector::rightClick(long long x, long long y) const
 	//sendMessage(WM_RBUTTONUP, MK_RBUTTON, data);
 	//QThread::msleep(50);
 	mouseMove(x, y);
-	mem::write<int>(processHandle_, hGameModule_ + kOffestMouseClick, 2);
+	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseClick, 2);
 }
 
 void Injector::dragto(long long x1, long long y1, long long x2, long long y2) const

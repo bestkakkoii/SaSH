@@ -723,7 +723,7 @@ bool __fastcall mem::inject(long long index, HANDLE hProcess, QString dllPath, H
 			LocalFree(p);
 		}
 		return false;
-}
+	}
 
 	if (phDllModule != nullptr)
 		*phDllModule = reinterpret_cast<HMODULE>(d.remoteModule);
@@ -1103,7 +1103,7 @@ QMap<QString, QPair<bool, QString>> util::Config::EnumString(const QString& sec,
 	return ret;
 }
 
-void util::Config::writeMapData(const QString&, const util::MapData& data)
+void util::Config::writeMapData(const QString&, const MapData& data)
 {
 	QString key = util::toQString(data.floor);
 	QJsonArray jarray;
@@ -1126,7 +1126,7 @@ void util::Config::writeMapData(const QString&, const util::MapData& data)
 }
 
 // 读取数据
-QList<util::MapData> util::Config::readMapData(const QString& key) const
+QList<util::Config::MapData> util::Config::readMapData(const QString& key) const
 {
 	QList<MapData> result;
 

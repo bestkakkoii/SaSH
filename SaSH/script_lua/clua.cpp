@@ -258,7 +258,7 @@ bool __fastcall luadebug::isInterruptionRequested(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.IS_SCRIPT_INTERRUPT)
+	if (injector.IS_SCRIPT_INTERRUPT.get())
 		return true;
 
 	return false;
@@ -271,7 +271,13 @@ bool __fastcall luadebug::checkStopAndPause(const sol::this_state& s)
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
 	injector.checkPause();
 
-	return injector.IS_SCRIPT_INTERRUPT;
+	bool isStop = injector.IS_SCRIPT_INTERRUPT.get();
+	if (isStop)
+	{
+		tryPopCustomErrorMsg(s, ERROR_FLAG_DETECT_STOP);
+	}
+
+	return isStop;
 }
 
 bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
@@ -502,7 +508,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
 		processDelay(s);
-		if (injector.IS_SCRIPT_DEBUG_ENABLE)
+		if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 		{
 			QThread::msleep(1);
 		}
@@ -520,8 +526,8 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		QString scriptFileName = injector.currentScriptFileName;
 
-		util::SafeHash<long long, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
-		const util::SafeHash<long long, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
+		safe::Hash<long long, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
+		const safe::Hash<long long, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
 		if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 		{
 			return;//檢查是否有中斷點
@@ -962,9 +968,9 @@ void CLua::proc()
 		if (scriptContent_.simplified().isEmpty())
 			break;
 
-		max_ = scriptContent_.split("\n").size();
+		safe::AutoFlag autoFlag(&isRunning_);
 
-		isRunning_.store(true, std::memory_order_release);
+		max_ = scriptContent_.split("\n").size();
 
 		lua_State* L = lua_.lua_state();
 		sol::this_state s = L;
@@ -1137,7 +1143,6 @@ void CLua::proc()
 		luadebug::logExport(s, tableStrs, 0);
 	} while (false);
 
-	isRunning_.store(false, std::memory_order_release);
 	emit finished();
 
 	long long currentIndex = getIndex();

@@ -323,7 +323,7 @@ void CodeEditor::dropEvent(QDropEvent* e)
 		return;
 
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.get())
 		return;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());

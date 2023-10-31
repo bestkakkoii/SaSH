@@ -167,7 +167,7 @@ private:
 	Parser parser_;
 	long long beginLine_ = 0;
 
-	std::atomic_bool isRunning_ = false;
+	safe::Flag isRunning_ = false;
 	ParserCallBack pCallback = nullptr;
 	QList<QSharedPointer<Interpreter>> subInterpreterList_;
 	QFutureSynchronizer<bool> subThreadFutureSync_;

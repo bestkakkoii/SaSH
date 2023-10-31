@@ -473,6 +473,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <ClCompile Include="net\descrypt.cpp" />
     <ClCompile Include="net\lssproto.cpp" />
     <ClCompile Include="net\macchanger.cpp" />
+    <ClCompile Include="net\rpc.cpp" />
     <ClCompile Include="net\tcpserver.cpp" />
     <ClCompile Include="script\action.cpp" />
     <ClCompile Include="script\check.cpp" />
@@ -537,7 +538,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <QtMoc Include="model\openglwidget.h" />
     <QtMoc Include="model\logger.h" />
     <QtMoc Include="model\listwidget.h" />
-    <ClInclude Include="model\safeflag.h" />
+    <ClInclude Include="model\safe.h" />
     <ClInclude Include="model\scopedhandle.h" />
     <QtMoc Include="model\tablewidget.h" />
     <QtMoc Include="model\treewidget.h" />
@@ -548,6 +549,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <ClInclude Include="net\descrypt.h" />
     <ClInclude Include="net\lssproto.h" />
     <ClInclude Include="net\macchanger.h" />
+    <QtMoc Include="net\rpc.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
     <ClInclude Include="script\lexer.h" />

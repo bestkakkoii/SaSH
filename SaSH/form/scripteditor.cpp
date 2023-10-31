@@ -321,7 +321,7 @@ ScriptEditor::~ScriptEditor()
 	usageTimer_.stop();
 	qDebug() << "~ScriptEditor";
 	Injector& injector = Injector::getInstance(getIndex());
-	injector.IS_SCRIPT_EDITOR_OPENED = false;
+	injector.IS_SCRIPT_EDITOR_OPENED.off();
 }
 
 void ScriptEditor::showEvent(QShowEvent* e)
@@ -338,13 +338,13 @@ void ScriptEditor::showEvent(QShowEvent* e)
 	QMainWindow::showEvent(e);
 
 	Injector& injector = Injector::getInstance(getIndex());
-	injector.IS_SCRIPT_EDITOR_OPENED = true;
+	injector.IS_SCRIPT_EDITOR_OPENED.on();
 }
 
 void ScriptEditor::closeEvent(QCloseEvent* e)
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	injector.IS_SCRIPT_EDITOR_OPENED = false;
+	injector.IS_SCRIPT_EDITOR_OPENED.off();
 
 	setUpdatesEnabled(false);
 	blockSignals(true);
@@ -609,7 +609,7 @@ void ScriptEditor::fileSave(QString content)
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.get())
 		return;
 
 	const QString directoryName(util::applicationDirPath() + "/script");
@@ -721,7 +721,7 @@ void ScriptEditor::loadFile(const QString& fileName)
 	if (isReadOnly)
 		ui.widget->setReadOnly(true);
 
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.get())
 	{
 		onScriptStartMode();
 	}
@@ -866,7 +866,7 @@ void ScriptEditor::createScriptListContextMenu()
 		});
 }
 
-void ScriptEditor::setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<long long, break_marker_t>>& hash, long long liner, bool b)
+void ScriptEditor::setMark(CodeEditor::SymbolHandler element, safe::Hash<QString, safe::Hash<long long, break_marker_t>>& hash, long long liner, bool b)
 {
 	do
 	{
@@ -884,7 +884,7 @@ void ScriptEditor::setMark(CodeEditor::SymbolHandler element, util::SafeHash<QSt
 			break;
 
 
-		util::SafeHash<long long, break_marker_t> markers = hash.value(currentScriptFileName);
+		safe::Hash<long long, break_marker_t> markers = hash.value(currentScriptFileName);
 
 		if (b)
 		{
@@ -927,7 +927,7 @@ void ScriptEditor::setStepMarks()
 	if (currentScriptFileName.isEmpty())
 		return;
 
-	util::SafeHash<long long, break_marker_t> markers = injector.step_markers.value(currentScriptFileName);
+	safe::Hash<long long, break_marker_t> markers = injector.step_markers.value(currentScriptFileName);
 	break_marker_t bk = {};
 
 	for (long long i = 0; i < maxliner; ++i)
@@ -947,7 +947,7 @@ void ScriptEditor::reshowBreakMarker()
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	const util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> mks = injector.break_markers;
+	const safe::Hash<QString, safe::Hash<long long, break_marker_t>> mks = injector.break_markers;
 
 	QString currentScriptFileName = injector.currentScriptFileName;
 	if (currentScriptFileName.isEmpty())
@@ -959,7 +959,7 @@ void ScriptEditor::reshowBreakMarker()
 		if (fileName != currentScriptFileName)
 			continue;
 
-		const util::SafeHash<long long, break_marker_t> mk = mks.value(fileName);
+		const safe::Hash<long long, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
 			ui.widget->markerAdd(bit.line, CodeEditor::SymbolHandler::SYM_POINT);
@@ -1005,7 +1005,7 @@ void ScriptEditor::onSetStaticLabelLineText(int line, int index)
 void ScriptEditor::on_widget_cursorPositionChanged(int line, int index)
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (!injector.IS_SCRIPT_FLAG)
+	if (!injector.IS_SCRIPT_FLAG.get())
 		onSetStaticLabelLineText(line, index);
 }
 
@@ -1152,7 +1152,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 
 	if (str == "button" || str == "input")
 	{
-		dialog_t dialog = injector.worker->currentDialog;
+		sa::dialog_t dialog = injector.worker->currentDialog.get();
 		QString npcName = injector.worker->mapUnitHash.value(dialog.unitid).name;
 		if (npcName.isEmpty())
 			return;
@@ -1161,7 +1161,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "waitdlg")
 	{
-		dialog_t dialog = injector.worker->currentDialog;
+		sa::dialog_t dialog = injector.worker->currentDialog.get();
 		QString lineStr;
 		for (const QString& s : dialog.linedatas)
 		{
@@ -1175,7 +1175,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "learn")
 	{
-		dialog_t dialog = injector.worker->currentDialog;
+		sa::dialog_t dialog = injector.worker->currentDialog.get();
 		QString npcName = injector.worker->mapUnitHash.value(dialog.unitid).name;
 		if (npcName.isEmpty())
 			return;
@@ -1236,22 +1236,22 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	else if (str == "findnpc")
 	{
 		QPoint pos = injector.worker->getPoint();
-		QList<mapunit_t> units = injector.worker->mapUnitHash.values();
+		QList<sa::mapunit_t> units = injector.worker->mapUnitHash.values();
 		auto getdis = [&pos](QPoint p)
 			{
 				//歐幾里得
 				return sqrt(pow(pos.x() - p.x(), 2) + pow(pos.y() - p.y(), 2));
 			};
 
-		std::sort(units.begin(), units.end(), [&getdis](const mapunit_t& a, const mapunit_t& b)
+		std::sort(units.begin(), units.end(), [&getdis](const sa::mapunit_t& a, const sa::mapunit_t& b)
 			{
 				return getdis(a.p) < getdis(b.p);
 			});
 
 		if (units.isEmpty())
 			return;
-		mapunit_t unit = units.first();
-		while (unit.objType != util::OBJ_NPC)
+		sa::mapunit_t unit = units.first();
+		while (unit.objType != sa::OBJ_NPC)
 		{
 			units.removeFirst();
 			if (units.isEmpty())
@@ -1266,22 +1266,22 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	else if (str == "findnpc with mod")
 	{
 		QPoint pos = injector.worker->getPoint();
-		QList<mapunit_t> units = injector.worker->mapUnitHash.values();
+		QList<sa::mapunit_t> units = injector.worker->mapUnitHash.values();
 		auto getdis = [&pos](QPoint p)
 			{
 				//歐幾里得
 				return sqrt(pow(pos.x() - p.x(), 2) + pow(pos.y() - p.y(), 2));
 			};
 
-		std::sort(units.begin(), units.end(), [&getdis](const mapunit_t& a, const mapunit_t& b)
+		std::sort(units.begin(), units.end(), [&getdis](const sa::mapunit_t& a, const sa::mapunit_t& b)
 			{
 				return getdis(a.p) < getdis(b.p);
 			});
 
 		if (units.isEmpty())
 			return;
-		mapunit_t unit = units.first();
-		while (unit.objType != util::OBJ_NPC)
+		sa::mapunit_t unit = units.first();
+		while (unit.objType != sa::OBJ_NPC)
 		{
 			units.removeFirst();
 			if (units.isEmpty())
@@ -1409,7 +1409,7 @@ void ScriptEditor::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* it
 	if (item->text(2).isEmpty())
 		return;
 
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.get())
 		return;
 
 	if (item->text(3).isEmpty())
@@ -1576,7 +1576,7 @@ void ScriptEditor::onApplyHashSettingsToUI()
 	if (pSpeedSpinBox != nullptr)
 		pSpeedSpinBox->setValue(injector.getValueHash(util::kScriptSpeedValue));
 
-	ui.actionDebug->setChecked(injector.IS_SCRIPT_DEBUG_ENABLE);
+	ui.actionDebug->setChecked(injector.IS_SCRIPT_DEBUG_ENABLE.get());
 }
 
 void ScriptEditor::onWidgetModificationChanged(bool changed)
@@ -1599,7 +1599,7 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 	{
 		long long currnetIndex = getIndex();
 		Injector& injector = Injector::getInstance(currnetIndex);
-		if (injector.IS_SCRIPT_FLAG)
+		if (injector.IS_SCRIPT_FLAG.get())
 			break;
 
 		/*得到文件路徑*/
@@ -1637,7 +1637,7 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 		injector.error_markers.clear();
 		injector.step_markers.clear();
 
-		if (!injector.IS_SCRIPT_FLAG)
+		if (!injector.IS_SCRIPT_FLAG.get())
 			injector.currentScriptFileName = strpath;
 
 		emit signalDispatcher.loadFileToTable(strpath);
@@ -1691,7 +1691,7 @@ void ScriptEditor::onScriptLabelRowTextChanged(int line, int, bool)
 	if (line < 0)
 		line = 1;
 
-	if (!injector.IS_SCRIPT_DEBUG_ENABLE)
+	if (!injector.IS_SCRIPT_DEBUG_ENABLE.get())
 	{
 		onSetStaticLabelLineText(line - 1, NULL);
 		return;
@@ -1786,7 +1786,7 @@ void ScriptEditor::onActionTriggered()
 
 	if (name == "actionStart")
 	{
-		if (injector.step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG)
+		if (injector.step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG.get())
 		{
 			emit signalDispatcher.scriptStarted();
 		}
@@ -1886,7 +1886,7 @@ void ScriptEditor::onActionTriggered()
 
 	if (name == "actionDebug")
 	{
-		injector.IS_SCRIPT_DEBUG_ENABLE = pAction->isChecked();
+		injector.IS_SCRIPT_DEBUG_ENABLE.set(pAction->isChecked());
 		return;
 	}
 }
@@ -2184,7 +2184,7 @@ void ScriptEditor::onAddBreakMarker(long long liner, bool b)
 
 		if (b)
 		{
-			util::SafeHash<long long, break_marker_t> markers = injector.break_markers.value(currentScriptFileName);
+			safe::Hash<long long, break_marker_t> markers = injector.break_markers.value(currentScriptFileName);
 			break_marker_t bk = markers.value(liner);
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
@@ -2199,7 +2199,7 @@ void ScriptEditor::onAddBreakMarker(long long liner, bool b)
 		}
 		else if (!b)
 		{
-			util::SafeHash<long long, break_marker_t> markers = injector.break_markers.value(currentScriptFileName);
+			safe::Hash<long long, break_marker_t> markers = injector.break_markers.value(currentScriptFileName);
 			if (markers.contains(liner))
 			{
 				markers.remove(liner);
@@ -2222,12 +2222,12 @@ void ScriptEditor::onBreakMarkInfoImport()
 	ui.treeWidget_breakList->clear();
 	ui.treeWidget_breakList->setColumnCount(4);
 	ui.treeWidget_breakList->setHeaderLabels(QStringList{ tr("CONTENT"),tr("COUNT"), tr("ROW"), tr("FILE") });
-	const util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> mks = injector.break_markers;
+	const safe::Hash<QString, safe::Hash<long long, break_marker_t>> mks = injector.break_markers;
 	TreeWidgetItem* item = nullptr;
 	for (auto it = mks.cbegin(); it != mks.cend(); ++it)
 	{
 		QString fileName = it.key();
-		const util::SafeHash<long long, break_marker_t> mk = mks.value(fileName);
+		const safe::Hash<long long, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
 			item = q_check_ptr(new TreeWidgetItem({ bit.content, util::toQString(bit.count), util::toQString(bit.line + 1), fileName }));

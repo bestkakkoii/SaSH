@@ -96,7 +96,7 @@ void ItemInfoForm::onResetControlTextLanguage()
 		ui.tableWidget_equip->setText(row, 0, equipVHeaderList.value(row), equipVHeaderList.value(row));
 	}
 
-	size = MAX_ITEM - CHAR_EQUIPPLACENUM;
+	size = sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM;
 	for (long long row = 0; row < size; ++row)
 	{
 		ui.tableWidget_item->setText(row, 0, util::toQString(row + 1), util::toQString(row + 1));
@@ -156,7 +156,7 @@ void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
 	if (injector.worker.isNull())
 		return;
 
-	injector.worker->useItem(static_cast<long long>(row) + CHAR_EQUIPPLACENUM, 0);
+	injector.worker->useItem(static_cast<long long>(row) + sa::CHAR_EQUIPPLACENUM, 0);
 }
 
 void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int column)

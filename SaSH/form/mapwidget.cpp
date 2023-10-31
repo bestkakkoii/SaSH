@@ -143,7 +143,7 @@ void MapWidget::showEvent(QShowEvent*)
 	blockSignals(false);
 
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.IS_FINDINGPATH)
+	if (injector.IS_FINDINGPATH.get())
 	{
 		ui.pushButton_findPath->setEnabled(false);
 	}
@@ -166,9 +166,9 @@ void MapWidget::closeEvent(QCloseEvent*)
 {
 	QMutexLocker lock(&missionThreadMutex_);
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.IS_FINDINGPATH)
+	if (injector.IS_FINDINGPATH.get())
 	{
-		injector.IS_FINDINGPATH = false;
+		injector.IS_FINDINGPATH.off();
 	}
 
 	if (missionThread_ != nullptr)
@@ -227,7 +227,7 @@ void MapWidget::onRefreshTimeOut()
 
 	if (!injector.worker->getOnlineFlag()) return;
 
-	PC _ch = injector.worker->getPC();
+	sa::PC _ch = injector.worker->getPC();
 	long long floor = injector.worker->getFloor();
 	const QPointF qp_current(injector.worker->getPoint());
 
@@ -253,8 +253,8 @@ void MapWidget::onRefreshTimeOut()
 	map_t m_map = {};
 	injector.worker->mapAnalyzer.getMapDataByFloor(floor, &m_map);
 
-	QHash<long long, mapunit_t> unitHash = injector.worker->mapUnitHash.toHash();
-	auto findMapUnitByPoint = [&unitHash](const QPoint& p, mapunit_t* u)->bool
+	QHash<long long, sa::mapunit_t> unitHash = injector.worker->mapUnitHash.toHash();
+	auto findMapUnitByPoint = [&unitHash](const QPoint& p, sa::mapunit_t* u)->bool
 		{
 			for (auto it = unitHash.begin(); it != unitHash.end(); ++it)
 			{
@@ -306,16 +306,16 @@ void MapWidget::onRefreshTimeOut()
 		{
 			switch (it.type)
 			{
-			case util::OBJ_UP:
+			case sa::OBJ_UP:
 				typeStr = tr("UP");
 				break;
-			case util::OBJ_DOWN:
+			case sa::OBJ_DOWN:
 				typeStr = tr("DWON");
 				break;
-			case util::OBJ_JUMP:
+			case sa::OBJ_JUMP:
 				typeStr = tr("JUMP");
 				break;
-			case util::OBJ_WARP:
+			case sa::OBJ_WARP:
 				typeStr = tr("WARP");
 				break;
 			default:
@@ -325,7 +325,7 @@ void MapWidget::onRefreshTimeOut()
 		}
 
 		stair_cache.insert(it.p);
-		mapunit_t u = {};
+		sa::mapunit_t u = {};
 		if (findMapUnitByPoint(it.p, &u))
 		{
 			if (!u.name.isEmpty() && (u.name != _ch.name))
@@ -347,10 +347,10 @@ void MapWidget::onRefreshTimeOut()
 		vSTAIR.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 	}
 
-	QList<mapunit_t> units = unitHash.values();
-	for (mapunit_t it : units)
+	QList<sa::mapunit_t> units = unitHash.values();
+	for (sa::mapunit_t it : units)
 	{
-		if (it.objType == util::OBJ_GM)
+		if (it.objType == sa::OBJ_GM)
 		{
 			vGM.append(QString("[GM]%1").arg(it.name));
 			vGM.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
@@ -362,19 +362,19 @@ void MapWidget::onRefreshTimeOut()
 
 			switch (it.objType)
 			{
-			case util::OBJ_ITEM:
+			case sa::OBJ_ITEM:
 			{
 				vITEM.append(QString(tr("[I]%1")).arg(it.item_name));
 				vITEM.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
-			case util::OBJ_GOLD:
+			case sa::OBJ_GOLD:
 			{
 				vGOLD.append(QString(tr("[G]%1")).arg(it.gold));
 				vGOLD.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
-			case util::OBJ_PET:
+			case sa::OBJ_PET:
 			{
 				if (it.isVisible)
 					vPET.append(it.freeName.isEmpty() ? QString(tr("[P]%2")).arg(it.name) : QString(tr("[P]%2")).arg(it.freeName));
@@ -383,7 +383,7 @@ void MapWidget::onRefreshTimeOut()
 				vPET.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
-			case util::OBJ_HUMAN:
+			case sa::OBJ_HUMAN:
 			{
 				if (it.isVisible)
 					vHUMAN.append(QString(tr("[H]%1")).arg(it.name));
@@ -392,7 +392,7 @@ void MapWidget::onRefreshTimeOut()
 				vHUMAN.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
-			case util::OBJ_NPC:
+			case sa::OBJ_NPC:
 			{
 				if (it.isVisible)
 					vNPC.append(QString("[NPC][%1]%2").arg(it.modelid).arg(it.name));
@@ -401,9 +401,9 @@ void MapWidget::onRefreshTimeOut()
 				vNPC.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
-			case util::OBJ_JUMP:
-			case util::OBJ_DOWN:
-			case util::OBJ_UP:
+			case sa::OBJ_JUMP:
+			case sa::OBJ_DOWN:
+			case sa::OBJ_UP:
 			{
 				if (stair_cache.contains(it.p)) continue;
 
@@ -431,16 +431,16 @@ void MapWidget::onRefreshTimeOut()
 				{
 					switch (it.objType)
 					{
-					case util::OBJ_UP:
+					case sa::OBJ_UP:
 						typeStr = tr("UP");
 						break;
-					case util::OBJ_DOWN:
+					case sa::OBJ_DOWN:
 						typeStr = tr("DWON");
 						break;
-					case util::OBJ_JUMP:
+					case sa::OBJ_JUMP:
 						typeStr = tr("JUMP");
 						break;
-					case util::OBJ_WARP:
+					case sa::OBJ_WARP:
 						typeStr = tr("WARP");
 						break;
 					default:
@@ -476,7 +476,7 @@ void MapWidget::onRefreshTimeOut()
 		QBrush brush;
 		if (it.name.contains("傳送石"))
 		{
-			brush = QBrush(MAP_COLOR_HASH.value(util::OBJ_JUMP), Qt::SolidPattern);
+			brush = QBrush(MAP_COLOR_HASH.value(sa::OBJ_JUMP), Qt::SolidPattern);
 		}
 		else
 			brush = QBrush(MAP_COLOR_HASH.value(it.objType), Qt::SolidPattern);
@@ -556,7 +556,7 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.get())
 		return;
 
 	if (injector.worker.isNull())
@@ -565,9 +565,9 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (injector.IS_FINDINGPATH)
+	if (injector.IS_FINDINGPATH.get())
 	{
-		injector.IS_FINDINGPATH = false;
+		injector.IS_FINDINGPATH.off();
 	}
 
 	if (missionThread_ != nullptr)
@@ -757,10 +757,10 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (!injector.isValid())
 		return;
 
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.get())
 		return;
 
-	if (injector.IS_FINDINGPATH)
+	if (injector.IS_FINDINGPATH.get())
 		return;
 
 	if (injector.worker.isNull())
@@ -769,9 +769,9 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (!injector.worker->getOnlineFlag())
 		return;
 
-	if (injector.IS_FINDINGPATH)
+	if (injector.IS_FINDINGPATH.get())
 	{
-		injector.IS_FINDINGPATH = false;
+		injector.IS_FINDINGPATH.off();
 	}
 
 	if (missionThread_ != nullptr)
@@ -803,7 +803,7 @@ void MapWidget::onClear()
 {
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.IS_FINDINGPATH = false;
+	injector.IS_FINDINGPATH.off();
 }
 
 void MapWidget::updateNpcListAllContents(const QVariant& d)
@@ -865,10 +865,10 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (!injector.isValid())
 		return;
 
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.get())
 		return;
 
-	if (injector.IS_FINDINGPATH)
+	if (injector.IS_FINDINGPATH.get())
 		return;
 
 	if (injector.worker.isNull())
@@ -891,43 +891,43 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (!okx || !oky)
 		return;
 
-	mapunit_t unit;
+	sa::mapunit_t unit;
 	if (name.contains("NPC"))
 	{
 		static const QRegularExpression rex(R"(\[NPC\]\[\d+\])");
 		name = name.remove(rex);
-		if (!injector.worker->findUnit(name, util::OBJ_NPC, &unit))
+		if (!injector.worker->findUnit(name, sa::OBJ_NPC, &unit))
 			return;
 	}
 	else if (name.contains(tr("[P]")))
 	{
 		name = name.remove(tr("[P]"));
-		if (!injector.worker->findUnit(name, util::OBJ_PET, &unit))
+		if (!injector.worker->findUnit(name, sa::OBJ_PET, &unit))
 			return;
 	}
 	else if (name.contains(tr("[H]")))
 	{
 		name = name.remove(tr("[H]"));
-		if (!injector.worker->findUnit(name, util::OBJ_HUMAN, &unit))
+		if (!injector.worker->findUnit(name, sa::OBJ_HUMAN, &unit))
 			return;
 	}
 	else if (name.contains(tr("[I]")))
 	{
 		name = name.remove(tr("[I]"));
-		if (!injector.worker->findUnit(name, util::OBJ_ITEM, &unit))
+		if (!injector.worker->findUnit(name, sa::OBJ_ITEM, &unit))
 			return;
 	}
 	else if (name.contains(tr("[G]")))
 	{
 		name = name.remove(tr("[G]"));
-		if (!injector.worker->findUnit(name, util::OBJ_GOLD, &unit))
+		if (!injector.worker->findUnit(name, sa::OBJ_GOLD, &unit))
 			return;
 	}
 	else
 	{
-		if (injector.IS_FINDINGPATH)
+		if (injector.IS_FINDINGPATH.get())
 		{
-			injector.IS_FINDINGPATH = false;
+			injector.IS_FINDINGPATH.off();
 		}
 
 		if (missionThread_ != nullptr)
@@ -993,9 +993,9 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		}
 	}
 
-	if (injector.IS_FINDINGPATH)
+	if (injector.IS_FINDINGPATH.get())
 	{
-		injector.IS_FINDINGPATH = false;
+		injector.IS_FINDINGPATH.off();
 	}
 
 	if (missionThread_ != nullptr)

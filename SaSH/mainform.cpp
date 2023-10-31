@@ -26,8 +26,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <util.h>
 #include <injector.h>
 #include "script/interpreter.h"
+#include "net/rpc.h"
 
-util::SafeHash<long long, MainForm*> g_mainFormHash;
+safe::Hash<long long, MainForm*> g_mainFormHash;
 
 void MainForm::createMenu(QMenuBar* pMenuBar)
 {
@@ -310,7 +311,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		if (injector.IS_SCRIPT_FLAG)
+		if (injector.IS_SCRIPT_FLAG.get())
 		{
 			updateStatusText(tr("already run"));
 			return true;
@@ -371,7 +372,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		if (!injector.IS_SCRIPT_FLAG)
+		if (!injector.IS_SCRIPT_FLAG.get())
 		{
 			updateStatusText(tr("not run yet"));
 			return true;
@@ -430,10 +431,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		if (injector.worker.isNull())
 			return true;
 
-		if (!injector.IS_TCP_CONNECTION_OK_TO_USE)
+		if (!injector.IS_TCP_CONNECTION_OK_TO_USE.get())
 			return true;
 
-		if (injector.IS_INJECT_OK)
+		if (injector.IS_INJECT_OK.get())
 		{
 			value = 1;
 
@@ -461,7 +462,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		long long id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		long long value = 0;
-		if (injector.IS_SCRIPT_FLAG)
+		if (injector.IS_SCRIPT_FLAG.get())
 			value = 1;
 
 		++interfaceCount_;
@@ -921,7 +922,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			if (position < 0 || position >= MAX_CHARACTER + 1)
+			if (position < 0 || position >= sa::MAX_CHARACTER + 1)
 			{
 				*result = 5;
 				qDebug() << __FUNCTION__ << "pos out of range:" << position;
@@ -1155,6 +1156,16 @@ MainForm::MainForm(long long index, QWidget* parent)
 	onUpdateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 
 	onResetControlTextLanguage();
+
+	RPC& rpc = RPC::getInstance();
+	rpc.reg(getIndex(), "print", "print(QString)", this);
+}
+
+QString MainForm::print(QString str)
+{
+	QByteArray ba = str.toUtf8();
+	std::cout << std::string(ba.constData()) << std::endl;
+	return QString("rt:%1").arg(str);
 }
 
 MainForm::~MainForm()

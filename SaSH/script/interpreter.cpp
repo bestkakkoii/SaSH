@@ -42,8 +42,8 @@ Interpreter::~Interpreter()
 bool Interpreter::isRunning() const
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	return isRunning_.load(std::memory_order_acquire)
-		&& injector.IS_SCRIPT_FLAG && !injector.IS_SCRIPT_INTERRUPT;
+	return isRunning_.get()
+		&& injector.IS_SCRIPT_FLAG.get() && !injector.IS_SCRIPT_INTERRUPT.get();
 }
 
 //在新線程執行腳本文件
@@ -130,9 +130,8 @@ void Interpreter::doString(QString content)
 
 void Interpreter::onRunString()
 {
-	isRunning_.store(true, std::memory_order_release);
+	safe::AutoFlag autoSafeflag(&isRunning_);
 	parser_.parse(0);
-	isRunning_.store(false, std::memory_order_release);
 	emit finished();
 }
 
@@ -293,7 +292,7 @@ bool Interpreter::waitfor(long long timeout, std::function<bool()> exprfun)
 	{
 		injector.checkPause();
 
-		if (injector.IS_SCRIPT_INTERRUPT)
+		if (injector.IS_SCRIPT_INTERRUPT.get())
 			break;
 
 		if (injector.worker.isNull())
@@ -392,7 +391,7 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (injector.IS_SCRIPT_INTERRUPT)
+	if (injector.IS_SCRIPT_INTERRUPT.get())
 		return 0;
 
 	RESERVE currentType = TK.value(0).type;
@@ -415,15 +414,15 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 	injector.checkPause();
 
-	if (injector.IS_SCRIPT_INTERRUPT)
+	if (injector.IS_SCRIPT_INTERRUPT.get())
 		return 0;
 
-	if (!injector.IS_SCRIPT_DEBUG_ENABLE)
+	if (!injector.IS_SCRIPT_DEBUG_ENABLE.get())
 		return 1;
 
 	QString scriptFileName = parser_.getScriptFileName();
-	util::SafeHash<long long, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
-	const util::SafeHash<long long, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
+	safe::Hash<long long, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
+	const safe::Hash<long long, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
 	if (!breakMarkers.contains(currentLine) && !stepMarkers.contains(currentLine))
 	{
 		return 1;//檢查是否有中斷點
@@ -449,7 +448,7 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 	injector.checkPause();
 
-	if (injector.IS_SCRIPT_INTERRUPT)
+	if (injector.IS_SCRIPT_INTERRUPT.get())
 		return 0;
 
 	return 1;
@@ -457,21 +456,21 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 void Interpreter::proc()
 {
-	isRunning_.store(true, std::memory_order_release);
+	safe::AutoFlag autoSafeflag(&isRunning_);
 	qDebug() << "Interpreter::run()";
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	injector.IS_SCRIPT_FLAG = true;
-	injector.IS_SCRIPT_INTERRUPT.reset();
+	injector.IS_SCRIPT_FLAG.on();
+	injector.IS_SCRIPT_INTERRUPT.off();
 
 	parser_.initialize(&parser_);
 
 	doFile(beginLine_, injector.currentScriptFileName, this, nullptr, false, Parser::kSync);
 
-	injector.IS_SCRIPT_FLAG.reset();
+	injector.IS_SCRIPT_FLAG.off();
 
 	subInterpreterList_.clear();
 	subThreadFutureSync_.waitForFinished();
@@ -485,8 +484,6 @@ void Interpreter::proc()
 
 	emit finished();
 	emit signalDispatcher.scriptFinished();
-
-	isRunning_.store(false, std::memory_order_release);
 }
 
 //檢查是否戰鬥，如果是則等待，並在戰鬥結束後停滯一段時間
@@ -506,7 +503,7 @@ bool Interpreter::checkBattleThenWait()
 		bret = true;
 		for (;;)
 		{
-			if (injector.IS_SCRIPT_INTERRUPT)
+			if (injector.IS_SCRIPT_INTERRUPT.get())
 				break;
 
 			if (injector.worker.isNull())
@@ -549,7 +546,7 @@ bool Interpreter::checkOnlineThenWait()
 			if (injector.worker.isNull())
 				break;
 
-			if (injector.IS_SCRIPT_INTERRUPT)
+			if (injector.IS_SCRIPT_INTERRUPT.get())
 				break;
 
 			injector.checkPause();

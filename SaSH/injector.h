@@ -29,7 +29,7 @@ class StringListModel;
 class Injector : public QObject, public Indexer
 {
 private:
-	static util::SafeHash<long long, Injector*> instances;
+	static safe::Hash<long long, Injector*> instances;
 
 	explicit Injector(long long index);
 
@@ -189,7 +189,7 @@ public:
 
 	inline void stopScript()
 	{
-		IS_SCRIPT_INTERRUPT = true;
+		IS_SCRIPT_INTERRUPT.on();
 	}
 
 private:
@@ -226,11 +226,11 @@ private:
 #endif
 
 public:
-	SafeFlag IS_INJECT_OK = false;//是否注入成功
+	safe::Flag IS_INJECT_OK = false;//是否注入成功
 
-	SafeFlag IS_TCP_CONNECTION_OK_TO_USE = false;
+	safe::Flag IS_TCP_CONNECTION_OK_TO_USE = false;
 
-	SafeFlag IS_SCRIPT_EDITOR_OPENED = false;
+	safe::Flag IS_SCRIPT_EDITOR_OPENED = false;
 
 	QString currentGameExePath;//當前使用的遊戲進程完整路徑
 
@@ -238,9 +238,9 @@ public:
 
 	StringListModel chatLogModel; //聊天日誌模型
 
-	util::SafeData<QStringList> serverNameList;
+	safe::Data<QStringList> serverNameList;
 
-	util::SafeData<QStringList> subServerNameList;
+	safe::Data<QStringList> subServerNameList;
 
 	unsigned long long scriptThreadId = 0;
 
@@ -251,19 +251,19 @@ public:
 
 	Logger log;
 
-	util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
-	util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
-	util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
-	util::SafeHash<QString, util::SafeHash<long long, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
+	safe::Hash<QString, safe::Hash<long long, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
+	safe::Hash<QString, safe::Hash<long long, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
+	safe::Hash<QString, safe::Hash<long long, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
+	safe::Hash<QString, safe::Hash<long long, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
 
 public:
-	SafeFlag IS_SCRIPT_FLAG = false;//主腳本是否運行 //DO NOT RESET!!!
+	safe::Flag IS_SCRIPT_FLAG = false;//主腳本是否運行 //DO NOT RESET!!!
 
-	SafeFlag IS_SCRIPT_INTERRUPT = false;//主腳本是否中斷 //DO NOT RESET!!!
+	safe::Flag IS_SCRIPT_INTERRUPT = false;//主腳本是否中斷 //DO NOT RESET!!!
 
-	SafeFlag IS_FINDINGPATH = false;//DO NOT RESET!!!
+	safe::Flag IS_FINDINGPATH = false;//DO NOT RESET!!!
 
-	SafeFlag IS_SCRIPT_DEBUG_ENABLE = false;//DO NOT RESET!!!
+	safe::Flag IS_SCRIPT_DEBUG_ENABLE = false;//DO NOT RESET!!!
 
 	long long currentServerListIndex = 0;//DO NOT RESET!!!
 
@@ -282,12 +282,12 @@ private:
 	std::mutex pausedMutex_;
 
 private:
-	util::SafeHash<util::UserData, QVariant> userData_hash_ = {
+	safe::Hash<util::UserData, QVariant> userData_hash_ = {
 		{ util::kUserItemNames, QStringList() },
 
 	};
 
-	util::SafeHash<util::UserSetting, long long> userSetting_value_hash_ = {
+	safe::Hash<util::UserSetting, long long> userSetting_value_hash_ = {
 		{ util::kSettingNotUsed, util::kSettingNotUsed },
 		{ util::kSettingMinValue, util::kSettingMinValue },
 
@@ -417,7 +417,7 @@ private:
 
 	};
 
-	util::SafeHash<util::UserSetting, bool> userSetting_enable_hash_ = {
+	safe::Hash<util::UserSetting, bool> userSetting_enable_hash_ = {
 		{ util::kAutoLoginEnable, false },
 		{ util::kAutoReconnectEnable, true },
 
@@ -512,7 +512,7 @@ private:
 
 	};
 
-	util::SafeHash<util::UserSetting, QString> userSetting_string_hash_ = {
+	safe::Hash<util::UserSetting, QString> userSetting_string_hash_ = {
 		{ util::kAutoDropItemString, "" },
 		{ util::kLockAttackString, "" },
 		{ util::kLockEscapeString, "" },

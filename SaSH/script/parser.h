@@ -35,7 +35,7 @@ using CommandRegistry = std::function<long long(long long currentIndex, long lon
 //callbak
 using ParserCallBack = std::function<long long(long long currentIndex, long long currentLine, const TokenMap& token)>;
 
-using VariantSafeHash = util::SafeHash<QString, QVariant>;
+using VariantSafeHash = safe::Hash<QString, QVariant>;
 
 struct Counter
 {

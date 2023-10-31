@@ -87,13 +87,13 @@ long long CLuaMap::move(sol::object obj, long long y, sol::this_state s)
 	}
 	else if (obj.is<std::string>())
 	{
-		if (!dirMap.contains(dirStr.toUpper().simplified()))
+		if (!sa::dirMap.contains(dirStr.toUpper().simplified()))
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("invalid direction"));
 			return FALSE;
 		}
 
-		DirType dir = dirMap.value(dirStr.toUpper().simplified());
+		sa::DirType dir = sa::dirMap.value(dirStr.toUpper().simplified());
 		//計算出往該方向10格的坐標
 		p = injector.worker->getPoint() + util::fix_point.value(dir) * 10;
 	}
@@ -238,7 +238,7 @@ bool __fastcall findPathProcess(
 	if (src == dst)
 		return true;//已經抵達
 
-	if (injector.IS_SCRIPT_DEBUG_ENABLE)
+	if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 	{
 		output = QObject::tr("<findpath>start searching the path");
 		luadebug::logExport(s, output, 4);
@@ -257,7 +257,7 @@ bool __fastcall findPathProcess(
 	}
 
 	long long cost = static_cast<long long>(timer.elapsed());
-	if (injector.IS_SCRIPT_DEBUG_ENABLE)
+	if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 	{
 		output = QObject::tr("<findpath>path found, from %1, %2 to %3, %4 cost:%5 step:%6")
 			.arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y()).arg(cost).arg(path.size());
@@ -285,7 +285,7 @@ bool __fastcall findPathProcess(
 
 		if (injector.worker.isNull())
 		{
-			if (injector.IS_SCRIPT_DEBUG_ENABLE)
+			if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 			{
 				output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 				luadebug::logExport(s, output, 10);
@@ -336,7 +336,7 @@ bool __fastcall findPathProcess(
 						return false;
 					if (injector.worker.isNull())
 					{
-						if (injector.IS_SCRIPT_DEBUG_ENABLE)
+						if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 						{
 							output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 							luadebug::logExport(s, output, 10);
@@ -360,7 +360,7 @@ bool __fastcall findPathProcess(
 						return false;
 					if (injector.worker.isNull())
 					{
-						if (injector.IS_SCRIPT_DEBUG_ENABLE)
+						if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 						{
 							output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 							luadebug::logExport(s, output, 10);
@@ -382,7 +382,7 @@ bool __fastcall findPathProcess(
 				if (src.isNull() || src != dst)
 					continue;
 
-				if (injector.IS_SCRIPT_DEBUG_ENABLE)
+				if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 				{
 					output = QObject::tr("<findpath>arrived destination, cost:%1").arg(cost);
 					luadebug::logExport(s, output, 4);
@@ -414,7 +414,7 @@ bool __fastcall findPathProcess(
 				return false;
 			if (injector.worker.isNull())
 			{
-				if (injector.IS_SCRIPT_DEBUG_ENABLE)
+				if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 				{
 					output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 					luadebug::logExport(s, output, 10);
@@ -422,7 +422,7 @@ bool __fastcall findPathProcess(
 				break;
 			}
 
-			if (injector.IS_SCRIPT_DEBUG_ENABLE)
+			if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 			{
 				output = QObject::tr("[warn] <findpath>detedted player ware blocked");
 				luadebug::logExport(s, output, 10);
@@ -434,7 +434,7 @@ bool __fastcall findPathProcess(
 
 			//查看前方是否存在NPC阻擋
 			QPoint blockPoint;
-			mapunit_t unit; bool hasNPCBlock = false;
+			sa::mapunit_t unit; bool hasNPCBlock = false;
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 			bool isAutoEscape = injector.getEnableHash(util::kAutoEscapeEnable);
 			bool isKNPC = injector.getEnableHash(util::kKNPCEnable);
@@ -442,7 +442,7 @@ bool __fastcall findPathProcess(
 			for (const QPoint& it : util::fix_point)
 			{
 				blockPoint = src + it;
-				if (!injector.worker->findUnit(QString("%1|%2").arg(point.x()).arg(point.y()), util::OBJ_NPC, &unit) || !unit.isVisible)
+				if (!injector.worker->findUnit(QString("%1|%2").arg(point.x()).arg(point.y()), sa::OBJ_NPC, &unit) || !unit.isVisible)
 					continue;
 				hasNPCBlock = true;
 				break;
@@ -469,7 +469,7 @@ bool __fastcall findPathProcess(
 				return false;
 			if (injector.worker.isNull())
 			{
-				if (injector.IS_SCRIPT_DEBUG_ENABLE)
+				if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 				{
 					output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 					luadebug::logExport(s, output, 10);
@@ -496,7 +496,7 @@ bool __fastcall findPathProcess(
 			return false;
 		if (injector.worker.isNull())
 		{
-			if (injector.IS_SCRIPT_DEBUG_ENABLE)
+			if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 			{
 				output = QObject::tr("[warn] <findpath>stop finding path due to interruption");
 				luadebug::logExport(s, output, 10);
@@ -506,7 +506,7 @@ bool __fastcall findPathProcess(
 
 		if (timer.hasExpired(timeout))
 		{
-			if (injector.IS_SCRIPT_DEBUG_ENABLE)
+			if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 			{
 				output = QObject::tr("[warn] <findpath>stop finding path due to timeout");
 				luadebug::logExport(s, output, 10);
@@ -516,7 +516,7 @@ bool __fastcall findPathProcess(
 
 		if (injector.worker->getFloor() != current_floor)
 		{
-			if (injector.IS_SCRIPT_DEBUG_ENABLE)
+			if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
 			{
 				output = QObject::tr("[warn] <findpath>stop finding path due to floor changed");
 				luadebug::logExport(s, output, 10);
@@ -608,10 +608,10 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 			if (luadebug::checkStopAndPause(s))
 				return false;
 
-			mapunit_s unit;
-			if (!injector.worker->findUnit(name, util::OBJ_NPC, &unit, ""))
+			sa::mapunit_s unit;
+			if (!injector.worker->findUnit(name, sa::OBJ_NPC, &unit, ""))
 			{
-				if (!injector.worker->findUnit(name, util::OBJ_HUMAN, &unit, ""))
+				if (!injector.worker->findUnit(name, sa::OBJ_HUMAN, &unit, ""))
 					return 0;//沒找到
 			}
 
@@ -627,7 +627,7 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 	{
 		QString key = util::toQString(injector.worker->getFloor());
 		util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
-		QList<util::MapData> datas = config.readMapData(key);
+		QList<util::Config::MapData> datas = config.readMapData(key);
 		if (datas.isEmpty())
 			return FALSE;
 
@@ -646,7 +646,7 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 			}
 		}
 
-		for (const util::MapData& d : datas)
+		for (const util::Config::MapData& d : datas)
 		{
 			if (d.name.isEmpty())
 				return FALSE;
@@ -739,21 +739,21 @@ long long CLuaMap::findNPC(sol::object p1, sol::object nicknames, long long x, l
 
 	long long timeout = 5000LL * 36;
 
-	mapunit_s unit;
+	sa::mapunit_s unit;
 	long long dir = -1;
 	CAStar astar;
 	auto findNpcCallBack = [&injector, &unit, currentIndex, cmpNpcName, cmpFreeName, modelid, &dir, &astar](QPoint& dst)->bool
 		{
 			if (modelid > 0)
 			{
-				if (!injector.worker->findUnit("", util::OBJ_NPC, &unit, "", modelid))
+				if (!injector.worker->findUnit("", sa::OBJ_NPC, &unit, "", modelid))
 				{
 					return 0;//沒找到
 				}
 			}
-			else if (!injector.worker->findUnit(cmpNpcName, util::OBJ_NPC, &unit, cmpFreeName))
+			else if (!injector.worker->findUnit(cmpNpcName, sa::OBJ_NPC, &unit, cmpFreeName))
 			{
-				if (!injector.worker->findUnit(cmpNpcName, util::OBJ_HUMAN, &unit, cmpFreeName))
+				if (!injector.worker->findUnit(cmpNpcName, sa::OBJ_HUMAN, &unit, cmpFreeName))
 					return 0;//沒找到
 			}
 

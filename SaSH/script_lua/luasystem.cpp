@@ -94,9 +94,9 @@ long long CLuaSystem::eo(sol::this_state s)
 	QElapsedTimer timer; timer.start();
 	injector.worker->EO();
 
-	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !Injector::getInstance(currentIndex).worker->isEOTTLSend.load(std::memory_order_acquire); });
+	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !Injector::getInstance(currentIndex).worker->isEOTTLSend.get(); });
 
-	long long result = bret ? injector.worker->lastEOTime.load(std::memory_order_acquire) : 0;
+	long long result = bret ? injector.worker->lastEOTime.get() : 0;
 
 	return result;
 }
@@ -285,9 +285,9 @@ long long CLuaSystem::talk(sol::object ostr, sol::object ocolor, sol::object omo
 	if (ocolor.is<long long>())
 		color = ocolor.as<long long>();
 
-	TalkMode mode = kTalkNormal;
-	if (omode.is<long long>() && omode.as<long long>() < kTalkModeMax)
-		mode = static_cast<TalkMode>(omode.as<long long>());
+	sa::TalkMode mode = sa::kTalkNormal;
+	if (omode.is<long long>() && omode.as<long long>() < sa::kTalkModeMax)
+		mode = static_cast<sa::TalkMode>(omode.as<long long>());
 
 	injector.worker->talk(text, color, mode);
 
@@ -384,17 +384,17 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		dialogid = odialogid.as<long long>();
 
 	QString text = util::toQString(sbuttonStr);
-	BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
+	sa::BUTTON_TYPE button = sa::buttonMap.value(text.toUpper(), sa::BUTTON_NOTUSED);
 
 	if (ounitid.is<std::string>())
 	{
 		QString searchStr = util::toQString(ounitid.as<std::string>());
-		mapunit_t unit;
-		if (injector.worker->findUnit(searchStr, util::OBJ_NPC, &unit, "", unitid))
+		sa::mapunit_t unit;
+		if (injector.worker->findUnit(searchStr, sa::OBJ_NPC, &unit, "", unitid))
 		{
 			if (!injector.worker->isDialogVisible())
 				injector.worker->setCharFaceToPoint(unit.p);
-			if (button == BUTTON_NOTUSED && row == -1)
+			if (button == sa::BUTTON_NOTUSED && row == -1)
 				QThread::msleep(300);
 			unitid = unit.id;
 		}
@@ -406,9 +406,9 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		return TRUE;
 	}
 
-	if (button == BUTTON_NOTUSED)
+	if (button == sa::BUTTON_NOTUSED)
 	{
-		dialog_t dialog = injector.worker->currentDialog;
+		sa::dialog_t dialog = injector.worker->currentDialog.get();
 		QStringList textList = dialog.linebuttontext;
 		if (!textList.isEmpty())
 		{
@@ -436,7 +436,7 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		}
 	}
 
-	if (button != BUTTON_NOTUSED)
+	if (button != sa::BUTTON_NOTUSED)
 		injector.worker->press(button, dialogid, unitid);
 	else if (row != -1)
 		injector.worker->press(row, dialogid, unitid);
@@ -730,9 +730,9 @@ long long CLuaSystem::delch(long long index, std::string spsw, sol::object optio
 		return FALSE;
 
 	--index;
-	if (index < 0 || index > MAX_CHARACTER)
+	if (index < 0 || index > sa::MAX_CHARACTER)
 	{
-		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("index must between 1 and %1").arg(MAX_CHARACTER));
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("index must between 1 and %1").arg(sa::MAX_CHARACTER));
 		return FALSE;
 	}
 

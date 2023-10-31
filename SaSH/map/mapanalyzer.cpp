@@ -24,8 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 constexpr const char* kDefaultMapSuffix = ".dat";
 
-util::SafeHash<long long, QPixmap> g_pixMap;
-util::SafeHash<long long, map_t> g_maps;
+safe::Hash<long long, QPixmap> g_pixMap;
+safe::Hash<long long, map_t> g_maps;
 
 //不可通行地面、物件數據 或 傳點|樓梯
 #pragma region StaticTable
@@ -847,7 +847,7 @@ void __fastcall checkAndSetRockEx(map_t& map, const QPoint& p, unsigned short sO
 			for (x = 0; x < max_x; ++x)
 			{
 				const QPoint point(p.x() + x, p.y() - y);
-				map.data.insert(point, util::OBJ_ROCKEX);
+				map.data.insert(point, sa::OBJ_ROCKEX);
 			}
 		}
 	}
@@ -861,7 +861,7 @@ void __fastcall reCheckAndRockEx(map_t& map, const QPoint& point, unsigned short
 		const QSet<unsigned short> set = it.second;
 		if (!set.size() || !set.contains(sObject))
 			continue;
-		map.data.insert(point, util::OBJ_ROCKEX);
+		map.data.insert(point, sa::OBJ_ROCKEX);
 		return;
 	}
 };
@@ -1000,60 +1000,60 @@ void MapAnalyzer::clear(long long floor) const { g_maps.remove(floor); g_pixMap.
 QPixmap MapAnalyzer::getPixmapByIndex(long long index) const { return g_pixMap.value(index); }
 
 //查找地形
-util::ObjectType MapAnalyzer::getGroundType(const unsigned short data) const
+sa::ObjectType MapAnalyzer::getGroundType(const unsigned short data) const
 {
 	if (UP.contains(data))
-		return util::OBJ_UP;
+		return sa::OBJ_UP;
 
 	if (DOWN.contains(data))
-		return util::OBJ_DOWN;
+		return sa::OBJ_DOWN;
 
 	if (JUMP.contains(data))
-		return util::OBJ_JUMP;
+		return sa::OBJ_JUMP;
 
 	if (ROAD.contains(data))
-		return util::OBJ_ROAD;
+		return sa::OBJ_ROAD;
 
 	if (WATER.contains(data))
-		return util::OBJ_WATER;
+		return sa::OBJ_WATER;
 
 	if (GROUND.contains(data))
-		return util::OBJ_WALL;
+		return sa::OBJ_WALL;
 
 	if (EMPTY.contains(data))
-		return util::OBJ_EMPTY;
+		return sa::OBJ_EMPTY;
 
-	return util::OBJ_UNKNOWN;
+	return sa::OBJ_UNKNOWN;
 }
 
 //查找物件
-util::ObjectType MapAnalyzer::getObjectType(const unsigned short data) const
+sa::ObjectType MapAnalyzer::getObjectType(const unsigned short data) const
 {
 	if (UP.contains(data))
-		return util::OBJ_UP;
+		return sa::OBJ_UP;
 
 	if (DOWN.contains(data))
-		return util::OBJ_DOWN;
+		return sa::OBJ_DOWN;
 
 	if (JUMP.contains(data))
-		return util::OBJ_JUMP;
+		return sa::OBJ_JUMP;
 
 	if (ROAD.contains(data))
-		return util::OBJ_ROAD;
+		return sa::OBJ_ROAD;
 
 	if (WATER.contains(data))
-		return util::OBJ_WATER;
+		return sa::OBJ_WATER;
 
 	if ((WALL.contains(data)))
-		return util::OBJ_WALL;
+		return sa::OBJ_WALL;
 
 	if (ROCK.contains(data))
-		return util::OBJ_ROCK;
+		return sa::OBJ_ROCK;
 
 	if (EMPTY.contains(data))
-		return util::OBJ_EMPTY;
+		return sa::OBJ_EMPTY;
 
-	return util::OBJ_UNKNOWN;
+	return sa::OBJ_UNKNOWN;
 }
 
 bool MapAnalyzer::getMapDataByFloor(long long floor, map_t* map)
@@ -1183,12 +1183,12 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 
 				//QT圖像類 QImage 圖像(QSize(地圖.寬, 地圖.高), 格式32色帶透明)
 				QImage img(QSize(map.width, map.height), QImage::Format_ARGB32);//生成圖像
-				img.fill(MAP_COLOR_HASH.value(util::OBJ_EMPTY));//填充背景色
+				img.fill(MAP_COLOR_HASH.value(sa::OBJ_EMPTY));//填充背景色
 
 				QPainter painter(&img);//實例繪製引擎
 				for (const QPoint& it : list) //遍歷地圖數據
 				{
-					util::ObjectType typeOriginal = map.data.value(it);
+					sa::ObjectType typeOriginal = map.data.value(it);
 					const QBrush brush(MAP_COLOR_HASH.value(typeOriginal), Qt::SolidPattern); //獲取並設置顏色
 					const QPen pen(brush, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);  //實例畫筆
 
@@ -1258,9 +1258,9 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 
 	bool bret = false;
 	unsigned short sGround = 0, sObject = 0, sLabel = 0;
-	util::ObjectType typeGround = util::OBJ_UNKNOWN;
-	util::ObjectType typeObject = util::OBJ_UNKNOWN;
-	util::ObjectType typeOriginal = util::OBJ_UNKNOWN;
+	sa::ObjectType typeGround = sa::OBJ_UNKNOWN;
+	sa::ObjectType typeObject = sa::OBJ_UNKNOWN;
+	sa::ObjectType typeOriginal = sa::OBJ_UNKNOWN;
 	QPoint point(0, 0);
 
 	for (y = 0; y < height; ++y)
@@ -1293,57 +1293,57 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 //#endif
 
 			//排除樓梯或水晶
-			if ((util::OBJ_UP == typeOriginal) || (util::OBJ_DOWN == typeOriginal) || (util::OBJ_JUMP == typeOriginal) || (util::OBJ_WARP == typeOriginal) || (util::OBJ_ROCKEX == typeOriginal))
+			if ((sa::OBJ_UP == typeOriginal) || (sa::OBJ_DOWN == typeOriginal) || (sa::OBJ_JUMP == typeOriginal) || (sa::OBJ_WARP == typeOriginal) || (sa::OBJ_ROCKEX == typeOriginal))
 			{
 				continue;
 			}
 			else
-				map.data.insert(point, util::OBJ_UNKNOWN);
+				map.data.insert(point, sa::OBJ_UNKNOWN);
 
-			if (util::OBJ_ROAD == typeObject || util::OBJ_ROAD == typeGround)
+			if (sa::OBJ_ROAD == typeObject || sa::OBJ_ROAD == typeGround)
 			{
-				map.data.insert(point, util::OBJ_ROAD);
+				map.data.insert(point, sa::OBJ_ROAD);
 				continue;
 			}
 
 			//排除水
-			if ((util::OBJ_WATER == typeGround))
+			if ((sa::OBJ_WATER == typeGround))
 			{
-				map.data.insert(point, util::OBJ_WATER);
+				map.data.insert(point, sa::OBJ_WATER);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 			//排除牆壁
-			else if ((util::OBJ_WALL == typeGround))
+			else if ((sa::OBJ_WALL == typeGround))
 			{
-				if (typeObject != util::OBJ_ROCK)
-					map.data.insert(point, util::OBJ_WALL);
+				if (typeObject != sa::OBJ_ROCK)
+					map.data.insert(point, sa::OBJ_WALL);
 				else
-					map.data.insert(point, util::OBJ_ROCK);
+					map.data.insert(point, sa::OBJ_ROCK);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 			//排除石頭
-			else if ((util::OBJ_ROCK == typeGround))
+			else if ((sa::OBJ_ROCK == typeGround))
 			{
-				map.data.insert(point, util::OBJ_ROCK);
+				map.data.insert(point, sa::OBJ_ROCK);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 			//排除牆壁
 			else if (((6693 == sGround) && (17534 == sObject) && (0xC000 == sLabel)) || (sGround == 0x64))
 			{
-				if (typeObject != util::OBJ_ROCK)
-					map.data.insert(point, util::OBJ_WALL);
+				if (typeObject != sa::OBJ_ROCK)
+					map.data.insert(point, sa::OBJ_WALL);
 				else
-					map.data.insert(point, util::OBJ_ROCK);
+					map.data.insert(point, sa::OBJ_ROCK);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 			//排除空白區
-			else if (((sGround < 0x64) || (util::OBJ_EMPTY == typeGround)))
+			else if (((sGround < 0x64) || (sa::OBJ_EMPTY == typeGround)))
 			{
-				map.data.insert(point, util::OBJ_EMPTY);
+				map.data.insert(point, sa::OBJ_EMPTY);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
@@ -1353,12 +1353,12 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 			if ((0xC003 == sLabel))
 			{
 				//如果是傳點，但沒有標明是上樓/下樓或水晶，則默認為水晶
-				if (((LOBYTE(sLabel) == 3) && (HIBYTE(sLabel) == 192)) && ((typeObject != util::OBJ_JUMP) && (typeObject != util::OBJ_UP) && (typeObject != util::OBJ_DOWN)))
+				if (((LOBYTE(sLabel) == 3) && (HIBYTE(sLabel) == 192)) && ((typeObject != sa::OBJ_JUMP) && (typeObject != sa::OBJ_UP) && (typeObject != sa::OBJ_DOWN)))
 				{
-					typeObject = util::OBJ_JUMP;
+					typeObject = sa::OBJ_JUMP;
 				}
 
-				if (util::OBJ_ROAD == typeObject)
+				if (sa::OBJ_ROAD == typeObject)
 					map.workable.insert(point);
 				else
 					map.stair.append(qmappoint_t{ typeObject , point });
@@ -1369,20 +1369,20 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 			//找傳點
 			else if ((0xC00A == sLabel) || ((LOBYTE(sLabel) == 10) && (HIBYTE(sLabel) == 192)))
 			{
-				if ((util::OBJ_UP != typeObject) && (util::OBJ_DOWN != typeObject) && (util::OBJ_JUMP != typeObject))
-					typeObject = util::OBJ_WARP;
+				if ((sa::OBJ_UP != typeObject) && (sa::OBJ_DOWN != typeObject) && (sa::OBJ_JUMP != typeObject))
+					typeObject = sa::OBJ_WARP;
 				map.stair.append(qmappoint_t{ typeObject, point });
 				map.data.insert(point, typeObject);//可通行
 				continue;
 			}
 
 			//排除牆壁,障礙
-			if ((sObject != 0) && (typeObject != util::OBJ_ROAD))
+			if ((sObject != 0) && (typeObject != sa::OBJ_ROAD))
 			{
-				if (typeObject != util::OBJ_ROCK)
-					map.data.insert(point, util::OBJ_WALL);
+				if (typeObject != sa::OBJ_ROCK)
+					map.data.insert(point, sa::OBJ_WALL);
 				else
-					map.data.insert(point, util::OBJ_ROCK);
+					map.data.insert(point, sa::OBJ_ROCK);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
@@ -1390,24 +1390,24 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 			//排除非通行區塊 193 表示不能穿越該坐標，反之為 192
 			if (HIBYTE(sLabel) == 193)
 			{
-				map.data.insert(point, util::OBJ_EMPTY);
+				map.data.insert(point, sa::OBJ_EMPTY);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 
-			if (typeObject == util::OBJ_ROCK)
+			if (typeObject == sa::OBJ_ROCK)
 			{
-				map.data.insert(point, util::OBJ_ROCK);
+				map.data.insert(point, sa::OBJ_ROCK);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 
 			//不是傳點則強制換成路
-			if (((typeObject != util::OBJ_UP) && (typeObject != util::OBJ_DOWN) && (typeObject != util::OBJ_JUMP)) || (util::OBJ_ROAD == typeGround))
-				typeObject = util::OBJ_ROAD;
+			if (((typeObject != sa::OBJ_UP) && (typeObject != sa::OBJ_DOWN) && (typeObject != sa::OBJ_JUMP)) || (sa::OBJ_ROAD == typeGround))
+				typeObject = sa::OBJ_ROAD;
 
 			//如果是路，則加入可通行列表
-			if ((util::OBJ_ROAD == typeObject) || (util::OBJ_BOUNDARY == typeObject))
+			if ((sa::OBJ_ROAD == typeObject) || (sa::OBJ_BOUNDARY == typeObject))
 				map.workable.insert(point);
 
 			map.data.insert(point, typeObject);//可通行
@@ -1459,9 +1459,9 @@ bool MapAnalyzer::loadFromBinary(long long currentIndex, long long floor, map_t*
 		for (y = 0; y < map.height; ++y)
 		{
 			ifs.read(reinterpret_cast<char*>(&type), sizeof(BYTE));
-			if (util::OBJ_MAX >= 0 && type < util::OBJ_MAX)
+			if (sa::OBJ_MAX >= 0 && type < sa::OBJ_MAX)
 			{
-				map.data.insert(QPoint(x, y), static_cast<util::ObjectType>(type));
+				map.data.insert(QPoint(x, y), static_cast<sa::ObjectType>(type));
 			}
 		}
 	}
@@ -1574,7 +1574,7 @@ bool MapAnalyzer::saveAsBinary(long long currentIndex, map_t map, const QString&
 	//{
 	//	for (unsigned short y = 0; y < map.height; ++y)
 	//	{
-	//		util::ObjectType type = map.data[QPoint{ x, y }];
+	//		ObjectType type = map.data[QPoint{ x, y }];
 	//		QColor color = MAP_COLOR_HASH.value(type, QColor(0, 0, 0));
 	//		CRGB fillColor = { (uint8_t)color.red(), (uint8_t)color.green(), (uint8_t)color.blue() };
 	//		img.setPixel(QPoint{ x, y }, fillColor);
@@ -1611,10 +1611,10 @@ bool MapAnalyzer::calcNewRoute(long long currentIndex, CAStar& astar, long long 
 				break;
 		}
 
-		util::ObjectType dstobj = map.data.value(dst, util::OBJ_UNKNOWN);
-		bool isDstAsWarpPoint = (dstobj == util::OBJ_WARP) || (dstobj == util::OBJ_JUMP) || (dstobj == util::OBJ_UP) || (dstobj == util::OBJ_DOWN);
+		sa::ObjectType dstobj = map.data.value(dst, sa::OBJ_UNKNOWN);
+		bool isDstAsWarpPoint = (dstobj == sa::OBJ_WARP) || (dstobj == sa::OBJ_JUMP) || (dstobj == sa::OBJ_UP) || (dstobj == sa::OBJ_DOWN);
 
-		if (!isDstAsWarpPoint && dstobj != util::OBJ_ROAD)
+		if (!isDstAsWarpPoint && dstobj != sa::OBJ_ROAD)
 			break;
 
 		Injector& injector = Injector::getInstance(currentIndex);
@@ -1632,8 +1632,8 @@ bool MapAnalyzer::calcNewRoute(long long currentIndex, CAStar& astar, long long 
 				{
 					if (injector.worker->npcUnitPointHash.contains(point))
 					{
-						mapunit_t unit = injector.worker->npcUnitPointHash.value(point);
-						if (unit.type == util::OBJ_NPC && unit.modelid > 0)
+						sa::mapunit_t unit = injector.worker->npcUnitPointHash.value(point);
+						if (unit.type == sa::OBJ_NPC && unit.modelid > 0)
 							return false;
 					}
 
@@ -1642,13 +1642,13 @@ bool MapAnalyzer::calcNewRoute(long long currentIndex, CAStar& astar, long long 
 						return false;
 				}
 
-				const util::ObjectType obj = map.data.value(point, util::OBJ_UNKNOWN);
+				const sa::ObjectType obj = map.data.value(point, sa::OBJ_UNKNOWN);
 
 				//If the destination coordinates are a teleportation point, treat it as a non-obstacle
 				if (isDstAsWarpPoint)
-					return (obj == util::OBJ_ROAD) || (obj == util::OBJ_WARP) || (obj == util::OBJ_JUMP) || (obj == util::OBJ_UP) || (obj == util::OBJ_DOWN);
+					return (obj == sa::OBJ_ROAD) || (obj == sa::OBJ_WARP) || (obj == sa::OBJ_JUMP) || (obj == sa::OBJ_UP) || (obj == sa::OBJ_DOWN);
 				else
-					return  (obj == util::OBJ_ROAD);
+					return  (obj == sa::OBJ_ROAD);
 			};
 
 		astar.set_canpass(canPassCallback);
@@ -1692,9 +1692,9 @@ bool MapAnalyzer::isPassable(long long currentIndex, CAStar& astar, long long fl
 				if (src == p)
 					return true;
 
-				const util::ObjectType& obj = map.data.value(p, util::OBJ_UNKNOWN);
-				return obj == util::OBJ_ROAD;
-				//return ((obj != util::OBJ_EMPTY) && (obj != util::OBJ_WATER) && (obj != util::OBJ_UNKNOWN) && (obj != util::OBJ_WALL) && (obj != util::OBJ_ROCK) && (obj != util::OBJ_ROCKEX));
+				const sa::ObjectType& obj = map.data.value(p, sa::OBJ_UNKNOWN);
+				return obj == sa::OBJ_ROAD;
+				//return ((obj != sa::OBJ_EMPTY) && (obj != sa::OBJ_WATER) && (obj != sa::OBJ_UNKNOWN) && (obj != sa::OBJ_WALL) && (obj != sa::OBJ_ROCK) && (obj != sa::OBJ_ROCKEX));
 			};
 
 		astar.set_canpass(canPassCallback);
@@ -1728,26 +1728,26 @@ QString MapAnalyzer::getGround(long long currentIndex, long long floor, const QS
 	}
 
 	static const QHash<long long, QString> hash = {
-		{ static_cast<long long>(util::OBJ_UNKNOWN), "Unknown" },
-		{ static_cast<long long>(util::OBJ_ROAD), "Road" },
-		{ static_cast<long long>(util::OBJ_UP), "Up" },
-		{ static_cast<long long>(util::OBJ_DOWN), "Down" },
-		{ static_cast<long long>(util::OBJ_JUMP), "Jump" },
-		{ static_cast<long long>(util::OBJ_WARP), "Warp" },
-		{ static_cast<long long>(util::OBJ_WALL), "Wall" },
-		{ static_cast<long long>(util::OBJ_ROCK), "Rock" },
-		{ static_cast<long long>(util::OBJ_ROCKEX), "RockEx" },
-		{ static_cast<long long>(util::OBJ_BOUNDARY), "Boundary" },
-		{ static_cast<long long>(util::OBJ_WATER), "Water" },
-		{ static_cast<long long>(util::OBJ_EMPTY), "Empty" },
-		{ static_cast<long long>(util::OBJ_HUMAN), "Human" },
-		{ static_cast<long long>(util::OBJ_NPC), "NPC" },
-		{ static_cast<long long>(util::OBJ_BUILDING), "Building" },
-		{ static_cast<long long>(util::OBJ_ITEM), "Item" },
-		{ static_cast<long long>(util::OBJ_PET), "Pet" },
-		{ static_cast<long long>(util::OBJ_GOLD), "Gold" },
-		{ static_cast<long long>(util::OBJ_GM), "GM" },
-		{ static_cast<long long>(util::OBJ_MAX), "Max" },
+		{ static_cast<long long>(sa::OBJ_UNKNOWN), "Unknown" },
+		{ static_cast<long long>(sa::OBJ_ROAD), "Road" },
+		{ static_cast<long long>(sa::OBJ_UP), "Up" },
+		{ static_cast<long long>(sa::OBJ_DOWN), "Down" },
+		{ static_cast<long long>(sa::OBJ_JUMP), "Jump" },
+		{ static_cast<long long>(sa::OBJ_WARP), "Warp" },
+		{ static_cast<long long>(sa::OBJ_WALL), "Wall" },
+		{ static_cast<long long>(sa::OBJ_ROCK), "Rock" },
+		{ static_cast<long long>(sa::OBJ_ROCKEX), "RockEx" },
+		{ static_cast<long long>(sa::OBJ_BOUNDARY), "Boundary" },
+		{ static_cast<long long>(sa::OBJ_WATER), "Water" },
+		{ static_cast<long long>(sa::OBJ_EMPTY), "Empty" },
+		{ static_cast<long long>(sa::OBJ_HUMAN), "Human" },
+		{ static_cast<long long>(sa::OBJ_NPC), "NPC" },
+		{ static_cast<long long>(sa::OBJ_BUILDING), "Building" },
+		{ static_cast<long long>(sa::OBJ_ITEM), "Item" },
+		{ static_cast<long long>(sa::OBJ_PET), "Pet" },
+		{ static_cast<long long>(sa::OBJ_GOLD), "Gold" },
+		{ static_cast<long long>(sa::OBJ_GM), "GM" },
+		{ static_cast<long long>(sa::OBJ_MAX), "Max" },
 	};
 
 	long long flag = map.flag.value(src, 0);
@@ -1782,7 +1782,7 @@ long long MapAnalyzer::calcBestFollowPointByDstPoint(long long currentIndex, CAS
 			if (ret)
 				*ret = c.p;
 			long long n = c.dir + 4;
-			return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));
+			return ((n) <= (7)) ? (n) : ((n)-(sa::MAX_DIR));
 		}
 
 		if (isPassable(currentIndex, astar, floor, src, dst + it))//確定是否可走
@@ -1799,7 +1799,7 @@ long long MapAnalyzer::calcBestFollowPointByDstPoint(long long currentIndex, CAS
 		disV.append(c);
 	}
 
-	if (invalidcount >= MAX_DIR && enableExt && npcdir != -1)//如果周圍8格都不能走搜尋NPC面相方向兩格(中間隔著櫃檯)
+	if (invalidcount >= sa::MAX_DIR && enableExt && npcdir != -1)//如果周圍8格都不能走搜尋NPC面相方向兩格(中間隔著櫃檯)
 	{
 		for (long long i = 0; i < 7; ++i)
 		{
@@ -1827,7 +1827,7 @@ long long MapAnalyzer::calcBestFollowPointByDstPoint(long long currentIndex, CAS
 				if (ret)
 					*ret = newP;
 				long long n = npcdir + 4;
-				return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));
+				return ((n) <= (7)) ? (n) : ((n)-(sa::MAX_DIR));
 			}
 		}
 		return -1;
@@ -1844,5 +1844,5 @@ long long MapAnalyzer::calcBestFollowPointByDstPoint(long long currentIndex, CAS
 		*ret = disV.value(0).p;
 	//計算方向
 	long long n = disV.value(0).dir + 4;
-	return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));//返回方向
+	return ((n) <= (7)) ? (n) : ((n)-(sa::MAX_DIR));//返回方向
 }

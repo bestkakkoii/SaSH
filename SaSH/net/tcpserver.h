@@ -90,7 +90,7 @@ private:
 	Q_INVOKABLE void handleData(const QByteArray& data);
 
 public://actions
-	QString __fastcall battleStringFormat(const battleobject_t& obj, QString formatStr);
+	QString __fastcall battleStringFormat(const sa::battleobject_t& obj, QString formatStr);
 
 	[[nodiscard]] long long __fastcall getWorldStatus();
 
@@ -142,7 +142,7 @@ public://actions
 
 	void __fastcall deleteCharacter(long long index, const QString securityCode, bool backtofirst = false);
 
-	void __fastcall talk(const QString& text, long long color = 0, TalkMode mode = kTalkNormal);
+	void __fastcall talk(const QString& text, long long color = 0, sa::TalkMode mode = sa::kTalkNormal);
 	void __fastcall inputtext(const QString& text, long long dialogid = -1, long long npcid = -1);
 
 	void __fastcall windowPacket(const QString& command, long long dialogid, long long npcid);
@@ -167,7 +167,7 @@ public://actions
 
 	void __fastcall setSwitcher(long long flg);
 
-	void __fastcall press(BUTTON_TYPE select, long long dialogid = -1, long long unitid = -1);
+	void __fastcall press(sa::BUTTON_TYPE select, long long dialogid = -1, long long unitid = -1);
 	void __fastcall press(long long row, long long dialogid = -1, long long unitid = -1);
 
 	void __fastcall buy(long long index, long long amt, long long dialogid = -1, long long unitid = -1);
@@ -176,7 +176,7 @@ public://actions
 	void __fastcall sell(const QString& name, const QString& memo = "", long long dialogid = -1, long long unitid = -1);
 	void __fastcall learn(long long skillIndex, long long petIndex, long long spot, long long dialogid = -1, long long unitid = -1);
 
-	void __fastcall craft(util::CraftType type, const QStringList& ingres);
+	void __fastcall craft(sa::CraftType type, const QStringList& ingres);
 
 	void __fastcall createRemoteDialog(unsigned long long type, unsigned long long button, const QString& text);
 
@@ -207,7 +207,7 @@ public://actions
 	void findPathAsync(const QPoint& pos);
 
 	void __fastcall setAllPetState();
-	void __fastcall setPetState(long long petIndex, PetState state);
+	void __fastcall setPetState(long long petIndex, sa::PetState state);
 	void __fastcall setFightPet(long long petIndex);
 	void __fastcall setRidePet(long long petIndex);
 	void __fastcall setPetStateSub(long long petIndex, long long state);
@@ -234,7 +234,7 @@ public://actions
 	void __fastcall cleanChatHistory();
 	[[nodiscard]] QString __fastcall getChatHistory(long long index);
 
-	bool __fastcall findUnit(const QString& name, long long type, mapunit_t* unit, const QString& freeName = "", long long modelid = -1);
+	bool __fastcall findUnit(const QString& name, long long type, sa::mapunit_t* unit, const QString& freeName = "", long long modelid = -1);
 
 	[[nodiscard]] QString __fastcall getGround();
 
@@ -247,8 +247,8 @@ public://actions
 
 	[[nodiscard]] long long __fastcall getPartySize() const;
 	[[nodiscard]] QStringList __fastcall getJoinableUnitList() const;
-	[[nodiscard]] bool __fastcall getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv, long long from = 0, long long to = MAX_ITEM);
-	[[nodiscard]] long long __fastcall getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", long long from = 0, long long to = MAX_ITEM);
+	[[nodiscard]] bool __fastcall getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv, long long from = 0, long long to = sa::MAX_ITEM);
+	[[nodiscard]] long long __fastcall getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", long long from = 0, long long to = sa::MAX_ITEM);
 	[[nodiscard]] long long __fastcall getPetSkillIndexByName(long long& petIndex, const QString& name) const;
 	[[nodiscard]] long long __fastcall getSkillIndexByName(const QString& name) const;
 	[[nodiscard]] bool __fastcall getPetIndexsByName(const QString& name, QVector<long long>* pv) const;
@@ -300,22 +300,22 @@ public://actions
 
 	void updateBattleTimeInfo();
 
-	inline [[nodiscard]] PC __fastcall getPC() const { /*QReadLocker locker(&charInfoLock_); */ return pc_; }
-	inline void __fastcall setPC(PC pc) { pc_ = pc; }
+	inline [[nodiscard]] sa::PC __fastcall getPC() const { /*QReadLocker locker(&charInfoLock_); */ return pc_.get(); }
+	inline void __fastcall setPC(sa::PC pc) { pc_.set(pc); }
 
-	inline [[nodiscard]] MAGIC __fastcall getMagic(long long magicIndex) const { return magic_.value(magicIndex); }
+	inline [[nodiscard]] sa::MAGIC __fastcall getMagic(long long magicIndex) const { return magic_.value(magicIndex); }
 
-	inline [[nodiscard]] PROFESSION_SKILL __fastcall getSkill(long long skillIndex) const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.value(skillIndex); }
-	inline [[nodiscard]] QHash<long long, PROFESSION_SKILL> __fastcall getSkills() const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.toHash(); }
+	inline [[nodiscard]] sa::PROFESSION_SKILL __fastcall getSkill(long long skillIndex) const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.value(skillIndex); }
+	inline [[nodiscard]] QHash<long long, sa::PROFESSION_SKILL> __fastcall getSkills() const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.toHash(); }
 
-	inline [[nodiscard]] PET __fastcall getPet(long long petIndex) const { QReadLocker locker(&petInfoLock_);  return pet_.value(petIndex); }
-	inline [[nodiscard]] QHash<long long, PET> __fastcall getPets() const { QReadLocker locker(&petInfoLock_);  return pet_.toHash(); }
+	inline [[nodiscard]] sa::PET __fastcall getPet(long long petIndex) const { QReadLocker locker(&petInfoLock_);  return pet_.value(petIndex); }
+	inline [[nodiscard]] QHash<long long, sa::PET> __fastcall getPets() const { QReadLocker locker(&petInfoLock_);  return pet_.toHash(); }
 	inline [[nodiscard]] long long __fastcall getPetSize() const
 	{
 		QReadLocker locker(&petInfoLock_);
 		long long n = 0;
-		QHash<long long, PET> pets = pet_.toHash();
-		for (const PET& it : pets)
+		QHash<long long, sa::PET> pets = pet_.toHash();
+		for (const sa::PET& it : pets)
 		{
 			if (it.level > 0 && it.valid && it.maxHp > 0)
 				++n;
@@ -323,33 +323,33 @@ public://actions
 		return n;
 	}
 
-	inline [[nodiscard]] ITEM __fastcall getItem(long long index) const { QReadLocker locker(&itemInfoLock_);  return item_.value(index); }
-	inline [[nodiscard]] QHash<long long, ITEM> __fastcall getItems() const { QReadLocker locker(&itemInfoLock_);  return item_.toHash(); }
+	inline [[nodiscard]] sa::ITEM __fastcall getItem(long long index) const { QReadLocker locker(&itemInfoLock_);  return item_.value(index); }
+	inline [[nodiscard]] QHash<long long, sa::ITEM> __fastcall getItems() const { QReadLocker locker(&itemInfoLock_);  return item_.toHash(); }
 
-	inline [[nodiscard]] PET_SKILL __fastcall getPetSkill(long long petIndex, long long skillIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex).value(skillIndex); }
-	inline [[nodiscard]] QHash<long long, PET_SKILL> __fastcall getPetSkills(long long petIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex); }
-	inline void __fastcall setPetSkills(long long petIndex, const QHash<long long, PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
-	inline void __fastcall setPetSkill(long long petIndex, long long skillIndex, const PET_SKILL& skill)
+	inline [[nodiscard]] sa::PET_SKILL __fastcall getPetSkill(long long petIndex, long long skillIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex).value(skillIndex); }
+	inline [[nodiscard]] QHash<long long, sa::PET_SKILL> __fastcall getPetSkills(long long petIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex); }
+	inline void __fastcall setPetSkills(long long petIndex, const QHash<long long, sa::PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
+	inline void __fastcall setPetSkill(long long petIndex, long long skillIndex, const sa::PET_SKILL& skill)
 	{
-		QHash<long long, PET_SKILL> skills = petSkill_.value(petIndex);
+		QHash<long long, sa::PET_SKILL> skills = petSkill_.value(petIndex);
 		skills.insert(skillIndex, skill);
 		petSkill_.insert(petIndex, skills);
 	}
 
-	inline [[nodiscard]] PARTY __fastcall getParty(long long partyIndex) const { /*QReadLocker locker(&teamInfoLock_); */ return party_.value(partyIndex); }
-	inline [[nodiscard]] QHash<long long, PARTY> __fastcall getParties() const { /*QReadLocker locker(&teamInfoLock_); */ return party_.toHash(); }
+	inline [[nodiscard]] sa::PARTY __fastcall getParty(long long partyIndex) const { /*QReadLocker locker(&teamInfoLock_); */ return party_.value(partyIndex); }
+	inline [[nodiscard]] QHash<long long, sa::PARTY> __fastcall getParties() const { /*QReadLocker locker(&teamInfoLock_); */ return party_.toHash(); }
 
-	inline [[nodiscard]] ITEM __fastcall getPetEquip(long long petIndex, long long equipIndex) const {/* QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex).value(equipIndex); }
-	inline [[nodiscard]] QHash<long long, ITEM> __fastcall getPetEquips(long long petIndex) const { /*QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex); }
+	inline [[nodiscard]] sa::ITEM __fastcall getPetEquip(long long petIndex, long long equipIndex) const {/* QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex).value(equipIndex); }
+	inline [[nodiscard]] QHash<long long, sa::ITEM> __fastcall getPetEquips(long long petIndex) const { /*QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex); }
 
-	inline [[nodiscard]] ADDRESS_BOOK __fastcall getAddressBook(long long index) const { return addressBook_.value(index); }
-	inline [[nodiscard]] QHash<long long, ADDRESS_BOOK> __fastcall getAddressBooks() const { return addressBook_.toHash(); }
+	inline [[nodiscard]] sa::ADDRESS_BOOK __fastcall getAddressBook(long long index) const { return addressBook_.value(index); }
+	inline [[nodiscard]] QHash<long long, sa::ADDRESS_BOOK> __fastcall getAddressBooks() const { return addressBook_.toHash(); }
 
-	inline [[nodiscard]] battledata_t __fastcall getBattleData() const { return battleData.get(); }
-	inline [[nodiscard]] JOBDAILY __fastcall getJobDaily(long long index) const { return jobdaily_.value(index); }
-	inline [[nodiscard]] QHash<long long, JOBDAILY> __fastcall getJobDailys() const { return jobdaily_.toHash(); }
-	inline [[nodiscard]] CHARLISTTABLE __fastcall getCharListTable(long long index) const { return chartable_.value(index); }
-	inline [[nodiscard]] MAIL_HISTORY __fastcall getMailHistory(long long index) const { return mailHistory_.value(index); }
+	inline [[nodiscard]] sa::battledata_t __fastcall getBattleData() const { return battleData.get(); }
+	inline [[nodiscard]] sa::JOBDAILY __fastcall getJobDaily(long long index) const { return jobdaily_.value(index); }
+	inline [[nodiscard]] QHash<long long, sa::JOBDAILY> __fastcall getJobDailys() const { return jobdaily_.toHash(); }
+	inline [[nodiscard]] sa::CHARLISTTABLE __fastcall getCharListTable(long long index) const { return chartable_.value(index); }
+	inline [[nodiscard]] sa::MAIL_HISTORY __fastcall getMailHistory(long long index) const { return mailHistory_.value(index); }
 
 	[[nodiscard]] long long __fastcall findInjuriedAllie();
 
@@ -373,16 +373,16 @@ private:
 	[[nodiscard]] long long __fastcall getProfessionSkillIndexByName(const QString& names) const;
 
 #pragma region BattleFunctions
-	long long __fastcall playerDoBattleWork(const battledata_t& bt);
-	void __fastcall handleCharBattleLogics(const battledata_t& bt);
-	long long __fastcall petDoBattleWork(const battledata_t& bt);
-	void __fastcall handlePetBattleLogics(const battledata_t& bt);
+	long long __fastcall playerDoBattleWork(const sa::battledata_t& bt);
+	void __fastcall handleCharBattleLogics(const sa::battledata_t& bt);
+	long long __fastcall petDoBattleWork(const sa::battledata_t& bt);
+	void __fastcall handlePetBattleLogics(const sa::battledata_t& bt);
 
 	bool __fastcall isCharMpEnoughForMagic(long long magicIndex) const;
 	bool __fastcall isCharMpEnoughForSkill(long long magicIndex) const;
 	bool __fastcall isCharHpEnoughForSkill(long long magicIndex) const;
 
-	void __fastcall sortBattleUnit(QVector<battleobject_t>& v) const;
+	void __fastcall sortBattleUnit(QVector<sa::battleobject_t>& v) const;
 
 	enum BattleMatchType
 	{
@@ -396,18 +396,18 @@ private:
 		MatchName,
 		MatchStatus
 	};
-	bool __fastcall matchBattleTarget(const QVector<battleobject_t>& btobjs, BattleMatchType matchtype, long long firstMatchPos, QString op, QVariant cmpvar, long long* ppos);
-	bool __fastcall conditionMatchTarget(QVector<battleobject_t> btobjs, const QString& conditionStr, long long* ppos);
+	bool __fastcall matchBattleTarget(const QVector<sa::battleobject_t>& btobjs, BattleMatchType matchtype, long long firstMatchPos, QString op, QVariant cmpvar, long long* ppos);
+	bool __fastcall conditionMatchTarget(QVector<sa::battleobject_t> btobjs, const QString& conditionStr, long long* ppos);
 
-	[[nodiscard]] long long __fastcall getBattleSelectableEnemyTarget(const battledata_t& bt) const;
+	[[nodiscard]] long long __fastcall getBattleSelectableEnemyTarget(const sa::battledata_t& bt) const;
 
-	[[nodiscard]] long long __fastcall getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const;
+	[[nodiscard]] long long __fastcall getBattleSelectableEnemyOneRowTarget(const sa::battledata_t& bt, bool front) const;
 
-	[[nodiscard]] long long __fastcall getBattleSelectableAllieTarget(const battledata_t& bt) const;
+	[[nodiscard]] long long __fastcall getBattleSelectableAllieTarget(const sa::battledata_t& bt) const;
 
-	[[nodiscard]] bool __fastcall matchBattleEnemyByName(const QString& name, bool isExact, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
-	[[nodiscard]] bool __fastcall matchBattleEnemyByLevel(long long level, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
-	[[nodiscard]] bool __fastcall matchBattleEnemyByMaxHp(long long  maxHp, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	[[nodiscard]] bool __fastcall matchBattleEnemyByName(const QString& name, bool isExact, const QVector<sa::battleobject_t>& src, QVector<sa::battleobject_t>* v) const;
+	[[nodiscard]] bool __fastcall matchBattleEnemyByLevel(long long level, const QVector<sa::battleobject_t>& src, QVector<sa::battleobject_t>* v) const;
+	[[nodiscard]] bool __fastcall matchBattleEnemyByMaxHp(long long  maxHp, const QVector<sa::battleobject_t>& src, QVector<sa::battleobject_t>* v) const;
 
 	[[nodiscard]] long long __fastcall getGetPetSkillIndexByName(long long etIndex, const QString& name) const;
 
@@ -415,10 +415,10 @@ private:
 	bool __fastcall fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget, long long* target) const;
 	bool __fastcall fixCharTargetByItemIndex(long long itemIndex, long long oldtarget, long long* target) const;
 	bool __fastcall fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget, long long* target) const;
-	void __fastcall updateCurrentSideRange(battledata_t& bt);
+	void __fastcall updateCurrentSideRange(sa::battledata_t* bt);
 	bool __fastcall checkFlagState(long long pos);
 
-	inline void __fastcall setBattleData(const battledata_t& data) { battleData = data; }
+	inline void __fastcall setBattleData(const sa::battledata_t& data) { battleData.set(data); }
 
 	//自動鎖寵
 	void checkAutoLockPet();
@@ -447,7 +447,7 @@ private:
 
 	void __fastcall swapItemLocal(long long from, long long to);
 
-	void __fastcall realTimeToSATime(LSTIME* lstime);
+	void __fastcall realTimeToSATime(sa::LSTIME* lstime);
 
 #pragma endregion
 
@@ -463,54 +463,54 @@ private: //lockers
 	mutable QMutex moveLock_;
 
 private:
-	SafeFlag IS_BATTLE_FLAG = false;
-	SafeFlag IS_ONLINE_FLAG = false;
+	safe::Flag IS_BATTLE_FLAG = false;//是否在戰鬥中
+	safe::Flag IS_ONLINE_FLAG = false;//是否在線上
 
 	QElapsedTimer eottlTimer;//伺服器響應時間(MS)
-	QElapsedTimer connectingTimer;
-	std::atomic_bool petEscapeEnableTempFlag = false;
-	long long tempCatchPetTargetIndex = -1;
+	QElapsedTimer connectingTimer;//登入連接時間(MS)
+	safe::Flag petEnableEscapeForTemp = false;//寵物臨時設置逃跑模式(觸發調用DoNothing)
+	long long tempCatchPetTargetIndex = -1;//臨時捕捉寵物目標索引
 
-	util::SafeData<battledata_t> battleData;
+	safe::Data<sa::battledata_t> battleData; //戰鬥數據
 
-	std::atomic_bool IS_WAITFOT_SKUP_RECV = false;
-	QFuture<void> skupFuture;
+	safe::Flag IS_WAITFOT_SKUP_RECV = false; //等待接收SKUP封包
+	QFuture<void> skupFuture; //自動加點線程管理器
 
-	std::atomic_bool IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
+	safe::Flag IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
 
-	std::atomic_bool battleBackupThreadFlag = false;
+	safe::Flag battleBackupThreadFlag = false;//戰鬥動作備用線程標誌
 
-	PC pc_ = {};
+	safe::Data<sa::PC> pc_ = {};
 
-	util::SafeHash<long long, PARTY> party_ = {};
-	util::SafeHash<long long, ITEM> item_ = {};
-	util::SafeHash<long long, QHash<long long, ITEM>> petItem_ = {};
-	util::SafeHash<long long, PET> pet_ = {};
-	util::SafeHash<long long, MAGIC> magic_ = {};
-	util::SafeHash<long long, ADDRESS_BOOK> addressBook_ = {};
-	util::SafeHash<long long, JOBDAILY> jobdaily_ = {};
-	util::SafeHash<long long, CHARLISTTABLE> chartable_ = {};
-	util::SafeHash<long long, MAIL_HISTORY> mailHistory_ = {};
-	util::SafeHash<long long, PROFESSION_SKILL> profession_skill_ = {};
-	util::SafeHash<long long, QHash<long long, PET_SKILL>> petSkill_ = {};
+	safe::Hash<long long, sa::PARTY> party_ = {};
+	safe::Hash<long long, sa::ITEM> item_ = {};
+	safe::Hash<long long, QHash<long long, sa::ITEM>> petItem_ = {};
+	safe::Hash<long long, sa::PET> pet_ = {};
+	safe::Hash<long long, sa::MAGIC> magic_ = {};
+	safe::Hash<long long, sa::ADDRESS_BOOK> addressBook_ = {};
+	safe::Hash<long long, sa::JOBDAILY> jobdaily_ = {};
+	safe::Hash<long long, sa::CHARLISTTABLE> chartable_ = {};
+	safe::Hash<long long, sa::MAIL_HISTORY> mailHistory_ = {};
+	safe::Hash<long long, sa::PROFESSION_SKILL> profession_skill_ = {};
+	safe::Hash<long long, QHash<long long, sa::PET_SKILL>> petSkill_ = {};
 
-	QHash<QString, bool>itemStackFlagHash = {};
+	QHash<QString, bool> itemStackFlagHash = {};
 
-	util::SafeVector<bool> battlePetDisableList_ = {};
+	safe::Vector<bool> battlePetDisableList_ = {};
 
-	QFuture<void> battleBackupFuture_;
-	QFuture<void> autoLockPet_;
-	QFuture<void> dropMeatFuture_;
-	QFuture<void> autoHealFuture_;
-	QFuture<void> autoAbilityFuture_;
-	QFuture<void> autoDropPetFuture_;
+	QFuture<void> battleBackupFuture_; //戰鬥動作備用線程管理器
+	QFuture<void> autoLockPet_; //自動鎖寵線程管理器
+	QFuture<void> dropMeatFuture_; //自動丟肉線程管理器
+	QFuture<void> autoHealFuture_; //自動補血線程管理器
+	QFuture<void> autoAbilityFuture_; //自動加點線程管理器
+	QFuture<void> autoDropPetFuture_; //自動丟寵線程管理器
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
 	QString lastSecretChatName = "";//最後一次收到密語的發送方名稱
 
 	//遊戲內當前時間相關
-	LSTIME saTimeStruct = {};
+	sa::LSTIME saTimeStruct = {};
 	long long serverTime = 0LL;
 	long long FirstTime = 0LL;
 
@@ -530,9 +530,9 @@ private:
 	QString trade_command;
 	long long tradeStatus = 0;
 	long long tradePetIndex = -1;
-	PET tradePet[2] = {};
-	showitem opp_item[MAX_MAXHAVEITEM];	//交易道具阵列增为15个
-	showpet opp_pet[MAX_PET];
+	sa::PET tradePet[2] = {};
+	sa::showitem opp_item[sa::MAX_MAXHAVEITEM];	//交易道具阵列增为15个
+	sa::showpet opp_pet[sa::MAX_PET];
 	QStringList myitem_tradeList;
 	QStringList mypet_tradeList = { "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 	long long mygoldtrade = 0;
@@ -543,75 +543,84 @@ private:
 #pragma endregion
 
 public:
-	util::SafeQueue<QByteArray> readQueue_;
+	safe::Queue<QByteArray> readQueue_; //接收來自客戶端的數據隊列
 
-	std::atomic_llong nowFloor_;
-	util::SafeData<QString> nowFloorName_;
-	util::SafeData<QPoint> nowPoint_;
+	safe::Integer nowFloor_; //當前地圖編號
+	safe::Data<QString> nowFloorName_; //當前地圖名稱
+	safe::Data<QPoint> nowPoint_; //當前人物座標
 
 	//戰鬥相關
-	std::atomic_bool battleCharAlreadyActed = true;
-	std::atomic_bool battlePetAlreadyActed = true;
-	std::atomic_llong battleCharCurrentPos = 0;
-	std::atomic_llong battleBpFlag = 0;
-	std::atomic_llong battleField = 0;
-	std::atomic_bool battleCharEscapeFlag = 0;
-	std::atomic_llong battleCharCurrentMp = 0;
-	std::atomic_llong battleCurrentAnimeFlag = 0;
+	safe::Flag battleCharAlreadyActed = true; //戰鬥人物已經動作
+	safe::Flag battlePetAlreadyActed = true; //戰鬥寵物已經動作
+	safe::Integer battleCharCurrentPos = 0; //戰鬥人物當前位置
+	safe::Integer battleBpFlag = 0; //戰鬥BP標誌
+	safe::Integer battleField = 0; //戰鬥場地
+	safe::Flag battleCharEscapeFlag = 0; //戰鬥人物退戰標誌
+	safe::Integer battleCharCurrentMp = 0; //戰鬥人物當前MP
+	safe::Integer battleCurrentAnimeFlag = 0; //戰鬥當前動畫標誌
 
 	//custom
-	std::atomic_bool IS_TRADING = false;
-	std::atomic_bool IS_DISCONNECTED = false;
+	safe::Flag IS_TRADING = false;
+	safe::Flag IS_DISCONNECTED = false;
 
-	std::atomic_bool IS_WAITFOR_JOBDAILY_FLAG = false;
-	std::atomic_bool IS_WAITFOR_BANK_FLAG = false;
-	std::atomic_bool IS_WAITFOR_DIALOG_FLAG = false;
-	std::atomic_bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
-	std::atomic_llong IS_WAITOFR_ITEM_CHANGE_PACKET = false;
+	safe::Flag IS_WAITFOR_JOBDAILY_FLAG = false;
+	safe::Flag IS_WAITFOR_BANK_FLAG = false;
+	safe::Flag IS_WAITFOR_DIALOG_FLAG = false;
+	safe::Flag IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
+	safe::Integer IS_WAITOFR_ITEM_CHANGE_PACKET = false;
 
-	std::atomic_bool isBattleDialogReady = false;
-	std::atomic_bool isEOTTLSend = false;
-	std::atomic_llong lastEOTime = 0;
+	safe::Flag isBattleDialogReady = false;
+	safe::Flag isEOTTLSend = false;
+	safe::Integer lastEOTime = 0;
 
 	QElapsedTimer loginTimer;
 	QElapsedTimer battleDurationTimer;
 	QElapsedTimer normalDurationTimer;
 	QElapsedTimer oneRoundDurationTimer;
 
-	std::atomic_llong battleCurrentRound = 0;
-	std::atomic_llong battle_total_time = 0;
-	std::atomic_llong battle_total = 0;
-	std::atomic_llong battle_one_round_time = 0;
+	safe::Integer battleCurrentRound = 0;
+	safe::Integer battle_total_time = 0;
+	safe::Integer battle_total = 0;
+	safe::Integer battle_one_round_time = 0;
 
-	std::atomic_llong saCurrentGameTime = 0;//遊戲時間 LSTIME_SECTION
+	safe::Integer saCurrentGameTime = 0;//遊戲時間 LSTIME_SECTION
 
 	MapAnalyzer mapAnalyzer;
 
-	util::SafeData<currencydata_t> currencyData = {};
-	util::SafeData<customdialog_t> customDialog = {};
+	safe::Data<sa::currencydata_t> currencyData = {};
+	safe::Data<sa::customdialog_t> customDialog = {};
 
-	util::SafeHash<long long, mapunit_t> mapUnitHash;
-	util::SafeHash<QPoint, mapunit_t> npcUnitPointHash;
-	util::SafeQueue<QPair<long long, QString>> chatQueue;
+	safe::Hash<long long, sa::mapunit_t> mapUnitHash;
+	safe::Hash<QPoint, sa::mapunit_t> npcUnitPointHash;
+	safe::Queue<QPair<long long, QString>> chatQueue;
 
-	QPair<long long, QVector<bankpet_t>> currentBankPetList;
-	util::SafeVector<ITEM> currentBankItemList;
+	QPair<long long, QVector<sa::bankpet_t>> currentBankPetList;
+	safe::Vector<sa::ITEM> currentBankItemList;
 
 	QElapsedTimer repTimer;
-	util::AfkRecorder recorder[1 + MAX_PET] = {};
+	util::AfkRecorder recorder[1 + sa::MAX_PET] = {};
 
-	util::SafeData<dialog_t> currentDialog = {};
+	safe::Data<sa::dialog_t> currentDialog = {};
 
 	//用於緩存要發送到UI的數據(開啟子窗口初始化並加載當前最新數據時使用)
-	util::SafeHash<long long, QVariant> playerInfoColContents;
-	util::SafeHash<long long, QVariant> itemInfoRowContents;
-	util::SafeHash<long long, QVariant> equipInfoRowContents;
-	util::SafeData<QStringList> enemyNameListCache;
-	util::SafeData<QString> timeLabelContents;
-	util::SafeData<QString> labelCharAction;
-	util::SafeData<QString> labelPetAction;
+	safe::Hash<long long, QVariant> playerInfoColContents;
+	safe::Hash<long long, QVariant> itemInfoRowContents;
+	safe::Hash<long long, QVariant> equipInfoRowContents;
+	safe::Data<QStringList> enemyNameListCache;
+	safe::Data<QString> timeLabelContents;
+	safe::Data<QString> labelCharAction;
+	safe::Data<QString> labelPetAction;
 
 private:
+	enum BufferControl
+	{
+		BUFF_NONE,
+		BUFF_NEED_TO_CLEAN,
+		BUFF_HAS_NEXT,
+		BUFF_ABOUT_TO_END,
+		BUFF_INVALID,
+	};
+
 	char net_data[NETDATASIZE] = {};
 	char net_resultdata[SBUFSIZE] = {};
 	QByteArrayList dataList_ = {};
