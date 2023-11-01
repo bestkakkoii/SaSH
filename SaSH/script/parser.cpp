@@ -466,8 +466,6 @@ void Parser::initialize(Parser* pparent)
 			luadebug::checkOnlineThenWait(s);
 			luadebug::checkBattleThenWait(s);
 
-			text.replace("\\n", "\n");
-
 			buttonStrs = buttonStrs.toUpper();
 			QStringList buttonStrList = buttonStrs.split(util::rexOR, Qt::SkipEmptyParts);
 			safe::Vector<long long> buttonVec;
@@ -542,8 +540,6 @@ void Parser::initialize(Parser* pparent)
 
 			if (sbtype.isEmpty())
 				sbtype = "0x" + util::toQString(static_cast<long long>(dialog.rawbutton), 16);
-
-			//insertGlobalVar("vret", (sbtype.isEmpty() && dialog.row > 0) ? QVariant(QString("{%1,''}").arg(dialog.row)) : QVariant(QString("{'%1','%2'}").arg(sbtype).arg(dialog.rawdata)));
 
 			sol::table t = lua_.create_table();
 
@@ -781,15 +777,15 @@ void Parser::initialize(Parser* pparent)
 			}
 		});
 
-	lua_.set_function("format", [this](std::string sformat, sol::this_state s)->sol::object
+	lua_.set_function("format", [this](std::string sformat, sol::this_state s)->std::string
 		{
 			QString formatStr = util::toQString(sformat);
 			if (formatStr.isEmpty())
-				return sol::lua_nil;
+				return sformat;
 
 			static const QRegularExpression rexFormat(R"(\{\s*(?:([CT]?))\s*:\s*([^}]+)\s*\})");
 			if (!formatStr.contains(rexFormat))
-				return sol::make_object(s, sformat);
+				return sformat;
 
 			enum FormatType
 			{
@@ -818,60 +814,73 @@ void Parser::initialize(Parser* pparent)
 						break;
 
 					QString type = match.captured(1);
-					QString var = match.captured(2);
+					QString varStr = match.captured(2);
 					QVariant varValue;
 
 					if (type == "T")
 					{
-						varValue = luaDoString(QString("return %1").arg(var));
-						formatVarList.insert(var, qMakePair(FormatType::kTime, util::formatSeconds(varValue.toLongLong())));
+						varValue = luaDoString(QString("return %1;").arg(varStr));
+						if (varValue.toString() != "nil")
+							formatVarList.insert(varStr, qMakePair(FormatType::kTime, util::formatSeconds(varValue.toLongLong())));
+						else
+							formatVarList.insert(varStr, qMakePair(FormatType::kNothing, QString()));
 					}
 					else if (type == "C")
 					{
 						QString str;
-						if (var.toLower() == "date")
+						if (varStr.toLower() == "date")
 						{
 							const QDateTime dt = QDateTime::currentDateTime();
 							str = dt.toString("yyyy-MM-dd");
 
 						}
-						else if (var.toLower() == "time")
+						else if (varStr.toLower() == "time")
 						{
 							const QDateTime dt = QDateTime::currentDateTime();
 							str = dt.toString("hh:mm:ss:zzz");
 						}
 
-						formatVarList.insert(var, qMakePair(FormatType::kConst, str));
+						formatVarList.insert(varStr, qMakePair(FormatType::kConst, str));
 					}
 					else
 					{
-						varValue = luaDoString(QString("return %1").arg(var));
-						formatVarList.insert(var, qMakePair(FormatType::kNothing, varValue.toString()));
+						varValue = luaDoString(QString("return %1;").arg(varStr));
+						if (varValue.toString() != "nil")
+							formatVarList.insert(varStr, qMakePair(FormatType::kNothing, varValue.toString()));
+						else
+							formatVarList.insert(varStr, qMakePair(FormatType::kNothing, QString()));
 					}
 				}
 
+				if (formatVarList.isEmpty())
+					continue;
+
 				for (auto it = formatVarList.constBegin(); it != formatVarList.constEnd(); ++it)
 				{
-					const QString var = it.key();
+					const QString key = it.key();
 					const QPair<FormatType, QString> varValue = it.value();
+					QString preReplace = "";
+					switch (varValue.first)
+					{
+					case FormatType::kNothing:
+						preReplace = QString("{:%1}").arg(key);
+						break;
+					case FormatType::kTime:
+						preReplace = QString("{T:%1}").arg(key);
+						break;
+					case FormatType::kConst:
+						preReplace = QString("{C:%1}").arg(key);
+						break;
+					default:
+						continue;
+					}
 
-					if (varValue.first == FormatType::kNothing)
-					{
-						formatStr.replace(QString("{:%1}").arg(var), varValue.second);
-					}
-					else if (varValue.first == FormatType::kTime)
-					{
-						formatStr.replace(QString("{T:%1}").arg(var), varValue.second);
-					}
-					else if (varValue.first == FormatType::kConst)
-					{
-						formatStr.replace(QString("{C:%1}").arg(var), varValue.second);
-					}
+					formatStr.replace(preReplace, varValue.second);
 				}
 			}
 
 			insertGlobalVar("vret", formatStr);
-			return sol::make_object(s, util::toConstData(formatStr));
+			return util::toConstData(formatStr);
 
 		});
 
@@ -2468,7 +2477,7 @@ void Parser::importLocalVariablesToPreLuaList()
 		strvalue = it.value().toString();
 		type = it.value().type();
 		if (type == QVariant::String && !strvalue.startsWith("{") && !strvalue.endsWith("}"))
-			strvalue = QString("'%1'").arg(strvalue);
+			strvalue = QString("[[%1]]").arg(strvalue);
 		else if (strvalue.startsWith("{") && strvalue.endsWith("}"))
 			strvalue = strvalue;
 		else if (type == QVariant::Double)
@@ -2817,7 +2826,7 @@ QString Parser::getLuaTableString(const sol::table& t, long long& depth)
 		if (pair.second.is<sol::table>())
 			value = getLuaTableString(pair.second.as<sol::table>(), depth);
 		else if (pair.second.is<std::string>())
-			value = QString("'%1'").arg(util::toQString(pair.second));
+			value = QString("[[%1]]").arg(util::toQString(pair.second));
 		else if (pair.second.is<long long>())
 			value = util::toQString(pair.second.as<long long>());
 		else if (pair.second.is<double>())
@@ -2828,7 +2837,7 @@ QString Parser::getLuaTableString(const sol::table& t, long long& depth)
 			value = "nil";
 
 		if (value.isEmpty())
-			value = "''";
+			value = "[[]]";
 
 		if (key.isEmpty())
 		{
@@ -3762,7 +3771,7 @@ bool Parser::processLuaCode()
 
 	const QString luaFunction = QString(R"(
 local chunk <const> = function()
-	%1
+%1
 end
 
 return chunk();

@@ -315,17 +315,17 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 		else if (commentIndex > 0)
 			raw = raw.mid(0, commentIndex).trimmed();
 
+		//自動補齊括號列表，此處為用戶調用函數補齊括號
 		static const QStringList tempReplacementList = {
 			"set", "print", "printf", "msg", "dlg", "findpath", "findnpc", "rex", "regex", "rexg", "format", "run",
 			"say", "sleep", "saveset", "loadset", "lclick", "rclick", "dbclick", "dragto", "chmap", "w", "download",
 			"move", "cls", "eo", "logout", "logback", "runex", "openwindow", "rungame", "closegame", "setlogin", "dostrex",
 			"getgamestate", "loadsetex", "createch", "delch", "menu", "checkdaily", "button", "join", "leave", "kick", "send",
-
 		};
 
 		for (const QString& it : tempReplacementList)
 		{
-			if (raw.startsWith(it + " "))
+			if (raw.startsWith(it + " "))//有參數
 			{
 				//將xxx 改為set(
 				raw.replace(it + " ", it + "(");
@@ -333,7 +333,7 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 				originalRaw = raw;
 				break;
 			}
-			else if (raw == it)
+			else if (raw == it)//無參數
 			{
 				raw.append("()");
 				originalRaw = raw;
@@ -1302,30 +1302,28 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 	bool beginLuaCode = false;
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
-
-
 		long long row = it.key();
+		TokenMap tokenMap = it.value();
+		Token firstToken = tokenMap.value(0);
 		QStringList tmp;
-		bool skip = false;
-		for (auto it2 = it.value().cbegin(); it2 != it.value().cend(); ++it2)
+
+		if (TK_LUABEGIN == firstToken.type && !beginLuaCode)
 		{
-			if (it2.value().raw.simplified() == "#lua" && !beginLuaCode)
-			{
-				beginLuaCode = true;
-				skip = true;
-				break;
-			}
-			else if (it2.value().raw.simplified() == "#endlua" && beginLuaCode)
-			{
-				beginLuaCode = false;
-				skip = true;
-				break;
-			}
+			beginLuaCode = true;
+			continue;
+		}
+		else if (TK_LUAEND == firstToken.type && beginLuaCode)
+		{
+			beginLuaCode = false;
+			continue;
+		}
+		else if (beginLuaCode)
+			continue;
+
+		for (auto it2 = tokenMap.cbegin(); it2 != tokenMap.cend(); ++it2)
+		{
 			tmp.append(it2.value().data.toString().simplified());
 		}
-
-		if (skip)
-			continue;
 
 		QString statement = tmp.join(" ");
 
@@ -1393,7 +1391,7 @@ void Lexer::checkFunctionPairs(const QHash<long long, TokenMap>& stokenmaps)
 {
 	checkSingleRowPairs("(", ")", stokenmaps);
 	//checkSingleRowPairs("[", "]", stokenmaps);
-	//checkSingleRowPairs("{", "}", stokenmaps);
+	checkSingleRowPairs("{", "}", stokenmaps);
 }
 
 //根據指定分割符號取得字串

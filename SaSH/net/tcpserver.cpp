@@ -11819,13 +11819,119 @@ void Worker::lssproto_B_recv(char* ccommand)
 	}
 	default:
 	{
-#if 0
-		long long i = 0;
-		QString temp;
-		bool endNow = false;
-
 		QStringList list = command.split(util::rexOR);
+		if (list.isEmpty())
+			break;
 
+		long long size = list.size();
+		long long i = 0;
+		long long index = -1;
+		long long argsCount = 0;
+		QStringList args;
+
+		//取參數
+		auto getList = [&list, size](long long start)->QStringList
+			{
+				QStringList tmpList;
+				QString tmp;
+				long long i = start + 1;
+				for (; i < size; ++i)
+				{
+					tmp = list.value(i);
+					if (tmp.isEmpty())
+						continue;
+
+					if (tmp == "FF")
+						break;
+					else if (tmp.startsWith("B"))
+						break;
+
+					tmpList.append(tmp);
+				}
+
+				return tmpList;
+			};
+
+		index = list.indexOf("BJ");
+		if (index != -1)
+		{
+			args = getList(index);
+			argsCount = args.size();
+			qDebug() << "BJ" << argsCount << args;
+			if (argsCount > 20)//BJ|a%X|i%X|m%X|%X|%X|%X|s%X|t%X|l%X|%X|%X|%X|%X|%X|%X|o%X|o%X|o%X|s%X|%X|%X|r%X...|FF|
+			{
+				for (i = 0; i < argsCount; ++i)
+				{
+					QString valueStr = args.value(i);
+					if (valueStr.isEmpty() || valueStr == "FF")
+						break;
+
+					qDebug() << valueStr.mid(1).toLongLong(nullptr, 16);
+				}
+			}
+			else if (argsCount >= 5)//BJ|a%X|m%X|e%X|e%X|r%X...|FF|
+			{
+				QStringList arglabels = { "source", "mp", "effect", "effect", "target" };
+				for (i = 0; i < argsCount; ++i)
+				{
+					QString valueStr = args.value(i);
+					if (valueStr.isEmpty() || valueStr == "FF")
+						break;
+
+					qDebug() << QString(arglabels.value(i, arglabels.last())) << valueStr.mid(1).toLongLong(nullptr, 16);
+				}
+			}
+			else if (argsCount < 5) //BJ|a%X|m%X|e%X|e%X|FF| 無目標
+			{
+				for (i = 0; i < argsCount; ++i)
+				{
+					QString valueStr = args.value(i);
+					if (valueStr.isEmpty() || valueStr == "FF")
+						break;
+
+					qDebug() << valueStr.mid(1).toLongLong(nullptr, 16);
+				}
+			}
+		}
+
+		index = list.indexOf("BH");
+		if (index != -1)
+		{
+			args = getList(index);
+			argsCount = args.size();
+			qDebug() << "BH" << argsCount << args;
+			if (argsCount == 6)//BH|a%X|r%X|f%X|d%X|p%X|g%X|FF| 有技能
+			{
+				QStringList arglabels = { "attackNo", "defendNo", "flg", "damage", "petdamage", "skill" };
+			}
+			else if (argsCount == 5)//BH|a%X|r%X|f%X|d%X|p%X|FF|
+			{
+				QStringList arglabels = { "attackNo", "defendNo", "flg", "damage", "petdamage" };
+				for (i = 0; i < argsCount; ++i)
+				{
+					QString valueStr = args.value(i);
+					if (valueStr.isEmpty() || valueStr == "FF")
+						break;
+
+					qDebug() << QString(arglabels.value(i, arglabels.last())) << valueStr.mid(1).toLongLong(nullptr, 16);
+				}
+			}
+			else if (argsCount >= 4 && args.contains("f0") && args.contains("d0"))//BH|a%X|[r%X|f0|d0]...|FF| 標誌 0 無傷害 
+			{
+				QStringList arglabels = { "attackNo", "defendNo" };
+			}
+			else if (argsCount == 4 && args.contains("0"))//BH|a%X|r%X|0|d%X|FF| 無標誌
+			{
+				QStringList arglabels = { "attackNo", "defendNo", "", "damage" };
+			}
+			else if (argsCount == 4)//BH|a%X|r%X|f%X|d%X|FF| 無寵
+			{
+				QStringList arglabels = { "attackNo", "defendNo", "flg", "damage" };
+			}
+		}
+		break;
+
+#if 0
 		long long size = list.size();
 		for (i = 0; i < size;)
 		{
@@ -11985,13 +12091,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 			   //使用咒術的角色編號
 				temp = list.value(++i);
-				long long pos = a62toi(temp);
+				long long pos = temp.mid(1).toLongLong(nullptr, 16);
 				//使用咒術的效果編號
 				temp = list.value(++i);
-				long long magicEffectId = a62toi(temp);
+				long long magicEffectId = temp.mid(1).toLongLong(nullptr, 16);
 				//受到咒術影響的效果編號
 				temp = list.value(++i);
-				long long targetEffectId = a62toi(temp);
+				long long targetEffectId = temp.mid(1).toLongLong(nullptr, 16);
 				//受到咒術影響的效果編號
 				QVector<long long> targets;
 				for (;;)
@@ -12000,7 +12106,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 					if (temp == "FF")
 						break;
 
-					long long target = a62toi(temp);
+					long long target = temp.mid(1).toLongLong();
 					targets.append(target);
 				}
 				break;

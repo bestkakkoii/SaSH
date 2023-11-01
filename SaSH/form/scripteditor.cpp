@@ -127,7 +127,7 @@ void ScriptEditor::init()
 	Injector& injector = Injector::getInstance(index);
 	ui.listView_log->setModel(&injector.scriptLogModel);
 
-	emit signalDispatcher.scriptFinished();
+	onScriptStopMode();
 	emit signalDispatcher.reloadScriptList();
 	emit signalDispatcher.applyHashSettingsToUI();
 
@@ -2013,14 +2013,18 @@ void ScriptEditor::onScriptStopMode()
 	onAddStepMarker(-1, false);
 
 	long long currnetIndex = getIndex();
-	Injector& injector = Injector::getInstance(currnetIndex);
 
+	Injector& injector = Injector::getInstance(getIndex());
 	injector.forward_markers.clear();
 	injector.step_markers.clear();
 }
 
 void ScriptEditor::onScriptBreakMode()
 {
+	Injector& injector = Injector::getInstance(getIndex());
+	if (!injector.IS_SCRIPT_FLAG.get())
+		return;
+
 	ui.mainToolBar->setUpdatesEnabled(false);
 
 	ui.statusBar->setStyleSheet("color: rgb(255, 255, 255); background-color: rgb(66, 66, 66); border:none");
@@ -2078,6 +2082,10 @@ void ScriptEditor::onScriptBreakMode()
 
 void ScriptEditor::onScriptPauseMode()
 {
+	Injector& injector = Injector::getInstance(getIndex());
+	if (!injector.IS_SCRIPT_FLAG.get())
+		return;
+
 	ui.mainToolBar->setUpdatesEnabled(false);
 
 	ui.statusBar->setStyleSheet("color: rgb(255, 255, 255); background-color: rgb(66, 66, 66); border:none");
@@ -2360,7 +2368,7 @@ void ScriptEditor::onDecryptSave()
 		ui.statusBar->showMessage(tr("Decrypt password is incorrect"), 3000);
 	}
 #endif
-}
+	}
 
 static const QHash<long long, QString> hashSolLuaType = {
 	{ static_cast<long long>(sol::type::none), QObject::tr("None") },

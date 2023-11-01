@@ -121,6 +121,9 @@ void ScriptForm::onScriptStarted()
 void ScriptForm::onScriptPaused()
 {
 	Injector& injector = Injector::getInstance(getIndex());
+	if (!injector.IS_SCRIPT_FLAG.get())
+		return;
+
 	if (interpreter_ != nullptr)
 	{
 		if (!injector.isPaused())
@@ -133,9 +136,13 @@ void ScriptForm::onScriptPaused()
 
 void ScriptForm::onScriptResumed()
 {
+	Injector& injector = Injector::getInstance(getIndex());
+	if (!injector.IS_SCRIPT_FLAG.get())
+		return;
+
 	if (interpreter_ != nullptr)
 	{
-		Injector& injector = Injector::getInstance(getIndex());
+
 		if (injector.isPaused())
 		{
 			ui.pushButton_script_pause->setText(tr("pause"));
@@ -147,6 +154,9 @@ void ScriptForm::onScriptResumed()
 void ScriptForm::onScriptStoped()
 {
 	Injector& injector = Injector::getInstance(getIndex());
+	if (!injector.IS_SCRIPT_FLAG.get())
+		return;
+
 	injector.stopScript();
 	if (injector.isPaused())
 		injector.resumed();
