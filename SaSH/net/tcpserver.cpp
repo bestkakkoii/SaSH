@@ -11906,6 +11906,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 			else if (argsCount == 5)//BH|a%X|r%X|f%X|d%X|p%X|FF|
 			{
+				//flg: 鏡:1024 光:2048 守:4096
 				QStringList arglabels = { "attackNo", "defendNo", "flg", "damage", "petdamage" };
 				for (i = 0; i < argsCount; ++i)
 				{
@@ -12209,12 +12210,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-		}
+	}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-	}
+}
 }
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
@@ -12736,7 +12737,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12786,7 +12787,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12846,7 +12847,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 #endif
 #endif
 #endif
-	}
+			}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -13108,9 +13109,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
-#endif
 			}
+#endif
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13248,7 +13249,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13406,7 +13407,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}
