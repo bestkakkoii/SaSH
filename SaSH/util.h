@@ -2393,4 +2393,4 @@ QGroupBox {
 				*p = distribution(gen);
 		}
 	}
-}
+	}

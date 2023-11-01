@@ -11515,6 +11515,37 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		battleField.set(getIntegerToken(data, "|", 1));
 
+
+		auto matchPetByBattleInfo = [this](const sa::battleobject_t& obj, bool isRide)->long long
+			{
+				QHash<long long, sa::PET> hash = pet_.toHash();
+				for (auto it = hash.begin(); it != hash.end(); ++it)
+				{
+					long long key = it.key();
+					sa::PET pet = it.value();
+
+					if (!pet.valid)
+						continue;
+
+					if (isRide)
+					{
+						if (pet.level == obj.rideLevel
+							&& pet.maxHp == obj.rideMaxHp
+							&& matchPetNameByIndex(key, obj.rideName))
+							return key;
+					}
+					else
+					{
+						if (pet.modelid > 0
+							&& pet.level == obj.level
+							&& pet.maxHp == obj.maxHp
+							&& matchPetNameByIndex(key, obj.name))
+							return key;
+					}
+				}
+				return -1;
+			};
+
 		{
 			QHash<long long, sa::PET> pets = pet_.toHash();
 			QVector<bool> existFlags(sa::MAX_ENEMY, false);
@@ -11638,6 +11669,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					//騎寵存在
 					if (obj.rideFlag == 1)
 					{
+						if (-1 == pc.ridePetNo)
+						{
+							pc.ridePetNo = matchPetByBattleInfo(obj, true);
+							setPC(pc);
+						}
+
 						if (pc.ridePetNo >= 0 && pc.ridePetNo < sa::MAX_PET)
 						{
 							pets[pc.ridePetNo].valid = true;
@@ -11757,6 +11794,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 						emit signalDispatcher.updatePetHpProgressValue(obj.level, obj.hp, obj.maxHp);
 						//重設戰寵索引
 						sa::PC pc = getPC();
+						if (-1 == pc.battlePetNo)
+						{
+							pc.battlePetNo = matchPetByBattleInfo(obj, false);
+							setPC(pc);
+						}
+
 						//戰寵存在但死亡
 						if (obj.hp == 0 || util::checkAND(obj.status, sa::BC_FLG_DEAD))
 						{
@@ -12210,12 +12253,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-	}
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-}
+	}
 }
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
@@ -12737,7 +12780,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12787,7 +12830,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -12847,7 +12890,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 #endif
 #endif
 #endif
-			}
+	}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -13109,9 +13152,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13249,7 +13292,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13407,7 +13450,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}

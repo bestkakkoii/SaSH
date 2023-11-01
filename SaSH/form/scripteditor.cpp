@@ -1320,11 +1320,9 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 			ui.textBrowser->setUpdatesEnabled(true);
 			break;
 		}
-#ifdef _DEBUG
-		QString mdFullPath = R"(../Debug/lib/doc)";
-#else
-		QString mdFullPath = QString("%1/lib/doc").arg(util::applicationDirPath());
-#endif
+
+		QString mdFullPath = util::applicationDirPath();
+
 		QDir dir(mdFullPath);
 		if (!dir.exists())
 			break;
@@ -1335,11 +1333,9 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 		if (result.isEmpty())
 			return;
 
-		//按文本長度排序 由短到長
-		std::sort(result.begin(), result.end(), [](const QString& a, const QString& b)
-			{
-				return a.length() < b.length();
-			});
+		//按文本長度排序 由短到長 
+		QCollator collator = util::getCollator();
+		std::sort(result.begin(), result.end(), collator);
 
 		QString markdownText = result.join("\n---\n");
 
@@ -2368,7 +2364,7 @@ void ScriptEditor::onDecryptSave()
 		ui.statusBar->showMessage(tr("Decrypt password is incorrect"), 3000);
 	}
 #endif
-	}
+}
 
 static const QHash<long long, QString> hashSolLuaType = {
 	{ static_cast<long long>(sol::type::none), QObject::tr("None") },
