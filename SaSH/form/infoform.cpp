@@ -63,7 +63,7 @@ InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 	ui.tabWidget->addTab(&pAfkInfoForm_, tr("afkinfo"));
 
 	util::setTab(ui.tabWidget);
-
+	connect(ui.tabWidget, &QTabWidget::currentChanged, this, &InfoForm::onTabWidgetCurrentChanged, Qt::QueuedConnection);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &InfoForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
@@ -84,8 +84,19 @@ InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 	blockSignals(true);
 }
 
+void InfoForm::onTabWidgetCurrentChanged(int index)
+{
+	if (ui.tabWidget->currentIndex() != 0)
+		timer.stop();
+	else
+		timer.start(10);
+}
+
 void InfoForm::updateInfo()
 {
+	if (ui.tabWidget->currentIndex() != 0)
+		return;
+
 	Injector& injector = Injector::getInstance(getIndex());
 	if (injector.worker.isNull())
 		return;
@@ -108,7 +119,8 @@ InfoForm::~InfoForm()
 
 void InfoForm::showEvent(QShowEvent* e)
 {
-	timer.start(10);
+	if (ui.tabWidget->currentIndex() == 0)
+		timer.start(10);
 	setUpdatesEnabled(true);
 	blockSignals(false);
 	update();

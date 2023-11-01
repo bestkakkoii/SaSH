@@ -100,7 +100,7 @@ private:
 
 	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
 
-	bool login_run_once_flag_ = false;
+	bool login_run_once_flag_ = true;
 	bool battle_run_once_flag_ = false;
 
 	bool flagBattleDialogEnable_ = false;

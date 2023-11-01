@@ -146,6 +146,138 @@ namespace mem
 	bool __fastcall enumProcess(QVector<long long>* pprocesses, const QString& moduleName, const QString& withoutModuleName = "");
 
 	bool __fastcall isProcessExist(long long pid);
+
+	//遠程虛擬內存申請、釋放、或申請+寫入字符串(ANSI | UNICODE)
+	class VirtualMemory
+	{
+	public:
+		enum VirtualEncode
+		{
+			kAnsi,
+			kUnicode,
+		};
+
+		VirtualMemory() = default;
+
+		VirtualMemory(HANDLE h, long long size, bool autoclear)
+			: autoclear(autoclear)
+			, hProcess(h)
+		{
+
+			lpAddress = mem::virtualAlloc(h, size);
+		}
+
+		VirtualMemory(HANDLE h, const QString& str, VirtualEncode use_unicode, bool autoclear)
+			: autoclear(autoclear)
+		{
+
+			lpAddress = (use_unicode) == VirtualMemory::kUnicode ? (mem::virtualAllocW(h, str)) : (mem::virtualAllocA(h, str));
+			hProcess = h;
+		}
+
+		inline operator unsigned long long() const
+		{
+			return this->lpAddress;
+		}
+
+		VirtualMemory& operator=(long long other)
+		{
+			this->lpAddress = other;
+			return *this;
+		}
+
+		VirtualMemory* operator&()
+		{
+			return this;
+		}
+
+		// copy constructor
+		VirtualMemory(const VirtualMemory& other)
+			: autoclear(other.autoclear)
+			, lpAddress(other.lpAddress)
+		{
+		}
+		//copy assignment
+		VirtualMemory& operator=(const VirtualMemory& other)
+		{
+			this->lpAddress = other.lpAddress;
+			this->autoclear = other.autoclear;
+			this->hProcess = other.hProcess;
+			return *this;
+		}
+		// move constructor
+		VirtualMemory(VirtualMemory&& other) noexcept
+			: autoclear(other.autoclear)
+			, lpAddress(other.lpAddress)
+			, hProcess(other.hProcess)
+
+		{
+			other.lpAddress = 0;
+		}
+		// move assignment
+		VirtualMemory& operator=(VirtualMemory&& other) noexcept
+		{
+			this->lpAddress = other.lpAddress;
+			this->autoclear = other.autoclear;
+			this->hProcess = other.hProcess;
+			other.lpAddress = 0;
+			return *this;
+		}
+
+		friend constexpr inline bool operator==(const VirtualMemory& p1, const VirtualMemory& p2)
+		{
+			return p1.lpAddress == p2.lpAddress;
+		}
+		friend constexpr inline bool operator!=(const VirtualMemory& p1, const VirtualMemory& p2)
+		{
+			return p1.lpAddress != p2.lpAddress;
+		}
+
+		virtual ~VirtualMemory()
+		{
+			do
+			{
+				if ((autoclear) && (this->lpAddress) && (hProcess))
+				{
+
+					mem::write<unsigned char>(hProcess, this->lpAddress, 0);
+					mem::virtualFree(hProcess, this->lpAddress);
+					this->lpAddress = NULL;
+				}
+			} while (false);
+		}
+
+		[[nodiscard]] inline bool isNull() const
+		{
+			return !lpAddress;
+		}
+
+		[[nodiscard]] inline bool isData(BYTE* data, long long size) const
+		{
+			QByteArray _data(size, 0);
+			mem::read(hProcess, lpAddress, size, _data.data());
+			return memcmp(data, _data.data(), size) == 0;
+		}
+
+		inline void clear()
+		{
+			if ((this->lpAddress))
+			{
+				mem::virtualFree(hProcess, (this->lpAddress));
+				this->lpAddress = NULL;
+			}
+		}
+
+		[[nodiscard]] inline bool isValid()const
+		{
+			return (this->lpAddress) != NULL;
+		}
+
+	private:
+		bool autoclear = false;
+		unsigned long long lpAddress = NULL;
+		HANDLE hProcess = NULL;
+	};
 }
 
 namespace util
@@ -874,6 +1006,11 @@ namespace util
 
 	[[nodiscard]] long long __fastcall percent(long long value, long long total);
 
+	[[nodiscard]] inline constexpr bool __fastcall checkAND(unsigned long long a, unsigned long long b)
+	{
+		return (a & b) == b;
+	}
+
 	template<typename T>
 	inline [[nodiscard]] QString __fastcall toQString(T d, long long base = 10)
 	{
@@ -946,7 +1083,7 @@ namespace util
 
 	inline [[nodiscard]] QString __fastcall toUnicode(const char* str, bool trim = true, bool ext = true)
 	{
-		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//取GB2312解碼器
+		static const QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//取GB2312解碼器
 		QString qstr(codec->toUnicode(str));//先以GB2312解碼轉成UNICODE
 		UINT ACP = ::GetACP();
 		if (950 == ACP && ext)
@@ -979,8 +1116,8 @@ namespace util
 			qstr = util::toQString(wbuf);
 		}
 
-		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
-		QByteArray bytes(codec->fromUnicode(qstr));
+		static const QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
+		const QByteArray bytes(codec->fromUnicode(qstr));
 		std::string s(bytes.constData());
 
 		return s;
@@ -1604,7 +1741,6 @@ QGroupBox {
 		pWidget->setStyleSheet(style);
 	}
 
-
 	QFileInfoList __fastcall loadAllFileLists(
 		TreeWidgetItem* root,
 		const QString& path,
@@ -1788,6 +1924,7 @@ QGroupBox {
 		p->setCurrentIndex(cur);
 	}
 #pragma endregion
+
 	class ScopedFileLocker
 	{
 	public:
@@ -1815,36 +1952,6 @@ QGroupBox {
 		bool isFileLocked = false;
 	};
 
-	class ScopedLocker
-	{
-	public:
-		explicit ScopedLocker(QMutex* lock)
-			:lock_(*lock)
-		{
-			isLocked_ = lock_.tryLock();
-		}
-
-		virtual ~ScopedLocker()
-		{
-			if (isLocked_)
-			{
-				lock_.unlock();
-			}
-		}
-
-		bool isLocked() const
-		{
-			return isLocked_;
-		}
-
-
-
-	private:
-		QMutex& lock_;
-		bool isLocked_ = false;
-
-	};
-
 	//介面排版或配置管理 主用於保存窗口狀態
 	class FormSettingManager
 	{
@@ -1858,139 +1965,6 @@ QGroupBox {
 	private:
 		QWidget* widget_ = nullptr;
 		QMainWindow* mainwindow_ = nullptr;
-	};
-
-	//遠程虛擬內存申請、釋放、或申請+寫入字符串(ANSI | UNICODE)
-	class VirtualMemory
-	{
-	public:
-		enum VirtualEncode
-		{
-			kAnsi,
-			kUnicode,
-		};
-
-		VirtualMemory() = default;
-
-		VirtualMemory(HANDLE h, long long size, bool autoclear)
-			: autoclear(autoclear)
-			, hProcess(h)
-		{
-
-			lpAddress = mem::virtualAlloc(h, size);
-		}
-
-		VirtualMemory(HANDLE h, const QString& str, VirtualEncode use_unicode, bool autoclear)
-			: autoclear(autoclear)
-		{
-
-			lpAddress = (use_unicode) == VirtualMemory::kUnicode ? (mem::virtualAllocW(h, str)) : (mem::virtualAllocA(h, str));
-			hProcess = h;
-		}
-
-		inline operator unsigned long long() const
-		{
-			return this->lpAddress;
-		}
-
-		VirtualMemory& operator=(long long other)
-		{
-			this->lpAddress = other;
-			return *this;
-		}
-
-		VirtualMemory* operator&()
-		{
-			return this;
-		}
-
-		// copy constructor
-		VirtualMemory(const VirtualMemory& other)
-			: autoclear(other.autoclear)
-			, lpAddress(other.lpAddress)
-		{
-		}
-		//copy assignment
-		VirtualMemory& operator=(const VirtualMemory& other)
-		{
-			this->lpAddress = other.lpAddress;
-			this->autoclear = other.autoclear;
-			this->hProcess = other.hProcess;
-			return *this;
-		}
-		// move constructor
-		VirtualMemory(VirtualMemory&& other) noexcept
-			: autoclear(other.autoclear)
-			, lpAddress(other.lpAddress)
-			, hProcess(other.hProcess)
-
-		{
-			other.lpAddress = 0;
-		}
-		// move assignment
-		VirtualMemory& operator=(VirtualMemory&& other) noexcept
-		{
-			this->lpAddress = other.lpAddress;
-			this->autoclear = other.autoclear;
-			this->hProcess = other.hProcess;
-			other.lpAddress = 0;
-			return *this;
-		}
-
-		friend constexpr inline bool operator==(const VirtualMemory& p1, const VirtualMemory& p2)
-		{
-			return p1.lpAddress == p2.lpAddress;
-		}
-		friend constexpr inline bool operator!=(const VirtualMemory& p1, const VirtualMemory& p2)
-		{
-			return p1.lpAddress != p2.lpAddress;
-		}
-
-		virtual ~VirtualMemory()
-		{
-			do
-			{
-				if ((autoclear) && (this->lpAddress) && (hProcess))
-				{
-
-					mem::write<unsigned char>(hProcess, this->lpAddress, 0);
-					mem::virtualFree(hProcess, this->lpAddress);
-					this->lpAddress = NULL;
-				}
-			} while (false);
-		}
-
-		[[nodiscard]] inline bool isNull() const
-		{
-			return !lpAddress;
-		}
-
-		[[nodiscard]] inline bool isData(BYTE* data, long long size) const
-		{
-			QScopedArrayPointer <BYTE> _data(data);
-			mem::read(hProcess, lpAddress, size, _data.data());
-			return memcmp(data, _data.data(), size) == 0;
-		}
-
-		inline void clear()
-		{
-
-			if ((this->lpAddress))
-			{
-				mem::virtualFree(hProcess, (this->lpAddress));
-				this->lpAddress = NULL;
-			}
-		}
-
-		[[nodiscard]] inline bool isValid()const
-		{
-			return (this->lpAddress) != NULL;
-		}
-
-	private:
-		bool autoclear = false;
-		unsigned long long lpAddress = NULL;
-		HANDLE hProcess = NULL;
 	};
 
 	class TextStream : public QTextStream
@@ -2357,19 +2331,6 @@ QGroupBox {
 		QElapsedTimer timer_;
 	};
 
-	//用於掛機訊息紀錄
-	typedef struct tagAfkRecorder
-	{
-		long long levelrecord = 0;
-		long long leveldifference = 0;
-		long long exprecord = 0;
-		long long expdifference = 0;
-		long long goldearn = 0;
-		long long deadthcount = 0;
-		long long reprecord = 0;
-		long long repearn = 0;
-		bool deadthcountflag = false;
-	}AfkRecorder;
 	//#pragma warning(push)
 	//#pragma warning(disable:304)
 	//	Q_DECLARE_METATYPE(VirtualMemory);
@@ -2387,7 +2348,6 @@ QGroupBox {
 	//\[(\d+)\]
 	static const QRegularExpression rexSquareBrackets(R"(\[(\d+)\])");
 	//([\w\p{Han}]+)\[(\d+)\]
-
 
 	namespace rnd
 	{
@@ -2411,7 +2371,7 @@ QGroupBox {
 			return distribution(gen);
 		}
 
-		//傳遍量指針
+		//傳變量指針
 		template <typename T>
 		inline void get(T* p)
 		{
@@ -2422,7 +2382,7 @@ QGroupBox {
 				*p = distribution(gen);
 		}
 
-		//傳遍量指針
+		//傳變量指針且包含最小值和最大值
 		template <typename T>
 		inline void get(T* p, T min, T max)
 		{

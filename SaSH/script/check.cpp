@@ -447,13 +447,13 @@ long long Interpreter::waitteam(long long currentIndex, long long currentLine, c
 	bool bret = false;
 	if (timeout == 0)
 	{
-		bret = (pc.status & sa::CHR_STATUS_LEADER) || (pc.status & sa::CHR_STATUS_PARTY);;
+		bret = util::checkAND(pc.status, sa::CHR_STATUS_LEADER) || util::checkAND(pc.status, sa::CHR_STATUS_PARTY);;
 	}
 	else
 	{
 		bret = waitfor(timeout, [&pc]()->bool
 			{
-				return (pc.status & sa::CHR_STATUS_LEADER) || (pc.status & sa::CHR_STATUS_PARTY);
+				return util::checkAND(pc.status, sa::CHR_STATUS_LEADER) || util::checkAND(pc.status, sa::CHR_STATUS_PARTY);
 			});
 	}
 

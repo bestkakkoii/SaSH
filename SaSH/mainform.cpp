@@ -1052,7 +1052,7 @@ MainForm* MainForm::createNewWindow(long long idToAllocate, long long* pId)
 
 		std::ignore = QtConcurrent::run([uniqueId]()
 			{
-				QThread::msleep(2000);
+				QThread::msleep(500);
 				QStringList paths;
 				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(uniqueId);
 				util::searchFiles(util::applicationDirPath(), "default", ".json", &paths, false);
@@ -1196,6 +1196,7 @@ void MainForm::closeEvent(QCloseEvent* e)
 	hide();
 
 	//Injector::getInstance(getIndex()).close();
+	Injector::getInstance(getIndex()).postMessage(kUninitialize, NULL, NULL);
 	UniqueIdManager::getInstance().deallocateUniqueId(getIndex());
 
 	for (const auto& it : g_mainFormHash)

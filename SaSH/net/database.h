@@ -214,7 +214,7 @@ namespace sa
 		return false;
 	}
 
-	inline constexpr bool hasUnMoveableStatue(unsigned long long status)
+	inline constexpr bool hasUnMoveableStatus(unsigned long long status)
 	{
 		if (status & BC_FLG_DEAD) //死亡
 			return true;
@@ -222,15 +222,16 @@ namespace sa
 			return true;
 		if (status & BC_FLG_SLEEP) // 昏睡
 			return true;
-		if (status & BC_FLG_PARALYSIS) // 麻痹
+		if (status & BC_FLG_PARALYSIS) // 麻痹=
 			return true;
 		if (status & BC_FLG_HIDE) // 是否隱藏，地球一周
 			return true;
 		if (status & BC_FLG_DIZZY) // 暈眩
 			return true;
-		if (status & BC_FLG_DIZZY)
+		if (status & BC_FLG_BARRIER) // 魔障
 			return true;
-
+		if (status & BC_FLG_DRAGNET)	// 天羅地網
+			return true;
 		return false;
 	}
 
@@ -649,7 +650,7 @@ namespace sa
 		ITEM_PET_FIN,			// 腳部,鰭
 		ITEM_CATEGORYNUM
 	}ITEM_CATEGORY;
-	constexpr long long MAX_PET_ITEM = 7;
+	constexpr long long MAX_PET_ITEM = ITEM_CATEGORYNUM - ITEM_PET_HEAD;
 
 	constexpr long long MAX_ITEMSTART = CHAR_EQUIPPLACENUM;
 	constexpr long long MAX_MAXHAVEITEM = 15;
@@ -661,7 +662,7 @@ namespace sa
 	//constexpr long long MAX_ITEMSTART = 5;
 	//constexpr long long MAX_ITEM = 20;
 
-	enum
+	enum ETCFLAG
 	{
 		PC_ETCFLAG_GROUP = (1LL << 0),	//組隊開關
 		PC_ETCFLAG_UNK = (1LL << 1),	//未知開關
@@ -1012,6 +1013,19 @@ namespace sa
 
 #pragma region Structs
 #pragma pack(8)
+	//用於掛機訊息紀錄
+	typedef struct tagAfkRecorder
+	{
+		long long levelrecord = 0;
+		long long leveldifference = 0;
+		long long exprecord = 0;
+		long long expdifference = 0;
+		long long goldearn = 0;
+		long long deadthcount = 0;
+		long long reprecord = 0;
+		long long repearn = 0;
+		bool deadthcountflag = false;
+	}AfkRecorder;
 
 	typedef struct customdialog_s
 	{

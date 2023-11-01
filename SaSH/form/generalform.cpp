@@ -328,8 +328,7 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_logout")
 	{
-		//bool flag = injector.getEnableHash(util::kLogOutEnable);
-		if (injector.isValid())
+		if (injector.isValid() && !injector.worker.isNull())
 		{
 			injector.setEnableHash(util::kLogOutEnable, true);
 		}
@@ -338,7 +337,7 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_logback")
 	{
-		if (injector.isValid())
+		if (injector.isValid() && !injector.worker.isNull())
 		{
 			injector.setEnableHash(util::kLogBackEnable, true);
 		}
@@ -411,7 +410,8 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_eo")
 	{
-		injector.setEnableHash(util::kEchoEnable, true);
+		if (injector.isValid() && !injector.worker.isNull())
+			injector.setEnableHash(util::kEchoEnable, true);
 		return;
 	}
 
@@ -1093,7 +1093,8 @@ void GeneralForm::startGameAsync()
 		if (injector.getEnableHash(util::kAutoStartScriptEnable))
 		{
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-			emit signalDispatcher.scriptStarted();
+			if (!injector.IS_SCRIPT_FLAG.get())
+				emit signalDispatcher.scriptStarted();
 		}
 		return;
 	} while (false);

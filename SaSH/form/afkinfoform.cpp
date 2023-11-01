@@ -57,7 +57,7 @@ void AfkInfoForm::onButtonClicked()
 
 	injector.worker->loginTimer.restart();
 	sa::PC pc = injector.worker->getPC();
-	util::AfkRecorder recorder;
+	sa::AfkRecorder recorder;
 	recorder.levelrecord = pc.level;
 	recorder.exprecord = pc.exp;
 	recorder.goldearn = 0;

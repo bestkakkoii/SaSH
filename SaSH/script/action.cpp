@@ -1503,7 +1503,7 @@ long long Interpreter::withdrawpet(long long currentIndex, long long currentLine
 			break;
 		}
 
-		if ((button & sa::BUTTON_NEXT) == sa::BUTTON_NEXT)
+		if (util::checkAND(button, sa::BUTTON_NEXT))
 		{
 			injector.worker->IS_WAITFOR_BANK_FLAG.on();
 			injector.worker->press(sa::BUTTON_NEXT);

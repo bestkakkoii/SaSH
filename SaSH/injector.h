@@ -210,7 +210,7 @@ private:
 				break;
 
 			// check is not console
-			if (GetWindowLongW(handle, GWL_STYLE) & WS_CHILD)
+			if (util::checkAND(GetWindowLongW(handle, GWL_STYLE), WS_CHILD))
 				break;
 
 			::GetWindowThreadProcessId(handle, &dwProcessId);
@@ -425,18 +425,14 @@ private:
 		{ util::kAutoLoginEnable, false },
 		{ util::kAutoReconnectEnable, true },
 
-		{ util::kLogOutEnable, false },
-		{ util::kLogBackEnable, false },
-		{ util::kEchoEnable, false },
-
 		{ util::kHideCharacterEnable, false },
 		{ util::kCloseEffectEnable, true },
-		{ util::kAutoStartScriptEnable, true },
+		{ util::kAutoStartScriptEnable, false },
 		{ util::kHideWindowEnable, false },
 		{ util::kMuteEnable, false },
 		{ util::kAutoJoinEnable, false },
 		{ util::kLockTimeEnable, false },
-		{ util::kAutoRestartGameEnable, true },
+		{ util::kAutoRestartGameEnable, false },
 		{ util::kFastWalkEnable, true },
 		{ util::kPassWallEnable, false },
 		{ util::kLockMoveEnable, false },

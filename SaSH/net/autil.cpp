@@ -215,7 +215,7 @@ void Autil::util_SendMesg(long long func, char* buffer)
 	size += 1;
 
 	HANDLE hProcess = injector.getProcess();
-	util::VirtualMemory ptr(hProcess, size, true);
+	mem::VirtualMemory ptr(hProcess, size, true);
 
 	mem::write(hProcess, ptr, t2, size);
 	injector.sendMessage(kSendPacket, ptr, size);

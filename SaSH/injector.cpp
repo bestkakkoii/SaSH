@@ -72,6 +72,9 @@ void Injector::reset(long long index)//static
 
 	instance->IS_TCP_CONNECTION_OK_TO_USE.off();
 	instance->IS_INJECT_OK.off();
+	instance->setEnableHash(util::kLogOutEnable, false);
+	instance->setEnableHash(util::kEchoEnable, false);
+	instance->setEnableHash(util::kLogBackEnable, false);
 }
 
 Injector::CreateProcessResult Injector::createProcess(Injector::process_information_t& pi)
@@ -325,7 +328,7 @@ bool Injector::remoteInitialize(Injector::process_information_t& pi, unsigned sh
 		return false;
 	}
 
-	const util::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
+	const mem::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
 	if (!lpStruct.isValid())
 	{
 		//emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory alloc failed"), QMessageBox::Icon::Critical);
@@ -559,10 +562,10 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);
 		LONG tempStyle = dwStyle;
 
-		if (dwStyle & WS_SIZEBOX)
+		if (util::checkAND(dwStyle, WS_SIZEBOX))
 			dwStyle &= ~WS_SIZEBOX;
 
-		if (dwStyle & WS_MAXIMIZEBOX)
+		if (util::checkAND(dwStyle, WS_MAXIMIZEBOX))
 			dwStyle &= ~WS_MAXIMIZEBOX;
 
 		if (tempStyle != dwStyle)
@@ -705,18 +708,18 @@ void Injector::hide(long long mode)
 
 	if (!isWin7)
 	{
-		if (!(exstyle & WS_EX_TOOLWINDOW))
+		if (!util::checkAND(exstyle, WS_EX_TOOLWINDOW))
 			exstyle |= WS_EX_TOOLWINDOW;
 	}
 	else
 	{
 		//add tool window style to hide from taskbar
-		if (!(exstyle & WS_EX_APPWINDOW))
+		if (!util::checkAND(exstyle, WS_EX_APPWINDOW))
 			exstyle |= WS_EX_APPWINDOW;
 	}
 
 	//添加透明化屬性
-	if (!(exstyle & WS_EX_LAYERED))
+	if (!util::checkAND(exstyle, WS_EX_LAYERED))
 		exstyle |= WS_EX_LAYERED;
 	SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
 
@@ -755,18 +758,18 @@ void Injector::show()
 	if (!isWin7)
 	{
 		//remove tool window style to show from taskbar
-		if (exstyle & WS_EX_TOOLWINDOW)
+		if (util::checkAND(exstyle, WS_EX_TOOLWINDOW))
 			exstyle &= ~WS_EX_TOOLWINDOW;
 	}
 	else
 	{
 		//remove tool window style to show from taskbar
-		if (exstyle & WS_EX_APPWINDOW)
+		if (util::checkAND(exstyle, WS_EX_APPWINDOW))
 			exstyle &= ~WS_EX_APPWINDOW;
 	}
 
 	//移除透明化屬性
-	if (exstyle & WS_EX_LAYERED)
+	if (util::checkAND(exstyle, WS_EX_LAYERED))
 		exstyle &= ~WS_EX_LAYERED;
 	SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
 

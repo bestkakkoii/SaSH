@@ -718,7 +718,9 @@ bool MainObject::inGameInitialize()
 	injector.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
 	injector.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
 	injector.sendMessage(kDistoryDialog, NULL, NULL);
-
+	injector.worker->echo();
+	injector.worker->updateDatasFromMemory();
+	injector.worker->updateItemByMemory();
 	return true;
 }
 
@@ -741,6 +743,10 @@ long long MainObject::checkAndRunFunctions()
 	{
 		switch (status)
 		{
+		case util::kStatusLogined:
+		{
+			break;
+		}
 		default:
 		{
 			if (injector.worker->getOnlineFlag())
@@ -845,7 +851,7 @@ void MainObject::updateAfkInfos()
 	long long duration = injector.worker->loginTimer.cost();
 	emit signalDispatcher.updateAfkInfoTable(0, util::formatMilliseconds(duration));
 
-	util::AfkRecorder recorder = injector.worker->recorder[0];
+	sa::AfkRecorder recorder = injector.worker->recorder[0];
 
 	long long avgLevelPerHour = 0;
 	if (duration > 0 && recorder.leveldifference > 0)
@@ -1121,10 +1127,10 @@ void MissionThread::autoJoin()
 		if (actionType == 0)
 		{
 			//檢查隊長是否正確
-			if ((ch.status & sa::CHR_STATUS_LEADER) == sa::CHR_STATUS_LEADER)
+			if (util::checkAND(ch.status, sa::CHR_STATUS_LEADER))
 				return;
 
-			if ((ch.status & sa::CHR_STATUS_PARTY) == sa::CHR_STATUS_PARTY)
+			if (util::checkAND(ch.status, sa::CHR_STATUS_PARTY))
 			{
 				QString name = injector.worker->getParty(0).name;
 				if ((!name.isEmpty() && leader == name)
@@ -1440,8 +1446,8 @@ void MissionThread::autoRecordNPC()
 			injector.worker->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
 
 			util::Config::MapData d;
-			long long nowFloor = injector.worker->nowFloor_.get();
-			QPoint nowPoint = injector.worker->nowPoint_.get();
+			long long nowFloor = injector.worker->nowFloor.get();
+			QPoint nowPoint = injector.worker->nowPoint.get();
 
 			d.floor = nowFloor;
 			d.name = unit.name;

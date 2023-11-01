@@ -201,7 +201,7 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 		auto PathFileExists = [](const wchar_t* name)->BOOL
 			{
 				DWORD dwAttrib = GetFileAttributes(name);
-				return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+				return (dwAttrib != INVALID_FILE_ATTRIBUTES && !util::checkAND(dwAttrib, FILE_ATTRIBUTE_DIRECTORY));
 			};
 
 		// Check if dump directory exists

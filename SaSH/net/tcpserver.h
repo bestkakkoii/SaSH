@@ -47,7 +47,6 @@ private slots:
 	void onWrite(QByteArray ba, long long size);
 
 private:
-
 	long long index_ = -1;
 	bool init = false;
 	QFuture<void> netFuture_;
@@ -56,7 +55,6 @@ private:
 class Worker : public ThreadPlugin, public Lssproto
 {
 	Q_OBJECT
-
 public:
 	Worker(long long index, Socket* socket, QObject* parent);
 
@@ -74,20 +72,21 @@ private:
 		{ 7, QObject::tr("WNorth") },
 	};
 
-
 signals:
 	void write(QByteArray ba, long long size = 0);
 	void findPathFinished();
 
 public slots:
-	void processRead();
+
+public:
+	void processRead(); //Async concurrent, DO NOT change calling convention
 
 private:
 	long long __fastcall dispatchMessage(const QByteArray& encoded);
 
 	bool __fastcall handleCustomMessage(const QByteArray& data);
 
-	Q_INVOKABLE void handleData(const QByteArray& data);
+	void __fastcall handleData(const QByteArray& data);
 
 public://actions
 	QString __fastcall battleStringFormat(const sa::battleobject_t& obj, QString formatStr);
@@ -148,6 +147,8 @@ public://actions
 	void __fastcall windowPacket(const QString& command, long long dialogid, long long npcid);
 
 	void __fastcall EO();
+
+	void __fastcall echo();
 
 	void __fastcall dropItem(long long index);
 	void __fastcall dropItem(QVector<long long> index);
@@ -300,13 +301,13 @@ public://actions
 
 	void updateBattleTimeInfo();
 
-	inline [[nodiscard]] sa::PC __fastcall getPC() const { /*QReadLocker locker(&charInfoLock_); */ return pc_.get(); }
+	inline [[nodiscard]] sa::PC __fastcall getPC() const { return pc_.get(); }
 	inline void __fastcall setPC(sa::PC pc) { pc_.set(pc); }
 
 	inline [[nodiscard]] sa::MAGIC __fastcall getMagic(long long magicIndex) const { return magic_.value(magicIndex); }
 
-	inline [[nodiscard]] sa::PROFESSION_SKILL __fastcall getSkill(long long skillIndex) const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.value(skillIndex); }
-	inline [[nodiscard]] QHash<long long, sa::PROFESSION_SKILL> __fastcall getSkills() const { /*QReadLocker locker(&charSkillInfoLock_); */ return profession_skill_.toHash(); }
+	inline [[nodiscard]] sa::PROFESSION_SKILL __fastcall getSkill(long long skillIndex) const { return profession_skill_.value(skillIndex); }
+	inline [[nodiscard]] QHash<long long, sa::PROFESSION_SKILL> __fastcall getSkills() const { return profession_skill_.toHash(); }
 
 	inline [[nodiscard]] sa::PET __fastcall getPet(long long petIndex) const { QReadLocker locker(&petInfoLock_);  return pet_.value(petIndex); }
 	inline [[nodiscard]] QHash<long long, sa::PET> __fastcall getPets() const { QReadLocker locker(&petInfoLock_);  return pet_.toHash(); }
@@ -326,8 +327,8 @@ public://actions
 	inline [[nodiscard]] sa::ITEM __fastcall getItem(long long index) const { QReadLocker locker(&itemInfoLock_);  return item_.value(index); }
 	inline [[nodiscard]] QHash<long long, sa::ITEM> __fastcall getItems() const { QReadLocker locker(&itemInfoLock_);  return item_.toHash(); }
 
-	inline [[nodiscard]] sa::PET_SKILL __fastcall getPetSkill(long long petIndex, long long skillIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex).value(skillIndex); }
-	inline [[nodiscard]] QHash<long long, sa::PET_SKILL> __fastcall getPetSkills(long long petIndex) const { /*QReadLocker locker(&petSkillInfoLock_); */ return petSkill_.value(petIndex); }
+	inline [[nodiscard]] sa::PET_SKILL __fastcall getPetSkill(long long petIndex, long long skillIndex) const { return petSkill_.value(petIndex).value(skillIndex); }
+	inline [[nodiscard]] QHash<long long, sa::PET_SKILL> __fastcall getPetSkills(long long petIndex) const { return petSkill_.value(petIndex); }
 	inline void __fastcall setPetSkills(long long petIndex, const QHash<long long, sa::PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
 	inline void __fastcall setPetSkill(long long petIndex, long long skillIndex, const sa::PET_SKILL& skill)
 	{
@@ -336,11 +337,11 @@ public://actions
 		petSkill_.insert(petIndex, skills);
 	}
 
-	inline [[nodiscard]] sa::PARTY __fastcall getParty(long long partyIndex) const { /*QReadLocker locker(&teamInfoLock_); */ return party_.value(partyIndex); }
-	inline [[nodiscard]] QHash<long long, sa::PARTY> __fastcall getParties() const { /*QReadLocker locker(&teamInfoLock_); */ return party_.toHash(); }
+	inline [[nodiscard]] sa::PARTY __fastcall getParty(long long partyIndex) const { return party_.value(partyIndex); }
+	inline [[nodiscard]] QHash<long long, sa::PARTY> __fastcall getParties() const { return party_.toHash(); }
 
-	inline [[nodiscard]] sa::ITEM __fastcall getPetEquip(long long petIndex, long long equipIndex) const {/* QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex).value(equipIndex); }
-	inline [[nodiscard]] QHash<long long, sa::ITEM> __fastcall getPetEquips(long long petIndex) const { /*QReadLocker locker(&petEquipInfoLock_); */ return petItem_.value(petIndex); }
+	inline [[nodiscard]] sa::ITEM __fastcall getPetEquip(long long petIndex, long long equipIndex) const { return petItem_.value(petIndex).value(equipIndex); }
+	inline [[nodiscard]] QHash<long long, sa::ITEM> __fastcall getPetEquips(long long petIndex) const { return petItem_.value(petIndex); }
 
 	inline [[nodiscard]] sa::ADDRESS_BOOK __fastcall getAddressBook(long long index) const { return addressBook_.value(index); }
 	inline [[nodiscard]] QHash<long long, sa::ADDRESS_BOOK> __fastcall getAddressBooks() const { return addressBook_.toHash(); }
@@ -421,13 +422,13 @@ private:
 	inline void __fastcall setBattleData(const sa::battledata_t& data) { battleData.set(data); }
 
 	//自動鎖寵
-	void checkAutoLockPet();
+	void checkAutoLockPet(); //Async concurrent, DO NOT change calling convention
 
 	//自動加點
-	void checkAutoAbility();
+	void checkAutoAbility(); //Async concurrent, DO NOT change calling convention
 
 	//檢查並自動吃肉、或丟肉
-	void checkAutoDropMeat();
+	void checkAutoDropMeat(); //Async concurrent, DO NOT change calling convention
 
 	//自動吃經驗加乘道具
 	void __fastcall checkAutoEatBoostExpItem();
@@ -436,10 +437,10 @@ private:
 	void __fastcall checkAutoDropItems();
 
 	//自動補血、氣
-	void checkAutoHeal();
+	void checkAutoHeal(); //Async concurrent, DO NOT change calling convention
 
 	//自動丟寵
-	void checkAutoDropPet();
+	void checkAutoDropPet(); //Async concurrent, DO NOT change calling convention
 #pragma endregion
 
 #pragma region SAClientOriginal
@@ -507,12 +508,12 @@ private:
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
-	QString lastSecretChatName = "";//最後一次收到密語的發送方名稱
+	safe::Data<QString> lastSecretChatName_;//最後一次收到密語的發送方名稱
 
 	//遊戲內當前時間相關
-	sa::LSTIME saTimeStruct = {};
-	safe::Integer serverTime = 0LL;
-	safe::Integer firstServerTime = 0LL;
+	sa::LSTIME saTimeStruct_ = {};
+	safe::Integer serverTime_ = 0LL;
+	safe::Integer firstServerTime_ = 0LL;
 
 	//交易相關
 	long long opp_showindex = 0;
@@ -536,18 +537,14 @@ private:
 	QStringList myitem_tradeList;
 	QStringList mypet_tradeList = { "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 	long long mygoldtrade = 0;
-
-	//郵件相關
-	long long mailHistoryWndSelectNo = 0;
-	long long mailHistoryWndPageNo = 0;
 #pragma endregion
 
 public:
 	safe::Queue<QByteArray> readQueue_; //接收來自客戶端的數據隊列
 
-	safe::Integer nowFloor_; //當前地圖編號
-	safe::Data<QString> nowFloorName_; //當前地圖名稱
-	safe::Data<QPoint> nowPoint_; //當前人物座標
+	safe::Integer nowFloor; //當前地圖編號
+	safe::Data<QString> nowFloorName; //當前地圖名稱
+	safe::Data<QPoint> nowPoint; //當前人物座標
 
 	//戰鬥相關
 	safe::Flag battleCharAlreadyActed = true; //戰鬥人物已經動作
@@ -598,7 +595,7 @@ public:
 	safe::Vector<sa::ITEM> currentBankItemList;
 
 	util::Timer repTimer;
-	util::AfkRecorder recorder[1 + sa::MAX_PET] = {};
+	sa::AfkRecorder recorder[1 + sa::MAX_PET] = {};
 
 	safe::Data<sa::dialog_t> currentDialog = {};
 
@@ -621,11 +618,11 @@ private:
 		BUFF_INVALID,
 	};
 
-	char net_data[NETDATASIZE] = {};
-	char net_resultdata[SBUFSIZE] = {};
-	QByteArrayList dataList_ = {};
-	QByteArray net_readbuf_;
-	QByteArray net_raw_;
+	char netDataBuffer_[NETDATASIZE] = {};
+	char netResultDataBuffer_[SBUFSIZE] = {};
+	QByteArrayList netDataArrayList_ = {};
+	QByteArray netReadBufferArray_;
+	QByteArray netRawBufferArray_;
 
 private://lssproto
 	long long __fastcall appendReadBuf(const QByteArray& data);

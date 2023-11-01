@@ -316,9 +316,11 @@ void Lssproto::lssproto_ClientLogin_send(char* cdkey, char* passwd, char* mac, l
 {
 	if ((flags & sa::WITH_ALL) & sa::WITH_ALL)
 		autil_->util_Send(sa::LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd, mac, selectServerIndex, ip);
-	else if ((flags & (sa::WITH_CDKEY | sa::WITH_PASSWORD | sa::WITH_MACADDRESS | sa::WITH_SELECTSERVERINDEX)) == (sa::WITH_CDKEY | sa::WITH_PASSWORD | sa::WITH_MACADDRESS | sa::WITH_SELECTSERVERINDEX))
+	else if ((flags & (sa::WITH_CDKEY | sa::WITH_PASSWORD | sa::WITH_MACADDRESS | sa::WITH_SELECTSERVERINDEX))
+		== (sa::WITH_CDKEY | sa::WITH_PASSWORD | sa::WITH_MACADDRESS | sa::WITH_SELECTSERVERINDEX))
 		autil_->util_Send(sa::LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd, mac, selectServerIndex);
-	else if ((flags & (sa::WITH_CDKEY | sa::WITH_PASSWORD | sa::WITH_MACADDRESS)) == (sa::WITH_CDKEY | sa::WITH_PASSWORD | sa::WITH_MACADDRESS))
+	else if ((flags & (sa::WITH_CDKEY | sa::WITH_PASSWORD | sa::WITH_MACADDRESS))
+		== (sa::WITH_CDKEY | sa::WITH_PASSWORD | sa::WITH_MACADDRESS))
 		autil_->util_Send(sa::LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd, mac);
 	else if ((flags & (sa::WITH_CDKEY | sa::WITH_PASSWORD)) == (sa::WITH_CDKEY | sa::WITH_PASSWORD))
 		autil_->util_Send(sa::LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd);

@@ -32,14 +32,14 @@ ItemInfoForm::ItemInfoForm(long long index, QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
-	ui.tableWidget_equip->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-	ui.tableWidget_item->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+	ui.tableWidget_equip->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+	ui.tableWidget_item->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
 	ui.tableWidget_equip->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	ui.tableWidget_item->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-	ui.tableWidget_equip->horizontalHeader()->setStretchLastSection(true);
-	ui.tableWidget_item->horizontalHeader()->setStretchLastSection(true);
-	ui.tableWidget_equip->verticalHeader()->setStretchLastSection(true);
-	ui.tableWidget_item->verticalHeader()->setStretchLastSection(true);
+	ui.tableWidget_equip->horizontalHeader()->setStretchLastSection(false);
+	ui.tableWidget_item->horizontalHeader()->setStretchLastSection(false);
+	ui.tableWidget_equip->verticalHeader()->setStretchLastSection(false);
+	ui.tableWidget_item->verticalHeader()->setStretchLastSection(false);
 
 	util::setPushButton(ui.pushButton_refresh);
 

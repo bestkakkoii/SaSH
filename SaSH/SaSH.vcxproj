@@ -144,7 +144,7 @@
       </EnableFiberSafeOptimizations>
       <WholeProgramOptimization>
       </WholeProgramOptimization>
-      <SupportJustMyCode>false</SupportJustMyCode>
+      <SupportJustMyCode>true</SupportJustMyCode>
       <StructMemberAlignment>Default</StructMemberAlignment>
       <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerOutput>NoListing</AssemblerOutput>
@@ -267,7 +267,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <OmitFramePointers />
       <EnableFiberSafeOptimizations />
       <WholeProgramOptimization />
-      <SupportJustMyCode>false</SupportJustMyCode>
+      <SupportJustMyCode>true</SupportJustMyCode>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <StructMemberAlignment>Default</StructMemberAlignment>
       <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>

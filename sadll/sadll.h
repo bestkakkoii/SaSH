@@ -64,7 +64,7 @@ public:
 	void __fastcall WM_CleanChatHistory();
 	void __fastcall WM_CreateDialog(int type, int button, const char* data);
 
-	void __fastcall WM_SetBLockPacket(BOOL enable);
+	void __fastcall WM_SetBlockPacket(BOOL enable);
 
 public://hook
 	SOCKET __fastcall New_socket(int af, int type, int protocol);

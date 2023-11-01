@@ -50,6 +50,8 @@ public:
 public slots:
 	void onResetControlTextLanguage();
 	void onApplyHashSettingsToUI();
+	void onTabWidgetCurrentChanged(int index);
+
 
 private slots:
 	void updateInfo();

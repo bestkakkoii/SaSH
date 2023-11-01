@@ -453,7 +453,7 @@ bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hPr
 	for (long long i = 0; i < 2; ++i)
 	{
 		timer.restart();
-		util::VirtualMemory dllFullPathAddr(hProcess, dllPath, util::VirtualMemory::kUnicode, true);
+		mem::VirtualMemory dllFullPathAddr(hProcess, dllPath, mem::VirtualMemory::kUnicode, true);
 		if (!dllFullPathAddr.isValid())
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("VirtualAllocEx failed"), QMessageBox::Icon::Critical);
@@ -553,7 +553,7 @@ bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProc
 		DWORD gameModule = 0;
 	}d;
 
-	util::VirtualMemory dllFullPathAddr(hProcess, dllPath, util::VirtualMemory::kUnicode, true);
+	mem::VirtualMemory dllFullPathAddr(hProcess, dllPath, mem::VirtualMemory::kUnicode, true);
 	d.dllFullPathAddr = dllFullPathAddr;
 
 	d.loadLibraryWPtr = getProcAddressIn32BitProcess(hProcess, "kernel32.dll", "LoadLibraryW");
@@ -561,11 +561,11 @@ bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProc
 	d.getModuleHandleWPtr = getProcAddressIn32BitProcess(hProcess, "kernel32.dll", "GetModuleHandleW");
 
 	//寫入待傳遞給CallBack的數據
-	util::VirtualMemory injectdata(hProcess, sizeof(InjectData), true);
+	mem::VirtualMemory injectdata(hProcess, sizeof(InjectData), true);
 	mem::write(hProcess, injectdata, &d, sizeof(InjectData));
 
 	//寫入匯編版的CallBack函數
-	util::VirtualMemory remoteFunc(hProcess, sizeof(data), true);
+	mem::VirtualMemory remoteFunc(hProcess, sizeof(data), true);
 	mem::write(hProcess, remoteFunc, data, sizeof(data));
 
 	qDebug() << "time:" << timer.cost() << "ms";
@@ -669,10 +669,10 @@ bool __fastcall mem::inject(long long index, HANDLE hProcess, QString dllPath, H
 	d.loadLibraryWPtr = reinterpret_cast<DWORD>(GetProcAddress(kernel32Module, "LoadLibraryW"));
 	d.getLastErrorPtr = reinterpret_cast<DWORD>(GetProcAddress(kernel32Module, "GetLastError"));
 	d.getModuleHandleWPtr = reinterpret_cast<DWORD>(GetProcAddress(kernel32Module, "GetModuleHandleW"));
-	util::VirtualMemory dllfullpathaddr(hProcess, dllPath, util::VirtualMemory::kUnicode, true);
+	mem::VirtualMemory dllfullpathaddr(hProcess, dllPath, mem::VirtualMemory::kUnicode, true);
 	d.dllFullPathAddr = dllfullpathaddr;
 
-	util::VirtualMemory injectdata(hProcess, sizeof(InjectData), true);
+	mem::VirtualMemory injectdata(hProcess, sizeof(InjectData), true);
 	mem::write(hProcess, injectdata, &d, sizeof(InjectData));
 
 	/*
@@ -692,7 +692,7 @@ bool __fastcall mem::inject(long long index, HANDLE hProcess, QString dllPath, H
 	0813003A - C3                    - ret
 	*/
 
-	util::VirtualMemory remoteFunc(hProcess, 100, true);
+	mem::VirtualMemory remoteFunc(hProcess, 100, true);
 	mem::write(hProcess, remoteFunc, const_cast<char*>("\x8B\x44\x24\x04\x8B\xD8\x8B\x48\x0C\x51\xFF\x13\x89\x43\x10\x8B\x43\x04\xFF\xD0\x89\x43\x14\x8B\x43\x08\x6A\x00\xFF\xD0\x89\x43\x18\xC3"), 36);
 
 	{
