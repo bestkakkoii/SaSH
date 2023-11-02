@@ -4940,31 +4940,31 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			unit[index]["modelid"] = u.modelid;
 		}
 
-		unit["find"] = [this, currentIndex](sol::object name, sol::object ofname, sol::this_state s)->sol::object
+		unit["find"] = [this, currentIndex](sol::object oname, sol::object ofname, sol::this_state s)->sol::object
 			{
 				sol::state_view lua(s);
 				Injector& injector = Injector::getInstance(currentIndex);
 				if (injector.worker.isNull())
 					return sol::lua_nil;
 
-				QString _name = "";
+				QString name = "";
 				long long modelid = 0;
-				if (name.is<std::string>())
-					_name = util::toQString(name);
-				if (ofname.is<std::string>())
-					_name = util::toQString(ofname);
+				if (oname.is<std::string>())
+					name = util::toQString(oname);
+				if (oname.is<long long>())
+					modelid = oname.as<long long>();
 
 				QString freeName = "";
 				if (ofname.is<std::string>())
 					freeName = util::toQString(ofname);
 
-				if (_name.isEmpty() && modelid == 0 && freeName.isEmpty())
+				if (name.isEmpty() && modelid == 0 && freeName.isEmpty())
 					return sol::lua_nil;
 
 				sa::mapunit_t _unit = {};
-				if (!injector.worker->findUnit(_name, sa::OBJ_NPC, &_unit, freeName, modelid))
+				if (!injector.worker->findUnit(name, sa::OBJ_NPC, &_unit, freeName, modelid))
 				{
-					if (!injector.worker->findUnit(_name, sa::OBJ_HUMAN, &_unit, freeName, modelid))
+					if (!injector.worker->findUnit(name, sa::OBJ_HUMAN, &_unit, freeName, modelid))
 						return sol::lua_nil;
 				}
 
