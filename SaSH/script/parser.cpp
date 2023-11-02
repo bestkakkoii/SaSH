@@ -33,7 +33,7 @@ static const QStringList exceptionList = {
 	"BattleClass", "CharClass", "InfoClass", "ItemClass", "MapClass", "PetClass", "SystemClass", "TARGET", "Timer", "_G", "_HOOKFORSTOP", "_INDEX", "_INDEX_", "_ROWCOUNT_",
 	"_THIS", "_print", "assert", "base",  "collectgarbage",
 	"contains", "copy", "coroutine", "dbclick", "debug", "dofile", "dragto", "error", "find", "format", "full", "getmetatable",
-	"half", "input", "io", "ipairs", "lclick", "load", "loadfile", "loadset", "lower", "math", "mkpath", "mktable", "dlg", "ocr",
+	"half", "input", "io", "ipairs", "lclick", "load", "loadfile", "loadset", "lower", "math", "mkpath", "mktable", "dlg", "ocr", "findfiles",
 	"msg", "next", "os", "package", "pairs", "pcall",  "print", "printf", "rawequal",
 	"rawget", "rawlen", "rawset", "rclick", "regex", "replace", "require", "rex", "rexg", "rnd", "saveset", "select", "set", "setmetatable",
 	"skill", "sleep", "split", "string", "table", "tadd", "tback", "tfront", "timer", "tjoin", "tmerge", "todb", "toint", "tonumber", "tostr",
@@ -1236,16 +1236,24 @@ void Parser::initialize(Parser* pparent)
 			return result;
 		});
 
-	lua_["mkpath"] = [](std::string sfilename, sol::object obj, sol::this_state s)->std::string
+	lua_["mkpath"] = [](std::string sfilename, sol::object osuffix, sol::object obj, sol::this_state s)->std::string
 		{
 			QString retstring = "\0";
 			QString fileName = util::toQString(sfilename);
+			fileName.replace("\\", "/");
+
 			QFileInfo fileinfo(fileName);
 			QString suffix = fileinfo.suffix();
-			if (suffix.isEmpty())
+
+			if (suffix.isEmpty() && osuffix.is<std::string>())
+			{
+				suffix = util::toQString(osuffix);
+				if (!suffix.startsWith("."))
+					suffix.prepend(".");
+				fileName.append(suffix);
+			}
+			else if (suffix.isEmpty())
 				fileName += ".txt";
-			else if (suffix != "txt")
-				fileName.replace(suffix, "txt");
 
 			if (obj == sol::lua_nil)
 			{
@@ -1253,11 +1261,51 @@ void Parser::initialize(Parser* pparent)
 			}
 			else if (obj.is<std::string>())
 			{
+				QString dir = util::toQString(obj);
+				dir.replace("\\", "/");
+				if (dir.endsWith("/"))
+					dir.chop(1);
 				retstring = util::findFileFromName(fileName, util::toQString(obj));
 			}
 
 			return util::toConstData(retstring);
 		};
+
+	lua_["findfiles"] = [](std::string sname, sol::object osuffix, sol::object obasedir, sol::this_state s)->sol::table
+		{
+			sol::state_view lua(s);
+			QString name = util::toQString(sname);
+			name.replace("\\", "/");
+
+			sol::table result = lua.create_table();
+			QStringList paths;
+
+			QString basedir = util::applicationDirPath();
+			if (obasedir.is<std::string>())
+				basedir = util::toQString(obasedir);
+
+			basedir.replace("\\", "/");
+			if (basedir.endsWith("/"))
+				basedir.chop(1);
+
+			QString suffix;
+			if (osuffix.is<std::string>())
+			{
+				suffix = util::toQString(osuffix);
+				if (!suffix.startsWith("."))
+					suffix.prepend(".");
+			}
+
+			util::searchFiles(basedir, name, suffix, &paths, false);
+
+			for (long long i = 0; i < paths.size(); ++i)
+			{
+				result[i + 1] = util::toConstData(paths.at(i));
+			}
+
+			return result;
+		};
+
 
 	lua_["mktable"] = [](long long a, sol::object ob, sol::this_state s)->sol::object
 		{
@@ -4116,6 +4164,28 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			lua_.set("_FUNCTION_", sol::lua_nil);
 	}
 
+	if (expr.contains("CURRENTSCRIPTDIR"))
+	{
+		QString path = getScriptFileName();
+		QFileInfo info = QFileInfo(path);
+		lua_.set("CURRENTSCRIPTDIR", util::toConstData(info.absolutePath()));
+	}
+
+	if (expr.contains("SCRIPTDIR"))
+	{
+		lua_.set("SCRIPTDIR", util::toConstData(QString("%1/script").arg(util::applicationDirPath())));
+	}
+
+	if (expr.contains("SETTINGDIR"))
+	{
+		lua_.set("SETTINGDIR", util::toConstData(QString("%1/settings").arg(util::applicationDirPath())));
+	}
+
+	if (expr.contains("CURRENTDIR"))
+	{
+		lua_.set("CURRENTDIR", util::toConstData(util::applicationDirPath()));
+	}
+
 	if (expr.contains("PID"))
 	{
 		lua_.set("PID", static_cast<long long>(_getpid()));
@@ -4178,6 +4248,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	{
 		lua_.set("MAXDLG", sa::MAX_DIALOG_LINE);
 	}
+
 	if (expr.contains("MAXENEMY"))
 	{
 		lua_.set("MAXENEMY", sa::MAX_ENEMY);
@@ -4279,6 +4350,25 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		sa::PC _pc = injector.worker->getPC();
 
+		if (injector.worker->getOnlineFlag())
+		{
+			QString preHash = QString("%1%2%3%4%5%6%7%8%9%10%11%12%13")
+				.arg(_pc.name).arg(_pc.modelid).arg(_pc.faceid).arg(_pc.dp).arg(_pc.transmigration)
+				.arg(_pc.level).arg(_pc.maxExp).arg(_pc.maxHp).arg(_pc.maxMp)
+				.arg(_pc.earth).arg(_pc.water).arg(_pc.fire).arg(_pc.wind);
+			QByteArray preHashArray = preHash.toUtf8();
+			//get md5 hash
+			QByteArray hashStr = QCryptographicHash::hash(preHashArray, QCryptographicHash::Sha3_512);
+			QByteArray hashStrHex = hashStr.toHex();
+			hashStrHex = hashStrHex.toUpper();
+			hashStrHex = hashStrHex.left(8);
+			ch["hash"] = hashStrHex.constData();
+		}
+		else
+		{
+			ch["hash"] = "";
+		}
+
 		ch["name"] = util::toConstData(_pc.name);
 
 		ch["fname"] = util::toConstData(_pc.freeName);
@@ -4368,6 +4458,26 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			long long index = i + 1;
 
 			pet[index]["valid"] = p.valid;
+
+			if (injector.worker->getOnlineFlag() && p.valid)
+			{
+				QString preHash = QString("%1%2%3%4%5%6%7%8%9%10%11%12%13%14%15")
+					.arg(p.name).arg(p.modelid).arg(p.maxSkill).arg(p.transmigration)
+					.arg(p.level).arg(p.maxExp).arg(p.maxHp).arg(p.maxMp)
+					.arg(p.atk).arg(p.def).arg(p.agi)
+					.arg(p.earth).arg(p.water).arg(p.fire).arg(p.wind);
+				QByteArray preHashArray = preHash.toUtf8();
+				//get md5 hash
+				QByteArray hashStr = QCryptographicHash::hash(preHashArray, QCryptographicHash::Sha3_512);
+				QByteArray hashStrHex = hashStr.toHex();
+				hashStrHex = hashStrHex.toUpper();
+				hashStrHex = hashStrHex.left(8);
+				pet[index]["hash"] = hashStrHex.constData();
+			}
+			else
+			{
+				pet[index]["hash"] = "";
+			}
 
 			pet[index]["name"] = util::toConstData(p.name);
 
@@ -4626,6 +4736,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			if (injector.worker->mapUnitHash.contains(party.id))
 				team[index]["fname"] = util::toConstData(injector.worker->mapUnitHash.value(party.id).freeName);
+			else
+				team[index]["fname"] = "";
 
 			team[index]["lv"] = party.level;
 
@@ -4636,7 +4748,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			team[index]["hpp"] = party.hpPercent;
 
 			team[index]["mp"] = party.mp;
-
 		}
 	}
 
@@ -4754,7 +4865,10 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			QString text = injector.worker->getChatHistory(i);
 			long long index = i + 1;
 
-			chat[index] = util::toConstData(text);
+			if (!text.isEmpty())
+				chat[index] = util::toConstData(text);
+			else
+				chat[index] = "";
 		}
 
 		chat["contains"] = [this, currentIndex](std::string str, sol::this_state s)->bool
@@ -4831,7 +4945,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				sol::state_view lua(s);
 				Injector& injector = Injector::getInstance(currentIndex);
 				if (injector.worker.isNull())
-					return 0;
+					return sol::lua_nil;
 
 				QString _name = "";
 				long long modelid = 0;
@@ -4899,6 +5013,27 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		battle["size"] = 0;
 		battle["enemycount"] = 0;
 		battle["alliecount"] = 0;
+
+		for (long long i = 0; i < sa::MAX_ENEMY; ++i)
+		{
+			long long index = i + 1;
+			battle[index]["valid"] = false;
+			battle[index]["index"] = i;
+			battle[index]["name"] = "";
+			battle[index]["fname"] = "";
+			battle[index]["modelid"] = 0;
+			battle[index]["lv"] = 0;
+			battle[index]["hp"] = 0;
+			battle[index]["maxhp"] = 0;
+			battle[index]["hpp"] = 0;
+			battle[index]["status"] = "";
+			battle[index]["ride"] = false;
+			battle[index]["ridename"] = "";
+			battle[index]["ridelv"] = 0;
+			battle[index]["ridehp"] = 0;
+			battle[index]["ridemaxhp"] = 0;
+			battle[index]["ridehpp"] = 0;
+		}
 
 		if (injector.worker->getBattleFlag())
 		{

@@ -56,10 +56,10 @@ const char* Highlighter::keywords(int set) const
 			"walkpos w dir findpath findnpc lclick rclick ldbclick dragto warp "
 			"learn trade run dostr sellpet mail reg "
 			"regex rex rexg trim upper lower half toint tostr todb replace find full "
-			"bh bj bp bs be bd bi bn bw bwf bwait bend "
+			"bh bj bp bs be bd bi bn bw bwn bwait bend "
 			"dofile createch delch doffstone send format "
 			"tsort trsort split mktable trotate tunique tshuffle tsleft tsright tmerge tjoin "
-			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath contains openlog checkdaily "
+			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath findfiles contains openlog checkdaily "
 
 			"rungame closegame openwindow setlogin runex stoprunex dostrex loadsetex getgamestate "
 
@@ -133,10 +133,11 @@ const char* Highlighter::keywords(int set) const
 			"_LINE_ _FILE_ _FUNCTION_ _ROWCOUNT_ "
 			"PID HWND GAMEPID GAMEHWND GAMEHANDLE THREADID GAME WORLD INDEX "
 			"INFINITE MAXPET MAXITEM MAXCHAR MAXSKILL MAXPETSKILL MAXEQUIP MAXCHAT MAXDLG MAXENEMY MAXCARD MAXDIR MAXMAGIC "
+			"CURRENTDIR CURRENTSCRIPTDIR SETTINGDIR SCRIPTDIR "
 			"isonline isbattle isnormal isdialog item.space item.isfull pet.count team.count "
 			"map.name map.floor map.ground map.x map.y unit.count dialog.buttontext dialog.id dialog.unitid dialog.type dialog.button "
 			"battle.field battle.round "
-			"char.name char.fname char.modelid char.faceid char.lv char.hp char.maxhp char.hpp char.mp char.maxmp char.mpp char.exp "
+			"char.hash char.name char.fname char.modelid char.faceid char.lv char.hp char.maxhp char.hpp char.mp char.maxmp char.mpp char.exp "
 			"char.maxexp char.stone char.point char.vit char.str char.tgh char.dex char.atk char.def char.agi char.chasma char.turn "
 			"char.earth char.water char.fire char.wind char.battlepet char.ridepet char.mailpet"
 			/*lua original*/

@@ -325,29 +325,10 @@ void Interpreter::openLibs()
 	registerFunction("run", &Interpreter::run);
 	registerFunction("dostr", &Interpreter::dostr);
 
-	//check
-	registerFunction("waitmap", &Interpreter::waitmap);
-	registerFunction("waitdlg", &Interpreter::waitdlg);
-	registerFunction("waitsay", &Interpreter::waitsay);
-	registerFunction("waitpet", &Interpreter::waitpet);
-	registerFunction("waititem", &Interpreter::waititem);
-	registerFunction("waitpos", &Interpreter::waitpos);
-
-	//check-group
-	registerFunction("waitteam", &Interpreter::waitteam);
-
-
-	//move
-	registerFunction("dir", &Interpreter::setdir);
-	registerFunction("walkpos", &Interpreter::walkpos);
-
 	//action
 	registerFunction("useitem", &Interpreter::useitem);
 	registerFunction("doffitem", &Interpreter::dropitem);
 	registerFunction("swapitem", &Interpreter::swapitem);
-	registerFunction("chname", &Interpreter::playerrename);
-	registerFunction("chpetname", &Interpreter::petrename);
-	registerFunction("chpet", &Interpreter::setpetstate);
 	registerFunction("doffpet", &Interpreter::droppet);
 	registerFunction("buy", &Interpreter::buy);
 	registerFunction("sell", &Interpreter::sell);
@@ -362,7 +343,6 @@ void Interpreter::openLibs()
 	registerFunction("learn", &Interpreter::learn);
 	registerFunction("trade", &Interpreter::trade);
 	registerFunction("mail", &Interpreter::mail);
-	registerFunction("doffstone", &Interpreter::doffstone);
 
 	registerFunction("requip", &Interpreter::recordequip);
 	registerFunction("wequip", &Interpreter::wearequip);
@@ -374,21 +354,6 @@ void Interpreter::openLibs()
 	registerFunction("putitem", &Interpreter::deposititem);
 	registerFunction("getpet", &Interpreter::withdrawpet);
 	registerFunction("getitem", &Interpreter::withdrawitem);
-
-	//battle
-	registerFunction("bh", &Interpreter::bh);//atk
-	registerFunction("bj", &Interpreter::bj);//magic
-	registerFunction("bp", &Interpreter::bp);//skill
-	registerFunction("bs", &Interpreter::bs);//switch
-	registerFunction("be", &Interpreter::be);//escape
-	registerFunction("bd", &Interpreter::bd);//defense
-	registerFunction("bi", &Interpreter::bi);//item
-	registerFunction("bt", &Interpreter::bt);//catch
-	registerFunction("bn", &Interpreter::bn);//nothing
-	registerFunction("bw", &Interpreter::bw);//petskill
-	registerFunction("bwf", &Interpreter::bwf);//pet nothing
-	registerFunction("bwait", &Interpreter::bwait);
-	registerFunction("bend", &Interpreter::bend);
 }
 
 long long Interpreter::scriptCallBack(long long currentIndex, long long currentLine, const TokenMap& TK)

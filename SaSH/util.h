@@ -1755,7 +1755,7 @@ QGroupBox {
 		const QString& icon, QStringList* list = nullptr,
 		const QString& folderIcon = ":/image/icon_directory.svg");
 
-	void __fastcall searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent);
+	void __fastcall searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent = false);
 
 	bool __fastcall enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
 
@@ -2393,4 +2393,4 @@ QGroupBox {
 				*p = distribution(gen);
 		}
 	}
-	}
+}

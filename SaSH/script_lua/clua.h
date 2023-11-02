@@ -161,6 +161,9 @@ public:
 	long long messagebox(sol::object ostr, sol::object otype, sol::this_state s);//ok
 	long long savesetting(const std::string& fileName, sol::this_state s);//ok
 	long long loadsetting(const std::string& fileName, sol::this_state s);//ok
+	long long chname(sol::object oname, sol::this_state s);
+	long long chpetname(long long index, sol::object oname, sol::this_state s);
+	long long chpet(long long petindex, sol::object ostate, sol::this_state s);
 	long long set(std::string enumStr, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s);
 	long long leftclick(long long x, long long y, sol::this_state s);//ok
 	long long rightclick(long long x, long long y, sol::this_state s);//ok
@@ -189,8 +192,17 @@ public:
 	long long eo(sol::this_state s);//ok
 	long long cleanchat(sol::this_state s);//ok
 	long long talk(sol::object ostr, sol::object ocolor, sol::object omode, sol::this_state s);
-	long long press(sol::object obutton, sol::object ounitid, sol::object odialogid, sol::this_state s);//ok
+	long long press(sol::object obutton, sol::object ounitid, sol::object odialogid, sol::object oext, sol::this_state s);//ok
 	long long input(const std::string& str, long long unitid, long long dialogid, sol::this_state s);//ok
+
+
+	long long waitpos(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::this_state s);
+	long long waitmap(sol::object p1, sol::object otimeout, sol::object jump, sol::this_state s);
+	long long waititem(sol::object oname, sol::object omemo, sol::object otimeout, sol::object jump, sol::this_state s);
+	long long waitteam(sol::object otimeout, sol::object jump, sol::this_state s);
+	long long waitpet(std::string name, sol::object otimeout, sol::object jump, sol::this_state s);
+	long long waitdlg(sol::object p1, sol::object otimeout, sol::object jump, sol::this_state s);
+	long long waitsay(std::string sstr, sol::object otimeout, sol::object jump, sol::this_state s);
 };
 
 class CLuaItem
@@ -244,6 +256,7 @@ public:
 	long long join(sol::this_state s);
 	long long leave(sol::this_state s);
 	long long kick(long long teammateIndex, sol::this_state s);
+	long long doffstone(long long goldamount, sol::this_state s);
 };
 
 class CLuaPet
@@ -267,9 +280,8 @@ public:
 	CLuaMap() = default;
 	~CLuaMap() = default;
 
-	long long setDir(long long dir, sol::this_state s);
-	long long setDir(long long x, long long y, sol::this_state s);
-	long long setDir(std::string sdir, sol::this_state s);
+	long long setdir(sol::object p1, sol::object p2, sol::this_state s);
+	long long walkpos(long long x, long long y, sol::object otimeout, sol::this_state s);
 
 	long long move(sol::object obj, long long y, sol::this_state s);
 	long long packetMove(long long x, long long y, std::string sdir, sol::this_state s);
@@ -296,6 +308,8 @@ public:
 	long long nothing(sol::this_state s);//nothing
 	long long petUseSkill(long long petSkillIndex, long long objIndex, sol::this_state s);//petskill
 	long long petNothing(sol::this_state s);//pet nothing
+	long long bend(sol::this_state s);
+	long long bwait(sol::object otimeout, sol::object jump, sol::this_state s);
 };
 
 class CLua : public ThreadPlugin

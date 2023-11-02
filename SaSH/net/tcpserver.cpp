@@ -1778,7 +1778,7 @@ QStringList Worker::getJoinableUnitList() const
 };
 
 //使用道具名稱枚舉所有道具索引
-bool Worker::getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv, long long from, long long to)
+bool Worker::getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv, long long from, long long to, QVector<long long>* pindexs)
 {
 	updateItemByMemory();
 
@@ -1796,6 +1796,12 @@ bool Worker::getItemIndexsByName(const QString& name, const QString& memo, QVect
 	QHash<long long, sa::ITEM> items = getItems();
 	for (long long i = from; i < to; ++i)
 	{
+		if (pindexs != nullptr && !pindexs->isEmpty())
+		{
+			if (!pindexs->contains(i))
+				continue;
+		}
+
 		QString itemName = items.value(i).name.simplified();
 		QString itemMemo = items.value(i).memo.simplified();
 
@@ -2098,12 +2104,16 @@ long long Worker::getDir()
 	Injector& injector = Injector::getInstance(currentIndex);
 	long long hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
+	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
+		return -1;
+
 	long long dir = static_cast<long long>((mem::read<int>(hProcess, hModule + sa::kOffsetDir) + 5) % 8);
 	sa::PC pc = getPC();
 	pc.dir = dir;
 	setPC(pc);
+
 	QPoint point = nowPoint.get();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2(%3)").arg(point.x()).arg(point.y()).arg(g_dirStrHash.value(dir)));
 
 	return dir;
@@ -2124,10 +2134,10 @@ QPoint Worker::getPoint()
 
 	const QPoint point(mem::read<int>(hProcess, hModule + sa::kOffsetNowX)
 		, mem::read<int>(hProcess, hModule + sa::kOffsetNowY));
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2(%3)").arg(point.x()).arg(point.y()).arg(g_dirStrHash.value(getDir())));
 	nowPoint.set(point);
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2(%3)").arg(point.x()).arg(point.y()).arg(g_dirStrHash.value(getDir())));
 
 	return point;
 }
@@ -2145,11 +2155,18 @@ long long Worker::getFloor()
 	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
 		return 0;
 
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	long long floor = static_cast<long long>(mem::read<int>(hProcess, hModule + sa::kOffsetNowFloor));
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	if (nowFloor.get() != floor)
+	{
+
+		emit signalDispatcher.updateNpcList(floor);
+	}
+	nowFloor.set(floor);
+
 	QString mapname = nowFloorName.get();
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(mapname).arg(floor));
-	nowFloor.set(floor);
+
 	return floor;
 }
 
@@ -2168,10 +2185,12 @@ QString Worker::getFloorName()
 
 	QString mapname = mem::readString(hProcess, hModule + sa::kOffsetNowFloorName, sa::FLOOR_NAME_LEN, true);
 	makeStringFromEscaped(mapname);
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	nowFloorName.set(mapname);
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	long long floor = nowFloor.get();
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(mapname).arg(floor));
-	nowFloorName.set(mapname);
+
 
 	return mapname;
 }
@@ -2739,6 +2758,10 @@ void Worker::updateDatasFromMemory()
 
 	pet_ = pets;
 	setPC(pc);
+	std::ignore = getPoint();
+	std::ignore = getFloorName();
+	std::ignore = getDir();
+	std::ignore = getFloor();
 }
 
 //刷新要顯示的戰鬥時間和相關數據
@@ -10473,11 +10496,23 @@ void Worker::lssproto_EV_recv(long long dialogid, long long result)
 	//对客户端的EV事件进行回应。在收到此回应之前，客户端将无法执行其他动作，如行走等。
 	std::ignore = dialogid;
 	std::ignore = result;
+	std::ignore = getPoint();
 	std::ignore = getFloorName();
+	std::ignore = getDir();
 	long long currentIndex = getIndex();
-	long long floor = getFloor();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateNpcList(floor);
+	std::ignore = getFloor();
+}
+
+//天氣
+void Worker::lssproto_EF_recv(long long effect, long long level, char* coption)
+{
+	std::ignore = effect;
+	std::ignore = level;
+	std::ignore = coption;
+	std::ignore = getPoint();
+	std::ignore = getFloorName();
+	std::ignore = getDir();
+	std::ignore = getFloor();
 }
 
 //開關切換
@@ -11247,15 +11282,6 @@ void Worker::lssproto_PME_recv(long long unitid, long long graphicsno, const QPo
 		getStringToken(data, "|", ps++, smalltoken);
 		height = smalltoken.toLongLong();
 	}
-}
-
-//天氣
-void Worker::lssproto_EF_recv(long long effect, long long level, char* coption)
-{
-	//long long currentIndex = getIndex();
-	//Injector& injector = Injector::getInstance(currentIndex);
-	//if (!getOnlineFlag())
-	//	return;
 }
 
 //求救
@@ -12393,6 +12419,9 @@ void Worker::lssproto_XYD_recv(const QPoint& pos, long long dir)
 	setPC(pc);
 	setPoint(pos);
 	setBattleEnd();
+	std::ignore = getFloor();
+	std::ignore = getFloorName();
+	std::ignore = getDir();
 }
 
 //服務端發來的ECHO 一般是30秒
@@ -13556,8 +13585,9 @@ void Worker::lssproto_S_recv(char* cdata)
 #pragma region Warp
 	if (first == "C")//人物轉移
 	{
-		std::ignore = getFloorName();
 		std::ignore = getFloor();
+		std::ignore = getFloorName();
+		std::ignore = getDir();
 		std::ignore = getPoint();
 
 		mapUnitHash.clear();

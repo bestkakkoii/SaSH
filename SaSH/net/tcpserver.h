@@ -62,6 +62,7 @@ public:
 
 private:
 	QHash<long long, QString> g_dirStrHash = {
+		{ -1, QObject::tr("Unknown") },
 		{ 0, QObject::tr("North") },
 		{ 1, QObject::tr("ENorth") },
 		{ 2, QObject::tr("East") },
@@ -248,7 +249,8 @@ public://actions
 
 	[[nodiscard]] long long __fastcall getPartySize() const;
 	[[nodiscard]] QStringList __fastcall getJoinableUnitList() const;
-	[[nodiscard]] bool __fastcall getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv, long long from = 0, long long to = sa::MAX_ITEM);
+	[[nodiscard]] bool __fastcall getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv,
+		long long from = 0, long long to = sa::MAX_ITEM, QVector<long long>* pindexs = nullptr);
 	[[nodiscard]] long long __fastcall getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", long long from = 0, long long to = sa::MAX_ITEM);
 	[[nodiscard]] long long __fastcall getPetSkillIndexByName(long long& petIndex, const QString& name) const;
 	[[nodiscard]] long long __fastcall getSkillIndexByName(const QString& name) const;

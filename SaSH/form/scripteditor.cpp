@@ -1157,7 +1157,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		if (npcName.isEmpty())
 			return;
 
-		str = QString("%1 '', '%2', %3").arg(str).arg(npcName).arg(dialog.dialogid);
+		str = QString("%1('', '%2', %3)").arg(str).arg(npcName).arg(dialog.dialogid);
 	}
 	else if (str == "waitdlg")
 	{
@@ -1171,7 +1171,11 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 				break;
 			}
 		}
-		str = QString("%1 '%2', ?, 5000, -1").arg(str).arg(lineStr);
+		str = QString("%1('%2', 5000, -1)").arg(str).arg(lineStr);
+	}
+	else if (str == "waitsay")
+	{
+		str = QString("%1('', 5000, -1)").arg(str);
 	}
 	else if (str == "learn")
 	{
@@ -1180,22 +1184,22 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		if (npcName.isEmpty())
 			return;
 
-		str = QString("%1 0, 0, 0, '%2', %3").arg(str).arg(npcName).arg(dialog.dialogid);
+		str = QString("%1(0, 0, 0, '%2', %3)").arg(str).arg(npcName).arg(dialog.dialogid);
 	}
 	else if (str == "findpath" || str == "move")
 	{
 		QPoint pos = injector.worker->getPoint();
-		str = QString("%1 %2, %3").arg(str).arg(pos.x()).arg(pos.y());
+		str = QString("%1(%2, %3)").arg(str).arg(pos.x()).arg(pos.y());
 	}
 	else if (str == "dir")
 	{
 		long long dir = injector.worker->getDir();
-		str = QString("%1 %2").arg(str).arg(dir);
+		str = QString("%1(%2)").arg(str).arg(dir);
 	}
 	else if (str == "walkpos")
 	{
 		QPoint pos = injector.worker->getPoint();
-		str = QString("%1 %2, %3, 5000").arg(str).arg(pos.x()).arg(pos.y());
+		str = QString("%1(%2, %3, 5000)").arg(str).arg(pos.x()).arg(pos.y());
 	}
 	else if (str == "w")
 	{
@@ -1204,26 +1208,16 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		const QString dirStr = "ABCDEFGH";
 		if (dir < 0 || dir >= dirStr.size())
 			return;
-		str = QString("%1 %2, %3, '%4'").arg(str).arg(pos.x()).arg(pos.y()).arg(dirStr.at(dir));
-	}
-	else if (str == "ifpos")
-	{
-		QPoint pos = injector.worker->getPoint();
-		str = QString("%1 %2, %3, +2").arg(str).arg(pos.x()).arg(pos.y());
-	}
-	else if (str == "ifmap")
-	{
-		long long floor = injector.worker->getFloor();
-		str = QString("%1 %2, +2").arg(str).arg(floor);
+		str = QString("%1(%2, %3, '%4')").arg(str).arg(pos.x()).arg(pos.y()).arg(dirStr.at(dir));
 	}
 	else if (str == "waitmap")
 	{
 		long long floor = injector.worker->getFloor();
-		str = QString("%1 %2, 5000, +2").arg(str).arg(floor);
+		str = QString("%1(%2, 5000, +2)").arg(str).arg(floor);
 	}
 	else if (str == "sleep")
 	{
-		str = QString("%1 500").arg(str);
+		str = QString("%1(500)").arg(str);
 	}
 	else if (str == "function")
 	{
@@ -1260,7 +1254,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		}
 
 		//移动至NPC 参数1:NPC名称, 参数2:NPC暱称, 参数3:东坐标, 参数4:南坐标, 参数5:超时时间, 参数6:错误跳转
-		str = QString("%1 '%2', '%3', %4, %5, 10000, -1").arg(str).arg(unit.name).arg(unit.freeName).arg(unit.p.x()).arg(unit.p.y());
+		str = QString("%1('%2', '%3', %4, %5, 10000, -1)").arg(str).arg(unit.name).arg(unit.freeName).arg(unit.p.x()).arg(unit.p.y());
 
 	}
 	else if (str == "findnpc with mod")
@@ -1290,7 +1284,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		}
 
 		//移动至NPC 参数1:NPC名称, 参数2:NPC暱称, 参数3:东坐标, 参数4:南坐标, 参数5:超时时间, 参数6:错误跳转
-		str = QString("findnpc %1, '', %2, %3, 10000, -1").arg(unit.modelid).arg(unit.p.x()).arg(unit.p.y());
+		str = QString("findnpc(%1, '', %2, %3, 10000, -1)").arg(unit.modelid).arg(unit.p.x()).arg(unit.p.y());
 	}
 	ui.widget->insert(str);
 }

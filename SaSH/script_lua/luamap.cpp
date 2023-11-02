@@ -22,50 +22,91 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "map/mapanalyzer.h"
 
-long long CLuaMap::setDir(long long dir, sol::this_state s)
+long long CLuaMap::setdir(sol::object p1, sol::object p2, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->setCharFaceDirection(--dir);
+	QString dirStr = "";
+	if (p1.is<std::string>())
+		dirStr = util::toQString(p1.as<std::string>());
+
+	long long dir = -1;
+	long long x = -1;
+	if (p1.is<long long>())
+	{
+		dir = p1.as<long long>() - 1;
+		x = p1.as<long long>();
+	}
+
+	long long y = -1;
+	if (p2.is<long long>())
+		y = p2.as<long long>();
+
+	if (x != -1 && y != -1)
+	{
+		injector.worker->setCharFaceToPoint(QPoint(x, y));
+		return TRUE;
+	}
+
+	dirStr = dirStr.toUpper().simplified();
+
+	if (dir != -1 && dirStr.isEmpty() && dir >= 0 && dir < sa::MAX_DIR)
+	{
+		injector.worker->setCharFaceDirection(dir);
+	}
+	else if (dir == -1 && !dirStr.isEmpty())
+	{
+		injector.worker->setCharFaceDirection(dirStr);
+	}
+	else
+		return FALSE;
 
 	return TRUE;
 }
 
-long long CLuaMap::setDir(long long x, long long y, sol::this_state s)
+long long CLuaMap::walkpos(long long x, long long y, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	QPoint pos(static_cast<int>(x), static_cast<int>(y));
+	QPoint p(x, y);
 
-	injector.worker->setCharFaceToPoint(pos);
+	long long timeout = 5000;
+	if (otimeout.is<long long>())
+		timeout = otimeout.as<long long>();
 
-	return TRUE;
-}
-
-long long CLuaMap::setDir(std::string sdir, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	if (p.x() < 0 || p.x() >= 1500)
 		return FALSE;
 
-	luadebug::checkBattleThenWait(s);
+	if (p.y() < 0 || p.y() >= 1500)
+		return FALSE;
 
-	QString qdir = util::toQString(sdir);
+	injector.worker->move(p);
+	QThread::msleep(1);
 
-	injector.worker->setCharFaceDirection(qdir);
+	bool bret = luadebug::waitfor(s, timeout, [&s, this, &injector, &p]()->bool
+		{
+			luadebug::checkBattleThenWait(s);
+			bool result = injector.worker->getPoint() == p;
+			if (result)
+			{
+				injector.worker->move(p);
+			}
+			return result;
+		});
 
-	return TRUE;
+	return bret;
 }
 
 long long CLuaMap::move(sol::object obj, long long y, sol::this_state s)

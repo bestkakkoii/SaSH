@@ -1424,18 +1424,74 @@ QFileInfoList __fastcall util::loadAllFileLists(
 	return file_list;
 }
 
-void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent)
+QStringList __fastcall searchFilesWorker(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, bool withcontent)
+{
+	QDir d(dir);
+	if (!d.exists())
+		return QStringList();
+
+	QFileInfoList list = d.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+	QStringList result;
+	QFutureSynchronizer <QStringList> sync;
+	for (const QFileInfo& fileInfo : list)
+	{
+		if (fileInfo.isFile())
+		{
+			if (!fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive)
+				|| (!suffixWithDot.isEmpty() && suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.mid(1).toLower())
+				|| (!suffixWithDot.isEmpty() && !suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.toLower()))
+				continue;
+
+			if (withcontent)
+			{
+				QString content;
+				if (!util::readFile(fileInfo.absoluteFilePath(), &content))
+					continue;
+
+				//將文件名置於前方
+				QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(content);
+
+				result.append(fileContent);
+			}
+			else
+			{
+				result.append(fileInfo.absoluteFilePath());
+			}
+
+		}
+		else if (fileInfo.isDir())
+		{
+			sync.addFuture(QtConcurrent::run(searchFilesWorker, fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, withcontent));
+		}
+	}
+
+	sync.waitForFinished();
+
+	auto futures = sync.futures();
+	for (const QFuture<QStringList>& future : futures)
+	{
+		result.append(future.result());
+	}
+
+	return result;
+}
+
+void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* presult, bool withcontent)
 {
 	QDir d(dir);
 	if (!d.exists())
 		return;
 
 	QFileInfoList list = d.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+	QStringList result;
+	QFutureSynchronizer <QStringList> sync;
 	for (const QFileInfo& fileInfo : list)
 	{
 		if (fileInfo.isFile())
 		{
-			if (!fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive) || fileInfo.suffix().toLower() != suffixWithDot.mid(1).toLower())
+			if (!fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive)
+				|| (!suffixWithDot.isEmpty() && suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.mid(1).toLower())
+				|| (!suffixWithDot.isEmpty() && !suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.toLower()))
 				continue;
 
 			if (withcontent)
@@ -1447,21 +1503,78 @@ void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePar
 				//將文件名置於前方
 				QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(content);
 
-				if (result != nullptr)
-					result->append(fileContent);
+				result.append(fileContent);
 			}
 			else
 			{
-				if (result != nullptr)
-					result->append(fileInfo.absoluteFilePath());
+				result.append(fileInfo.absoluteFilePath());
 			}
 
 		}
 		else if (fileInfo.isDir())
 		{
-			searchFiles(fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, result, withcontent);
+			sync.addFuture(QtConcurrent::run(searchFilesWorker, fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, withcontent));
 		}
 	}
+
+	sync.waitForFinished();
+	auto futures = sync.futures();
+	for (const QFuture<QStringList>& future : futures)
+	{
+		result.append(future.result());
+	}
+
+	if (presult != nullptr)
+		*presult = result;
+}
+
+QVector<QPair<QString, QString>> __fastcall enumAllFilesWorker(const QString dir, const QString suffix)
+{
+	QDir directory(dir);
+
+	if (!directory.exists())
+	{
+		return QVector<QPair<QString, QString>>{}; // 目錄不存在，返回失敗
+	}
+
+	QVector<QPair<QString, QString>> result;
+
+	QFileInfoList fileList = directory.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+	QFileInfoList dirList = directory.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+	QFutureSynchronizer<QVector<QPair<QString, QString>>> sync;
+
+	// 遍歷並匹配文件
+	for (const QFileInfo& fileInfo : fileList)
+	{
+		QString fileName = fileInfo.fileName();
+		QString filePath = fileInfo.filePath();
+
+		// 如果suffix不為空且文件名不以suffix結尾，則跳過
+		if (!suffix.isEmpty() && !fileName.endsWith(suffix, Qt::CaseInsensitive))
+		{
+			continue;
+		}
+
+		// 將匹配的文件信息添加到結果中
+		result.append(QPair<QString, QString>(fileName, filePath));
+	}
+
+	// 遞歸遍歷子目錄
+	for (const QFileInfo& dirInfo : dirList)
+	{
+		QString subDir = dirInfo.filePath();
+		sync.addFuture(QtConcurrent::run(enumAllFilesWorker, subDir, suffix));
+	}
+
+
+	sync.waitForFinished();
+	auto futures = sync.futures();
+	for (const QFuture<QVector<QPair<QString, QString>>>& future : futures)
+	{
+		result.append(future.result());
+	}
+
+	return result;
 }
 
 bool __fastcall util::enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result)
@@ -1475,6 +1588,7 @@ bool __fastcall util::enumAllFiles(const QString dir, const QString suffix, QVec
 
 	QFileInfoList fileList = directory.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
 	QFileInfoList dirList = directory.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+	QFutureSynchronizer<QVector<QPair<QString, QString>>> sync;
 
 	// 遍歷並匹配文件
 	for (const QFileInfo& fileInfo : fileList)
@@ -1497,14 +1611,20 @@ bool __fastcall util::enumAllFiles(const QString dir, const QString suffix, QVec
 	for (const QFileInfo& dirInfo : dirList)
 	{
 		QString subDir = dirInfo.filePath();
-		bool success = enumAllFiles(subDir, suffix, result);
-		if (!success)
-		{
-			return false; // 遞歸遍歷失敗，返回失敗
-		}
+		sync.addFuture(QtConcurrent::run(enumAllFilesWorker, subDir, suffix));
 	}
 
-	return true; // 遍歷成功，返回成功
+	auto futures = sync.futures();
+	for (const QFuture<QVector<QPair<QString, QString>>>& future : futures)
+	{
+		if (result != nullptr)
+			result->append(future.result());
+	}
+
+	if (result != nullptr)
+		return !result->isEmpty(); // 遍歷成功，返回成功
+	else
+		return false;
 }
 
 //自身進程目錄 遞歸遍查找指定文件
@@ -1532,7 +1652,6 @@ QString __fastcall util::findFileFromName(const QString& fileName, const QString
 	}
 	return QString();
 }
-
 
 void __fastcall util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 {

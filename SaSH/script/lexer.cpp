@@ -49,20 +49,8 @@ static const QHash<QString, RESERVE> keywords = {
 	{ "run", TK_CMD },
 	{ "dostr", TK_CMD },
 
-	//check info
-	{ "waitmap", TK_CMD },
-	{ "waitdlg", TK_CMD },
-	{ "waitsay", TK_CMD },
-	{ "waititem", TK_CMD },
-	{ "waitpos", TK_CMD },
-	{ "waitpet", TK_CMD },
-	{ "waitteam", TK_CMD },
-
 	//actions
-	{ "chname", TK_CMD },
 	{ "usemagic", TK_CMD },
-	{ "chpetname", TK_CMD },
-	{ "chpet", TK_CMD },
 	{ "doffpet", TK_CMD },
 	{ "buy", TK_CMD },
 	{ "sell", TK_CMD },
@@ -88,26 +76,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ "learn", TK_CMD },
 	{ "trade", TK_CMD },
 	{ "mail", TK_CMD },
-	{ "doffstone", TK_CMD },
-
-	//move
-	{ "walkpos", TK_CMD },
-	{ "dir", TK_CMD },
-
-	//battle
-	{ "bh", TK_CMD },//atk
-	{ "bj", TK_CMD },//magic
-	{ "bp", TK_CMD },//skill
-	{ "bs", TK_CMD },//switch
-	{ "be", TK_CMD },//escape
-	{ "bd", TK_CMD },//defense
-	{ "bi", TK_CMD },//item
-	{ "bt", TK_CMD },//catch
-	{ "bn", TK_CMD },//nothing
-	{ "bw", TK_CMD },//petskill
-	{ "bwf", TK_CMD },//pet nothing
-	{ "bwait", TK_CMD },
-	{ "bend", TK_CMD },
 	#pragma endregion
 };
 #pragma endregion
@@ -321,6 +289,9 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 			"say", "sleep", "saveset", "loadset", "lclick", "rclick", "dbclick", "dragto", "chmap", "w", "download",
 			"move", "cls", "eo", "logout", "logback", "runex", "openwindow", "rungame", "closegame", "setlogin", "dostrex",
 			"getgamestate", "loadsetex", "createch", "delch", "menu", "checkdaily", "button", "join", "leave", "kick", "send",
+			"chname", "chpetname", "doffstone", "dir", "walkpos", "chpet",
+			"bh", "bj", "bp", "bs", "be", "bd", "bi", "bn", "bw", "bwn", "bwait", "bend",
+			"waitpos", "waitmap", "waititem", "waitteam", "waitpet", "waitsay", "waitdlg"
 		};
 
 		for (const QString& it : tempReplacementList)

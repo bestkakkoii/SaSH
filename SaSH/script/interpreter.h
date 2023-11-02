@@ -88,28 +88,10 @@ private: //註冊給Parser的函數
 	long long run(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long dostr(long long currentIndex, long long currentLine, const TokenMap& TK);
 
-	//check
-	long long waitmap(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long waitdlg(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long waitsay(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long waititem(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long waitpet(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long waitpos(long long currentIndex, long long currentLine, const TokenMap& TK);
-	//check-group
-	long long waitteam(long long currentIndex, long long currentLine, const TokenMap& TK);
-
-
-	//move
-	long long setdir(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long walkpos(long long currentIndex, long long currentLine, const TokenMap& TK);
-
 	//action
 	long long useitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long dropitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long swapitem(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long playerrename(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long petrename(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long setpetstate(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long droppet(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long buy(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long sell(long long currentIndex, long long currentLine, const TokenMap& TK);
@@ -123,7 +105,6 @@ private: //註冊給Parser的函數
 	long long addpoint(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long learn(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long trade(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long doffstone(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	long long recordequip(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long wearequip(long long currentIndex, long long currentLine, const TokenMap& TK);
@@ -137,21 +118,6 @@ private: //註冊給Parser的函數
 	long long withdrawitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	long long mail(long long currentIndex, long long currentLine, const TokenMap& TK);
-
-	//battle
-	long long bh(long long currentIndex, long long currentLine, const TokenMap& TK);//atk
-	long long bj(long long currentIndex, long long currentLine, const TokenMap& TK);//magic
-	long long bp(long long currentIndex, long long currentLine, const TokenMap& TK);//skill
-	long long bs(long long currentIndex, long long currentLine, const TokenMap& TK);//switch
-	long long be(long long currentIndex, long long currentLine, const TokenMap& TK);//escape
-	long long bd(long long currentIndex, long long currentLine, const TokenMap& TK);//defense
-	long long bi(long long currentIndex, long long currentLine, const TokenMap& TK);//item
-	long long bt(long long currentIndex, long long currentLine, const TokenMap& TK);//catch
-	long long bn(long long currentIndex, long long currentLine, const TokenMap& TK);//nothing
-	long long bw(long long currentIndex, long long currentLine, const TokenMap& TK);//petskill
-	long long bwf(long long currentIndex, long long currentLine, const TokenMap& TK);//pet nothing
-	long long bwait(long long currentIndex, long long currentLine, const TokenMap& TK);//wait
-	long long bend(long long currentIndex, long long currentLine, const TokenMap& TK);//wait
 
 private:
 	enum

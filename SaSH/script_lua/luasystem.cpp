@@ -356,7 +356,7 @@ long long CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state 
 	return TRUE;
 }
 
-long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::object odialogid, sol::this_state s)
+long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::object odialogid, sol::object oext, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
@@ -364,6 +364,10 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
+
+	long long ext = 0;
+	if (oext.is<long long>())
+		ext = oext.as<long long>();
 
 	std::string sbuttonStr;
 	long long row = -1;
@@ -434,10 +438,17 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		}
 	}
 
+	unitid += ext;
+
 	if (button != sa::BUTTON_NOTUSED)
 		injector.worker->press(button, dialogid, unitid);
 	else if (row != -1)
 		injector.worker->press(row, dialogid, unitid);
+	else if (!text.isEmpty() && text.startsWith("#"))
+	{
+		text = text.mid(1);
+		injector.worker->inputtext(text, dialogid, unitid);
+	}
 	else
 		return FALSE;
 
@@ -780,6 +791,700 @@ long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_s
 	injector.autil.util_SendArgs(funId, vargs);
 
 	return TRUE;
+}
+
+long long CLuaSystem::chname(sol::object oname, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString name;
+	if (oname.is<long long>())
+		name = util::toQString(oname.as<long long>());
+	if (oname.is<double>())
+		name = util::toQString(oname.as<double>());
+	else if (oname.is<std::string>())
+		name = util::toQString(oname);
+	else
+		return FALSE;
+
+	long long size = util::fromUnicode(name).size();
+	if (size > sa::CHAR_FREENAME_LEN)
+	{
+		luadebug::showErrorMsg(s, luadebug::WARN_LEVEL, QObject::tr("name length must below or equal %1 bytes, but got %2 bytes").arg(sa::CHAR_FREENAME_LEN).arg(size));
+		return FALSE;
+	}
+
+	injector.worker->setCharFreeName(name);
+
+	return TRUE;
+}
+
+long long CLuaSystem::chpetname(long long index, sol::object oname, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	--index;
+	if (index < 0 || index > sa::MAX_PET)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("index must between 1 and %1").arg(sa::MAX_PET));
+		return FALSE;
+	}
+
+	QString name;
+	if (oname.is<long long>())
+		name = util::toQString(oname.as<long long>());
+	if (oname.is<double>())
+		name = util::toQString(oname.as<double>());
+	else if (oname.is<std::string>())
+		name = util::toQString(oname);
+	else
+		return FALSE;
+
+	long long size = util::fromUnicode(name).size();
+	if (size > sa::PET_FREENAME_LEN)
+	{
+		luadebug::showErrorMsg(s, luadebug::WARN_LEVEL, QObject::tr("name length must below or equal %1 bytes, but got %2 bytes").arg(sa::CHAR_FREENAME_LEN).arg(size));
+		return FALSE;
+	}
+
+	injector.worker->setPetFreeName(index, name);
+
+	return TRUE;
+}
+
+long long CLuaSystem::chpet(long long petindex, sol::object ostate, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	petindex -= 1;
+	if (petindex < 0 || petindex >= sa::MAX_PET)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("petindex must between 1 and %1").arg(sa::MAX_PET));
+		return FALSE;
+	}
+
+	QString stateStr;
+	if (ostate.is<std::string>())
+		stateStr = util::toQString(ostate);
+	if (stateStr.isEmpty())
+		stateStr = QString("rest");
+
+	sa::PetState state = sa::petStateMap.value(stateStr.toLower(), sa::PetState::kRest);
+
+
+	injector.worker->setPetState(petindex, state);
+
+	return TRUE;
+}
+
+long long CLuaSystem::waitpos(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (p4.is<long long>() || p4.is<std::string>())
+		lua["_JUMP"] = p4;
+	else
+	{
+		if (p3.is<long long>() || p3.is<std::string>())
+			lua["_JUMP"] = p4;
+		else
+			lua["_JUMP"] = sol::lua_nil;
+	}
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString posStrs;
+	QStringList posStrList;
+	QList<QPoint> posList;
+	long long x = -1, y = -1;
+
+	long long timeoutIndex = 3;
+	long long jumpIndex = 4;
+
+	if (p1.is<long long>())
+	{
+		if (!p2.is<long long>())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("y cannot be empty"));
+			return FALSE;
+		}
+
+		x = p1.as<long long>();
+		y = p2.as<long long>();
+
+		posList.push_back(QPoint(x, y));
+	}
+	else if (p1.is<std::string>())
+	{
+		posStrs = util::toQString(p1.as<std::string>()).simplified();
+
+		if (posStrs.isEmpty())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("pos cannot be empty"));
+			return FALSE;
+		}
+
+		posStrList = posStrs.split(util::rexOR, Qt::SkipEmptyParts);
+		if (posStrList.isEmpty())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("pos cannot be empty"));
+			return FALSE;
+		}
+
+		for (const QString& posStr : posStrList)
+		{
+			QStringList pos = posStr.split(util::rexComma, Qt::SkipEmptyParts);
+			if (pos.size() != 2)
+				continue;
+
+			bool ok1, ok2;
+			long long px = pos.value(0).toLongLong(&ok1);
+			long long py = pos.value(1).toLongLong(&ok2);
+			if (ok1 && ok2)
+				posList.push_back(QPoint(px, py));
+		}
+
+		if (posList.isEmpty())
+		{
+			//no valid pos
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("no valid pos"));
+			return FALSE;
+		}
+
+		timeoutIndex = 2;
+		jumpIndex = 3;
+	}
+	else
+		return FALSE;
+
+	auto check = [&injector, posList]()
+		{
+			QPoint pos = injector.worker->getPoint();
+			for (const QPoint& p : posList)
+			{
+				if (p == pos)
+					return true;
+			}
+			return false;
+		};
+
+	bool bret = false;
+	long long timeout = 5000;
+	if (p3.is<long long>() && x != -1 && y != -1)
+		timeout = p3.as<long long>();
+	else if (p2.is<long long>() && p1.is<std::string>())
+		timeout = p2.as<long long>();
+
+	bret = luadebug::waitfor(s, timeout, [&check]()->bool
+		{
+			return check();
+		});
+
+	if (bret)
+	{
+		lua["_JUMP"] = sol::lua_nil;
+	}
+
+	return bret;
+}
+
+long long CLuaSystem::waitmap(sol::object p1, sol::object otimeout, sol::object jump, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (jump.is<long long>() || jump.is<std::string>())
+		lua["_JUMP"] = jump;
+	else
+		lua["_JUMP"] = sol::lua_nil;
+
+	util::Timer timer;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString mapname = "";
+	long long floor = 0;
+	if (p1.is<std::string>())
+		mapname = util::toQString(p1.as<std::string>()).simplified();
+	else if (p1.is<long long>())
+		floor = p1.as<long long>();
+	else
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("invalid map name or floor number"));
+		return FALSE;
+	}
+
+	QStringList mapnames = mapname.split(util::rexOR, Qt::SkipEmptyParts);
+
+	long long timeout = 5000;
+	if (otimeout.is<long long>())
+		timeout = otimeout.as<long long>();
+
+	auto check = [&injector, floor, mapnames]()
+		{
+			if (floor != 0)
+				return floor == injector.worker->getFloor();
+			else
+			{
+				QString currentFloorName = injector.worker->getFloorName();
+				long long currentFloor = injector.worker->getFloor();
+
+				for (const QString& mapname : mapnames)
+				{
+					bool ok;
+					long long fr = mapname.toLongLong(&ok);
+					if (ok)
+					{
+						if (fr == currentFloor)
+							return true;
+					}
+					else
+					{
+						if (mapname.startsWith("?"))
+						{
+							QString newName = mapname.mid(1);
+							return currentFloorName.contains(newName);
+						}
+						else
+							return mapname == currentFloorName;
+					}
+				}
+			}
+
+			return false;
+		};
+
+	bool bret = luadebug::waitfor(s, timeout, [&check]()->bool
+		{
+			return check();
+		});
+
+	if (!bret && timeout > 2000)
+		injector.worker->EO();
+
+	if (bret)
+	{
+		lua["_JUMP"] = sol::lua_nil;
+	}
+
+	return  bret;
+}
+
+bool checkRange(sol::object o, long long& min, long long& max, QVector<long long>* pindexs)
+{
+	if (o.is<std::string>())
+	{
+		QString str = util::toQString(o.as<std::string>());
+		if (str.isEmpty() || str == "?")
+		{
+			return true;
+		}
+
+		bool ok = false;
+		long long tmp = str.toLongLong(&ok) - 1;
+		if (ok)
+		{
+			if (tmp < 0)
+				return false;
+
+			min = tmp;
+			max = tmp;
+			return true;
+		}
+
+		QStringList range = str.split("-", Qt::SkipEmptyParts);
+		if (range.isEmpty())
+		{
+			return true;
+		}
+
+		if (range.size() == 2)
+		{
+			bool ok1, ok2;
+			long long tmp1 = range.value(0).toLongLong(&ok1);
+			long long tmp2 = range.value(1).toLongLong(&ok2);
+			if (ok1 && ok2)
+			{
+				if (tmp1 < 0 || tmp2 < 0)
+					return false;
+
+				min = tmp1 - 1;
+				max = tmp2 - 1;
+				return true;
+			}
+		}
+		else
+		{
+			if (pindexs != nullptr)
+			{
+				for (const QString& str : range)
+				{
+					bool ok;
+					long long tmp = str.toLongLong(&ok) - 1;
+					if (ok && tmp >= 0)
+						pindexs->append(tmp);
+				}
+
+				return pindexs->size() > 0;
+			}
+		}
+	}
+	else if (o.is<long long>())
+	{
+		long long tmp = o.as<long long>() - 1;
+		if (tmp < 0)
+			return false;
+
+		min = tmp;
+		max = tmp;
+		return true;
+	}
+	return false;
+}
+
+long long CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object otimeout, sol::object jump, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (jump.is<long long>() || jump.is<std::string>())
+		lua["_JUMP"] = jump;
+	else
+		lua["_JUMP"] = sol::lua_nil;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	long long min = 0;
+	long long max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM);
+
+	QString itemName;
+	if (oname.is<std::string>())
+		itemName = util::toQString(oname.as<std::string>()).simplified();
+
+	QStringList itemNames = itemName.split(util::rexOR, Qt::SkipEmptyParts);
+
+	QString itemMemo;
+	if (omemo.is<std::string>())
+		itemMemo = util::toQString(omemo.as<std::string>()).simplified();
+
+	QStringList itemMemos = itemMemo.split(util::rexOR, Qt::SkipEmptyParts);
+
+	if (itemName.isEmpty() && itemMemo.isEmpty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("item name and memo cannot be empty at the same time"));
+		return FALSE;
+	}
+
+	long long timeout = 5000;
+	if (otimeout.is<long long>())
+		timeout = otimeout.as<long long>();
+
+	injector.worker->updateItemByMemory();
+
+	bool bret = luadebug::waitfor(s, timeout, [&injector, &itemNames, &itemMemos, min, max]()->bool
+		{
+			QVector<long long> vec;
+			long long size = 0;
+			if (itemNames.size() >= itemMemos.size())
+				size = itemNames.size();
+			else
+				size = itemMemos.size();
+
+			for (long long i = 0; i < size; ++i)
+			{
+				vec.clear();
+				if (injector.worker->getItemIndexsByName(itemNames.value(i), itemMemos.value(i), &vec, min, max) && !vec.isEmpty())
+					return true;
+			}
+
+			return false;
+		});
+
+	if (bret)
+	{
+		lua["_JUMP"] = sol::lua_nil;
+	}
+
+	return bret;
+}
+
+long long CLuaSystem::waitteam(sol::object otimeout, sol::object jump, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (jump.is<long long>() || jump.is<std::string>())
+		lua["_JUMP"] = jump;
+	else
+		lua["_JUMP"] = sol::lua_nil;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	sa::PC pc = injector.worker->getPC();
+
+	long long timeout = 5000;
+	if (otimeout.is<long long>())
+		timeout = otimeout.as<long long>();
+
+	bool bret = luadebug::waitfor(s, timeout, [&pc]()->bool
+		{
+			return util::checkAND(pc.status, sa::CHR_STATUS_LEADER) || util::checkAND(pc.status, sa::CHR_STATUS_PARTY);
+		});
+
+	if (bret)
+	{
+		lua["_JUMP"] = sol::lua_nil;
+	}
+
+	return bret;
+}
+
+long long CLuaSystem::waitpet(std::string name, sol::object otimeout, sol::object jump, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (jump.is<long long>() || jump.is<std::string>())
+		lua["_JUMP"] = jump;
+	else
+		lua["_JUMP"] = sol::lua_nil;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString petName;
+	petName = util::toQString(name).simplified();
+
+	if (petName.isEmpty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("pet name cannot be empty"));
+		return FALSE;
+	}
+
+	long long timeout = 5000;
+	if (otimeout.is<long long>())
+		timeout = otimeout.as<long long>();
+
+	bool bret = luadebug::waitfor(s, timeout, [&injector, petName]()->bool
+		{
+			QVector<long long> v;
+			return injector.worker->getPetIndexsByName(petName, &v);
+		});
+
+	if (bret)
+	{
+		lua["_JUMP"] = sol::lua_nil;
+	}
+
+	return bret;
+}
+
+long long CLuaSystem::waitdlg(sol::object p1, sol::object otimeout, sol::object jump, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (jump.is<long long>() || jump.is<std::string>())
+		lua["_JUMP"] = jump;
+	else
+		lua["_JUMP"] = sol::lua_nil;
+
+	long long timeout = 5000;
+	if (otimeout.is<long long>())
+		timeout = otimeout.as<long long>();
+
+	QString cmpStr;
+	long long dlgid = -1;
+	if (!p1.is<std::string>())
+	{
+		if (!p1.is<long long>())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("dialog id or string cannot be empty"));
+			return FALSE;
+		}
+		else
+		{
+			dlgid = p1.as<long long>();
+		}
+	}
+	else
+	{
+		cmpStr = util::toQString(p1.as<std::string>()).simplified();
+	}
+
+	bool bret = false;
+	if (dlgid != -1)
+	{
+		bret = luadebug::waitfor(s, timeout, [&injector, dlgid]()->bool
+			{
+				if (!injector.worker->isDialogVisible())
+					return false;
+
+				return injector.worker->currentDialog.get().dialogid == dlgid;
+			});
+
+		if (bret)
+		{
+			lua["_JUMP"] = sol::lua_nil;
+		}
+
+		return bret;
+	}
+	else
+	{
+		QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
+
+		long long min = 0;
+		long long max = sa::MAX_DIALOG_LINE;
+		auto check = [&injector, min, max, cmpStrs]()->bool
+			{
+				if (!injector.worker->isDialogVisible())
+					return false;
+
+				if (cmpStrs.isEmpty() || cmpStrs.front().isEmpty())
+					return true;
+
+				QStringList dialogStrList = injector.worker->currentDialog.get().linedatas;
+				for (long long i = min; i < max; ++i)
+				{
+					if (i < 0 || i > dialogStrList.size())
+						break;
+
+					QString text = dialogStrList.value(i).simplified();
+					if (text.isEmpty())
+						continue;
+
+					for (const QString& cmpStr : cmpStrs)
+					{
+						if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
+						{
+							return true;
+						}
+					}
+				}
+
+				return false;
+			};
+
+		bret = luadebug::waitfor(s, timeout, [&check]()->bool
+			{
+				return check();
+			});
+
+		if (bret)
+		{
+			lua["_JUMP"] = sol::lua_nil;
+		}
+
+		return bret;
+	}
+}
+
+long long CLuaSystem::waitsay(std::string sstr, sol::object otimeout, sol::object jump, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (jump.is<long long>() || jump.is<std::string>())
+		lua["_JUMP"] = jump;
+	else
+		lua["_JUMP"] = sol::lua_nil;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString cmpStr = util::toQString(sstr).simplified();
+	if (cmpStr.isEmpty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("string cannot be empty"));
+		return FALSE;
+	}
+
+	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
+
+	long long timeout = 5000;
+	if (otimeout.is<long long>())
+		timeout = otimeout.as<long long>();
+
+	auto check = [&injector, cmpStrs]()->bool
+		{
+			for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
+			{
+				QString text = injector.worker->getChatHistory(i).simplified();
+				if (text.isEmpty())
+					continue;
+
+				for (const QString& cmpStr : cmpStrs)
+				{
+					if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
+					{
+						return true;
+					}
+				}
+			}
+
+			QVector<QPair<long long, QString>> list = injector.worker->chatQueue.values();
+
+			for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
+			{
+				if (i < 0)
+					continue;
+				if (i > list.size())
+					break;
+
+				QString text = list.value(i).second.simplified();
+				if (text.isEmpty())
+					continue;
+
+				for (const QString& cmpStr : cmpStrs)
+				{
+					if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
+					{
+						return true;
+					}
+				}
+			}
+
+			return false;
+		};
+
+	bool bret = luadebug::waitfor(s, timeout, [&check]()->bool
+		{
+			return check();
+		});
+
+	if (bret)
+	{
+		lua["_JUMP"] = sol::lua_nil;
+	}
+
+	return bret;
 }
 
 long long CLuaSystem::set(std::string enumStr,

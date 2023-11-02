@@ -435,6 +435,10 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 {
 	if (timeout < 0)
 		timeout = std::numeric_limits<long long>::max();
+	else if (timeout == 0)
+	{
+		return exprfun();
+	}
 
 	sol::state_view lua(s.lua_state());
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
@@ -795,6 +799,17 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("eo", &CLuaSystem::eo, &luaSystem_);
 	lua.set_function("button", &CLuaSystem::press, &luaSystem_);
 
+	lua.set_function("chname", &CLuaSystem::chname, &luaSystem_);
+	lua.set_function("chpetname", &CLuaSystem::chpetname, &luaSystem_);
+	lua.set_function("chpet", &CLuaSystem::chpet, &luaSystem_);
+
+	lua.set_function("waitpos", &CLuaSystem::waitpos, &luaSystem_);
+	lua.set_function("waitmap", &CLuaSystem::waitmap, &luaSystem_);
+	lua.set_function("waitpet", &CLuaSystem::waitpet, &luaSystem_);
+	lua.set_function("waititem", &CLuaSystem::waititem, &luaSystem_);
+	lua.set_function("waitteam", &CLuaSystem::waitteam, &luaSystem_);
+	lua.set_function("waitdlg", &CLuaSystem::waitdlg, &luaSystem_);
+	lua.set_function("waitsay", &CLuaSystem::waitsay, &luaSystem_);
 }
 
 void CLua::open_itemlibs(sol::state& lua)
@@ -820,6 +835,7 @@ void CLua::open_charlibs(sol::state& lua)
 	lua.set_function("join", &CLuaChar::join, &luaChar_);
 	lua.set_function("leave", &CLuaChar::leave, &luaChar_);
 	lua.set_function("kick", &CLuaChar::kick, &luaChar_);
+	lua.set_function("doffstone", &CLuaChar::doffstone, &luaChar_);
 
 	lua.new_usertype<CLuaChar>("CharClass",
 		sol::call_constructor,
@@ -860,35 +876,28 @@ void CLua::open_maplibs(sol::state& lua)
 	lua.set_function("chmap", &CLuaMap::teleport, &luaMap_);
 	lua.set_function("download", &CLuaMap::downLoad, &luaMap_);
 	lua.set_function("findnpc", &CLuaMap::findNPC, &luaMap_);
-
-	lua.new_usertype<CLuaMap>("MapClass",
-		sol::call_constructor,
-		sol::constructors<CLuaMap()>(),
-		"setDir", sol::overload(
-			sol::resolve<long long(long long, sol::this_state)>(&CLuaMap::setDir),
-			sol::resolve<long long(long long, long long, sol::this_state) >(&CLuaMap::setDir),
-			sol::resolve<long long(std::string, sol::this_state) >(&CLuaMap::setDir)
-		)
-	);
+	lua.set_function("dir", &CLuaMap::setdir, &luaMap_);
+	lua.set_function("walkpos", &CLuaMap::walkpos, &luaMap_);
 }
 
 void CLua::open_battlelibs(sol::state& lua)
 {
-	lua.new_usertype<CLuaBattle>("BattleClass",
-		sol::call_constructor,
-		sol::constructors<CLuaBattle()>(),
-		"charUseAttack", &CLuaBattle::charUseAttack,
-		"charUseMagic", &CLuaBattle::charUseMagic,
-		"charUseSkill", &CLuaBattle::charUseSkill,
-		"switchPet", &CLuaBattle::switchPet,
-		"escape", &CLuaBattle::escape,
-		"defense", &CLuaBattle::defense,
-		"useItem", &CLuaBattle::useItem,
-		"catchPet", &CLuaBattle::catchPet,
-		"nothing", &CLuaBattle::nothing,
-		"petUseSkill", &CLuaBattle::petUseSkill,
-		"petNothing", &CLuaBattle::petNothing
-	);
+	//registerFunction("bwait", &Interpreter::bwait);
+	//registerFunction("bend", &Interpreter::bend);
+
+	lua.set_function("bh", &CLuaBattle::charUseAttack, &luaBattle_);
+	lua.set_function("bj", &CLuaBattle::charUseMagic, &luaBattle_);
+	lua.set_function("bp", &CLuaBattle::charUseSkill, &luaBattle_);
+	lua.set_function("bs", &CLuaBattle::switchPet, &luaBattle_);
+	lua.set_function("be", &CLuaBattle::escape, &luaBattle_);
+	lua.set_function("bd", &CLuaBattle::defense, &luaBattle_);
+	lua.set_function("bi", &CLuaBattle::useItem, &luaBattle_);
+	lua.set_function("bt", &CLuaBattle::catchPet, &luaBattle_);
+	lua.set_function("bn", &CLuaBattle::nothing, &luaBattle_);
+	lua.set_function("bw", &CLuaBattle::petUseSkill, &luaBattle_);
+	lua.set_function("bwn", &CLuaBattle::petNothing, &luaBattle_);
+	lua.set_function("bwait", &CLuaBattle::bwait, &luaBattle_);
+	lua.set_function("bend", &CLuaBattle::bend, &luaBattle_);
 }
 
 void CLua::openlibs()

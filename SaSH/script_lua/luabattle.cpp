@@ -152,3 +152,65 @@ long long CLuaBattle::petNothing(sol::this_state s)//pet nothing
 
 	return TRUE;
 }
+
+long long CLuaBattle::bwait(sol::object otimeout, sol::object jump, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (jump.is<long long>() || jump.is<std::string>())
+		lua["_JUMP"] = jump;
+	else
+		lua["_JUMP"] = sol::lua_nil;
+
+	if (injector.worker.isNull())
+		return FALSE;
+
+
+	long long timeout = 5000;
+	if (otimeout.is<long long>())
+		timeout = otimeout.as<long long>();
+
+	injector.sendMessage(kEnableBattleDialog, false, NULL);
+	bool bret = luadebug::waitfor(s, timeout, [&injector]()
+		{
+			if (!injector.worker->getBattleFlag())
+				return true;
+			long long G = injector.worker->getGameStatus();
+			long long W = injector.worker->getWorldStatus();
+
+			return W == 10 && G == 4;
+		});
+
+	if (injector.worker->getBattleFlag())
+	{
+		injector.sendMessage(kEnableBattleDialog, true, NULL);
+	}
+	else
+		bret = false;
+
+	if (bret)
+	{
+		lua["_JUMP"] = sol::lua_nil;
+	}
+
+	return bret;
+}
+
+long long CLuaBattle::bend(sol::this_state s)
+{
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
+		return FALSE;
+
+	long long G = injector.worker->getGameStatus();
+	if (G == 4)
+	{
+		mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
+		injector.worker->setGameStatus(5);
+		injector.worker->isBattleDialogReady.off();
+		return TRUE;
+	}
+	return FALSE;
+}

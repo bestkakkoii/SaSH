@@ -33,14 +33,14 @@ namespace sa
 	constexpr long long MAX_CHARACTER = 2;
 
 	constexpr long long CHAR_NAME_LEN = 16;
-	constexpr long long CHAR_FREENAME_LEN = 32;
+	constexpr long long CHAR_FREENAME_LEN = 12;
 	constexpr long long MAGIC_NAME_LEN = 28;
 	constexpr long long MAGIC_MEMO_LEN = 72;
 	constexpr long long ITEM_NAME_LEN = 28;
 	constexpr long long ITEM_NAME2_LEN = 16;
 	constexpr long long ITEM_MEMO_LEN = 84;
 	constexpr long long PET_NAME_LEN = 16;
-	constexpr long long PET_FREENAME_LEN = 32;
+	constexpr long long PET_FREENAME_LEN = 12;
 	constexpr long long CHAR_FMNAME_LEN = 33;     // 家族名稱
 
 	//人物職業

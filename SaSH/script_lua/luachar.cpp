@@ -28,6 +28,7 @@ long long CLuaChar::rename(std::string sfname, sol::this_state s)
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	QString name = util::toQString(sfname);
@@ -44,6 +45,7 @@ long long CLuaChar::useMagic(long long magicIndex, long long target, sol::this_s
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	injector.worker->useMagic(--magicIndex, target);
@@ -58,6 +60,7 @@ long long CLuaChar::depositGold(long long gold, sol::object oispublic, sol::this
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	injector.worker->depositGold(gold, oispublic.is<bool>() ? oispublic.as<bool>() : false);
@@ -72,6 +75,7 @@ long long CLuaChar::withdrawGold(long long gold, sol::object oispublic, sol::thi
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	injector.worker->withdrawGold(gold, oispublic.is<bool>() ? oispublic.as<bool>() : false);
@@ -86,6 +90,7 @@ long long CLuaChar::dropGold(long long gold, sol::this_state s)
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	injector.worker->dropGold(gold);
@@ -100,6 +105,7 @@ long long CLuaChar::mail(long long cardIndex, std::string stext, long long petIn
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	QString text = util::toQString(stext);
@@ -120,6 +126,7 @@ long long CLuaChar::mail(long long cardIndex, std::string stext, sol::this_state
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	QString text = util::toQString(stext);
@@ -136,6 +143,7 @@ long long CLuaChar::skillUp(long long abilityIndex, long long amount, sol::this_
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	injector.worker->addPoint(--abilityIndex, amount);
@@ -151,6 +159,7 @@ long long CLuaChar::join(sol::this_state s)
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	injector.worker->setTeamState(true);
@@ -165,6 +174,7 @@ long long CLuaChar::leave(sol::this_state s)
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	injector.worker->setTeamState(false);
@@ -179,9 +189,34 @@ long long CLuaChar::kick(long long teammateIndex, sol::this_state s)
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	injector.worker->kickteam(--teammateIndex);
+
+	return TRUE;
+}
+
+long long CLuaChar::doffstone(long long goldamount, sol::this_state s)
+{
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	if (goldamount == -1)
+	{
+		sa::PC pc = injector.worker->getPC();
+		goldamount = pc.gold;
+	}
+
+	if (goldamount <= 0)
+		return FALSE;
+
+	injector.worker->dropGold(goldamount);
 
 	return TRUE;
 }
