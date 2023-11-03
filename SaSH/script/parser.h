@@ -390,10 +390,10 @@ public:
 	inline [[nodiscard]] bool __fastcall isSubScript() const { return isSubScript_; }
 	inline [[nodiscard]] QHash<QString, long long> __fastcall getLabels() { return labels_; }
 	inline [[nodiscard]] Parser::Mode __fastcall getMode() const { return mode_; }
-	inline [[nodiscard]] QSharedPointer<QStringList> __fastcall getGlobalNameListPointer() const { return globalNames_; }
-	inline [[nodiscard]] QSharedPointer<Counter> __fastcall getCounterPointer() const { return counter_; }
-	inline [[nodiscard]] QSharedPointer<QStack<QVariantHash>> __fastcall getLocalVarStackPointer() const { return localVarStack_; }
-	inline [[nodiscard]] QSharedPointer<QStringList> __fastcall getLuaLocalVarStringListPointer() const { return luaLocalVarStringList_; }
+	inline [[nodiscard]] std::shared_ptr<QStringList>& __fastcall getGlobalNameListPointer() { return globalNames_; }
+	inline [[nodiscard]] std::shared_ptr<Counter>& __fastcall getCounterPointer() { return counter_; }
+	inline [[nodiscard]] std::shared_ptr<QStack<QVariantHash>>& __fastcall getLocalVarStackPointer() { return localVarStack_; }
+	inline [[nodiscard]] std::shared_ptr<QStringList>& __fastcall getLuaLocalVarStringListPointer() { return luaLocalVarStringList_; }
 	inline [[nodiscard]] Parser* __fastcall getParent() const { return pparent_; }
 	inline [[nodiscard]] Interpreter* __fastcall getInterpreter() const { return pinterpreter_; }
 
@@ -411,34 +411,29 @@ public:
 
 	inline void __fastcall setInterpreter(Interpreter* interpreter) { pinterpreter_ = interpreter; }
 	inline void __fastcall setParent(Parser* pparent) { pparent_ = pparent; }
-	inline void __fastcall setGlobalNameListPointer(const QSharedPointer<QStringList>& globalNames)
+	inline void __fastcall setGlobalNameListPointer(const std::shared_ptr<QStringList>& globalNames)
 	{
-		if (!globalNames_.isNull())
-			globalNames_.reset();
+		globalNames_.reset();
 		globalNames_ = globalNames;
 	}
-	inline void __fastcall setLuaMachinePointer(const QSharedPointer<CLua>& pLua)
+	inline void __fastcall setLuaMachinePointer(const std::shared_ptr<CLua>& pLua)
 	{
-		if (!pLua_.isNull())
-			pLua_.reset();
+		pLua_.reset();
 		pLua_ = pLua;
 	}
-	inline void __fastcall setCounterPointer(const QSharedPointer<Counter>& counter)
+	inline void __fastcall setCounterPointer(const std::shared_ptr<Counter>& counter)
 	{
-		if (!counter_.isNull())
-			counter_.reset();
+		counter_.reset();
 		counter_ = counter;
 	}
-	inline void __fastcall setLocalVarStackPointer(const QSharedPointer<QStack<QVariantHash>>& localVarStack)
+	inline void __fastcall setLocalVarStackPointer(const std::shared_ptr<QStack<QVariantHash>>& localVarStack)
 	{
-		if (!localVarStack_.isNull())
-			localVarStack_.reset();
+		localVarStack_.reset();
 		localVarStack_ = localVarStack;
 	}
-	inline void __fastcall setLuaLocalVarStringListPointer(const QSharedPointer<QStringList>& luaLocalVarStringList)
+	inline void __fastcall setLuaLocalVarStringListPointer(const std::shared_ptr<QStringList>& luaLocalVarStringList)
 	{
-		if (!luaLocalVarStringList_.isNull())
-			luaLocalVarStringList_.reset();
+		luaLocalVarStringList_.reset();
 		luaLocalVarStringList_ = luaLocalVarStringList;
 	}
 
@@ -589,14 +584,14 @@ private:
 	[[nodiscard]] QVariantList& __fastcall getArgsRef();
 
 public:
-	QSharedPointer<CLua> pLua_ = nullptr;
+	std::shared_ptr<CLua> pLua_ = nullptr;
 
 private:
 	Parser* pparent_ = nullptr;
 	Interpreter* pinterpreter_ = nullptr;
 	Lexer lexer_;
 
-	QHash<unsigned long long, QSharedPointer<util::Timer>> timerMap_;
+	QHash<unsigned long long, std::shared_ptr<util::Timer>> timerMap_;
 
 	QString scriptFileName_;
 	bool isPrivate_ = false;
@@ -607,10 +602,10 @@ private:
 	QList<ForNode> forNodeList_;
 	QList<LuaNode> luaNodeList_;
 
-	QSharedPointer<QStringList> globalNames_ = nullptr;				//全局變量名稱
-	QSharedPointer<QStack<QVariantHash>> localVarStack_ = nullptr;	//局變量棧
-	QSharedPointer<QStringList> luaLocalVarStringList_ = nullptr;		//lua局變量
-	QSharedPointer<Counter> counter_ = nullptr;
+	std::shared_ptr<QStringList> globalNames_ = nullptr;				//全局變量名稱
+	std::shared_ptr<QStack<QVariantHash>> localVarStack_ = nullptr;	//局變量棧
+	std::shared_ptr<QStringList> luaLocalVarStringList_ = nullptr;		//lua局變量
+	std::shared_ptr<Counter> counter_ = nullptr;
 
 	QHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
 	QHash<QString, CommandRegistry> commandRegistry_;		//所有已註冊的腳本命令函數指針

@@ -56,8 +56,13 @@ SelectTargetForm::SelectTargetForm(long long index, long long type, QString* dst
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &SelectTargetForm::onUpdateTeamInfo, Qt::QueuedConnection);
 
+	QRect parentRect = parent->geometry();
+	QPoint centerPos = parentRect.center();
+	QSize thisSize = size();
+	QPoint newPos = centerPos - QPoint(thisSize.width() / 2, thisSize.height() / 2);
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
+	move(newPos);
 
 	const QHash<long long, QString> title_hash = {
 		//afk->battle button

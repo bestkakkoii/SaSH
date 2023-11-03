@@ -57,11 +57,19 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 		ui.listWidget->addItem(item);
 	}
 
-
+	QRect parentRect = parent->geometry();
+	QPoint centerPos = parentRect.center();
+	QSize thisSize = size();
+	QPoint newPos = centerPos - QPoint(thisSize.width() / 2, thisSize.height() / 2);
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.loadSettings();
+	move(newPos);
 }
 
 settingfiledialog::~settingfiledialog()
 {
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.saveSettings();
 }
 
 void settingfiledialog::onLineEditTextChanged(const QString& text)

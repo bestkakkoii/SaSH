@@ -223,8 +223,6 @@ public slots:
 #endif
 
 private:
-	//QSharedPointer<ExceptionHandler> exceptionHandler_ = QSharedPointer<ExceptionHandler>::create();
-
 	std::atomic_bool isInterruptionRequested_ = false;
 	mutable std::shared_mutex rwLock_;
 

@@ -55,7 +55,7 @@ void setHeader(QNetworkRequest* prequest)
 #endif
 
 	prequest->setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35");
-	//prequest->setRawHeader("authority", "www.lovesa.cc");
+	prequest->setRawHeader("authority", "www.lovesa.cc");
 	prequest->setRawHeader("Method", "GET");
 	prequest->setRawHeader("Scheme", "https");
 	//prequest->setRawHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
@@ -64,14 +64,6 @@ void setHeader(QNetworkRequest* prequest)
 	prequest->setRawHeader("accept-language", "zh-TW,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6,zh-CN;q=0.5");
 	prequest->setRawHeader("Cache-Control", "max-age=0");
 	prequest->setRawHeader("DNT", "1");
-	prequest->setRawHeader("Sec-CH-UA", "\"Microsoft Edge\";v=\"107\", \"Chromium\";v=\"107\", \"Not=A?Brand\";v=\"24\"");
-	prequest->setRawHeader("Sec-CH-UA-Mobile", "?0");
-	prequest->setRawHeader("Sec-CH-UA-Platform", "\"Windows\"");
-	prequest->setRawHeader("Sec-Fetch-Dest", "document");
-	prequest->setRawHeader("Sec-Fetch-Mode", "navigate");
-	prequest->setRawHeader("Sec-Fetch-Site", "none");
-	prequest->setRawHeader("Sec-Fetch-User", "?1");
-	prequest->setRawHeader("Upgrade-Insecure-Requests", "1");
 }
 
 //(源文件目錄路徑，目的文件目錄，文件存在是否覆蓋)
@@ -512,7 +504,7 @@ Downloader::Downloader()
 	szDownloadedFileName_ = szFileName.mid(szFileName.lastIndexOf('/') + 1);
 	szTmpDot7zFile_ = rcPath_ + szDownloadedFileName_;// %Temp%/pid/SaSH.7z
 
-	networkManager_.reset(new QNetworkAccessManager(this));
+	networkManager_.reset(q_check_ptr(new QNetworkAccessManager(this)));
 
 	emit progressReset(0);
 }
@@ -717,7 +709,7 @@ bool Downloader::start(Source sourceType, QVariant* pvar)
 	case SaSHServer:
 		url = QUrl(SASH_UPDATE_URL);
 		callback_ = std::bind(&Downloader::overwriteCurrentExecutable, this);
-		progressDialog_ = new ProgressDialog;
+		progressDialog_ = q_check_ptr(new ProgressDialog);
 		connect(progressDialog_, &ProgressDialog::canceled, this, &Downloader::onCanceled);
 		break;
 	case GiteeWiki:

@@ -1096,6 +1096,9 @@ namespace sa
 		QString jigsaw = "";
 
 		//long long 道具類型 = 0;
+		std::string getName() const { return util::toConstData(name); }
+		std::string getName2() const { return util::toConstData(name2); }
+		std::string getMemo() const { return util::toConstData(memo); }
 
 	} ITEM;
 
@@ -1132,8 +1135,7 @@ namespace sa
 		long long helpMode = 0i16;
 		long long pcNameColor = 0;
 		long long transmigration = 0;
-		QString chusheng = "";
-		QString family = "";
+
 		long long familyleader = 0;
 		long long channel = 0;
 		long long quickChannel = 0;
@@ -1170,22 +1172,29 @@ namespace sa
 		QString profession_class_name = "";
 		QString gm_name = "";	// Rog ADD GM識別
 		QString chatRoomNum = "";// ROG ADD 好友頻道
+		QString chusheng = "";
+		QString family = "";
+
+		std::string getName() const { return util::toConstData(name); }
+		std::string getFreeName() const { return util::toConstData(freeName); }
+		std::string getRidePetName() const { return util::toConstData(ridePetName); }
+		std::string getProfessionClassName() const { return util::toConstData(profession_class_name); }
+		std::string getGmName() const { return util::toConstData(gm_name); }
+		std::string getChatRoomNum() const { return util::toConstData(chatRoomNum); }
+		std::string getChusheng() const { return util::toConstData(chusheng); }
+		std::string getFamily() const { return util::toConstData(family); }
+
+		//以下棄用
 		//ITEM item[MAX_ITEM] = {};
 		//ITEM itempool[MAX_ITEM] = {};
 		// 2 -> 慬我方按下確定鍵
 		// 3 -> 僅對方按下確定鍵
 		// 4 -> 雙方皆按下確定鍵
-
 		//ACTION* pActNPC[5];		// 記錄劇場中臨時產生出來的NPC
-
-
 		//long long 道具欄狀態 = 0;
-
 		//long long 簽到標記 = 0;
-
 		//long long 法寶道具狀態 = 0;
 		//long long 道具光環效果 = 0;
-
 	} PC;
 
 	typedef struct tagPET

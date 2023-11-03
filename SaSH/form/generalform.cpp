@@ -14,7 +14,7 @@
 GeneralForm::GeneralForm(long long index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
-	, pAfkForm_(index, nullptr)
+	, pAfkForm_(index, this)
 {
 	ui.setupUi(this);
 	setFont(util::getFont());

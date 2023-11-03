@@ -141,7 +141,7 @@ QScrollBar::handle:pressed:horizontal {
 		QAbstractButton* button = findChild<QAbstractButton*>();
 		if (button)
 		{
-			QVBoxLayout* lay = new QVBoxLayout(button);
+			QVBoxLayout* lay = q_check_ptr(new QVBoxLayout(button));
 			lay->setContentsMargins(0, 0, 0, 0);
 			pCornerLabel = q_check_ptr(new QLabel());
 			__assume(pCornerLabel != nullptr);

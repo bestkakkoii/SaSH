@@ -27,8 +27,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "selectobjectform.h"
 
 AfkForm::AfkForm(long long index, QWidget* parent)
-	: QWidget(parent)
+	: QWidget(nullptr)
 	, Indexer(index)
+	, pparent(parent)
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_StyledBackground);
@@ -301,6 +302,12 @@ void AfkForm::onButtonClicked()
 	if (name == "pushButton_itemheal_normal_select")
 	{
 		fillItem(ui.lineEdit_itemheal_normal, util::kNormalItemHealItemString);
+		return;
+	}
+
+	if (name == "pushButton_itemhealmp_normal_select")
+	{
+		fillItem(ui.lineEdit_itemhealmp_normal, util::kNormalItemHealMpItemString);
 		return;
 	}
 

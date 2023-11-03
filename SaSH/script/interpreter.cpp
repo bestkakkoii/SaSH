@@ -70,8 +70,11 @@ bool Interpreter::doFile(long long beginLine, const QString& fileName, Interpret
 	parser_.setParent(pparser);
 
 	QString content;
-	if (!util::readFile(fileName, &content))
+	bool isPrivate = false;
+	if (!util::readFile(fileName, &content, &isPrivate))
 		return false;
+
+	parser_.setPrivate(isPrivate);
 
 	if (!parser_.loadString(content))
 		return false;
@@ -79,7 +82,7 @@ bool Interpreter::doFile(long long beginLine, const QString& fileName, Interpret
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	bool isPrivate = parser_.isPrivate();
+	isPrivate = parser_.isPrivate();
 	if (!isPrivate && mode == Parser::kSync)
 	{
 		emit signalDispatcher.loadFileToTable(fileName);
@@ -107,7 +110,8 @@ void Interpreter::doString(QString content)
 	parser_.setInterpreter(pParentInterpreter_);
 	parser_.setParent(pParentParser_);
 
-	content.replace("\\r\\n", "\r\n");
+	content.replace("\r\n", "\n");
+	content.replace("\\r\\n", "\n");
 	content.replace("\\n", "\n");
 	content.replace("\\t", "\t");
 	content.replace("\\v", "\v");
@@ -139,8 +143,11 @@ void Interpreter::onRunString()
 void Interpreter::preview(const QString& fileName)
 {
 	QString content;
-	if (!util::readFile(fileName, &content))
+	bool isPrivate = false;
+	if (!util::readFile(fileName, &content, &isPrivate))
 		return;
+
+	parser_.setPrivate(isPrivate);
 
 	if (!parser_.loadString(content))
 		return;
@@ -445,13 +452,6 @@ void Interpreter::proc()
 	subInterpreterList_.clear();
 	subThreadFutureSync_.waitForFinished();
 
-	for (auto& it : subInterpreterList_)
-	{
-		if (it.isNull())
-			continue;
-		it.reset(nullptr);
-	}
-
 	emit finished();
 	emit signalDispatcher.scriptFinished();
 }
@@ -632,7 +632,7 @@ long long Interpreter::run(long long currentIndex, long long currentline, const 
 		QString currentFileName = parser_.getScriptFileName();
 		long long currentLine = parser_.getCurrentLine();
 
-		std::unique_ptr<Interpreter> interpreter(new Interpreter(currentIndex));
+		std::unique_ptr<Interpreter> interpreter(q_check_ptr(new Interpreter(currentIndex)));
 		if (interpreter == nullptr)
 			return Parser::kError;
 
@@ -673,11 +673,10 @@ long long Interpreter::run(long long currentIndex, long long currentline, const 
 	{
 		subThreadFutureSync_.addFuture(QtConcurrent::run([this, beginLine, fileName, varShareMode, asyncMode, currentIndex]()->bool
 			{
-				QSharedPointer<Interpreter> interpreter(QSharedPointer<Interpreter>::create(currentIndex));
-				if (interpreter.isNull())
+				std::unique_ptr<Interpreter> interpreter(q_check_ptr(new Interpreter(currentIndex)));
+				if (nullptr == interpreter)
 					return false;
 
-				subInterpreterList_.append(interpreter);
 				interpreter->parser_.initialize(&parser_);
 				if (interpreter->doFile(beginLine, fileName, this, &parser_, true, asyncMode))
 					return true;
@@ -705,15 +704,14 @@ long long Interpreter::dostr(long long currentIndex, long long currentline, cons
 		return Parser::kArgError + 1ll;
 	}
 
-	QSharedPointer<Interpreter> interpreter(QSharedPointer<Interpreter>::create(currentIndex));
-	if (interpreter.isNull())
+	std::unique_ptr<Interpreter> interpreter(q_check_ptr(new Interpreter(currentIndex)));
+	if (nullptr == interpreter)
 		return Parser::kError;
 
-	subInterpreterList_.append(interpreter);
 	interpreter->setParentParser(&parser_);
 	interpreter->setParentInterpreter(this);
 	interpreter->doString(text);
-
+	subInterpreterList_.append(std::move(interpreter));
 	return Parser::kNoChange;
 }
 

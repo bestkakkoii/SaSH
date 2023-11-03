@@ -37,7 +37,7 @@ void createConsole()
 RPC::RPC(ProtocolType protocolType, QObject* parent)
 	: QObject(parent)
 	, protocolType(protocolType)
-	, server(new QTcpServer(parent))
+	, server(q_check_ptr(new QTcpServer(parent)))
 {
 }
 

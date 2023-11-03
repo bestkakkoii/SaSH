@@ -291,7 +291,10 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 			"getgamestate", "loadsetex", "createch", "delch", "menu", "checkdaily", "button", "join", "leave", "kick", "send",
 			"chname", "chpetname", "doffstone", "dir", "walkpos", "chpet",
 			"bh", "bj", "bp", "bs", "be", "bd", "bi", "bn", "bw", "bwn", "bwait", "bend",
-			"waitpos", "waitmap", "waititem", "waitteam", "waitpet", "waitsay", "waitdlg"
+			"waitpos", "waitmap", "waititem", "waitteam", "waitpet", "waitsay", "waitdlg",
+			"usemagic", "doffpet", "buy", "sell",  "sellpet","useitem", "doffitem",
+			"swapitem", "pickup", "putitem","getitem", "putpet", "getpet", "putstone",  "getstone", "make", "cook", "uequip",
+			"requip", "wequip", "puequip", "pequip","skup", "learn", "trade", "mail",
 		};
 
 		for (const QString& it : tempReplacementList)

@@ -83,6 +83,7 @@ void printStackTrace()
 	}
 }
 
+#if 0
 void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
 	if (type != QtCriticalMsg && type != QtFatalMsg)
@@ -117,8 +118,8 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 		system("pause");
 
 	}
-
 }
+#endif
 
 #if defined _M_X64 || defined _M_IX86
 LPTOP_LEVEL_EXCEPTION_FILTER WINAPI
@@ -262,8 +263,8 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 				.arg(pException->ExceptionRecord->NumberParameters);
 
 			//Open dump folder
-			//QMessageBox::critical(nullptr, "Fatal Error", msg);
-			//ShellExecute(NULL, L"open", L"dump", NULL, NULL, SW_SHOWNORMAL);
+			MessageBoxW(nullptr, msg.toStdWString().c_str(), L"Fatal Error", MB_OK | MB_ICONERROR);
+			ShellExecuteW(nullptr, L"open", L"dump", nullptr, nullptr, SW_SHOWNORMAL);
 
 			for (long long i = 0; i < SASH_MAX_THREAD; ++i)
 			{
@@ -290,7 +291,7 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 				.arg(util::toQString(static_cast<unsigned long long>(pException->ExceptionRecord->ExceptionCode), 16))
 				.arg(pException->ExceptionRecord->NumberParameters);
 			//QMessageBox::warning(nullptr, "Warning", msg);
-			//ShellExecute(NULL, L"open", L"dump", NULL, NULL, SW_SHOWNORMAL);
+			//ShellExecuteW(NULL, L"open", L"dump", NULL, NULL, SW_SHOWNORMAL);
 		}
 	} while (false);
 
@@ -388,9 +389,11 @@ int main(int argc, char* argv[])
 
 	//調試相關設置
 	//qInstallMessageHandler(qtMessageHandler);
-	//SetUnhandledExceptionFilter(MinidumpCallback); //SEH
+#ifndef _DEBUG
+	SetUnhandledExceptionFilter(MinidumpCallback); //SEH
 	//AddVectoredExceptionHandler(1, MinidumpCallback); //VEH
-	//preventSetUnhandledExceptionFilter();
+	preventSetUnhandledExceptionFilter();
+#endif
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
 
 	//#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)

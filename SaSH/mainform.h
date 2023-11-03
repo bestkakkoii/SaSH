@@ -137,7 +137,7 @@ private:
 
 	QSystemTrayIcon trayIcon_ = nullptr;
 
-	QHash<long long, QSharedPointer<Interpreter>> interpreter_hash_;
+	QHash<long long, std::shared_ptr<Interpreter>> interpreter_hash_;
 
 	QAction* hideTrayAction_ = nullptr;
 };

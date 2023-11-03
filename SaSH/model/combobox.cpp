@@ -110,9 +110,12 @@ QScrollBar::handle:pressed:vertical {
 	setStyleSheet(styleStr);
 	setAttribute(Qt::WA_StyledBackground);
 
-	QListView* pview = new QListView(this);
-	pview->setStyleSheet(styleStr);
-	pview->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+	QListView* pview = q_check_ptr(new QListView(this));
+	if (nullptr != pview)
+	{
+		pview->setStyleSheet(styleStr);
+		pview->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+	}
 	setView(pview);
 	view()->move(0, 40);
 	setFixedHeight(19);

@@ -249,7 +249,7 @@ public:
 	unsigned long long scriptThreadId = 0;
 
 	static Server server;//與遊戲TCP通信專用
-	QSharedPointer<Worker> worker;
+	QScopedPointer<Worker> worker;
 
 	Autil autil;
 

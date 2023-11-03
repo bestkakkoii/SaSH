@@ -201,9 +201,6 @@
     <ClCompile Include="update\downloader.cpp">
       <Filter>Source Files\update</Filter>
     </ClCompile>
-    <ClCompile Include="form\replaceform.cpp">
-      <Filter>Source Files\forms\dialog</Filter>
-    </ClCompile>
     <ClCompile Include="model\codeeditor.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
@@ -287,6 +284,12 @@
     </ClCompile>
     <ClCompile Include="net\rpc.cpp">
       <Filter>Source Files\net</Filter>
+    </ClCompile>
+    <ClCompile Include="form\findandreplaceform.cpp">
+      <Filter>Source Files\forms\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="script\crypto.cpp">
+      <Filter>Source Files\script</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -374,9 +377,6 @@
     <QtMoc Include="update\downloader.h">
       <Filter>Source Files\update</Filter>
     </QtMoc>
-    <QtMoc Include="form\replaceform.h">
-      <Filter>Source Files\forms\dialog</Filter>
-    </QtMoc>
     <QtMoc Include="script\parser.h">
       <Filter>Source Files\script</Filter>
     </QtMoc>
@@ -439,6 +439,9 @@
     </QtMoc>
     <QtMoc Include="net\rpc.h">
       <Filter>Source Files\net</Filter>
+    </QtMoc>
+    <QtMoc Include="form\findandreplaceform.h">
+      <Filter>Source Files\forms\dialog</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -507,6 +510,9 @@
     </ClInclude>
     <ClInclude Include="model\safe.h">
       <Filter>Source Files\model</Filter>
+    </ClInclude>
+    <ClInclude Include="script\crypto.h">
+      <Filter>Source Files\script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -583,6 +589,12 @@
       <Filter>Source Files\forms\dialog</Filter>
     </QtUic>
     <QtUic Include="form\settingfiledialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\findandreplaceform.ui">
+      <Filter>Source Files\forms\dialog</Filter>
+    </QtUic>
+    <QtUic Include="form\findandreplaceform.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

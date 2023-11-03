@@ -739,15 +739,11 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 	return FALSE;
 }
 
-long long CLuaMap::findNPC(sol::object p1, sol::object nicknames, long long x, long long y, long long otimeout, sol::object jump, sol::this_state s)
+long long CLuaMap::findNPC(sol::object p1, sol::object nicknames, long long x, long long y, long long otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (jump.is<long long>() || jump.is<std::string>())
-		lua["_JUMP"] = jump;
-	else
-		lua["_JUMP"] = sol::lua_nil;
 
 	if (injector.worker.isNull())
 		return FALSE;
@@ -806,7 +802,6 @@ long long CLuaMap::findNPC(sol::object p1, sol::object nicknames, long long x, l
 	if (findPathProcess(currentIndex, p, 1, 0, timeout, findNpcCallBack, s) && dir != -1)
 	{
 		injector.worker->setCharFaceDirection(dir);
-		lua["_JUMP"] = sol::lua_nil;
 		return TRUE;
 	}
 

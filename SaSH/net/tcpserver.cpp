@@ -111,6 +111,7 @@ long long Worker::getInteger62Token(const QString& src, const QString& delim, lo
 
 void Worker::makeStringFromEscaped(QString& src) const
 {
+	src.replace("\\r\\n", "\n");
 	src.replace("\\n", "\n");
 	src.replace("\\c", ",");
 	src.replace("\\z", "|");
@@ -260,7 +261,7 @@ void Server::clear()
 //異步接收客戶端連入通知
 void Server::incomingConnection(qintptr socketDescriptor)
 {
-	Socket* clientSocket = new Socket(socketDescriptor, this);
+	Socket* clientSocket = q_check_ptr(new Socket(socketDescriptor, this));
 	if (clientSocket == nullptr)
 		return;
 
@@ -334,7 +335,7 @@ void Socket::onReadyRead()
 		init = true;
 		index_ = index;
 		Injector& injector = Injector::getInstance(index);
-		injector.worker.reset(new Worker(index, this, nullptr));
+		injector.worker.reset(q_check_ptr(new Worker(index, this, nullptr)));
 		connect(injector.worker.get(), &Worker::write, this, &Socket::onWrite, Qt::QueuedConnection);
 		qDebug() << "tcp ok";
 		injector.IS_TCP_CONNECTION_OK_TO_USE.on();
@@ -1703,8 +1704,10 @@ void Worker::getCharMaxCarryingCapacity()
 }
 
 //取當前隊伍人數
-long long Worker::getPartySize() const
+long long Worker::getPartySize()
 {
+	updateDatasFromMemory();
+
 	sa::PC pc = getPC();
 	long long count = 0;
 
@@ -1746,7 +1749,13 @@ QString Worker::getChatHistory(long long index)
 	//if (ptr > maxptr)
 		//return "\0";
 
-	return mem::readString(hProcess, ptr, MAX_CHAT_BUFFER, true);
+	QString str = mem::readString(hProcess, ptr, MAX_CHAT_BUFFER, true);
+	if (str.isEmpty())
+	{
+		return chatQueue.values().value(index).second;
+	}
+
+	return str;
 }
 
 //獲取周圍玩家名稱列表
@@ -2294,7 +2303,7 @@ bool Worker::findUnit(const QString& nameSrc, long long type, sa::mapunit_t* pun
 		} while (false);
 	}
 
-	if (modelid != -1)
+	if (modelid != -1 && modelid != 0 && modelid != 9999)
 	{
 		for (const sa::mapunit_t& it : units)
 		{
@@ -2611,6 +2620,11 @@ void Worker::updateItemByMemory()
 
 		items[i].name = mem::readString(hProcess, hModule + sa::kOffsetItemName + i * sa::kItemStructSize, sa::ITEM_NAME_LEN, true, false);
 		makeStringFromEscaped(items[i].name);
+		if (items[i].name.isEmpty())
+		{
+			items.remove(i);
+			continue;
+		}
 
 		items[i].memo = mem::readString(hProcess, hModule + sa::kOffsetItemMemo + i * sa::kItemStructSize, sa::ITEM_MEMO_LEN, true, false);
 		makeStringFromEscaped(items[i].memo);
@@ -2636,6 +2650,7 @@ void Worker::updateItemByMemory()
 			items[i].stack = 1;
 
 		QString damage = mem::readString(hProcess, hModule + sa::kOffsetItemDurability + i * sa::kItemStructSize, 12, true, false);
+		makeStringFromEscaped(damage);
 		damage.remove("%");
 		damage.remove("％");
 		bool ok = false;
@@ -3086,7 +3101,7 @@ void Worker::announce(const QString& msg, long long color)
 		mem::VirtualMemory ptr(hProcess, "", mem::VirtualMemory::kAnsi, true);
 		injector.sendMessage(kSendAnnounce, ptr, color);
 	}
-	chatQueue.enqueue(qMakePair(color, msg));
+	chatQueue.enqueue(qMakePair(color, msg.simplified()));
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.appendChatLog(msg, color);
 }
@@ -6711,7 +6726,7 @@ bool Worker::conditionMatchTarget(QVector<sa::battleobject_t> btobjs, const QStr
 	{
 		//多條條件(包含&&): name && modilid && pos 或 name && pos 或 pos && modelid...
 		QString newIt = it.simplified();
-		newIt.replace(" ", "");
+		newIt.remove(" ");
 		QStringList andList = newIt.split("&&", Qt::SkipEmptyParts);
 		if (andList.isEmpty())
 			continue;
@@ -10964,6 +10979,7 @@ void Worker::lssproto_WN_recv(long long windowtype, long long buttontype, long l
 
 	//第一部分是把按鈕都拆出來
 	QString newText = data.trimmed();
+	newText.replace("\\r\\n", "\n");
 	newText.replace("\\n", "\n");
 	QStringList strList = newText.split("\n", Qt::SkipEmptyParts);
 	if (!strList.isEmpty())
@@ -12783,15 +12799,12 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			}
 		}
 
-#ifndef _CHANNEL_MODIFY
-		getStringToken(message, "|", 2, msg);
-		makeStringFromEscaped(msg);
+		//getStringToken(message, "|", 2, msg);
+		//makeStringFromEscaped(msg);
 #ifdef _TRADETALKWND				//交易新增對話框架
 		TradeTalk(msg);
 #endif
-#endif
 
-#ifdef _CHANNEL_MODIFY
 		QString szToken;
 
 		if (getStringToken(message, "|", 2, szToken) == 0)
@@ -12862,28 +12875,13 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 		}
 		else
 			getStringToken(message, "|", 2, msg);
-#ifdef _TALK_WINDOW
-		if (!g_bTalkWindow)
-#endif
-			//TradeTalk(msg);
-			if (msg == "成立聊天室扣除２００石幣")
-			{
-			}
-#ifdef _FONT_SIZE
-#ifdef _MESSAGE_FRONT_
-		StockChatBufferLineExt(msg - 2, color, fontsize);
-#else
-		StockChatBufferLineExt(msg, color, fontsize);
-#endif
-#else
-#ifdef _MESSAGE_FRONT_
-		StockChatBufferLine(msg - 2, color);
-#else
-		//StockChatBufferLine(msg, color);
-#endif
-#endif
-#else
-#ifdef _TELLCHANNEL		// (不可開)密語頻道
+
+		//TradeTalk(msg);
+		if (msg == "成立聊天室扣除２００石幣")
+		{
+		}
+
+#if 0 //密語頻道
 		char tellName[128] = { "" };
 		char tmpMsg[STR_BUFFER_SIZE + 32];
 		char TK[4];
@@ -12911,18 +12909,16 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			}
 			else StockChatBufferLine(msg, color);
 		}
-#else
-#ifdef _FONT_SIZE
-		StockChatBufferLineExt(msg, color, fontsize);
-#else
-		//StockChatBufferLine(msg, color);
 #endif
-#endif
-#endif
-	}
 
-	chatQueue.enqueue(qMakePair(color, msg));
-	emit signalDispatcher.appendChatLog(msg, color);
+		chatQueue.enqueue(qMakePair(color, msg.simplified()));
+
+		emit signalDispatcher.appendChatLog(msg, color);
+	}
+	else
+	{
+		qDebug() << "lssproto_TK_recv: unknown command" << message;
+	}
 }
 
 //地圖數據更新，重新繪製地圖

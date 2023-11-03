@@ -465,7 +465,7 @@ long long Interpreter::swapitem(long long currentIndex, long long currentLine, c
 	return Parser::kNoChange;
 }
 
-long long Interpreter::droppet(long long currentIndex, long long currentLine, const TokenMap& TK)
+long long Interpreter::make(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -475,25 +475,45 @@ long long Interpreter::droppet(long long currentIndex, long long currentLine, co
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	long long petIndex = -1;
-	checkInteger(TK, 1, &petIndex);
-	petIndex -= 1;
+	QString ingreName;
+	checkString(TK, 1, &ingreName);
 
-	QString petName;
-	checkString(TK, 1, &petName);
+	QStringList ingreNameList = ingreName.split(util::rexOR, Qt::SkipEmptyParts);
+	if (ingreNameList.isEmpty())
+		return Parser::kArgError + 1ll;
 
-	if (petIndex >= 0)
-		injector.worker->dropPet(petIndex);
-	else if (!petName.isEmpty())
-	{
-		QVector<long long> v;
-		if (injector.worker->getPetIndexsByName(petName, &v))
-		{
-			for (const long long it : v)
-				injector.worker->dropPet(it);
-		}
-	}
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
+	injector.worker->craft(sa::kCraftItem, ingreNameList);
+
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return Parser::kNoChange;
+}
+
+long long Interpreter::cook(long long currentIndex, long long currentLine, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (injector.worker.isNull())
+		return Parser::kServerNotReady;
+
+	checkOnlineThenWait();
+	checkBattleThenWait();
+
+	QString ingreName;
+	checkString(TK, 1, &ingreName);
+
+	QStringList ingreNameList = ingreName.split(util::rexOR, Qt::SkipEmptyParts);
+	if (ingreNameList.isEmpty())
+		return Parser::kArgError + 1ll;
+
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+
+	injector.worker->craft(sa::kCraftFood, ingreNameList);
+
+	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 	return Parser::kNoChange;
 }
 
@@ -615,14 +635,10 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 	}
 
 	//long long petIndex = -1;
-	long long min = 1, max = sa::MAX_PET;
+	long long min = 0, max = sa::MAX_PET;
 	if (!checkRange(TK, 1, &min, &max))
 	{
-		min = 0;
-		checkInteger(TK, 1, &min);
-		if (min <= 0 || min > sa::MAX_PET)
-			return Parser::kArgError + 1ll;
-		max = min;
+		return Parser::kArgError + 1ll;
 	}
 
 	for (long long petIndex = min; petIndex <= max; ++petIndex)
@@ -633,10 +649,10 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 		if (injector.worker.isNull())
 			return Parser::kServerNotReady;
 
-		if (petIndex - 1 < 0 || petIndex - 1 >= sa::MAX_PET)
+		if (petIndex < 0 || petIndex >= sa::MAX_PET)
 			return Parser::kArgError + 1ll;
 
-		sa::PET pet = injector.worker->getPet(petIndex - 1);
+		sa::PET pet = injector.worker->getPet(petIndex);
 
 		if (!pet.valid)
 			continue;
@@ -652,29 +668,23 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 			{
 			case 263:
 			{
-				//injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
 				injector.worker->press(sa::BUTTON_YES, 263, unit.id);
-				//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get() });
 				bret = true;
 				break;
 			}
 			case 262:
 			{
-				//injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-				injector.worker->press(petIndex, 262, unit.id);
+				injector.worker->press(petIndex + 1, 262, unit.id);
 				injector.worker->press(sa::BUTTON_YES, 263, unit.id);
 				bret = true;
-				//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get() });
 				break;
 			}
 			default:
 			{
-				//injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
 				injector.worker->press(3, 261, unit.id);
-				injector.worker->press(petIndex, 262, unit.id);
+				injector.worker->press(petIndex + 1, 262, unit.id);
 				injector.worker->press(sa::BUTTON_YES, 263, unit.id);
 				bret = true;
-				//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get() });
 				break;
 			}
 			}
@@ -686,185 +696,6 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 		}
 	}
 
-
-	return Parser::kNoChange;
-}
-
-long long Interpreter::make(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	QString ingreName;
-	checkString(TK, 1, &ingreName);
-
-	QStringList ingreNameList = ingreName.split(util::rexOR, Qt::SkipEmptyParts);
-	if (ingreNameList.isEmpty())
-		return Parser::kArgError + 1ll;
-
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-
-	injector.worker->craft(sa::kCraftItem, ingreNameList);
-
-	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-	return Parser::kNoChange;
-}
-
-long long Interpreter::cook(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	QString ingreName;
-	checkString(TK, 1, &ingreName);
-
-	QStringList ingreNameList = ingreName.split(util::rexOR, Qt::SkipEmptyParts);
-	if (ingreNameList.isEmpty())
-		return Parser::kArgError + 1ll;
-
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-
-	injector.worker->craft(sa::kCraftFood, ingreNameList);
-
-	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-	return Parser::kNoChange;
-}
-
-long long Interpreter::learn(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	long long petIndex = 0;
-	checkInteger(TK, 1, &petIndex);
-	if (petIndex <= 0 || petIndex >= 6)
-		return Parser::kArgError + 1ll;
-	--petIndex;
-
-	long long skillIndex = 0;
-	checkInteger(TK, 2, &skillIndex);
-	if (skillIndex <= 0)
-		return Parser::kArgError + 2ll;
-	--skillIndex;
-
-
-	long long spot = 0;
-	checkInteger(TK, 3, &spot);
-	if (spot <= 0 || spot > static_cast<long long>(sa::MAX_SKILL + 1))
-		return Parser::kArgError + 3ll;
-	--spot;
-
-	QString npcName;
-	checkString(TK, 4, &npcName);
-
-
-	long long dialogid = -1;
-	checkInteger(TK, 5, &dialogid);
-
-	if (npcName.isEmpty())
-		injector.worker->learn(skillIndex, petIndex, spot);
-	else
-	{
-		sa::mapunit_t unit;
-		if (injector.worker->findUnit(npcName, sa::OBJ_NPC, &unit))
-		{
-			injector.worker->learn(skillIndex, petIndex, spot, dialogid, unit.id);
-		}
-	}
-
-	return Parser::kNoChange;
-}
-
-long long Interpreter::usemagic(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	QString magicName;
-	checkString(TK, 1, &magicName);
-	if (magicName.isEmpty())
-		return Parser::kArgError + 1ll;
-
-	long long target = -1;
-	checkInteger(TK, 2, &target);
-	if (target < 0)
-	{
-		QString targetTypeName;
-		checkString(TK, 2, &targetTypeName);
-		if (targetTypeName.isEmpty())
-		{
-			target = 0;
-
-		}
-		else
-		{
-			QHash<QString, long long> hash = {
-				{ "自己", 0},
-				{ "戰寵", injector.worker->getPC().battlePetNo},
-				{ "騎寵", injector.worker->getPC().ridePetNo},
-				{ "隊長", 6},
-
-				{ "自己", 0},
-				{ "战宠", injector.worker->getPC().battlePetNo},
-				{ "骑宠", injector.worker->getPC().ridePetNo},
-				{ "队长", 6},
-
-				{ "self", 0},
-				{ "battlepet", injector.worker->getPC().battlePetNo},
-				{ "ride", injector.worker->getPC().ridePetNo},
-				{ "leader", 6},
-			};
-
-			for (long long i = 0; i < sa::MAX_PET; ++i)
-			{
-				hash.insert("寵物" + util::toQString(i + 1), i + 1);
-				hash.insert("宠物" + util::toQString(i + 1), i + 1);
-				hash.insert("pet" + util::toQString(i + 1), i + 1);
-			}
-
-			for (long long i = 1; i < sa::MAX_PARTY; ++i)
-			{
-				hash.insert("隊員" + util::toQString(i), i + 1 + sa::MAX_PET);
-				hash.insert("队员" + util::toQString(i), i + 1 + sa::MAX_PET);
-				hash.insert("teammate" + util::toQString(i), i + 1 + sa::MAX_PET);
-			}
-
-			if (!hash.contains(targetTypeName))
-				return Parser::kArgError + 2ll;
-
-			target = hash.value(targetTypeName, -1);
-			if (target < 0)
-				return Parser::kArgError + 2ll;
-		}
-	}
-
-	long long magicIndex = injector.worker->getMagicIndexByName(magicName);
-	if (magicIndex < 0)
-		return Parser::kArgError + 1ll;
-
-	injector.worker->useMagic(magicIndex, target);
 
 	return Parser::kNoChange;
 }
@@ -899,6 +730,38 @@ long long Interpreter::pickitem(long long currentIndex, long long currentLine, c
 			return Parser::kArgError + 1ll;
 		injector.worker->setCharFaceDirection(type);
 		injector.worker->pickItem(type);
+	}
+
+	return Parser::kNoChange;
+}
+
+long long Interpreter::droppet(long long currentIndex, long long currentLine, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (injector.worker.isNull())
+		return Parser::kServerNotReady;
+
+	checkOnlineThenWait();
+	checkBattleThenWait();
+
+	long long petIndex = -1;
+	checkInteger(TK, 1, &petIndex);
+	petIndex -= 1;
+
+	QString petName;
+	checkString(TK, 1, &petName);
+
+	if (petIndex >= 0)
+		injector.worker->dropPet(petIndex);
+	else if (!petName.isEmpty())
+	{
+		QVector<long long> v;
+		if (injector.worker->getPetIndexsByName(petName, &v))
+		{
+			for (const long long it : v)
+				injector.worker->dropPet(it);
+		}
 	}
 
 	return Parser::kNoChange;
@@ -965,6 +828,7 @@ long long Interpreter::recordequip(long long currentIndex, long long currentLine
 
 	checkOnlineThenWait();
 
+	injector.worker->updateItemByMemory();
 	QHash<long long, sa::ITEM> items = injector.worker->getItems();
 	QHash<long long, sa::ITEM> recordedItems = recordedEquip_.value(currentIndex);
 	for (long long i = 0; i < sa::CHAR_EQUIPPLACENUM; ++i)
@@ -1287,8 +1151,7 @@ long long Interpreter::deposititem(long long currentIndex, long long currentLine
 	checkBattleThenWait();
 
 	long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM - 1);
-	if (!checkRange(TK, 1, &min, &max))
-		return Parser::kArgError + 1ll;
+	checkRange(TK, 1, &min, &max);
 
 	min += sa::CHAR_EQUIPPLACENUM;
 	max += sa::CHAR_EQUIPPLACENUM;
@@ -1298,7 +1161,7 @@ long long Interpreter::deposititem(long long currentIndex, long long currentLine
 
 	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
-	if (!itemName.isEmpty() && TK.value(2).type != TK_FUZZY)
+	if (!itemName.isEmpty())
 	{
 		QStringList itemNames = itemName.split(util::rexOR, Qt::SkipEmptyParts);
 		if (itemNames.isEmpty())
@@ -1308,9 +1171,7 @@ long long Interpreter::deposititem(long long currentIndex, long long currentLine
 		for (const QString& name : itemNames)
 		{
 			QVector<long long> v;
-			if (!injector.worker->getItemIndexsByName(name, "", &v, sa::CHAR_EQUIPPLACENUM))
-				return Parser::kArgError;
-			else
+			if (injector.worker->getItemIndexsByName(name, "", &v, sa::CHAR_EQUIPPLACENUM))
 				allv.append(v);
 		}
 
@@ -1319,21 +1180,17 @@ long long Interpreter::deposititem(long long currentIndex, long long currentLine
 		allv.erase(iter, allv.end());
 
 		QVector<long long> v;
-		for (const long long it : allv)
+		for (const long long i : allv)
 		{
-			if (it < min || it > max)
+			if (i < min || i > max)
 				continue;
 
-			//injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-			injector.worker->depositItem(it);
-			//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get() });
-			//injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-			//injector.worker->press(1);
-			//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get() });
+			injector.worker->depositItem(i);
 		}
 	}
 	else
 	{
+		injector.worker->updateItemByMemory();
 		QHash<long long, sa::ITEM> items = injector.worker->getItems();
 		for (long long i = sa::CHAR_EQUIPPLACENUM; i < sa::MAX_ITEM; ++i)
 		{
@@ -1557,52 +1414,6 @@ long long Interpreter::withdrawitem(long long currentIndex, long long currentLin
 	return Parser::kNoChange;
 }
 
-long long Interpreter::addpoint(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	QString pointName;
-	checkString(TK, 1, &pointName);
-	if (pointName.isEmpty())
-		return Parser::kArgError + 1ll;
-
-	static const QHash<QString, long long> hash = {
-		{ "體力", 0},
-		{ "腕力", 1},
-		{ "耐力", 2},
-		{ "速度", 3},
-
-		{ "体力", 0},
-		{ "腕力", 1},
-		{ "耐力", 2},
-		{ "速度", 3},
-
-		{ "vit", 0},
-		{ "str", 1},
-		{ "tgh", 2},
-		{ "dex", 3},
-	};
-
-	long long point = hash.value(pointName.toLower(), -1);
-	if (point == -1)
-		return Parser::kArgError + 1ll;
-
-	long long max = 0;
-	checkInteger(TK, 2, &max);
-	if (max <= 0)
-		return Parser::kArgError + 2ll;
-
-	injector.worker->addPoint(point, max);
-
-	return Parser::kNoChange;
-}
-
 long long Interpreter::trade(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -1769,6 +1580,182 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 		{
 			return !injector.worker->IS_TRADING.get();
 		});
+
+	return Parser::kNoChange;
+}
+
+
+long long Interpreter::learn(long long currentIndex, long long currentLine, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (injector.worker.isNull())
+		return Parser::kServerNotReady;
+
+	checkOnlineThenWait();
+	checkBattleThenWait();
+
+	long long petIndex = 0;
+	checkInteger(TK, 1, &petIndex);
+	if (petIndex <= 0 || petIndex >= 6)
+		return Parser::kArgError + 1ll;
+	--petIndex;
+
+	long long skillIndex = 0;
+	checkInteger(TK, 2, &skillIndex);
+	if (skillIndex <= 0)
+		return Parser::kArgError + 2ll;
+	--skillIndex;
+
+
+	long long spot = 0;
+	checkInteger(TK, 3, &spot);
+	if (spot <= 0 || spot > static_cast<long long>(sa::MAX_SKILL + 1))
+		return Parser::kArgError + 3ll;
+	--spot;
+
+	QString npcName;
+	checkString(TK, 4, &npcName);
+
+
+	long long dialogid = -1;
+	checkInteger(TK, 5, &dialogid);
+
+	if (npcName.isEmpty())
+		injector.worker->learn(skillIndex, petIndex, spot);
+	else
+	{
+		sa::mapunit_t unit;
+		if (injector.worker->findUnit(npcName, sa::OBJ_NPC, &unit))
+		{
+			injector.worker->learn(skillIndex, petIndex, spot, dialogid, unit.id);
+		}
+	}
+
+	return Parser::kNoChange;
+}
+
+
+long long Interpreter::usemagic(long long currentIndex, long long currentLine, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (injector.worker.isNull())
+		return Parser::kServerNotReady;
+
+	checkOnlineThenWait();
+	checkBattleThenWait();
+
+	QString magicName;
+	checkString(TK, 1, &magicName);
+	if (magicName.isEmpty())
+		return Parser::kArgError + 1ll;
+
+	long long target = -1;
+	checkInteger(TK, 2, &target);
+	if (target < 0)
+	{
+		QString targetTypeName;
+		checkString(TK, 2, &targetTypeName);
+		if (targetTypeName.isEmpty())
+		{
+			target = 0;
+
+		}
+		else
+		{
+			QHash<QString, long long> hash = {
+				{ "自己", 0},
+				{ "戰寵", injector.worker->getPC().battlePetNo},
+				{ "騎寵", injector.worker->getPC().ridePetNo},
+				{ "隊長", 6},
+
+				{ "自己", 0},
+				{ "战宠", injector.worker->getPC().battlePetNo},
+				{ "骑宠", injector.worker->getPC().ridePetNo},
+				{ "队长", 6},
+
+				{ "self", 0},
+				{ "battlepet", injector.worker->getPC().battlePetNo},
+				{ "ride", injector.worker->getPC().ridePetNo},
+				{ "leader", 6},
+			};
+
+			for (long long i = 0; i < sa::MAX_PET; ++i)
+			{
+				hash.insert("寵物" + util::toQString(i + 1), i + 1);
+				hash.insert("宠物" + util::toQString(i + 1), i + 1);
+				hash.insert("pet" + util::toQString(i + 1), i + 1);
+			}
+
+			for (long long i = 1; i < sa::MAX_PARTY; ++i)
+			{
+				hash.insert("隊員" + util::toQString(i), i + 1 + sa::MAX_PET);
+				hash.insert("队员" + util::toQString(i), i + 1 + sa::MAX_PET);
+				hash.insert("teammate" + util::toQString(i), i + 1 + sa::MAX_PET);
+			}
+
+			if (!hash.contains(targetTypeName))
+				return Parser::kArgError + 2ll;
+
+			target = hash.value(targetTypeName, -1);
+			if (target < 0)
+				return Parser::kArgError + 2ll;
+		}
+	}
+
+	long long magicIndex = injector.worker->getMagicIndexByName(magicName);
+	if (magicIndex < 0)
+		return Parser::kArgError + 1ll;
+
+	injector.worker->useMagic(magicIndex, target);
+
+	return Parser::kNoChange;
+}
+
+
+long long Interpreter::addpoint(long long currentIndex, long long currentLine, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (injector.worker.isNull())
+		return Parser::kServerNotReady;
+
+	checkOnlineThenWait();
+	checkBattleThenWait();
+
+	QString pointName;
+	checkString(TK, 1, &pointName);
+	if (pointName.isEmpty())
+		return Parser::kArgError + 1ll;
+
+	static const QHash<QString, long long> hash = {
+		{ "體力", 0},
+		{ "腕力", 1},
+		{ "耐力", 2},
+		{ "速度", 3},
+
+		{ "体力", 0},
+		{ "腕力", 1},
+		{ "耐力", 2},
+		{ "速度", 3},
+
+		{ "vit", 0},
+		{ "str", 1},
+		{ "tgh", 2},
+		{ "dex", 3},
+	};
+
+	long long point = hash.value(pointName.toLower(), -1);
+	if (point == -1)
+		return Parser::kArgError + 1ll;
+
+	long long max = 0;
+	checkInteger(TK, 2, &max);
+	if (max <= 0)
+		return Parser::kArgError + 2ll;
+
+	injector.worker->addPoint(point, max);
 
 	return Parser::kNoChange;
 }

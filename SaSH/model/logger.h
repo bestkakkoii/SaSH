@@ -207,7 +207,7 @@ private:
 			if (logTextList.size() > 1)
 				newLogText.replace("%(line)", logTextList.value(1));
 			else
-				newLogText.replace("%(line)", "");
+				newLogText.remove("%(line)");
 		}
 		else
 		{

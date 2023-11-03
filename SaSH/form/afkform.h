@@ -67,4 +67,5 @@ private:
 
 private:
 	Ui::AfkFormClass ui;
+	QWidget* pparent = nullptr;
 };

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <style>.canvas{fill: none; opacity: 0;}.light-defaultgrey-10{fill: #333333; opacity: 1;}.light-defaultgrey{fill: #707070; opacity: 1;}.white{fill: #fff;}</style>
+  </defs>
+  <title>IconLightCheckBoxChecked</title>
+  <g id="canvas">
+    <path class="canvas" d="M16,16H0V0H16Z" />
+  </g>
+  <g id="level-1">
+    <path class="light-defaultgrey-10" d="M14.5,1.5v13H1.5V1.5Z" />
+    <path class="light-defaultgrey" d="M14.5,1H1.5L1,1.5v13l.5.5h13l.5-.5V1.5ZM14,14H2V2H14Z" />
+    <path class="white" d="M12.854,5.354l-6,6H6.146l-3-3,.708-.708L6.5,10.293l5.646-5.647Z" />
+  </g>
+</svg>

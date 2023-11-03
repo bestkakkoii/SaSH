@@ -52,8 +52,13 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 		connect(button, &QPushButton::clicked, this, &SelectObjectForm::onButtonClicked, Qt::QueuedConnection);
 	}
 
+	QRect parentRect = parent->geometry();
+	QPoint centerPos = parentRect.center();
+	QSize thisSize = size();
+	QPoint newPos = centerPos - QPoint(thisSize.width() / 2, thisSize.height() / 2);
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
+	move(newPos);
 
 	static const QHash<TitleType, QString> title_hash = {
 	{ kAutoDropItem, tr("auto drop item") },//自動丟棄
@@ -174,11 +179,11 @@ void SelectObjectForm::deleteItem()
 void SelectObjectForm::appendItem()
 {
 	QString currentText = ui.comboBox->currentText().simplified();
-	currentText.replace(" ", "");
+	currentText.remove(" ");
 	if (currentText.isEmpty())
 		return;
 
-	currentText.replace(" ", "");
+	currentText.remove(" ");
 
 	std::unique_ptr<QListWidgetItem> newItem(q_check_ptr(new QListWidgetItem(currentText)));
 	if (newItem == nullptr)

@@ -251,8 +251,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kRunScript:
 	{
 		long long id = msg->wParam;
-		QSharedPointer<Interpreter> interpreter(QSharedPointer<Interpreter>::create(id));
-		if (interpreter.isNull())
+		std::unique_ptr<Interpreter> interpreter(new Interpreter(id));
+		if (nullptr == interpreter)
 		{
 			updateStatusText(tr("server is off"));
 			return true;
@@ -273,14 +273,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 		}
 
-		interpreter_hash_.insert(id, interpreter);
-
 		QString script = util::toQString(utf8str);
 		connect(interpreter.get(), &Interpreter::finished, this, [this, id]()
 			{
 				interpreter_hash_.remove(id);
 				updateStatusText();
 			});
+
+		interpreter_hash_.insert(id, std::move(interpreter));
 
 		++interfaceCount_;
 		updateStatusText();
@@ -291,8 +291,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kStopScript:
 	{
 		long long id = msg->wParam;
-		QSharedPointer<Interpreter> interpreter = interpreter_hash_.value(id, nullptr);
-		if (interpreter.isNull())
+		Interpreter* interpreter = interpreter_hash_.value(id).get();
+		if (nullptr == interpreter)
 		{
 			updateStatusText(tr("server is off"));
 			return true;
@@ -1039,7 +1039,7 @@ MainForm* MainForm::createNewWindow(long long idToAllocate, long long* pId)
 			}
 		}
 
-		MainForm* pMainForm = new MainForm(uniqueId, nullptr);
+		MainForm* pMainForm = q_check_ptr(new MainForm(uniqueId, nullptr));
 		if (pMainForm == nullptr)
 			break;
 

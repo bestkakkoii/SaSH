@@ -150,8 +150,9 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 
 	ui.label_icons->setText(R"(<img alt="LOGO" src=":image/ico.png" width="50" height="50" style="border-radius: 50%;" />)");
 
-	QGraphicsScene* scene = new QGraphicsScene(this);
-	ui.graphicsView_webicon->setScene(scene);
+	QGraphicsScene* scene = q_check_ptr(new QGraphicsScene(this));
+	if (nullptr != scene)
+		ui.graphicsView_webicon->setScene(scene);
 
 	ClickableSvgItem* item1 = q_check_ptr(new ClickableSvgItem(":/image/icon_cplusplus.svg", ""));
 	ClickableSvgItem* item2 = q_check_ptr(new ClickableSvgItem(":/image/icon_qt.svg", ""));

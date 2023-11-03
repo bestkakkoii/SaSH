@@ -64,5 +64,9 @@
         <file>image/icon_txt.svg</file>
         <file>image/icon_directory.svg</file>
         <file>image/icon_uncheck_hover.svg</file>
+        <file>image/icon_unchecked_dark.svg</file>
+        <file>image/icon_checked_dark.svg</file>
+        <file>image/icon_unchecked_dark_hover.svg</file>
+        <file>image/icon_checked_dark_hover.svg</file>
     </qresource>
 </RCC>

@@ -132,6 +132,11 @@ namespace luadebug
 	void __fastcall showErrorMsg(const sol::this_state& s, long long level, const QString& data);
 }
 
+namespace luatool
+{
+	bool checkRange(sol::object o, long long& min, long long& max, QVector<long long>* pindexs);
+}
+
 class CLuaTest
 {
 public:
@@ -196,31 +201,41 @@ public:
 	long long input(const std::string& str, long long unitid, long long dialogid, sol::this_state s);//ok
 
 
-	long long waitpos(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::this_state s);
-	long long waitmap(sol::object p1, sol::object otimeout, sol::object jump, sol::this_state s);
-	long long waititem(sol::object oname, sol::object omemo, sol::object otimeout, sol::object jump, sol::this_state s);
-	long long waitteam(sol::object otimeout, sol::object jump, sol::this_state s);
-	long long waitpet(std::string name, sol::object otimeout, sol::object jump, sol::this_state s);
-	long long waitdlg(sol::object p1, sol::object otimeout, sol::object jump, sol::this_state s);
-	long long waitsay(std::string sstr, sol::object otimeout, sol::object jump, sol::this_state s);
+	bool waitpos(sol::object p1, sol::object p2, sol::object p3, sol::this_state s);
+	bool waitmap(sol::object p1, sol::object otimeout, sol::this_state s);
+	bool waititem(sol::object oname, sol::object omemo, sol::object otimeout, sol::this_state s);
+	bool waitteam(sol::object otimeout, sol::this_state s);
+	bool waitpet(std::string name, sol::object otimeout, sol::this_state s);
+	bool waitdlg(sol::object p1, sol::object otimeout, sol::this_state s);
+	bool waitsay(std::string sstr, sol::object otimeout, sol::this_state s);
 };
 
 class CLuaItem
 {
 public:
 	CLuaItem() = default;
+	CLuaItem(long long index) : index_(index) {}
 	~CLuaItem() = default;
 
-	long long use(long long itemIndex, long long target, sol::this_state s);
-	long long drop(long long itemIndex, sol::this_state s);
-	long long pick(long long dir, sol::this_state s);
-	long long swap(long long from, long long to, sol::this_state s);
-	long long craft(long long type, sol::table ingreList, sol::this_state s);
-	long long buy(long long productIndex, long long amount, long long unitid, long long dialogid, sol::this_state s);
-	long long sell(long long itemIndex, long long unitid, long long dialogid, sol::this_state s);
+	sa::ITEM& operator[](long long index);
 
-	long long deposit(long long itemIndex, long long unitid, long long dialogid, sol::this_state s);
-	long long withdraw(long long itemIndex, long long unitid, long long dialogid, sol::this_state s);
+	void insertItem(long long index, const sa::ITEM& item) { items_.insert(index, item); }
+
+	long long getSpace();
+	bool getIsFull();
+
+public:
+	long long count(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s);
+	long long indexof(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s);
+	sol::object find(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s);
+
+public:
+	long long space = 0;
+	bool isfull = false;
+
+private:
+	QHash<long long, sa::ITEM> items_;
+	long long index_ = -1;
 };
 
 class CLuaTrade
@@ -288,7 +303,7 @@ public:
 	long long teleport(sol::this_state s);
 	long long findPath(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object ofunction, sol::object jump, sol::this_state s);
 	long long downLoad(sol::object floor, sol::this_state s);
-	long long findNPC(sol::object, sol::object, long long x, long long y, long long otimeout, sol::object jump, sol::this_state s);
+	long long findNPC(sol::object, sol::object, long long x, long long y, long long otimeout, sol::this_state s);
 };
 
 class CLuaBattle
@@ -362,7 +377,7 @@ private:
 	bool isHookEnabled_ = true;
 	safe::Flag isRunning_ = false;
 
-private:
+public:
 	CLuaSystem luaSystem_;
 	CLuaItem luaItem_;
 	CLuaChar luaChar_;

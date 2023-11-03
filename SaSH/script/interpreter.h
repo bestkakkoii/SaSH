@@ -88,6 +88,11 @@ private: //註冊給Parser的函數
 	long long run(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long dostr(long long currentIndex, long long currentLine, const TokenMap& TK);
 
+	long long addpoint(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long learn(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long usemagic(long long currentIndex, long long currentLine, const TokenMap& TK);
+	long long mail(long long currentIndex, long long currentLine, const TokenMap& TK);
+
 	//action
 	long long useitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long dropitem(long long currentIndex, long long currentLine, const TokenMap& TK);
@@ -98,12 +103,10 @@ private: //註冊給Parser的函數
 	long long sellpet(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long make(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long cook(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long usemagic(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long pickitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long depositgold(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long withdrawgold(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long addpoint(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long learn(long long currentIndex, long long currentLine, const TokenMap& TK);
+
 	long long trade(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	long long recordequip(long long currentIndex, long long currentLine, const TokenMap& TK);
@@ -116,8 +119,6 @@ private: //註冊給Parser的函數
 	long long deposititem(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long withdrawpet(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long withdrawitem(long long currentIndex, long long currentLine, const TokenMap& TK);
-
-	long long mail(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 private:
 	enum
@@ -135,6 +136,6 @@ private:
 
 	safe::Flag isRunning_ = false;
 	ParserCallBack pCallback = nullptr;
-	QList<QSharedPointer<Interpreter>> subInterpreterList_;
+	QList<std::shared_ptr<Interpreter>> subInterpreterList_;
 	QFutureSynchronizer<bool> subThreadFutureSync_;
 };

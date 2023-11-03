@@ -32,8 +32,8 @@ ItemInfoForm::ItemInfoForm(long long index, QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
-	ui.tableWidget_equip->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-	ui.tableWidget_item->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+	ui.tableWidget_equip->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+	ui.tableWidget_item->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 	ui.tableWidget_equip->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	ui.tableWidget_item->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	ui.tableWidget_equip->horizontalHeader()->setStretchLastSection(false);

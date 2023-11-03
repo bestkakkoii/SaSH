@@ -14,7 +14,7 @@
    <string>ScriptEditor</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QMainWindow{
+   <string notr="true">QWidget{
     color: rgb(250, 250, 250);
     background-color: rgb(31, 31, 31);
 }
@@ -80,7 +80,8 @@ QMenuBar::item {
 }
 
 QMenuBar::item:selected{
-border:1px solid rgb(112,112,112);background-color:rgb(61,61,61);color:rgb(250,250,250);}
+    border:1px solid rgb(112,112,112);background-color:rgb(61,61,61);color:rgb(250,250,250);
+}
 
 QMenu{background-color:rgb(46, 46, 46); padding:5px; border: 1px solid rgb(66,66,66);}
 QMenu::item{color:rgb(214,214,214);padding-left:8px;padding-top:7px;padding-bottom:8px;padding-right:10px;background-color:rgb(46, 46, 46);}
@@ -451,8 +452,17 @@ QComboBox {
     background:#383838;
 }
 
-QComboBox::hover {
+QComboBox:hover {
     border: 1px solid #424242;   /* 边框 */
+    border-radius: 0px;   /* 圆角 */
+    /*padding: 1px 18px 1px 3px;    字体填衬 */
+    color: rgb(250,250,250);
+    /*font: normal normal 15px &quot;Microsoft YaHei&quot;*/;
+    background:#3D3D3D;
+}
+
+QComboBox:selected {
+    border: 1px solid #999999;   /* 边框 */
     border-radius: 0px;   /* 圆角 */
     /*padding: 1px 18px 1px 3px;    字体填衬 */
     color: rgb(250,250,250);
@@ -540,6 +550,7 @@ QComboBox:!editable {
 /* 设置为可编辑editable时，点击整个QComboBox的样式 */
 QComboBox:editable:on {
     background:#383838;
+    border: 1px solid #999999;   /* 边框 */
 }
  
 /* 设置为非编辑!editable时，点击整个QComboBox的样式 */
@@ -583,107 +594,147 @@ QComboBox::drop-down {
     border-top-right-radius: 0px;   /* 下拉框的右上边界线的圆角半径（应和整个QComboBox右上边界线的圆角半径一致） */
     border-bottom-right-radius: 0px;   /* 同上 */
 }
-　/* 越过下拉框样式 */
- 
-　QComboBox::drop-down:hover {
- 
-　　　background:#3D3D3D;
- 
-　}
-/* 下拉箭头样式 */ QComboBox::down-arrow {
- width: 15px; /* 下拉箭头的宽度（建议与下拉框drop-down的宽度一致） */ 
-background: transparent; /* 下拉箭头的的背景色 */ 
-padding: 0px 0px 0px 0px; /* 上内边距、右内边距、下内边距、左内边距 */ 
-image: url(:/image/icon_down_arrow.png);
+
+/* 越过下拉框样式 */
+QComboBox::drop-down:hover {
+    background:#3D3D3D;
+}
+
+/* 下拉箭头样式 */ 
+QComboBox::down-arrow {
+    width: 15px; /* 下拉箭头的宽度（建议与下拉框drop-down的宽度一致） */ 
+    background: transparent; /* 下拉箭头的的背景色 */ 
+    padding: 0px 0px 0px 0px; /* 上内边距、右内边距、下内边距、左内边距 */ 
+    image: url(:/image/icon_down_arrow.png);
 } 
 
 /* 点击下拉箭头 */
- QComboBox::down-arrow:on {
-	image: url(:/image/icon_up_arrow.png);
+QComboBox::down-arrow:on {
+    image: url(:/image/icon_up_arrow.png);
 }
 
 QLineEdit{
-  color:rgb(214,214,214);
-  font-size:12px;
-  border:1px solid rgb(66,66,66);
-  background: rgb(56,56,56);
-  background-image: url(:image/icon_search.svg);
-	background-repeat: no-repeat;
+    color:rgb(214,214,214);
+    font-size:12px;
+    border:1px solid rgb(66,66,66);
+    background: rgb(56,56,56);
+    background-image: url(:image/icon_search.svg);
+    background-repeat: no-repeat;
     background-position: left;
-	padding: 2 2 2 20;
-
+    padding: 2 2 2 20;
 }
 
 QLineEdit::hover{
-  color:rgb(250,250,250);
-  font-size:12px;
-  border:1px solid rgb(153,153,153);
-  background: rgb(31,31,31);
+    color:rgb(250,250,250);
+    font-size:12px;
+    border:1px solid rgb(153,153,153);
+    background: rgb(31,31,31);
 }
 
 QTextBrowser{
-color: rgb(214,214,214);
-background: rgb(37,37,38);
-border: 1px solid rgb(61,61,61);
+    color: rgb(214,214,214);
+    background: rgb(37,37,38);
+    border: 1px solid rgb(61,61,61);
 }
 
 QPushButton {
-background-color: rgb(66, 66, 66);
-border: 0px solid #dcdfe6;
-padding: 3px;
-color:rgb(214, 214, 214);
+    background-color: #3D3D3D;
+    border: 0px solid #dcdfe6;
+    padding: 3px;
+    color:rgb(214, 214, 214);
 }
 
 QPushButton:hover {
-background-color: rgb(64, 53, 130);
-color:rgb(250, 250, 250);
+    background-color: #4D4D4D;
+    color:rgb(250, 250, 250);
 }
 
 QPushButton:pressed, QPushButton:checked {
-background-color: rgb(145, 131, 238);
-color:rgb(250, 250, 250);
+    background-color: #333333;
+    color:rgb(250, 250, 250);
 }
 
 QSpinBox {
-			border:1px solid #3D3D3D;
- 			color: #FAFAFA;
-  			background: #333333;
-			selection-color: #FFFFFF;
-			selection-background-color: #0078D7;
-			font-size: 12pt;
-		}
+    border:1px solid #3D3D3D;
+    color: #FAFAFA;
+    background: #333333;
+    selection-color: #FFFFFF;
+    selection-background-color: #0078D7;
+    font-size: 12pt;
+}
 
-		QSpinBox:hover {
-		  color: #FAFAFA;
-		  background: rgb(61,61,61);
-		  border:1px solid #424242;
-		}
+QSpinBox:hover {
+    color: #FAFAFA;
+    background: rgb(61,61,61);
+    border:1px solid #424242;
+}
 
-		QSpinBox::up-arrow {
-			image: url(:/image/icon_glyphup.svg);
-			width: 14px;
-			height: 14px;
-		}
+QSpinBox::up-arrow {
+    image: url(:/image/icon_glyphup.svg);
+    width: 14px;
+    height: 14px;
+}
 
-		QSpinBox::down-arrow {
-			image: url(:/image/icon_glyphdown.svg);
-			width: 14px;
-			height: 14px;
-		}
+QSpinBox::down-arrow {
+    image: url(:/image/icon_glyphdown.svg);
+    width: 14px;
+    height: 14px;
+}
 
-		QSpinBox::down-button, QSpinBox::up-button {
-			background: #333333;
-		}
+QSpinBox::down-button, QSpinBox::up-button {
+    background: #333333;
+}
 
 
-		QSpinBox::up-button:hover, QSpinBox::down-button:hover{
-			background: rgb(61,61,61);
-		}
+QSpinBox::up-button:hover, QSpinBox::down-button:hover{
+    background: rgb(61,61,61);
+}
 
-		QSpinBox::up-button:pressed, QSpinBox::down-button:pressed {
-			background: rgb(91,91,91);
-		}
-</string>
+QSpinBox::up-button:pressed, QSpinBox::down-button:pressed {
+    background: rgb(91,91,91);
+}
+
+QCheckBox {
+	color:white;
+    spacing: 1px;
+}
+
+QCheckBox:disabled {
+	color:gray;
+}
+
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+}
+
+QCheckBox::indicator:unchecked {
+	image: url(:/image/icon_unchecked_dark.svg);
+}
+
+QCheckBox::indicator:unchecked:hover {
+	image: url(:/image/icon_unchecked_dark_hover.svg);
+}
+
+QCheckBox::indicator:unchecked:pressed {
+	image: url(:/image/icon_unchecked_dark.svg);
+}
+
+QCheckBox::indicator:checked {
+	image: url(:/image/icon_checked_dark.svg);
+}
+
+QCheckBox::indicator:checked:hover {
+	image: url(:/image/icon_checked_dark_hover.svg);
+}
+
+QCheckBox::indicator:checked:pressed {
+	image: url(:/image/icon_checked_dark.svg);
+}
+
+QCheckBox::indicator:indeterminate:pressed {
+	image: url(:/image/icon_unchecked_dark.svg);
+}</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="styleSheet">

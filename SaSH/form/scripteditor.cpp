@@ -66,6 +66,8 @@ ScriptEditor::ScriptEditor(long long index, QWidget* parent)
 	connect(ui.treeWidget_scriptList, &QTreeWidget::itemDoubleClicked, this, &ScriptEditor::onScriptTreeWidgetDoubleClicked, Qt::QueuedConnection);
 	connect(ui.treeWidget_scriptList, &QTreeWidget::itemChanged, this, &ScriptEditor::onScriptTreeWidgetItemChanged, Qt::QueuedConnection);
 
+	connect(ui.widget, &CodeEditor::findAllFinished, this, &ScriptEditor::onFindAllFinished, Qt::QueuedConnection);
+
 	ui.treeWidget_functionList->sortItems(0, Qt::AscendingOrder);
 
 	ui.listView_log->setTextElideMode(Qt::ElideNone);
@@ -660,12 +662,18 @@ void ScriptEditor::fileSave(QString content)
 void ScriptEditor::loadFile(const QString& fileName)
 {
 	QString content;
-	if (!util::readFile(fileName, &content))
+	QString originalData;
+	bool isPrivate = false;
+	if (!util::readFile(fileName, &content, &isPrivate, &originalData))
 		return;
 
 	bool isReadOnly = ui.widget->isReadOnly();
-	if (isReadOnly)
+	if (isReadOnly && !isPrivate)
 		ui.widget->setReadOnly(false);
+	else if (!isReadOnly && isPrivate)
+	{
+		ui.widget->setReadOnly(true);
+	}
 
 	int curLine = -1;
 	int curIndex = -1;
@@ -689,7 +697,11 @@ void ScriptEditor::loadFile(const QString& fileName)
 
 	ui.widget->setModified(false);
 	ui.widget->selectAll();
-	ui.widget->replaceSelectedText(content);
+
+	if (!isPrivate)
+		ui.widget->replaceSelectedText(content);
+	else
+		ui.widget->replaceSelectedText(originalData);
 
 	ui.widget->setUpdatesEnabled(true);
 
@@ -765,7 +777,7 @@ QString ScriptEditor::getFullPath(TreeWidgetItem* item)
 	}
 
 	strpath = util::applicationDirPath() + "/script/" + strpath;
-	strpath.replace("*", "");
+	strpath.remove("*");
 
 	QFileInfo info(strpath);
 	QString suffix = "." + info.suffix();
@@ -1308,11 +1320,18 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 
 		if (document_.contains(str))
 		{
-			QSharedPointer<QTextDocument> doc = document_.value(str);
-			ui.textBrowser->setUpdatesEnabled(false);
-			ui.textBrowser->setDocument(doc.get());
-			ui.textBrowser->setUpdatesEnabled(true);
-			break;
+			QTextDocument* pdoc = document_.value(str).get();
+			if (nullptr != pdoc)
+			{
+				ui.textBrowser->setUpdatesEnabled(false);
+				ui.textBrowser->setDocument(pdoc);
+				ui.textBrowser->setUpdatesEnabled(true);
+				break;
+			}
+			else
+			{
+				document_.remove(str);
+			}
 		}
 
 		QString mdFullPath = util::applicationDirPath();
@@ -1333,16 +1352,16 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 
 		QString markdownText = result.join("\n---\n");
 
-		QSharedPointer<QTextDocument> doc(QSharedPointer<QTextDocument>::create());
-		if (doc.isNull())
+		std::unique_ptr<QTextDocument> pdoc(q_check_ptr(new QTextDocument()));
+		if (nullptr == pdoc)
 			break;
 
-		doc->setMarkdown(markdownText);
-		document_.insert(str, doc);
+		pdoc->setMarkdown(markdownText);
 
 		ui.textBrowser->setUpdatesEnabled(false);
-		ui.textBrowser->setDocument(doc.get());
+		ui.textBrowser->setDocument(pdoc.get());
 		ui.textBrowser->setUpdatesEnabled(true);
+		document_.insert(str, std::move(pdoc));
 	} while (false);
 }
 
@@ -1612,7 +1631,7 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 		}
 
 		strpath = util::applicationDirPath() + "/script/" + strpath;
-		strpath.replace("*", "");
+		strpath.remove("*");
 
 		QFileInfo fileinfo(strpath);
 		if (!fileinfo.isFile())
@@ -2263,6 +2282,110 @@ void ScriptEditor::onReloadScriptList()
 	ui.treeWidget_scriptList->sortItems(0, Qt::AscendingOrder);
 }
 
+void ScriptEditor::onFindAllFinished(const QString& expr, const QVariant& varmap)
+{
+	if (varmap.isNull())
+		return;
+
+	//line, text|index
+	QMap<long long, QVariantList> resultLineTexts = varmap.value<QMap<long long, QVariantList>>();
+	if (resultLineTexts.isEmpty())
+		return;
+
+	//new a QDockWidget and dock to bottom
+	if (nullptr == pDockWidgetFindAll_)
+	{
+		pDockWidgetFindAll_ = q_check_ptr(new QDockWidget(this));
+		if (nullptr == pDockWidgetFindAll_)
+			return;
+
+		pDockWidgetFindAll_->setAttribute(Qt::WA_StyledBackground);
+
+		pTreeWidgetFindAll_ = q_check_ptr(new TreeWidget(pDockWidgetFindAll_));
+		if (nullptr == pTreeWidgetFindAll_)
+			return;
+
+		pTreeWidgetFindAll_->setAttribute(Qt::WA_StyledBackground);
+
+		pDockWidgetFindAll_->setWidget(pTreeWidgetFindAll_);
+		pDockWidgetFindAll_->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetClosable);
+
+		pTreeWidgetFindAll_->setColumnCount(3);// text|line|index
+		pTreeWidgetFindAll_->setHeaderLabels(QStringList{ tr("TEXT"), tr("FILE"), tr("LINE"), tr("INDEX") });
+
+		connect(pTreeWidgetFindAll_, &TreeWidget::itemDoubleClicked, this, &ScriptEditor::onFindAllDoubleClicked);
+	}
+
+	pDockWidgetFindAll_->setWindowTitle(QString("%1 \"%2\"").arg(tr("Find")).arg(expr));
+
+	if (!pDockWidgetFindAll_->isVisible())
+	{
+		pDockWidgetFindAll_->setAllowedAreas(Qt::BottomDockWidgetArea);
+		pDockWidgetFindAll_->show();
+
+		//tab with log dockwidget
+		tabifyDockWidget(ui.dockWidget_scriptFun, pDockWidgetFindAll_);
+	}
+
+	pTreeWidgetFindAll_->setUpdatesEnabled(false);
+	pTreeWidgetFindAll_->clear();
+
+	Injector& injector = Injector::getInstance(getIndex());
+	QString currentScriptFileName = injector.currentScriptFileName;
+	QFileInfo fileInfo(currentScriptFileName);
+	QString fileName = fileInfo.fileName();
+
+	TreeWidgetItem* parentNode = q_check_ptr(new TreeWidgetItem(QStringList{ QString("%1 (%2)").arg(fileName).arg(resultLineTexts.size()) }));
+	//add items
+	for (auto it = resultLineTexts.cbegin(); it != resultLineTexts.cend(); ++it)
+	{
+		long long line = it.key();
+		QVariantList texts = it.value();
+		if (texts.size() != 2)
+			continue;
+
+		QString text = texts.value(0).toString();
+		long long index = texts.value(1).toLongLong();
+
+		TreeWidgetItem* item = q_check_ptr(new TreeWidgetItem({ text, fileName, util::toQString(line + 1), util::toQString(index) }));
+		if (nullptr == item)
+			continue;
+
+		//set user data as original text
+		item->setData(0, Qt::UserRole, expr);
+		parentNode->addChild(item);
+	}
+
+	pTreeWidgetFindAll_->addTopLevelItem(parentNode);
+	pTreeWidgetFindAll_->expandAll();
+	pTreeWidgetFindAll_->setUpdatesEnabled(true);
+}
+
+void ScriptEditor::onFindAllDoubleClicked(QTreeWidgetItem* item, int column)
+{
+	if (nullptr == item)
+		return;
+
+	//col 0 = text, col 2 = line, col 3 = index
+	QString expr = item->text(0);
+	QString fileName = item->text(1);
+	QString lineStr = item->text(2);
+	QString indexStr = item->text(3);
+	long long line = lineStr.toLongLong() - 1;
+	long long index = indexStr.toLongLong();
+	if (line < 0 || index < 0)
+		return;
+
+	QString originalText = item->data(0, Qt::UserRole).toString();
+
+	ui.widget->ensureLineVisible(line);
+
+	ui.widget->setUpdatesEnabled(false);
+	ui.widget->setSelection(line, index, line, index + originalText.size());
+	ui.widget->setCaretLineBackgroundColor(QColor(71, 71, 71));//光標所在行背景顏色
+	ui.widget->setUpdatesEnabled(true);
+}
+
 //變量列表
 void ScriptEditor::onVarInfoImport(void* p, const QVariantHash& d, const QStringList& globalNames)
 {
@@ -2292,7 +2415,7 @@ void ScriptEditor::onEncryptSave()
 	QString password = hashKey.toHex();
 	if (password.isEmpty())
 	{
-		ui.statusBar->showMessage(tr("Encrypt password can not be empty"), 3000);
+		ui.statusBar->showMessage(tr("Encrypt password can not be empty"), 5000);
 		return;
 	}
 
@@ -2303,13 +2426,14 @@ void ScriptEditor::onEncryptSave()
 		QString newFileName = injector.currentScriptFileName;
 		newFileName.replace(util::SCRIPT_DEFAULT_SUFFIX, util::SCRIPT_PRIVATE_SUFFIX_DEFAULT);
 		injector.currentScriptFileName = newFileName;
-		ui.statusBar->showMessage(QString(tr("Encrypt script %1 saved")).arg(newFileName), 3000);
+		ui.statusBar->showMessage(QString(tr("Encrypt script %1 saved")).arg(newFileName), 5000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currnetIndex);
 		emit signalDispatcher.loadFileToTable(newFileName);
+		emit signalDispatcher.reloadScriptList();
 	}
 	else
 	{
-		ui.statusBar->showMessage(tr("Encrypt script save failed"), 3000);
+		ui.statusBar->showMessage(tr("Encrypt script save failed"), 5000);
 	}
 #endif
 }
@@ -2337,25 +2461,26 @@ void ScriptEditor::onDecryptSave()
 	QString password = hashKey.toHex();
 	if (password.isEmpty())
 	{
-		ui.statusBar->showMessage(tr("Decrypt password can not be empty"), 3000);
+		ui.statusBar->showMessage(tr("Decrypt password can not be empty"), 5000);
 		return;
 	}
 
 	Crypto crypto;
 	QString content;
 	Injector& injector = Injector::getInstance(currnetIndex);
-	if (crypto.decodeScript(injector.currentScriptFileName, content))
+	if (crypto.decodeScript(injector.currentScriptFileName, password, content))
 	{
 		QString newFileName = injector.currentScriptFileName;
 		newFileName.replace(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT, util::SCRIPT_DEFAULT_SUFFIX);
 		injector.currentScriptFileName = newFileName;
-		ui.statusBar->showMessage(QString(tr("Decrypt script %1 saved")).arg(newFileName), 3000);
+		ui.statusBar->showMessage(QString(tr("Decrypt script %1 saved")).arg(newFileName), 5000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currnetIndex);
 		emit signalDispatcher.loadFileToTable(newFileName);
+		emit signalDispatcher.reloadScriptList();
 	}
 	else
 	{
-		ui.statusBar->showMessage(tr("Decrypt password is incorrect"), 3000);
+		ui.statusBar->showMessage(tr("Decrypt password is incorrect"), 5000);
 	}
 #endif
 }
@@ -2406,7 +2531,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 		else
 			key = util::toQString(pair.first);
 
-		if (pair.second.is<sol::table>())
+		if (pair.second.is<sol::table>() && !pair.second.is<sol::userdata>() && !pair.second.is<sol::function>() && !pair.second.is<sol::lightuserdata>())
 		{
 			varType = QObject::tr("Table");
 			QStringList treeTexts = { field, key, "", QString("(%1)").arg(varType) };
@@ -2487,6 +2612,9 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 	if (pparser == nullptr)
 		return;
 
+	if (nullptr == pparser->pLua_)
+		return;
+
 	if (widgetSystem == nullptr || widgetCustom == nullptr)
 		return;
 
@@ -2499,7 +2627,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 	widgetSystem->clear();
 	widgetCustom->clear();
 
-	sol::state& lua_ = pparser->pLua_->getLua();
+	sol::state& lua = pparser->pLua_->getLua();
 
 	QMap<QString, QVariant> map;
 	TreeWidgetItem* pNode = nullptr;
@@ -2555,7 +2683,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 
 					depth = kMaxLuaTableDepth;
 					pparser->luaDoString(QString("_TMP = %1").arg(var.toString()));
-					if (lua_["_TMP"].is<sol::table>())
+					if (lua["_TMP"].is<sol::table>())
 					{
 						QStringList treeTexts = { field, varName, "", QString("(%1)").arg(varType) };
 						pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
@@ -2563,7 +2691,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 						if (pNode == nullptr)
 							continue;
 
-						if (luaTableToTreeWidgetItem(field, pNode, lua_["_TMP"].get<sol::table>(), depth, "local"))
+						if (luaTableToTreeWidgetItem(field, pNode, lua["_TMP"].get<sol::table>(), depth, "local"))
 						{
 							pNode->setData(0, Qt::UserRole, QString("local"));
 							pNode->setText(2, QString("(%1)").arg(pNode->childCount()));
@@ -2573,7 +2701,8 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 						else
 							delete pNode;
 					}
-					lua_["_TMP"] = sol::lua_nil;
+
+					lua["_TMP"] = sol::lua_nil;
 					continue;
 				}
 				else
@@ -2621,7 +2750,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 	for (const QString& it : globalNames)
 	{
 		const std::string name(util::toConstData(it));
-		const sol::object o = lua_[name.c_str()];
+		const sol::object o = lua[name.c_str()];
 		if (!o.valid())
 			continue;
 
@@ -2633,7 +2762,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 
 		QString varValueStr;
 
-		if (o.is<sol::table>())
+		if (o.is<sol::table>() && !o.is<sol::userdata>() && !o.is<sol::function>() && !o.is<sol::lightuserdata>())
 		{
 			varType = QObject::tr("Table");
 			QStringList treeTexts = { field, varName, "", QString("(%1)").arg(varType) };
@@ -2645,8 +2774,8 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 			if (luaTableToTreeWidgetItem(field, pNode, o.as<sol::table>(), depth, "global"))
 			{
 				pNode->setData(0, Qt::UserRole, QString("global"));
-				pNode->setText(2, QString("(%1)").arg(pNode->childCount()));
 				pNode->setIcon(0, QIcon(":/image/icon_class.svg"));
+				pNode->setText(2, QString("(%1)").arg(pNode->childCount()));
 				if (g_sysConstVarName.contains(it))
 					nodesSystem.append(pNode);
 				else

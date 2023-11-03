@@ -7,6 +7,7 @@
 #include <QKeyEvent>
 #include <qdialogbuttonbox.h>
 
+
 #include "../injector.h"
 
 #ifdef _WIN64
@@ -98,7 +99,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 	setCallTipsVisible(0);//顯示tip數量
 	setCallTipsHighlightColor(QColor(61, 61, 61));
-	setCallTipsStyle(QsciScintilla::CallTipsContext);
+	setCallTipsStyle(QsciScintilla::CallTipsNoContext);
 	setCallTipsPosition(QsciScintilla::CallTipsBelowText);
 	setCallTipsBackgroundColor(QColor(30, 30, 30));
 
@@ -183,6 +184,11 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setMarginMarkerMask(1, S_BREAK | S_ARROW | S_ERRORMARK | S_STEPMARK);
 	setMarginWidth(1, 16);
 
+	connect(&findAndReplaceForm_, &FindAndReplaceForm::findNexted, this, &CodeEditor::onFindNext);
+	connect(&findAndReplaceForm_, &FindAndReplaceForm::findFirsted, this, &CodeEditor::onFindFirst);
+	connect(&findAndReplaceForm_, &FindAndReplaceForm::replaceAlled, this, &CodeEditor::onReplaceAll);
+	connect(&findAndReplaceForm_, &FindAndReplaceForm::findAlled, this, &CodeEditor::onFindAll);
+	findAndReplaceForm_.hide();
 
 	//
 	//connect(this, SIGNAL(modificationChanged(bool)), parent, SLOT(on_modificationChanged(bool)));
@@ -264,6 +270,75 @@ CodeEditor::CodeEditor(QWidget* parent)
 #pragma endregion
 }
 
+void CodeEditor::onFindAll(const QString& expr, bool re, bool cs, bool wo, bool wrap, bool forward, int line, int index, bool show, bool posix)
+{
+	setUpdatesEnabled(false);
+	//move cursor to start
+	setCursorPosition(0, 0);
+
+	if (!findFirst(expr, re, cs, wo, wrap, forward, line, index, show, posix))
+		return;
+
+	//line, text|index
+	QMap<long long, QVariantList> resultLineTexts;
+
+	int currentLine = -1;
+	int currentIndex = -1;
+	getCursorPosition(&currentLine, &currentIndex);
+	if (currentLine >= 0 && currentIndex >= 0)
+	{
+		resultLineTexts.insert(currentLine, QVariantList{ text(currentLine), currentIndex });
+	}
+
+	for (;;)
+	{
+		if (!findNext())
+			break;
+
+		int line = -1;
+		int index = -1;
+		getCursorPosition(&line, &index);
+		if (line >= 0 && index >= 0)
+		{
+			resultLineTexts.insert(line, QVariantList{ text(line).simplified() , index - expr.size() });
+		}
+		QCoreApplication::processEvents();
+	}
+
+	setUpdatesEnabled(true);
+
+	emit findAllFinished(expr, QVariant::fromValue(resultLineTexts));
+}
+
+void CodeEditor::onFindFirst(const QString& expr, bool re, bool cs, bool wo, bool wrap, bool forward, int line, int index, bool show, bool posix)
+{
+	findFirst(expr, re, cs, wo, wrap, forward, line, index, show, posix);
+}
+
+void CodeEditor::onFindNext()
+{
+	findNext();
+}
+
+void CodeEditor::onReplaceAll(const QString& replacetext, const QString& expr, bool re, bool cs, bool wo, bool wrap, bool forward, int line, int index, bool show, bool posix)
+{
+	setUpdatesEnabled(false);
+	if (!findFirst(expr, re, cs, wo, wrap, forward, line, index, show, posix))
+		return;
+
+	for (;;)
+	{
+		replace(replacetext);
+		if (!findNext())
+			break;
+		QCoreApplication::processEvents();
+	}
+
+	setUpdatesEnabled(true);
+}
+
+
+
 void CodeEditor::keyPressEvent(QKeyEvent* e)
 {
 	if (e->modifiers() == Qt::ControlModifier)
@@ -278,7 +353,13 @@ void CodeEditor::keyPressEvent(QKeyEvent* e)
 		}
 		case Qt::Key_F:
 		{
-			//findReplace();
+			//get selected text
+			QString selectedText = this->selectedText();
+			if (!selectedText.isEmpty())
+				findAndReplaceForm_.setSearchText(selectedText);
+
+			findAndReplaceForm_.hide();
+			findAndReplaceForm_.show();
 			return;
 		}
 		case Qt::Key_O:
@@ -294,6 +375,26 @@ void CodeEditor::keyPressEvent(QKeyEvent* e)
 		case Qt::Key_G:
 		{
 			jumpToLineDialog();
+			return;
+		}
+		default:
+			break;
+		}
+	}
+	//ctrl + shift
+	else if (e->modifiers() == (Qt::ControlModifier | Qt::ShiftModifier))
+	{
+		switch (e->key())
+		{
+		case Qt::Key_F:
+		{
+			//get selected text
+			QString selectedText = this->selectedText();
+			if (!selectedText.isEmpty())
+				findAndReplaceForm_.setSearchText(selectedText);
+
+			findAndReplaceForm_.hide();
+			findAndReplaceForm_.show();
 			return;
 		}
 		default:
@@ -330,16 +431,6 @@ void CodeEditor::dropEvent(QDropEvent* e)
 	emit signalDispatcher.loadFileToTable(path);
 
 	injector.currentScriptFileName = path;
-}
-
-void CodeEditor::findReplace()
-{
-	ReplaceDialog* replaceDialog = q_check_ptr(new ReplaceDialog(this));
-	if (replaceDialog == nullptr)
-		return;
-
-	replaceDialog->setModal(false);
-	replaceDialog->show();
 }
 
 void CodeEditor::commentSwitch()
@@ -435,14 +526,13 @@ void CodeEditor::commentSwitch()
 	}
 }
 
-
 void CodeEditor::jumpToLineDialog()
 {
-	QSharedPointer<long long> pline(QSharedPointer<long long>::create(1));
-	if (pline.isNull())
+	long long* pline(q_check_ptr(new long long(1)));
+	if (nullptr == pline)
 		return;
 
-	JumpToLineDialog* dialog = q_check_ptr(new JumpToLineDialog(this, pline.get()));
+	JumpToLineDialog* dialog = q_check_ptr(new JumpToLineDialog(this, pline));
 	if (dialog == nullptr)
 		return;
 
@@ -451,12 +541,13 @@ void CodeEditor::jumpToLineDialog()
 	//connect if accept then jump to line
 	connect(dialog, &JumpToLineDialog::accepted, [this, pline]()
 		{
-			long long line = *pline.get();
+			long long line = *pline;
 			setCursorPosition(line - 1, 0);
 			QString text = this->text(line - 1);
 			setSelection(line - 1, 0, line - 1, text.length());
 			ensureLineVisible(line - 1);
 			isDialogOpened = false;
+			delete pline;
 		});
 
 	connect(dialog, &JumpToLineDialog::rejected, [this]()

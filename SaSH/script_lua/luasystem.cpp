@@ -166,13 +166,16 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 		raw = (ocontent.as<const char*>());
 		msg = raw;
 	}
-	else if (ocontent.is<sol::table>())
+	else if (ocontent.is<sol::table>() && !ocontent.is<sol::userdata>() && !ocontent.is<sol::function>() && !ocontent.is<sol::lightuserdata>())
 	{
 		//print table
 		long long depth = 1024;
 		raw = luadebug::getTableVars(s.L, 1, depth);
 		msg = raw;
-
+		msg.replace("=[[", "='");
+		msg.replace("]],", "',");
+		msg.replace("]]}", "'}");
+		msg.replace(",", ",\n");
 	}
 	else
 	{
@@ -271,7 +274,7 @@ long long CLuaSystem::talk(sol::object ostr, sol::object ocolor, sol::object omo
 		text = util::toQString(ostr.as<double>());
 	else if (ostr.is<std::string>())
 		text = util::toQString(ostr);
-	else if (ostr.is<sol::table>())
+	else if (ostr.is<sol::table>() && !ostr.is<sol::userdata>() && !ostr.is<sol::function>() && !ostr.is<sol::lightuserdata>())
 	{
 		long long depth = 1024;
 		text = luadebug::getTableVars(s.L, 1, depth);
@@ -892,26 +895,20 @@ long long CLuaSystem::chpet(long long petindex, sol::object ostate, sol::this_st
 
 	sa::PetState state = sa::petStateMap.value(stateStr.toLower(), sa::PetState::kRest);
 
+	sa::PET pet = injector.worker->getPet(petindex);
+	if (pet.state == state)
+		return TRUE;
 
 	injector.worker->setPetState(petindex, state);
 
 	return TRUE;
 }
 
-long long CLuaSystem::waitpos(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::this_state s)
+bool CLuaSystem::waitpos(sol::object p1, sol::object p2, sol::object p3, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (p4.is<long long>() || p4.is<std::string>())
-		lua["_JUMP"] = p4;
-	else
-	{
-		if (p3.is<long long>() || p3.is<std::string>())
-			lua["_JUMP"] = p4;
-		else
-			lua["_JUMP"] = sol::lua_nil;
-	}
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
@@ -1003,23 +1000,14 @@ long long CLuaSystem::waitpos(sol::object p1, sol::object p2, sol::object p3, so
 			return check();
 		});
 
-	if (bret)
-	{
-		lua["_JUMP"] = sol::lua_nil;
-	}
-
 	return bret;
 }
 
-long long CLuaSystem::waitmap(sol::object p1, sol::object otimeout, sol::object jump, sol::this_state s)
+bool CLuaSystem::waitmap(sol::object p1, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (jump.is<long long>() || jump.is<std::string>())
-		lua["_JUMP"] = jump;
-	else
-		lua["_JUMP"] = sol::lua_nil;
 
 	util::Timer timer;
 
@@ -1086,95 +1074,14 @@ long long CLuaSystem::waitmap(sol::object p1, sol::object otimeout, sol::object 
 	if (!bret && timeout > 2000)
 		injector.worker->EO();
 
-	if (bret)
-	{
-		lua["_JUMP"] = sol::lua_nil;
-	}
-
 	return  bret;
 }
 
-bool checkRange(sol::object o, long long& min, long long& max, QVector<long long>* pindexs)
-{
-	if (o.is<std::string>())
-	{
-		QString str = util::toQString(o.as<std::string>());
-		if (str.isEmpty() || str == "?")
-		{
-			return true;
-		}
-
-		bool ok = false;
-		long long tmp = str.toLongLong(&ok) - 1;
-		if (ok)
-		{
-			if (tmp < 0)
-				return false;
-
-			min = tmp;
-			max = tmp;
-			return true;
-		}
-
-		QStringList range = str.split("-", Qt::SkipEmptyParts);
-		if (range.isEmpty())
-		{
-			return true;
-		}
-
-		if (range.size() == 2)
-		{
-			bool ok1, ok2;
-			long long tmp1 = range.value(0).toLongLong(&ok1);
-			long long tmp2 = range.value(1).toLongLong(&ok2);
-			if (ok1 && ok2)
-			{
-				if (tmp1 < 0 || tmp2 < 0)
-					return false;
-
-				min = tmp1 - 1;
-				max = tmp2 - 1;
-				return true;
-			}
-		}
-		else
-		{
-			if (pindexs != nullptr)
-			{
-				for (const QString& str : range)
-				{
-					bool ok;
-					long long tmp = str.toLongLong(&ok) - 1;
-					if (ok && tmp >= 0)
-						pindexs->append(tmp);
-				}
-
-				return pindexs->size() > 0;
-			}
-		}
-	}
-	else if (o.is<long long>())
-	{
-		long long tmp = o.as<long long>() - 1;
-		if (tmp < 0)
-			return false;
-
-		min = tmp;
-		max = tmp;
-		return true;
-	}
-	return false;
-}
-
-long long CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object otimeout, sol::object jump, sol::this_state s)
+bool CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (jump.is<long long>() || jump.is<std::string>())
-		lua["_JUMP"] = jump;
-	else
-		lua["_JUMP"] = sol::lua_nil;
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
@@ -1225,23 +1132,14 @@ long long CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object
 			return false;
 		});
 
-	if (bret)
-	{
-		lua["_JUMP"] = sol::lua_nil;
-	}
-
 	return bret;
 }
 
-long long CLuaSystem::waitteam(sol::object otimeout, sol::object jump, sol::this_state s)
+bool CLuaSystem::waitteam(sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (jump.is<long long>() || jump.is<std::string>())
-		lua["_JUMP"] = jump;
-	else
-		lua["_JUMP"] = sol::lua_nil;
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
@@ -1257,23 +1155,14 @@ long long CLuaSystem::waitteam(sol::object otimeout, sol::object jump, sol::this
 			return util::checkAND(pc.status, sa::CHR_STATUS_LEADER) || util::checkAND(pc.status, sa::CHR_STATUS_PARTY);
 		});
 
-	if (bret)
-	{
-		lua["_JUMP"] = sol::lua_nil;
-	}
-
 	return bret;
 }
 
-long long CLuaSystem::waitpet(std::string name, sol::object otimeout, sol::object jump, sol::this_state s)
+bool CLuaSystem::waitpet(std::string name, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (jump.is<long long>() || jump.is<std::string>())
-		lua["_JUMP"] = jump;
-	else
-		lua["_JUMP"] = sol::lua_nil;
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
@@ -1297,23 +1186,14 @@ long long CLuaSystem::waitpet(std::string name, sol::object otimeout, sol::objec
 			return injector.worker->getPetIndexsByName(petName, &v);
 		});
 
-	if (bret)
-	{
-		lua["_JUMP"] = sol::lua_nil;
-	}
-
 	return bret;
 }
 
-long long CLuaSystem::waitdlg(sol::object p1, sol::object otimeout, sol::object jump, sol::this_state s)
+bool CLuaSystem::waitdlg(sol::object p1, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (jump.is<long long>() || jump.is<std::string>())
-		lua["_JUMP"] = jump;
-	else
-		lua["_JUMP"] = sol::lua_nil;
 
 	long long timeout = 5000;
 	if (otimeout.is<long long>())
@@ -1348,11 +1228,6 @@ long long CLuaSystem::waitdlg(sol::object p1, sol::object otimeout, sol::object 
 
 				return injector.worker->currentDialog.get().dialogid == dlgid;
 			});
-
-		if (bret)
-		{
-			lua["_JUMP"] = sol::lua_nil;
-		}
 
 		return bret;
 	}
@@ -1397,24 +1272,15 @@ long long CLuaSystem::waitdlg(sol::object p1, sol::object otimeout, sol::object 
 				return check();
 			});
 
-		if (bret)
-		{
-			lua["_JUMP"] = sol::lua_nil;
-		}
-
 		return bret;
 	}
 }
 
-long long CLuaSystem::waitsay(std::string sstr, sol::object otimeout, sol::object jump, sol::this_state s)
+bool CLuaSystem::waitsay(std::string sstr, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (jump.is<long long>() || jump.is<std::string>())
-		lua["_JUMP"] = jump;
-	else
-		lua["_JUMP"] = sol::lua_nil;
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
@@ -1436,29 +1302,7 @@ long long CLuaSystem::waitsay(std::string sstr, sol::object otimeout, sol::objec
 		{
 			for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
 			{
-				QString text = injector.worker->getChatHistory(i).simplified();
-				if (text.isEmpty())
-					continue;
-
-				for (const QString& cmpStr : cmpStrs)
-				{
-					if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
-					{
-						return true;
-					}
-				}
-			}
-
-			QVector<QPair<long long, QString>> list = injector.worker->chatQueue.values();
-
-			for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
-			{
-				if (i < 0)
-					continue;
-				if (i > list.size())
-					break;
-
-				QString text = list.value(i).second.simplified();
+				QString text = injector.worker->getChatHistory(i);
 				if (text.isEmpty())
 					continue;
 
@@ -1478,11 +1322,6 @@ long long CLuaSystem::waitsay(std::string sstr, sol::object otimeout, sol::objec
 		{
 			return check();
 		});
-
-	if (bret)
-	{
-		lua["_JUMP"] = sol::lua_nil;
-	}
 
 	return bret;
 }

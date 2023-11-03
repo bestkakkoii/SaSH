@@ -229,9 +229,9 @@ public:\
 #include <QMultiHash>
 #include <QSet>
 // smart pointer
-#include <QPointer>
-#include <QWeakPointer>
-#include <QSharedPointer>
+//#include <QPointer>
+//#include <QWeakPointer>
+//#include <QSharedPointer>
 // concurrent
 #include <QtConcurrentRun>
 #include <QtConcurrent/QtConcurrent>
@@ -262,6 +262,7 @@ public:\
 #include <3rdparty/unzip.h>
 
 //custom
+#include "script/crypto.h"
 #include <model/indexer.h>
 #include <model/scopedhandle.h>
 #include <model/combobox.h>

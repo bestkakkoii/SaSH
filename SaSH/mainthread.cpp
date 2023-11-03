@@ -807,7 +807,7 @@ long long MainObject::checkAndRunFunctions()
 		MissionThread* p = autoThreads_.value(i);
 		if (p == nullptr)
 		{
-			p = new MissionThread(currentIndex, i);
+			p = q_check_ptr(new MissionThread(currentIndex, i));
 			if (p == nullptr)
 				continue;
 

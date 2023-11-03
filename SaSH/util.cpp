@@ -323,9 +323,9 @@ HMODULE __fastcall mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, c
 			if (K32GetModuleFileNameExW(hProcess, hMods[i], szModName, _countof(szModName)) == NULL)
 				continue;
 
-			QString qfileName = util::toQString(szModName);
-			qfileName.replace("/", "\\");
-			QFileInfo file(qfileName);
+			QString fileName = util::toQString(szModName);
+			fileName.replace("/", "\\");
+			QFileInfo file(fileName);
 			if (file.fileName().toLower() != szModuleName.toLower())
 				continue;
 
@@ -817,7 +817,7 @@ void __fastcall tryLock(const QString& fileName)
 {
 	if (!g_fileLockHash.contains(fileName))
 	{
-		g_fileLockHash.insert(fileName, new QMutex());
+		g_fileLockHash.insert(fileName, q_check_ptr(new QMutex()));
 	}
 
 	g_fileLockHash.value(fileName)->lock();
@@ -2053,7 +2053,7 @@ bool __fastcall util::readFileFilter(const QString& fileName, QString& content, 
 	{
 #ifdef CRYPTO_H
 		Crypto crypto;
-		if (!crypto.decodeScript(fileName, c))
+		if (!crypto.decodeScript(fileName, content))
 			return false;
 
 		if (pisPrivate != nullptr)
@@ -2066,7 +2066,7 @@ bool __fastcall util::readFileFilter(const QString& fileName, QString& content, 
 	return true;
 }
 
-bool __fastcall util::readFile(const QString& fileName, QString* pcontent, bool* pisPrivate)
+bool __fastcall util::readFile(const QString& fileName, QString* pcontent, bool* pisPrivate, QString* originalData)
 {
 	QFileInfo fi(fileName);
 	if (!fi.exists())
@@ -2082,9 +2082,12 @@ bool __fastcall util::readFile(const QString& fileName, QString* pcontent, bool*
 	QByteArray ba = f.readAll();
 	QString content = QString::fromUtf8(ba);
 
+	if (originalData != nullptr)
+		*originalData = content;
+
 	if (readFileFilter(fileName, content, pisPrivate))
 	{
-		if (pcontent)
+		if (pcontent != nullptr)
 			*pcontent = content;
 		return true;
 	}

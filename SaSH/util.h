@@ -1775,7 +1775,7 @@ QGroupBox {
 
 	bool __fastcall readFileFilter(const QString& fileName, QString& content, bool* pisPrivate);
 
-	bool __fastcall readFile(const QString& fileName, QString* pcontent, bool* isPrivate = nullptr);
+	bool __fastcall readFile(const QString& fileName, QString* pcontent, bool* isPrivate = nullptr, QString* originalData = nullptr);
 
 	bool __fastcall writeFile(const QString& fileName, const QString& content);
 

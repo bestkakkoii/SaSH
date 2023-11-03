@@ -170,7 +170,7 @@ QString __fastcall luadebug::getTableVars(lua_State*& L, long long si, long long
 		QString key;
 		pair = getVars(L, -2, depth);
 		if (pair.first == "(string)")
-			ret += pair.second.toString();
+			ret += QString("%1=").arg(pair.second.toString());
 		else if (pair.first == "(integer)")
 		{
 			pair.second = pair.second.toString();
@@ -187,7 +187,7 @@ QString __fastcall luadebug::getTableVars(lua_State*& L, long long si, long long
 		{
 			pair = getVars(L, -1, depth);
 			if (pair.first == "(string)")
-				ret += QString("'%1'").arg(pair.second.toString());
+				ret += QString("[[%1]]").arg(pair.second.toString());
 			else
 				ret += pair.second.toString();
 		}
@@ -565,7 +565,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 			QString key = QString("local|%1").arg(util::toQString(name));
 			varhash.insert(key, vs.second.toString());
-			//var.type = vs.first.replace("(", "").replace(")", "");
 			lua_pop(L, 1);// no match, then pop out the var's value
 		}
 
@@ -580,6 +579,78 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	default:
 		break;
 	}
+}
+
+bool luatool::checkRange(sol::object o, long long& min, long long& max, QVector<long long>* pindexs)
+{
+	if (o.is<std::string>())
+	{
+		QString str = util::toQString(o.as<std::string>());
+		if (str.isEmpty() || str == "?")
+		{
+			return true;
+		}
+
+		bool ok = false;
+		long long tmp = str.toLongLong(&ok) - 1;
+		if (ok)
+		{
+			if (tmp < 0)
+				return false;
+
+			min = tmp;
+			max = tmp;
+			return true;
+		}
+
+		QStringList range = str.split("-", Qt::SkipEmptyParts);
+		if (range.isEmpty())
+		{
+			return true;
+		}
+
+		if (range.size() == 2)
+		{
+			bool ok1, ok2;
+			long long tmp1 = range.value(0).toLongLong(&ok1);
+			long long tmp2 = range.value(1).toLongLong(&ok2);
+			if (ok1 && ok2)
+			{
+				if (tmp1 < 0 || tmp2 < 0)
+					return false;
+
+				min = tmp1 - 1;
+				max = tmp2 - 1;
+				return true;
+			}
+		}
+		else
+		{
+			if (pindexs != nullptr)
+			{
+				for (const QString& str : range)
+				{
+					bool ok;
+					long long tmp = str.toLongLong(&ok) - 1;
+					if (ok && tmp >= 0)
+						pindexs->append(tmp);
+				}
+
+				return pindexs->size() > 0;
+			}
+		}
+	}
+	else if (o.is<long long>())
+	{
+		long long tmp = o.as<long long>() - 1;
+		if (tmp < 0)
+			return false;
+
+		min = tmp;
+		max = tmp;
+		return true;
+	}
+	return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -814,20 +885,43 @@ void CLua::open_syslibs(sol::state& lua)
 
 void CLua::open_itemlibs(sol::state& lua)
 {
+	lua.new_usertype<sa::ITEM>("ItemStruct",
+		"valid", sol::readonly(&sa::ITEM::valid),
+		"color", sol::readonly(&sa::ITEM::color),
+		"modelid", sol::readonly(&sa::ITEM::modelid),
+		"lv", sol::readonly(&sa::ITEM::level),
+		"stack", sol::readonly(&sa::ITEM::stack),
+		"type", sol::readonly(&sa::ITEM::type),
+		"field", sol::readonly(&sa::ITEM::field),
+		"target", sol::readonly(&sa::ITEM::target),
+		"flag", sol::readonly(&sa::ITEM::deadTargetFlag),
+		"sflag", sol::readonly(&sa::ITEM::sendFlag),
+		"itemup", sol::readonly(&sa::ITEM::itemup),
+		"counttime", sol::readonly(&sa::ITEM::counttime),
+		"dura", sol::readonly(&sa::ITEM::damage),
+
+		"name", sol::property(&sa::ITEM::getName),
+		"name2", sol::property(&sa::ITEM::getName2),
+		"memo", sol::property(&sa::ITEM::getMemo),
+
+		/*custom*/
+		"max", sol::readonly(&sa::ITEM::maxStack),
+		"count", sol::readonly(&sa::ITEM::count)
+	);
+
 	lua.new_usertype<CLuaItem>("ItemClass",
 		sol::call_constructor,
-		sol::constructors<CLuaItem()>(),
-		"use", &CLuaItem::use,
-		"drop", &CLuaItem::drop,
-		"pick", &CLuaItem::pick,
-		"swap", &CLuaItem::swap,
-		"craft", &CLuaItem::craft,
-		"buy", &CLuaItem::buy,
-		"sell", &CLuaItem::sell,
-
-		"deposit", &CLuaItem::deposit,
-		"withdraw", &CLuaItem::withdraw
+		sol::constructors<CLuaItem(long long)>(),
+		sol::meta_function::index, &CLuaItem::operator[],
+		"space", sol::property(&CLuaItem::getSpace),
+		"isfull", sol::property(&CLuaItem::getIsFull),
+		"count", &CLuaItem::count,
+		"indexof", &CLuaItem::indexof,
+		"find", &CLuaItem::find
 	);
+
+	lua.safe_script("item = ItemClass(_INDEX);");
+	lua.collect_garbage();
 }
 
 void CLua::open_charlibs(sol::state& lua)
@@ -836,21 +930,6 @@ void CLua::open_charlibs(sol::state& lua)
 	lua.set_function("leave", &CLuaChar::leave, &luaChar_);
 	lua.set_function("kick", &CLuaChar::kick, &luaChar_);
 	lua.set_function("doffstone", &CLuaChar::doffstone, &luaChar_);
-
-	lua.new_usertype<CLuaChar>("CharClass",
-		sol::call_constructor,
-		sol::constructors<CLuaChar()>(),
-		"rename", &CLuaChar::rename,
-		"useMagic", &CLuaChar::useMagic,
-		"depositGold", &CLuaChar::depositGold,
-		"withdrawGold", &CLuaChar::withdrawGold,
-		"dropGold", &CLuaChar::dropGold,
-		"mail", sol::overload(
-			sol::resolve<long long(long long, std::string, long long, std::string, std::string, sol::this_state)>(&CLuaChar::mail),
-			sol::resolve<long long(long long, std::string, sol::this_state)>(&CLuaChar::mail)
-		),
-		"skillUp", &CLuaChar::skillUp
-	);
 }
 
 void CLua::open_petlibs(sol::state& lua)

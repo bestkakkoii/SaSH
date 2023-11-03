@@ -32,10 +32,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QStyleOption>
 #include <QPainter>
 #include <highlighter.h>
-#include "form/replaceform.h"
 #include <QDialog>
 #include <indexer.h>
-
+#include "form/findandreplaceform.h"
 
 class CodeEditor : public QsciScintilla, public Indexer
 {
@@ -48,7 +47,6 @@ public:
 		SYM_TRIANGLE,
 		SYM_STEP,
 	}SymbolHandler;
-	explicit CodeEditor(QWidget* parent = nullptr);
 
 	enum MackerMask
 	{
@@ -58,6 +56,8 @@ public:
 		S_STEPMARK = 0b1000,//8
 	};
 
+	explicit CodeEditor(QWidget* parent = nullptr);
+
 	inline bool isBreak(long long mode) const { return ((mode & S_BREAK) == S_BREAK); }
 	inline bool isArrow(long long mode) const { return ((mode & S_ARROW) == S_ARROW); }
 	inline bool isError(long long mode) const { return ((mode & S_ERRORMARK) == S_ERRORMARK); }
@@ -65,18 +65,29 @@ public:
 
 	QFont getOldFont() { return QsciScintilla::font(); }
 	void setNewFont(const QFont& f) { font_ = f; setFont(f); textLexer.setDefaultFont(f); }
+
 public slots:
 	void commentSwitch();
-	void findReplace();
+
+private slots:
+	void onFindFirst(const QString& expr, bool re, bool cs, bool wo, bool wrap, bool forward = true, int line = -1, int index = -1, bool show = true, bool posix = false);
+	void onFindNext();
+	void onReplaceAll(const QString& text, const QString& expr, bool re, bool cs, bool wo, bool wrap, bool forward = true, int line = -1, int index = -1, bool show = true, bool posix = false);
+	void onFindAll(const QString& expr, bool re, bool cs, bool wo, bool wrap, bool forward = true, int line = -1, int index = -1, bool show = true, bool posix = false);
 
 signals:
 	void closeJumpToLineDialog();
+	void findAllFinished(const QString& expr, const QVariant& varmap);
+
 private:
 	Highlighter textLexer;
 	QsciAPIs apis;
 	QFont font_;
 	QFont linefont;
 	bool isDialogOpened = false;
+
+	FindAndReplaceForm findAndReplaceForm_;
+
 protected:
 	virtual void keyPressEvent(QKeyEvent* e) override;
 

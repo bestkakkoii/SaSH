@@ -63,7 +63,7 @@
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'" Label="QtSettings">
     <QtInstall>5.15.2_msvc2019</QtInstall>
-    <QtModules>core;opengl;network;svg;widgets;concurrent</QtModules>
+    <QtModules>core;opengl;network;svg;widgets;concurrent;gui</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="QtSettings">
@@ -73,7 +73,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="QtSettings">
     <QtInstall>5.15.2_msvc2019</QtInstall>
-    <QtModules>core;opengl;network;svg;widgets;concurrent</QtModules>
+    <QtModules>core;opengl;network;svg;widgets;concurrent;gui</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="QtSettings">
@@ -146,7 +146,7 @@
       </WholeProgramOptimization>
       <SupportJustMyCode>true</SupportJustMyCode>
       <StructMemberAlignment>Default</StructMemberAlignment>
-      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerOutput>NoListing</AssemblerOutput>
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
       <LanguageStandard_C>Default</LanguageStandard_C>
@@ -217,7 +217,7 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat</Command>
       </WholeProgramOptimization>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
@@ -270,7 +270,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <SupportJustMyCode>true</SupportJustMyCode>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <StructMemberAlignment>Default</StructMemberAlignment>
-      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion />
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
     </ClCompile>
@@ -316,7 +316,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <SupportJustMyCode>false</SupportJustMyCode>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
@@ -420,6 +420,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     </ClCompile>
     <ClCompile Include="form\chatinfoform.cpp" />
     <ClCompile Include="form\copyrightdialog.cpp" />
+    <ClCompile Include="form\findandreplaceform.cpp" />
     <ClCompile Include="form\generalform.cpp" />
     <ClCompile Include="form\infoform.cpp" />
     <ClCompile Include="form\iteminfoform.cpp" />
@@ -429,7 +430,6 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <ClCompile Include="form\otherform.cpp" />
     <ClCompile Include="form\petinfoform.cpp" />
     <ClCompile Include="form\playerinfoform.cpp" />
-    <ClCompile Include="form\replaceform.cpp" />
     <ClCompile Include="form\scriptform.cpp" />
     <ClCompile Include="form\scripteditor.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
@@ -484,6 +484,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <ClCompile Include="net\rpc.cpp" />
     <ClCompile Include="net\tcpserver.cpp" />
     <ClCompile Include="script\action.cpp" />
+    <ClCompile Include="script\crypto.cpp" />
     <ClCompile Include="script\interpreter.cpp" />
     <ClCompile Include="script\lexer.cpp" />
     <ClCompile Include="script\parser.cpp" />
@@ -515,13 +516,13 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <QtMoc Include="form\abilityform.h" />
     <QtMoc Include="form\mapwidget.h" />
     <QtMoc Include="form\mapform.h" />
-    <QtMoc Include="form\replaceform.h" />
     <QtMoc Include="form\copyrightdialog.h" />
     <ClInclude Include="3rdparty\unzip.h" />
     <ClInclude Include="3rdparty\zip.h" />
     <ClInclude Include="battle\battle.h" />
     <QtMoc Include="form\battlesettingfrom.h" />
     <QtMoc Include="form\settingfiledialog.h" />
+    <QtMoc Include="form\findandreplaceform.h" />
     <ClInclude Include="injector.h" />
     <QtMoc Include="interfacer.h" />
     <ClInclude Include="map\astar.h" />
@@ -558,6 +559,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <QtMoc Include="net\rpc.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
+    <ClInclude Include="script\crypto.h" />
     <ClInclude Include="script\lexer.h" />
     <QtMoc Include="script\parser.h" />
     <QtMoc Include="script_lua\clua.h" />
@@ -571,6 +573,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <QtUic Include="form\battlesettingfrom.ui" />
     <QtUic Include="form\chatinfoform.ui" />
     <QtUic Include="form\copyrightdialog.ui" />
+    <QtUic Include="form\findandreplaceform.ui" />
     <QtUic Include="form\generalform.ui" />
     <QtUic Include="form\infoform.ui" />
     <QtUic Include="form\iteminfoform.ui" />

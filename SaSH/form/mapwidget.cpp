@@ -586,7 +586,7 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	long long y = dst.y();
 
 	QPoint point(x, y);
-	missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
 	if (missionThread_ == nullptr)
 		return;
 	missionThread_->appendArg(point);
@@ -789,7 +789,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 		return;
 
 	QPoint point(x, y);
-	missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
 	if (missionThread_ == nullptr)
 		return;
 
@@ -938,7 +938,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		}
 
 		QPoint point(x, y);
-		missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+		missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
 		if (missionThread_ == nullptr)
 			return;
 
@@ -1006,7 +1006,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 
 	point = QPoint(x, y);
-	missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
 	if (missionThread_ == nullptr)
 		return;
 

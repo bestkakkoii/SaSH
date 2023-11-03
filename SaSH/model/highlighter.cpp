@@ -37,7 +37,6 @@ const char* Highlighter::keywords(int set) const
 	{
 		return
 			"call pause exit label jmp back continue "
-			"waitdlg waitsay waititem waitmap waitteam waitpet waitpos "
 
 			/*lua original*/
 			"function end goto break for while if repeat until do in then else elseif return "
@@ -63,8 +62,10 @@ const char* Highlighter::keywords(int set) const
 
 			"rungame closegame openwindow setlogin runex stoprunex dostrex loadsetex getgamestate "
 
+			"waitdlg waitsay waititem waitmap waitteam waitpet waitpos "
+
 			/* . */
-			"item.count item.indexof item.find "
+			"item:count item:indexof item:find "
 			"unit.find dialog.contains petskill.find skill.find magic.find "
 			"timer.get timer.gets timer.new timer.del timer.getstr "
 			"map.isxy map.isrect map.ismap chat.contains "

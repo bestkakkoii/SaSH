@@ -38,7 +38,7 @@ public:
 	{
 		if (instance == nullptr)
 		{
-			instance = new RPC(type, parent);
+			instance = q_check_ptr(new RPC(type, parent));
 		}
 	}
 

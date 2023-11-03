@@ -139,7 +139,7 @@ void MapForm::onButtonClicked()
 		long long y = ui.spinBox_findpath_y->value();
 
 		QPoint point(x, y);
-		missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+		missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
 		if (missionThread_ == nullptr)
 			return;
 
@@ -254,7 +254,7 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
 
 	QPoint point = npc_hash_.value(row);
-	missionThread_ = new MissionThread(currentIndex, MissionThread::kAsyncFindPath);
+	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
 	if (missionThread_ == nullptr)
 		return;
 

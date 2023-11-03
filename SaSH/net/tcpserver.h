@@ -247,7 +247,7 @@ public://actions
 	void __fastcall setCharFaceDirection(long long dir, bool noWindow = false);
 	void __fastcall setCharFaceDirection(const QString& dirStr);
 
-	[[nodiscard]] long long __fastcall getPartySize() const;
+	[[nodiscard]] long long __fastcall getPartySize();
 	[[nodiscard]] QStringList __fastcall getJoinableUnitList() const;
 	[[nodiscard]] bool __fastcall getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv,
 		long long from = 0, long long to = sa::MAX_ITEM, QVector<long long>* pindexs = nullptr);

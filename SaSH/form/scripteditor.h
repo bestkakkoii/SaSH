@@ -76,6 +76,8 @@ signals:
 	void breakMarkInfoImport();
 
 private slots:
+	void onFindAllDoubleClicked(QTreeWidgetItem* item, int column);
+	void onFindAllFinished(const QString& expr, const QVariant& varmap);
 	void onReloadScriptList();
 	void onApplyHashSettingsToUI();
 	void onScriptTreeWidgetHeaderClicked(int logicalIndex);
@@ -184,10 +186,13 @@ private:
 	QHash<QString, QString> scripts_;
 	QHash<QString, QVariant> currentGlobalVarInfo_;
 	QHash<QString, QVariant> currentLocalVarInfo_;
-	QHash<QString, QSharedPointer<QTextDocument>> document_;
+	QHash<QString, std::shared_ptr<QTextDocument>> document_;
 	QLabel* pSpeedDescLabel_ = nullptr;
 	QSpinBox* pSpeedSpinBox = nullptr;
 
 	QString currentRenameText_ = "";
 	QString currentRenamePath_ = "";
+
+	QDockWidget* pDockWidgetFindAll_ = nullptr;
+	TreeWidget* pTreeWidgetFindAll_ = nullptr;
 };
