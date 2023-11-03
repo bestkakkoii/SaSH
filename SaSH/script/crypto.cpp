@@ -25,12 +25,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "util.h"
 
+#ifdef _WIN64
+#ifdef _DEBUG
+#pragma comment(lib, "libcrypto64MDd.lib")
+#pragma comment(lib, "libssl64MDd.lib")
+#else
+#pragma comment(lib, "libcrypto64MD.lib")
+#pragma comment(lib, "libssl64MD.lib")
+#endif
+#else
 #ifdef _DEBUG
 #pragma comment(lib, "libcrypto32MDd.lib")
 #pragma comment(lib, "libssl32MDd.lib")
 #else
 #pragma comment(lib, "libcrypto32MD.lib")
 #pragma comment(lib, "libssl32MD.lib")
+#endif
 #endif
 #pragma comment(lib, "crypt32.lib")
 

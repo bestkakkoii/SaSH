@@ -668,12 +668,8 @@ void ScriptEditor::loadFile(const QString& fileName)
 		return;
 
 	bool isReadOnly = ui.widget->isReadOnly();
-	if (isReadOnly && !isPrivate)
+	if (isReadOnly)
 		ui.widget->setReadOnly(false);
-	else if (!isReadOnly && isPrivate)
-	{
-		ui.widget->setReadOnly(true);
-	}
 
 	int curLine = -1;
 	int curIndex = -1;
@@ -732,6 +728,10 @@ void ScriptEditor::loadFile(const QString& fileName)
 
 	if (isReadOnly)
 		ui.widget->setReadOnly(true);
+	else if (!isReadOnly && isPrivate)
+	{
+		ui.widget->setReadOnly(true);
+	}
 
 	if (injector.IS_SCRIPT_FLAG.get())
 	{
