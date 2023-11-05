@@ -106,6 +106,9 @@ void ScriptForm::onScriptStarted()
 	}
 
 	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
+	sash_assume(interpreter_ != nullptr);
+	if (nullptr == interpreter_)
+		return;
 
 	injector.scriptLogModel.clear();
 
@@ -259,6 +262,9 @@ void ScriptForm::loadFile(const QString& fileName, bool start)
 	if (interpreter_ == nullptr)
 	{
 		interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
+		sash_assume(interpreter_ != nullptr);
+		if (nullptr == interpreter_)
+			return;
 	}
 
 	interpreter_->preview(fileName);
@@ -441,6 +447,7 @@ void ScriptForm::onReloadScriptList()
 {
 	QStringList newScriptList = {};
 	TreeWidgetItem* item = q_check_ptr(new TreeWidgetItem());
+	sash_assume(item != nullptr);
 	if (nullptr == item)
 		return;
 

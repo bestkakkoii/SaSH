@@ -28,8 +28,8 @@ static const QHash<QString, RESERVE> keywords = {
 	//... 其他後續增加的關鍵字
 	{ "#lua", TK_LUABEGIN },
 	{ "#endlua", TK_LUAEND },
-#pragma region en_US
-	//keyword
+
+	//keyword，關鍵字 全權交由parser處理
 	{ "call", TK_CALL },
 	{ "goto", TK_GOTO },
 	{ "jmp", TK_JMP },
@@ -45,38 +45,29 @@ static const QHash<QString, RESERVE> keywords = {
 	{ "break", TK_BREAK },
 	{ "continue", TK_CONTINUE },
 
-	//system
+	//system 系統命令 交由interpreter處理
 	{ "run", TK_CMD },
 	{ "dostr", TK_CMD },
 
+	//上方不做更改
+
+	//以下待轉移到lua 目前暫時由interpreter處理
+
 	//actions
 	{ "usemagic", TK_CMD },
-	{ "doffpet", TK_CMD },
-	{ "buy", TK_CMD },
-	{ "sell", TK_CMD },
-	{ "sellpet", TK_CMD },
 	{ "useitem", TK_CMD },
 	{ "doffitem", TK_CMD },
-	{ "swapitem", TK_CMD },
-	{ "pickup", TK_CMD },
 	{ "putitem", TK_CMD },
 	{ "getitem", TK_CMD },
 	{ "putpet", TK_CMD },
 	{ "getpet", TK_CMD },
-	{ "putstone", TK_CMD },
-	{ "getstone", TK_CMD },
-	{ "make", TK_CMD },
-	{ "cook", TK_CMD },
 	{ "uequip", TK_CMD },
 	{ "requip", TK_CMD },
 	{ "wequip", TK_CMD },
 	{ "puequip", TK_CMD },
 	{ "pequip", TK_CMD },
-	{ "skup", TK_CMD },
-	{ "learn", TK_CMD },
 	{ "trade", TK_CMD },
 	{ "mail", TK_CMD },
-	#pragma endregion
 };
 #pragma endregion
 

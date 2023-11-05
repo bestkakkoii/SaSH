@@ -43,9 +43,15 @@ QThumbnailForm::QThumbnailForm(const QList<HWND>& v, QWidget* parent)
 	for (int i = 0; i < size; ++i)
 	{
 		if (i < v.size())
+		{
 			m_glWidgets[i] = q_check_ptr(new QThumbnailWidget(col, row, v.value(i), this));
+			sash_assume(m_glWidgets[i] != nullptr);
+		}
 		else
+		{
 			m_glWidgets[i] = q_check_ptr(new QThumbnailWidget(col, row, nullptr, this));
+			sash_assume(m_glWidgets[i] != nullptr);
+		}
 
 		connect(m_glWidgets[i], &QThumbnailWidget::sigmouseMoveEvent, this, &QThumbnailForm::on_mouseMoveEvent, Qt::QueuedConnection);
 		connect(m_glWidgets[i], &QThumbnailWidget::sigmousePressEvent, this, &QThumbnailForm::on_mousePressEvent, Qt::QueuedConnection);

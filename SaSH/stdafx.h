@@ -1,42 +1,24 @@
-﻿#if _MSC_VER >= 1600 
+﻿#pragma once
+#if _MSC_VER >= 1600 
 #pragma execution_character_set("utf-8") 
 #endif
-
-#pragma once
 
 #ifndef QT_USE_QSTRINGBUILDER
 #define QT_USE_QSTRINGBUILDER
 #endif
 
-#ifdef QT_NO_DEBUG
-#define QT_NO_DEBUG_OUTPUT
-#define QT_NO_INFO_OUTPUT
+#ifndef QT_NO_CAST_FROM_BYTEARRAY
+#define QT_NO_CAST_FROM_BYTEARRAY
 #endif
 
-#ifndef DISABLE_COPY
-#define DISABLE_COPY(Class) \
-    Class(const Class &) = delete;\
-    Class &operator=(const Class &) = delete;
-#endif
-#ifndef DISABLE_MOVE
-#define DISABLE_MOVE(Class) \
-    Class(Class &&) = delete; \
-    Class &operator=(Class &&) = delete;
-#endif
-#ifndef DISABLE_COPY_MOVE
-#define DISABLE_COPY_MOVE(Class) \
-    DISABLE_COPY(Class) \
-    DISABLE_MOVE(Class) \
-public:\
-	static Class& getInstance() {\
-		static Class instance;\
-		return instance;\
-	}
+#ifndef QT_NO_CAST_TO_ASCII
+#define QT_NO_CAST_TO_ASCII
 #endif
 
-#ifndef STATICINS
-#define STATICINS(Class) Class& g_##Class = Class::getInstance()
-#endif
+//#ifdef QT_NO_DEBUG
+//#define QT_NO_DEBUG_OUTPUT
+//#define QT_NO_INFO_OUTPUT
+//#endif
 
 #if defined __cplusplus
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -289,46 +271,15 @@ public:\
 
 //#include "update/curldownload.h"
 
-#include "map/astar.h"
+#include "map/astardevice.h"
 #include <usermessage.h>
 #include "model/builddatetime.h"
 #include "interfacer.h"
 
-#pragma region MACROS
-//custom
-//#define OCR_ENABLE
 
-//sa original
-#define _PETS_SELECTCON
-#define _NEW_SYSTEM_MENU
-#define _ANNOUNCEMENT_
-#define _JOBDAILY
-#define _TEACHER_SYSTEM
-#define _MAGIC_NOCAST
-#define _TEAM_KICKPARTY
-#define _CHECK_GAMESPEED
-#define _PET_ITEM
-#define _ITEM_FIREWORK
-#define _ITEM_EQUITSPACE
-#define _CHAR_PROFESSION
-#define _STANDBYPET
-#define _ITEM_PILENUMS
-#define _ALCHEMIST
-#define _ITEM_JIGSAW
-#define _SHOW_FUSION
-#define _CHAR_NEWLOGOUT
-#define _CHANNEL_MODIFY
-#define _FMVER21
-#define _CHANNEL_WORLD
-#define _EQUIT_NEWGLOVE
-#define __ATTACK_MAGIC
-#define _SKILL_ADDBARRIER
-#define _OBJSEND_C
-#define _NEWSHOP_
-#define _NEW_CLIENT_LOGIN
-#define _PETCOM_
-#pragma endregion
-
+#include "globalmicro.h"
 #include "net/database.h"
+
+
 
 #endif // __cplusplus

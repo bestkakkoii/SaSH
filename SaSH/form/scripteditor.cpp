@@ -23,7 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-//#include "crypto.h"
 #include <QSpinBox>
 
 ScriptEditor::ScriptEditor(long long index, QWidget* parent)
@@ -176,38 +175,38 @@ void ScriptEditor::init()
 void ScriptEditor::initStaticLabel()
 {
 	lineLable_ = q_check_ptr(new FastLabel(tr("row:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar));
-	Q_ASSERT(lineLable_ != nullptr);
+	sash_assume(lineLable_ != nullptr);
 	lineLable_->setFixedWidth(60);
 	lineLable_->setTextColor(QColor(255, 255, 255));
 	sizeLabel_ = q_check_ptr(new FastLabel("| " + tr("size:%1").arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar));
-	Q_ASSERT(sizeLabel_ != nullptr);
+	sash_assume(sizeLabel_ != nullptr);
 	sizeLabel_->setFixedWidth(60);
 	sizeLabel_->setTextColor(QColor(255, 255, 255));
 	indexLabel_ = q_check_ptr(new FastLabel("| " + tr("index:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar));
-	Q_ASSERT(indexLabel_ != nullptr);
+	sash_assume(indexLabel_ != nullptr);
 	indexLabel_->setFixedWidth(60);
 	indexLabel_->setTextColor(QColor(255, 255, 255));
 
 	const QsciScintilla::EolMode mode = ui.widget->eolMode();
 	const QString modeStr(mode == QsciScintilla::EolWindows ? "CRLF" : mode == QsciScintilla::EolUnix ? "  LF" : "  CR");
 	eolLabel_ = q_check_ptr(new FastLabel(QString("| %1").arg(modeStr), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar));
-	Q_ASSERT(eolLabel_ != nullptr);
+	sash_assume(eolLabel_ != nullptr);
 	eolLabel_->setFixedWidth(50);
 	eolLabel_->setTextColor(QColor(255, 255, 255));
 
 	usageLabel_ = q_check_ptr(new FastLabel(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB"))
 		.arg(0).arg(0).arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar));
-	Q_ASSERT(usageLabel_ != nullptr);
+	sash_assume(usageLabel_ != nullptr);
 	usageLabel_->setFixedWidth(350);
 	usageLabel_->setTextColor(QColor(255, 255, 255));
 
 	QLabel* spaceLabeRight = q_check_ptr(new QLabel("", ui.statusBar));
-	Q_ASSERT(spaceLabeRight != nullptr);
+	sash_assume(spaceLabeRight != nullptr);
 	spaceLabeRight->setFrameStyle(QFrame::NoFrame);
 	spaceLabeRight->setFixedWidth(10);
 
 	QLabel* spaceLabelMiddle = q_check_ptr(new QLabel("", ui.statusBar));
-	Q_ASSERT(spaceLabelMiddle != nullptr);
+	sash_assume(spaceLabelMiddle != nullptr);
 	spaceLabelMiddle->setFrameStyle(QFrame::NoFrame);
 	spaceLabelMiddle->setFixedWidth(100);
 
@@ -251,11 +250,11 @@ void ScriptEditor::initStaticLabel()
 void ScriptEditor::createSpeedSpinBox()
 {
 	pSpeedDescLabel_ = q_check_ptr(new QLabel(tr("Script speed:"), ui.mainToolBar));
-	Q_ASSERT(pSpeedDescLabel_ != nullptr);
+	sash_assume(pSpeedDescLabel_ != nullptr);
 	pSpeedDescLabel_->setAttribute(Qt::WA_StyledBackground);
 
 	pSpeedSpinBox = q_check_ptr(new QSpinBox(ui.mainToolBar));
-	Q_ASSERT(pSpeedSpinBox != nullptr);
+	sash_assume(pSpeedSpinBox != nullptr);
 	pSpeedSpinBox->setStyleSheet("QLabel {color: #FAFAFA; font-size: 12pt;}");
 
 	long long currentIndex = getIndex();
@@ -685,7 +684,7 @@ void ScriptEditor::loadFile(const QString& fileName)
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
-		setWindowTitle(QString("[%1][%2] %3").arg(currentIndex).arg(injector.worker->getPC().name).arg(fileName));
+		setWindowTitle(QString("[%1][%2] %3").arg(currentIndex).arg(injector.worker->getCharacter().name).arg(fileName));
 	else
 		setWindowTitle(QString("[%1] %2").arg(currentIndex).arg(fileName));
 
@@ -793,7 +792,7 @@ void ScriptEditor::createScriptListContextMenu()
 {
 	// Create the custom context menu
 	QMenu* menu = q_check_ptr(new QMenu(this));
-	Q_ASSERT(menu != nullptr);
+	sash_assume(menu != nullptr);
 	if (menu == nullptr)
 		return;
 
@@ -1242,22 +1241,22 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	else if (str == "findnpc")
 	{
 		QPoint pos = injector.worker->getPoint();
-		QList<sa::mapunit_t> units = injector.worker->mapUnitHash.values();
+		QList<sa::map_unit_t> units = injector.worker->mapUnitHash.values();
 		auto getdis = [&pos](QPoint p)
 			{
 				//歐幾里得
 				return sqrt(pow(pos.x() - p.x(), 2) + pow(pos.y() - p.y(), 2));
 			};
 
-		std::sort(units.begin(), units.end(), [&getdis](const sa::mapunit_t& a, const sa::mapunit_t& b)
+		std::sort(units.begin(), units.end(), [&getdis](const sa::map_unit_t& a, const sa::map_unit_t& b)
 			{
 				return getdis(a.p) < getdis(b.p);
 			});
 
 		if (units.isEmpty())
 			return;
-		sa::mapunit_t unit = units.first();
-		while (unit.objType != sa::OBJ_NPC)
+		sa::map_unit_t unit = units.first();
+		while (unit.objType != sa::kObjectNPC)
 		{
 			units.removeFirst();
 			if (units.isEmpty())
@@ -1266,28 +1265,28 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		}
 
 		//移动至NPC 参数1:NPC名称, 参数2:NPC暱称, 参数3:东坐标, 参数4:南坐标, 参数5:超时时间, 参数6:错误跳转
-		str = QString("%1('%2', '%3', %4, %5, 10000, -1)").arg(str).arg(unit.name).arg(unit.freeName).arg(unit.p.x()).arg(unit.p.y());
+		str = QString("%1('%2', '%3', %4, %5, 10000, 50, true)").arg(str).arg(unit.name).arg(unit.freeName).arg(unit.p.x()).arg(unit.p.y());
 
 	}
 	else if (str == "findnpc with mod")
 	{
 		QPoint pos = injector.worker->getPoint();
-		QList<sa::mapunit_t> units = injector.worker->mapUnitHash.values();
+		QList<sa::map_unit_t> units = injector.worker->mapUnitHash.values();
 		auto getdis = [&pos](QPoint p)
 			{
 				//歐幾里得
 				return sqrt(pow(pos.x() - p.x(), 2) + pow(pos.y() - p.y(), 2));
 			};
 
-		std::sort(units.begin(), units.end(), [&getdis](const sa::mapunit_t& a, const sa::mapunit_t& b)
+		std::sort(units.begin(), units.end(), [&getdis](const sa::map_unit_t& a, const sa::map_unit_t& b)
 			{
 				return getdis(a.p) < getdis(b.p);
 			});
 
 		if (units.isEmpty())
 			return;
-		sa::mapunit_t unit = units.first();
-		while (unit.objType != sa::OBJ_NPC)
+		sa::map_unit_t unit = units.first();
+		while (unit.objType != sa::kObjectNPC)
 		{
 			units.removeFirst();
 			if (units.isEmpty())
@@ -1296,7 +1295,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		}
 
 		//移动至NPC 参数1:NPC名称, 参数2:NPC暱称, 参数3:东坐标, 参数4:南坐标, 参数5:超时时间, 参数6:错误跳转
-		str = QString("findnpc(%1, '', %2, %3, 10000, -1)").arg(unit.modelid).arg(unit.p.x()).arg(unit.p.y());
+		str = QString("findnpc(%1, '', %2, %3, 10000, 50, true)").arg(unit.modelid).arg(unit.p.x()).arg(unit.p.y());
 	}
 	ui.widget->insert(str);
 }
@@ -1353,6 +1352,7 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 		QString markdownText = result.join("\n---\n");
 
 		std::unique_ptr<QTextDocument> pdoc(q_check_ptr(new QTextDocument()));
+		sash_assume(pdoc != nullptr);
 		if (nullptr == pdoc)
 			break;
 
@@ -1576,7 +1576,7 @@ void ScriptEditor::onApplyHashSettingsToUI()
 	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
 	{
 		QString title = injector.currentScriptFileName;
-		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(injector.worker->getPC().name).arg(title);
+		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(injector.worker->getCharacter().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 
@@ -2248,6 +2248,7 @@ void ScriptEditor::onBreakMarkInfoImport()
 		for (const break_marker_t& bit : mk)
 		{
 			item = q_check_ptr(new TreeWidgetItem({ bit.content, util::toQString(bit.count), util::toQString(bit.line + 1), fileName }));
+			sash_assume(item != nullptr);
 			if (item == nullptr)
 				continue;
 
@@ -2265,6 +2266,7 @@ void ScriptEditor::onReloadScriptList()
 {
 	QStringList newScriptList = {};
 	TreeWidgetItem* item = q_check_ptr(new TreeWidgetItem());
+	sash_assume(item != nullptr);
 	if (nullptr == item)
 		return;
 
@@ -2296,12 +2298,14 @@ void ScriptEditor::onFindAllFinished(const QString& expr, const QVariant& varmap
 	if (nullptr == pDockWidgetFindAll_)
 	{
 		pDockWidgetFindAll_ = q_check_ptr(new QDockWidget(this));
+		sash_assume(pDockWidgetFindAll_ != nullptr);
 		if (nullptr == pDockWidgetFindAll_)
 			return;
 
 		pDockWidgetFindAll_->setAttribute(Qt::WA_StyledBackground);
 
 		pTreeWidgetFindAll_ = q_check_ptr(new TreeWidget(pDockWidgetFindAll_));
+		sash_assume(pTreeWidgetFindAll_ != nullptr);
 		if (nullptr == pTreeWidgetFindAll_)
 			return;
 
@@ -2336,6 +2340,10 @@ void ScriptEditor::onFindAllFinished(const QString& expr, const QVariant& varmap
 	QString fileName = fileInfo.fileName();
 
 	TreeWidgetItem* parentNode = q_check_ptr(new TreeWidgetItem(QStringList{ QString("%1 (%2)").arg(fileName).arg(resultLineTexts.size()) }));
+	sash_assume(nullptr != parentNode);
+	if (nullptr == parentNode)
+		return;
+
 	//add items
 	for (auto it = resultLineTexts.cbegin(); it != resultLineTexts.cend(); ++it)
 	{
@@ -2348,6 +2356,7 @@ void ScriptEditor::onFindAllFinished(const QString& expr, const QVariant& varmap
 		long long index = texts.value(1).toLongLong();
 
 		TreeWidgetItem* item = q_check_ptr(new TreeWidgetItem({ text, fileName, util::toQString(line + 1), util::toQString(index) }));
+		sash_assume(nullptr != item);
 		if (nullptr == item)
 			continue;
 
@@ -2536,7 +2545,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 			varType = QObject::tr("Table");
 			QStringList treeTexts = { field, key, "", QString("(%1)").arg(varType) };
 			pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
-			__assume(pNode != nullptr);
+			sash_assume(pNode != nullptr);
 			if (pNode == nullptr)
 				continue;
 
@@ -2593,7 +2602,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 
 		QStringList treeTexts = { field, key.isEmpty() ? util::toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) };
 		pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
-		__assume(pNode != nullptr);
+		sash_assume(pNode != nullptr);
 		if (pNode == nullptr)
 			continue;
 
@@ -2687,7 +2696,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 					{
 						QStringList treeTexts = { field, varName, "", QString("(%1)").arg(varType) };
 						pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
-						__assume(pNode != nullptr);
+						sash_assume(pNode != nullptr);
 						if (pNode == nullptr)
 							continue;
 
@@ -2737,7 +2746,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 
 			QStringList treeTexts = { field, varName, varValueStr, QString("(%1)").arg(varType) };
 			pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
-			__assume(pNode != nullptr);
+			sash_assume(pNode != nullptr);
 			if (pNode == nullptr)
 				continue;
 
@@ -2767,6 +2776,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 			varType = QObject::tr("Table");
 			QStringList treeTexts = { field, varName, "", QString("(%1)").arg(varType) };
 			pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
+			sash_assume(nullptr != pNode);
 			if (pNode == nullptr)
 				continue;
 
@@ -2827,6 +2837,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 
 		QStringList treeTexts = { field, varName, varValueStr, QString("(%1)").arg(varType) };
 		pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
+		sash_assume(pNode != nullptr);
 		if (pNode == nullptr)
 			continue;
 

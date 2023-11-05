@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "clua.h"
 #include "injector.h"
 #include "signaldispatcher.h"
-#include "map/mapanalyzer.h"
+#include "map/mapdevice.h"
 
 long long CLuaMap::setdir(sol::object p1, sol::object p2, sol::this_state s)
 {
@@ -250,11 +250,13 @@ long long CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 
 bool __fastcall findPathProcess(
 	long long currentIndex,
+	AStarDevice* pastar,
 	QPoint dst,
 	long long steplen,
 	long long step_cost,
 	long long timeout,
 	std::function<long long(QPoint& dst)> callback,
+	long long callback_step_cost,
 	sol::this_state s)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -285,12 +287,11 @@ bool __fastcall findPathProcess(
 		luadebug::logExport(s, output, 4);
 	}
 
-	CAStar astar;
 	std::vector<QPoint> path;
 	util::Timer timer;
 	QSet<QPoint> blockList;
 
-	if (!injector.worker->mapAnalyzer.calcNewRoute(currentIndex, astar, floor, src, dst, blockList, &path))
+	if (!injector.worker->mapDevice.calcNewRoute(currentIndex, pastar, floor, src, dst, blockList, &path))
 	{
 		output = QObject::tr("[error] <findpath>unable to findpath from %1, %2 to %3, %4").arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y());
 		luadebug::logExport(s, output, 6);
@@ -434,7 +435,7 @@ bool __fastcall findPathProcess(
 			if (luadebug::checkStopAndPause(s))
 				return false;
 
-			if (!injector.worker->mapAnalyzer.calcNewRoute(currentIndex, astar, floor, src, dst, blockList, &path))
+			if (!injector.worker->mapDevice.calcNewRoute(currentIndex, pastar, floor, src, dst, blockList, &path))
 			{
 				output = QObject::tr("[error] <findpath>unable to findpath from %1, %2 to %3, %4").arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y());
 				luadebug::logExport(s, output, 6);
@@ -475,7 +476,7 @@ bool __fastcall findPathProcess(
 
 			//查看前方是否存在NPC阻擋
 			QPoint blockPoint;
-			sa::mapunit_t unit; bool hasNPCBlock = false;
+			sa::map_unit_t unit; bool hasNPCBlock = false;
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 			bool isAutoEscape = injector.getEnableHash(util::kAutoEscapeEnable);
 			bool isKNPC = injector.getEnableHash(util::kKNPCEnable);
@@ -483,7 +484,7 @@ bool __fastcall findPathProcess(
 			for (const QPoint& it : util::fix_point)
 			{
 				blockPoint = src + it;
-				if (!injector.worker->findUnit(QString("%1|%2").arg(point.x()).arg(point.y()), sa::OBJ_NPC, &unit) || !unit.isVisible)
+				if (!injector.worker->findUnit(QString("%1|%2").arg(point.x()).arg(point.y()), sa::kObjectNPC, &unit) || !unit.isVisible)
 					continue;
 				hasNPCBlock = true;
 				break;
@@ -567,7 +568,7 @@ bool __fastcall findPathProcess(
 
 		if (callback != nullptr)
 		{
-			QThread::msleep(50);
+			QThread::msleep(callback_step_cost);
 			long long r = callback(dst);
 			if (r == 1)
 				callback = nullptr;
@@ -623,7 +624,7 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 			steplen = p3.as<long long>();
 		if (p4.is<long long>())
 			step_cost = p4.as<long long>();
-		if (p5.is<long long>())
+		if (p5.is<long long>() && p5.as<long long>() > 0)
 			timeout = p5.as<long long>();
 
 		if (ofunction.is<sol::protected_function>())
@@ -637,27 +638,27 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 			steplen = p2.as<long long>();
 		if (p3.is<long long>())
 			step_cost = p3.as<long long>();
-		if (p4.is<long long>())
+		if (p4.is<long long>() && p4.as<long long>() > 0)
 			timeout = p4.as<long long>();
 		if (p5.is<sol::protected_function>())
 			func = p5.as<sol::protected_function>();
 	}
 
-	CAStar astar;
+	AStarDevice astar;
 	auto findNpcCallBack = [&injector, &astar, currentIndex, &s](const QString& name, QPoint& dst, long long* pdir)->bool
 		{
 			if (luadebug::checkStopAndPause(s))
 				return false;
 
-			sa::mapunit_s unit;
-			if (!injector.worker->findUnit(name, sa::OBJ_NPC, &unit, ""))
+			sa::map_unit_t unit;
+			if (!injector.worker->findUnit(name, sa::kObjectNPC, &unit, ""))
 			{
-				if (!injector.worker->findUnit(name, sa::OBJ_HUMAN, &unit, ""))
+				if (!injector.worker->findUnit(name, sa::kObjectHuman, &unit, ""))
 					return 0;//沒找到
 			}
 
-			long long dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(
-				currentIndex, astar, injector.worker->getFloor(), injector.worker->getPoint(), unit.p, &dst, true, unit.dir);
+			long long dir = injector.worker->mapDevice.calcBestFollowPointByDstPoint(
+				currentIndex, &astar, injector.worker->getFloor(), injector.worker->getPoint(), unit.p, &dst, true, unit.dir);
 			if (pdir)
 				*pdir = dir;
 			return dir != -1;//找到了
@@ -718,7 +719,7 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 				return func(dst.x(), dst.y());
 			};
 
-		if (findPathProcess(currentIndex, p, steplen, step_cost, timeout, stdfun, s))
+		if (findPathProcess(currentIndex, &astar, p, steplen, step_cost, timeout, stdfun, 50, s))
 		{
 			if (!name.isEmpty() && (findNpcCallBack(name, p, &dir)) && dir != -1)
 				injector.worker->setCharFaceDirection(dir);
@@ -728,7 +729,7 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 		return FALSE;
 	}
 
-	if (findPathProcess(currentIndex, p, steplen, step_cost, timeout, nullptr, s))
+	if (findPathProcess(currentIndex, &astar, p, steplen, step_cost, timeout, nullptr, 0, s))
 	{
 		if (!name.isEmpty() && (findNpcCallBack(name, p, &dir)) && dir != -1)
 			injector.worker->setCharFaceDirection(dir);
@@ -739,7 +740,7 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 	return FALSE;
 }
 
-long long CLuaMap::findNPC(sol::object p1, sol::object nicknames, long long x, long long y, long long otimeout, sol::this_state s)
+long long CLuaMap::findNPC(sol::object p1, sol::object nicknames, long long x, long long y, sol::object otimeout, sol::object ostepcost, sol::object oenableCrossWall, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["_INDEX"].get<long long>();
@@ -775,31 +776,42 @@ long long CLuaMap::findNPC(sol::object p1, sol::object nicknames, long long x, l
 	QPoint p(x, y);
 
 	long long timeout = 5000LL * 36;
+	if (otimeout.is<long long>() && otimeout.as<long long>() > 0)
+		timeout = otimeout.as<long long>();
 
-	sa::mapunit_s unit;
+	bool enableCrossWall = true;
+	if (oenableCrossWall.is<bool>())
+		enableCrossWall = oenableCrossWall.as<bool>();
+
+	long long callback_step_cost = 50;
+	if (ostepcost.is<long long>() && ostepcost.as<long long>() > 0)
+		callback_step_cost = ostepcost.as<long long>();
+
+	sa::map_unit_t unit;
 	long long dir = -1;
-	CAStar astar;
-	auto findNpcCallBack = [&injector, &unit, currentIndex, cmpNpcName, cmpFreeName, modelid, &dir, &astar](QPoint& dst)->bool
+	AStarDevice astar;
+	auto findNpcCallBack = [&injector, &unit, currentIndex, cmpNpcName, cmpFreeName, modelid, enableCrossWall, &dir, &astar](QPoint& dst)->bool
 		{
 			if (modelid > 0)
 			{
-				if (!injector.worker->findUnit("", sa::OBJ_NPC, &unit, "", modelid))
+				if (!injector.worker->findUnit("", sa::kObjectNPC, &unit, "", modelid))
 				{
 					return 0;//沒找到
 				}
 			}
-			else if (!injector.worker->findUnit(cmpNpcName, sa::OBJ_NPC, &unit, cmpFreeName))
+			else if (!injector.worker->findUnit(cmpNpcName, sa::kObjectNPC, &unit, cmpFreeName))
 			{
-				if (!injector.worker->findUnit(cmpNpcName, sa::OBJ_HUMAN, &unit, cmpFreeName))
+				if (!injector.worker->findUnit(cmpNpcName, sa::kObjectHuman, &unit, cmpFreeName))
 					return 0;//沒找到
 			}
 
-			dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(
-				currentIndex, astar, injector.worker->getFloor(), injector.worker->getPoint(), unit.p, &dst, true, unit.dir);
-			return dir != -1 ? 1 : 0;//找到了
+			//找到了則計算最加靠近座標和面像方位
+			dir = injector.worker->mapDevice.calcBestFollowPointByDstPoint(
+				currentIndex, &astar, injector.worker->getFloor(), injector.worker->getPoint(), unit.p, &dst, enableCrossWall, unit.dir);
+			return dir != -1 ? 1 : 0;
 		};
 
-	if (findPathProcess(currentIndex, p, 1, 0, timeout, findNpcCallBack, s) && dir != -1)
+	if (findPathProcess(currentIndex, &astar, p, 1, 0, timeout, findNpcCallBack, callback_step_cost, s) && dir != -1)
 	{
 		injector.worker->setCharFaceDirection(dir);
 		return TRUE;

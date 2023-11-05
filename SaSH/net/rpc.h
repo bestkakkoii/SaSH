@@ -5,6 +5,76 @@
 #include <QByteArray>
 #include <QNetworkInterface>
 #include <QMetaMethod>
+#include "indexer.h"
+
+enum ReturnType { NoReturn, ReturnQString, ReturnLongLong, UnknownReturn };
+
+// 存储方法及其返回值类型
+struct MethodInfo {
+	QMetaMethod method;
+	QObject* receiver;
+	ReturnType returnType;
+};
+
+class RPCSocket : public QTcpSocket, public Indexer
+{
+	Q_OBJECT
+public:
+	RPCSocket(qintptr socketDescriptor, QObject* parent = nullptr);
+
+	void setDevice(QSharedPointer<sol::state> device) { device_ = device; }
+
+	void call(const QString& functionName, const QStringList& args);
+
+signals:
+	void closed();
+	void writed(QByteArray data);
+
+public slots:
+	void onReadyRead();
+
+	void onClose();
+
+	void onWrite(QByteArray data);
+
+private:
+	bool isFunctionExist(const QString& functionName);
+
+public:
+	QThread thread;
+
+private:
+	QWeakPointer<sol::state> device_;
+	bool init = false;
+};
+
+class RPCServer : public QTcpServer
+{
+	Q_OBJECT
+public:
+	explicit RPCServer(QObject* parent = nullptr);
+
+	virtual ~RPCServer();
+
+	bool start(unsigned short port);
+
+	void clear();
+
+	inline QList<RPCSocket*> getClientSockets() { return clientSockets_; }
+
+	QSharedPointer<sol::state> getDevice(long long id);
+
+public slots:
+	void onClientFirstReadyRead();
+
+protected:
+	virtual void incomingConnection(qintptr socketDescriptor) override;
+
+private:
+	QList<RPCSocket*> clientSockets_;
+	QHash<long long, RPCSocket*> clientSocketHash;
+	QHash<long long, QSharedPointer<sol::state>> devices_;
+};
 
 class RPC : public QObject
 {
@@ -12,33 +82,20 @@ class RPC : public QObject
 private:
 	Q_DISABLE_COPY_MOVE(RPC)
 
-public:
-	enum ProtocolType
-	{
-		IPV4,
-		IPV6
-	};
 
 private:
-	enum ReturnType { NoReturn, ReturnQString, ReturnLongLong, UnknownReturn };
-
-	// 存储方法及其返回值类型
-	struct MethodInfo {
-		QMetaMethod method;
-		QObject* receiver;
-		ReturnType returnType;
-	};
 
 private:
 	static RPC* instance;
-	RPC(ProtocolType protocolType, QObject* parent = nullptr);
+	RPC(QObject* parent = nullptr);
 
 public:
-	static void initialize(ProtocolType type, QObject* parent)
+	static void initialize(QObject* parent)
 	{
 		if (instance == nullptr)
 		{
-			instance = q_check_ptr(new RPC(type, parent));
+			instance = q_check_ptr(new RPC(parent));
+			sash_assume(instance != nullptr);
 		}
 	}
 
@@ -48,57 +105,15 @@ public:
 	}
 
 public:
-	bool listen(quint16 port);
+	bool listen(unsigned short port);
 
 	void close();
 
-	void setProtocol(ProtocolType type);
-
-	bool isConnected(int identifier)
+	QSharedPointer<sol::state> getDevice(long long id)
 	{
-		return clients.contains(identifier);
+		return rpcServer.getDevice(id);
 	}
-
-	void reg(qlonglong clientId, const QString& customMethodName, const char* methodSignature, QObject* receiver) {
-		// 在对象的元对象中查找方法签名对应的方法
-		int methodIndex = receiver->metaObject()->indexOfMethod(QMetaObject::normalizedSignature(methodSignature));
-		if (methodIndex == -1) {
-			qWarning() << "Method" << methodSignature << "not found in" << receiver->metaObject()->className();
-			return;
-		}
-
-		QMetaMethod method = receiver->metaObject()->method(methodIndex);
-
-		// 确定返回类型
-		ReturnType returnType = UnknownReturn;
-		if (method.returnType() == QMetaType::QString)
-			returnType = ReturnQString;
-		else if (method.returnType() == QMetaType::LongLong)
-			returnType = ReturnLongLong;
-		else if (method.returnType() == QMetaType::Void)
-			returnType = NoReturn;
-		else
-			qWarning() << "Unknown return type" << method.returnType() << "for method" << methodSignature;
-
-		// 用自定义的方法名存储方法信息
-		MethodInfo methodInfo = { method, receiver, returnType };
-		methods[clientId].insert(customMethodName, methodInfo);
-		qDebug() << "Registered method" << customMethodName << "for client" << clientId;
-	}
-
-private slots:
-	void onNewConnection();
-
-	void onDisconnected();
-
-	void onReadyRead();
 
 private:
-	void processMessage(QTcpSocket* client, const QByteArray& data);
-
-	ProtocolType protocolType;
-	QTcpServer* server;
-	QHash<int, QTcpSocket*> clients;
-	QHash<qlonglong, QHash<QString, MethodInfo>> methods;
-	QHash<QString, ReturnType> returnTypes;
+	RPCServer rpcServer;
 };

@@ -83,7 +83,7 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 		Injector& injector = Injector::getInstance(getIndex());
 		if (currentIndex >= 0 && currentIndex < sa::MAX_PET)
 		{
-			sa::PET pet = injector.worker->getPet(currentIndex);
+			sa::pet_t pet = injector.worker->getPet(currentIndex);
 			base_level_ = pet.oldlevel;
 			if (base_level_ == 0)
 				base_level_ = 1;
@@ -124,7 +124,7 @@ void PetInfoForm::on_comboBox_clicked()
 	for (long long i = 0; i < sa::MAX_PET; ++i)
 	{
 		QVector<long long> v;
-		sa::PET pet = injector.worker->getPet(i);
+		sa::pet_t pet = injector.worker->getPet(i);
 		QString name = util::toQString(i + 1) + ":";
 		if (!pet.name.isEmpty() && pet.valid)
 		{

@@ -52,12 +52,12 @@ CharInfoForm::CharInfoForm(long long index, QWidget* parent)
 			onUpdateCharInfoColContents(it.key(), it.value());
 		}
 
-		long long stone = injector.worker->getPC().gold;
+		long long stone = injector.worker->getCharacter().gold;
 		onUpdateCharInfoStone(stone);
 
 		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
-			sa::PET pet = injector.worker->getPet(i);
+			sa::pet_t pet = injector.worker->getPet(i);
 			onUpdateCharInfoPetState(i, pet.state);
 		}
 	}
@@ -174,7 +174,7 @@ void CharInfoForm::onHeaderClicked(long long logicalIndex)
 		if (injector.worker.isNull())
 			break;
 
-		sa::PET pet = injector.worker->getPet(petIndex);
+		sa::pet_t pet = injector.worker->getPet(petIndex);
 		switch (pet.state)
 		{
 		case sa::PetState::kRest:

@@ -162,10 +162,10 @@
     <ClCompile Include="injector.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="map\astar.cpp">
+    <ClCompile Include="map\astardevice.cpp">
       <Filter>Source Files\map</Filter>
     </ClCompile>
-    <ClCompile Include="map\mapanalyzer.cpp">
+    <ClCompile Include="map\mapdevice.cpp">
       <Filter>Source Files\map</Filter>
     </ClCompile>
     <ClCompile Include="model\mapglwidget.cpp">
@@ -457,10 +457,10 @@
     <ClInclude Include="injector.h">
       <Filter>Source Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="map\astar.h">
+    <ClInclude Include="map\astardevice.h">
       <Filter>Source Files\map</Filter>
     </ClInclude>
-    <ClInclude Include="map\mapanalyzer.h">
+    <ClInclude Include="map\mapdevice.h">
       <Filter>Source Files\map</Filter>
     </ClInclude>
     <ClInclude Include="script\lexer.h">
@@ -513,6 +513,9 @@
     </ClInclude>
     <ClInclude Include="script\crypto.h">
       <Filter>Source Files\script</Filter>
+    </ClInclude>
+    <ClInclude Include="globalmicro.h">
+      <Filter>Source Files\util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

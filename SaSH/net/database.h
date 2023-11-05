@@ -21,6 +21,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QByteArray>
 #include <QHash>
 #include <QPoint>
+#include <QSet>
+#include <QVector>
+#include <QColor>
+#include <QElapsedTimer>
 
 namespace sa
 {
@@ -28,9 +32,6 @@ namespace sa
 	constexpr long long MAX_TIMEOUT = 10000;
 
 	constexpr size_t LINEBUFSIZ = 8192u;
-
-	//constexpr long long MAX_CHARACTER = 4;
-	constexpr long long MAX_CHARACTER = 2;
 
 	constexpr long long CHAR_NAME_LEN = 16;
 	constexpr long long CHAR_FREENAME_LEN = 12;
@@ -42,57 +43,40 @@ namespace sa
 	constexpr long long PET_NAME_LEN = 16;
 	constexpr long long PET_FREENAME_LEN = 12;
 	constexpr long long CHAR_FMNAME_LEN = 33;     // 家族名稱
-
-	//人物職業
-	constexpr long long PROFESSION_MEMO_LEN = 84;
-	//GM識別
-	constexpr long long GM_NAME_LEN = 32;
-
-	constexpr long long CHARNAMELEN = 256;
-
-	constexpr long long MAX_PET = 5;
-
-	constexpr long long MAX_MAGIC = 9;
-
-	constexpr long long MAX_PETSKILL = 7;
-
-	constexpr long long MAX_PARTY = 5;
-
-	constexpr long long MAX_ADR_BOOK_COUNT = 4;
-
-	//constexpr long long MAX_ADR_BOOK_PAGE = 20;//20  //10   20050214 cyg 10 add to 20
-	constexpr long long MAX_ADR_BOOK_PAGE = 10;
-
-	constexpr long long MAX_ADDRESS_BOOK = (MAX_ADR_BOOK_COUNT * MAX_ADR_BOOK_PAGE);
-
-	//constexpr long long MAX_PROFESSION_SKILL = 30;
-	constexpr long long MAX_PROFESSION_SKILL = 26;
-
-	constexpr long long BATTLE_BUF_SIZE = 4;
-	constexpr long long BATTLE_COMMAND_SIZE = 4096;
-
 	constexpr long long FLOOR_NAME_LEN = 24;
-
-	constexpr long long RESULT_ITEM_COUNT = 3;
-	constexpr long long RESULT_ITEM_NAME_LEN = 24;
-	//constexpr long long RESULT_CHR_EXP = 4;
-	constexpr long long RESULT_CHR_EXP = 5;
-
-	constexpr long long SKILL_NAME_LEN = 24;
-	constexpr long long SKILL_MEMO_LEN = 72;
-	constexpr long long MAX_SKILL = 7;
+	constexpr long long PROFESSION_MEMO_LEN = 84;//人物職業
+	constexpr long long GM_NAME_LEN = 32;//GM識別
+	constexpr long long CHARNAME_LEN = 256;
+	constexpr long long PET_SKILL_NAME_LEN = 24;
+	constexpr long long PET_SKILL_MEMO_LEN = 72;
 
 	constexpr long long MIN_HP_PERCENT = 10;
+
+	constexpr long long MAX_CHARACTER = 2;//constexpr long long MAX_CHARACTER = 4;
+	constexpr long long MAX_PET = 5;
+	constexpr long long MAX_MAGIC = 9;
+	constexpr long long MAX_TEAM = 5;
+	constexpr long long MAX_PROFESSION_SKILL = 26;//constexpr long long MAX_PROFESSION_SKILL = 30;
+	constexpr long long MAX_PET_SKILL = 7;
+	constexpr long long MAX_MISSION = 300;
+
+	constexpr long long MAX_ADDRESS_BOOK_COUNT = 4;
+	constexpr long long MAX_ADDRESS_BOOK_PAGE = 10;//constexpr long long MAX_ADDRESS_BOOK_PAGE = 20;//20  //10   20050214 cyg 10 add to 20
+	constexpr long long MAX_ADDRESS_BOOK = (MAX_ADDRESS_BOOK_COUNT * MAX_ADDRESS_BOOK_PAGE);
 
 	constexpr long long MAX_GOLD = 1000000;
 	constexpr long long MAX_BANKGOLD = 10000000;
 	constexpr long long MAX_FMBANKGOLD = 100000000;
-
-
 	constexpr long long MAX_PERSONAL_BANKGOLD = 50000000;
 
-	constexpr long long FAMILY_MAXMEMBER = 100;    // 家族人數
-	//constexpr long long FAMILY_MAXMEMBER = 50;    // 家族人數
+	constexpr long long MAX_FAMILY_MAXMEMBER = 100;// 家族人數//constexpr long long MAX_FAMILY_MAXMEMBER = 50;    // 家族人數
+
+	constexpr long long BATTLE_BUFFER_SIZE = 4;
+	constexpr long long BATTLE_COMMAND_SIZE = 4096;
+
+	constexpr long long RESULT_ITEM_COUNT = 3;
+	constexpr long long RESULT_ITEM_NAME_LEN = 24;
+	constexpr long long RESULT_CHR_EXP = 5;//constexpr long long RESULT_CHR_EXP = 4;
 
 	constexpr long long MAP_TILE_GRID_X1 = -20;
 	constexpr long long MAP_TILE_GRID_X2 = +17;
@@ -151,7 +135,6 @@ namespace sa
 	constexpr long long BC_FLG_WATER = (1LL << 28); // 水附體
 	constexpr long long BC_FLG_FEAR = (1LL << 29); // 恐懼
 	constexpr long long BC_FLG_CHANGE = (1LL << 30); // 雷爾變身
-
 
 	inline constexpr bool hasBadStatus(unsigned long long status)
 	{
@@ -310,7 +293,7 @@ namespace sa
 #pragma endregion
 
 #pragma region Enums
-	enum GameDataOffest
+	enum GameMemoryOffest
 	{
 		kOffsetPersonalKey = 0x4AC0898,
 
@@ -340,9 +323,12 @@ namespace sa
 		kOffsetRidePetIndex = 0x422E3D8,
 		kOffsetTeamState = 0x4230B24,
 		kOffsetEV = 0x41602BC,
+
+		kChatBufferSize = 268,
 		kOffsetChatBuffer = 0x144D88,
 		kOffsetChatBufferMaxPointer = 0x146278,
 		kOffsetChatBufferMaxCount = 0x14A4F8,
+
 		kOffestMouseClick = 0x41F1BC4,
 		kOffestMouseX = 0x41F1B98,
 		kOffestMouseY = 0x41F1B9C,
@@ -369,26 +355,26 @@ namespace sa
 
 	enum ObjectType
 	{
-		OBJ_UNKNOWN,
-		OBJ_ROAD,
-		OBJ_UP,
-		OBJ_DOWN,
-		OBJ_JUMP,
-		OBJ_WARP,
-		OBJ_WALL,
-		OBJ_ROCK,
-		OBJ_ROCKEX,
-		OBJ_BOUNDARY,
-		OBJ_WATER,
-		OBJ_EMPTY,
-		OBJ_HUMAN,
-		OBJ_NPC,
-		OBJ_BUILDING,
-		OBJ_ITEM,
-		OBJ_PET,
-		OBJ_GOLD,
-		OBJ_GM,
-		OBJ_MAX,
+		kObjectUnknown,
+		kObjectRoad,
+		kObjectUp,
+		kObjectDown,
+		kObjectJump,
+		kObjectWarp,
+		kObjectWall,
+		kObjectRock,
+		kObjectRockEx,
+		kObjectBoundary,
+		kObjectWater,
+		kObjectEmpty,
+		kObjectHuman,
+		kObjectNPC,
+		kObjectBuilding,
+		kObjectItem,
+		kObjectPet,
+		kObjectGold,
+		kObjectGameMaster,
+		kObjectMaxCount,
 	};
 
 	enum ClientLoginFlag
@@ -401,7 +387,7 @@ namespace sa
 		WITH_ALL = WITH_CDKEY | WITH_PASSWORD | WITH_MACADDRESS | WITH_SELECTSERVERINDEX | WITH_IPADDRESS,
 	};
 
-	enum FUNCTIONTYPE
+	enum LssprotoFunctionType
 	{
 		LSSPROTO_ERROR_RECV = -23,
 		LSSPROTO_W_SEND = 0,
@@ -532,8 +518,8 @@ namespace sa
 		LSSPROTO_STREET_VENDOR_SEND = 116,		// 擺攤功能,
 		LSSPROTO_STREET_VENDOR_RECV = 117,
 
-		LSSPROTO_JOBDAILY_SEND = 121,		// CYG　任務日志功能,
-		LSSPROTO_JOBDAILY_RECV = 120,
+		LSSPROTO_missionInfo_SEND = 121,		// CYG　任務日志功能,
+		LSSPROTO_missionInfo_RECV = 120,
 
 		LSSPROTO_TEACHER_SYSTEM_SEND = 122,		// 導師功能,
 		LSSPROTO_TEACHER_SYSTEM_RECV = 123,
@@ -606,7 +592,7 @@ namespace sa
 		LSSPROTO_ARRAGEITEM_SEND = 260,
 	};
 
-	typedef enum tagCHAR_EquipPlace
+	enum EquipmentSlot
 	{
 		CHAR_EQUIPNONE = -1,
 		PET_EQUIPNONE = -1,
@@ -623,7 +609,7 @@ namespace sa
 
 		CHAR_EQGLOVE,
 
-		CHAR_EQUIPPLACENUM,
+		CHAR_EQUIPSLOT_COUNT,
 
 		PET_HEAD = 0,	// 頭
 		PET_WING,		// 翼
@@ -632,52 +618,52 @@ namespace sa
 		PET_BACK,		// 背
 		PET_CLAW,		// 爪
 		PET_FOOT,		// 腳(鰭)
-		PET_EQUIPNUM
+		PET_EQUIPSLOT_COUNT
 
-	}CHAR_EquipPlace;
+	};
 
-	typedef enum tagITEM_CATEGORY
-	{
-		// 寵物道具,共九種
-		ITEM_PET_HEAD = 29,		// 頭
-		ITEM_PET_WING,			// 翼
-		ITEM_PET_TOOTH,			// 牙
-		ITEM_PET_PLATE,			// 身體護甲
-		ITEM_PET_BACK,			// 背部護甲
-		ITEM_PET_CLAW,			// 爪
-		ITEM_PET_1_FOOT,		// 腳部,雙足
-		ITEM_PET_2_FOOT,		// 腳部,四足
-		ITEM_PET_FIN,			// 腳部,鰭
-		ITEM_CATEGORYNUM
-	}ITEM_CATEGORY;
-	constexpr long long MAX_PET_ITEM = ITEM_CATEGORYNUM - ITEM_PET_HEAD;
+	//typedef enum tagITEM_CATEGORY
+	//{
+	//	// 寵物道具,共九種
+	//	ITEM_PET_HEAD = 29,		// 頭
+	//	ITEM_PET_WING,			// 翼
+	//	ITEM_PET_TOOTH,			// 牙
+	//	ITEM_PET_PLATE,			// 身體護甲
+	//	ITEM_PET_BACK,			// 背部護甲
+	//	ITEM_PET_CLAW,			// 爪
+	//	ITEM_PET_1_FOOT,		// 腳部,雙足
+	//	ITEM_PET_2_FOOT,		// 腳部,四足
+	//	ITEM_PET_FIN,			// 腳部,鰭
+	//	ITEM_CATEGORYNUM
+	//}ITEM_CATEGORY;
 
-	constexpr long long MAX_ITEMSTART = CHAR_EQUIPPLACENUM;
+	constexpr long long MAX_PET_ITEM = PET_EQUIPSLOT_COUNT;
+
+	constexpr long long MAX_ITEMSTART = CHAR_EQUIPSLOT_COUNT;
 	constexpr long long MAX_MAXHAVEITEM = 15;
-
-	//constexpr long long MAX_ITEM(MAX_ITEMSTART + MAX_MAXHAVEITEM * 3);
-	//long long 判斷玩家道具數量();
-	constexpr long long MAX_ITEM = (MAX_ITEMSTART + MAX_MAXHAVEITEM);
-
 	//constexpr long long MAX_ITEMSTART = 5;
 	//constexpr long long MAX_ITEM = 20;
 
-	enum ETCFLAG
+	//constexpr long long MAX_ITEM(MAX_ITEMSTART + MAX_MAXHAVEITEM * 3);
+
+	constexpr long long MAX_ITEM = (MAX_ITEMSTART + MAX_MAXHAVEITEM);
+
+	enum ETCFlag
 	{
-		PC_ETCFLAG_GROUP = (1LL << 0),	//組隊開關
-		PC_ETCFLAG_UNK = (1LL << 1),	//未知開關
-		PC_ETCFLAG_PK = (1LL << 2),	//決鬥開關
-		PC_ETCFLAG_PARTY_CHAT = (1LL << 3),//隊伍聊天開關
-		PC_ETCFLAG_CARD = (1LL << 4),	//名片開關
-		PC_ETCFLAG_TRADE = (1LL << 5),	//交易開關
-		PC_ETCFLAG_WORLD = (1LL << 6),	//世界頻道開關
-		PC_ETCFLAG_FM = (1LL << 7),	//家族頻道開關
-		PC_ETCFLAG_JOB = (1LL << 8),	//職業頻道開關
+		PC_ETCFLAG_GROUP = (1LL << 0),	    //組隊開關
+		PC_ETCFLAG_UNK = (1LL << 1),	    //未知開關
+		PC_ETCFLAG_PK = (1LL << 2),	        //決鬥開關
+		PC_ETCFLAG_TEAM_CHAT = (1LL << 3), //隊伍聊天開關
+		PC_ETCFLAG_CARD = (1LL << 4),       //名片開關
+		PC_ETCFLAG_TRADE = (1LL << 5),	    //交易開關
+		PC_ETCFLAG_WORLD = (1LL << 6),	    //世界頻道開關
+		PC_ETCFLAG_FM = (1LL << 7),	        //家族頻道開關
+		PC_ETCFLAG_JOB = (1LL << 8),	    //職業頻道開關
 	};
 
 	//enum
 	//{
-	//	PC_ETCFLAG_PARTY = (1LL << 0),
+	//	PC_ETCFLAG_TEAM = (1LL << 0),
 	//	PC_ETCFLAG_DUEL = (1LL << 1),
 	//	PC_ETCFLAG_CHAT_MODE = (1LL << 2),//隊伍頻道開關
 	//	PC_ETCFLAG_MAIL = (1LL << 3),//名片頻道
@@ -702,66 +688,66 @@ namespace sa
 	//	, PC_AI_MOD = (1LL << 12)
 	//};
 
-	enum
-	{
-		PC_ETCFLAG_CHAT_MODE_ID = 0
+	//	enum
+	//	{
+	//		PC_ETCFLAG_CHAT_MODE_ID = 0
+	//
+	//#ifdef _CHANNEL_MODIFY
+	//		, PC_ETCFLAG_CHAT_TELL_ID		//密語頻道
+	//		, PC_ETCFLAG_CHAT_TEAM_ID		//隊伍頻道
+	//		, PC_ETCFLAG_CHAT_FM_ID			//家族頻道
+	//#ifdef _CHAR_PROFESSION
+	//		, PC_ETCFLAG_CHAT_OCC_ID		//職業頻道
+	//#endif
+	//#ifdef _CHATROOMPROTOCOL
+	//		, PC_ETCFLAG_CHAT_CHAT_ID		//聊天室
+	//#endif
+	//#else
+	//		, PC_ETCFLAG_CHAT_TEAM_ID		//隊伍頻道
+	//#endif
+	//#ifdef _CHANNEL_WORLD
+	//		, PC_ETCFLAG_CHAT_WORLD_ID			//世界頻道
+	//#endif
+	//#ifdef _CHANNEL_ALL_SERV
+	//		, PC_ETCFLAG_ALL_SERV_ID			//星球頻道開關
+	//#endif
+	//		, PC_ETCFLAG_CHAT_WORLD_NUM
+	//	};
 
-#ifdef _CHANNEL_MODIFY
-		, PC_ETCFLAG_CHAT_TELL_ID		//密語頻道
-		, PC_ETCFLAG_CHAT_PARTY_ID		//隊伍頻道
-		, PC_ETCFLAG_CHAT_FM_ID			//家族頻道
-#ifdef _CHAR_PROFESSION
-		, PC_ETCFLAG_CHAT_OCC_ID			//職業頻道
-#endif
-#ifdef _CHATROOMPROTOCOL
-		, PC_ETCFLAG_CHAT_CHAT_ID		//聊天室
-#endif
-#else
-		, PC_ETCFLAG_CHAT_PARTY_ID		//隊伍頻道
-#endif
-#ifdef _CHANNEL_WORLD
-		, PC_ETCFLAG_CHAT_WORLD_ID			//世界頻道
-#endif
-#ifdef _CHANNEL_ALL_SERV
-		, PC_ETCFLAG_ALL_SERV_ID			//星球頻道開關
-#endif
-		, PC_ETCFLAG_CHAT_WORLD_NUM
+	enum CharacterStatusFlag
+	{
+		kCharacterStatus_None = 0,
+		kCharacterStatus_P = 0x0001,
+		kCharacterStatus_N = 0x0002,
+		kCharacterStatus_Q = 0x0004,
+		kCharacterStatus_S = 0x0008,
+		kCharacterStatus_D = 0x0010,
+		kCharacterStatus_C = 0x0020,
+		kCharacterStatus_W = 0x0040,
+		kCharacterStatus_H = 0x0080,
+		kCharacterStatus_IsLeader = 0x0100,
+		kCharacterStatus_HasTeam = 0x0200,
+		kCharacterStatus_InBattle = 0x0400,
+		kCharacterStatus_UseMagic = 0x0800,
+		kCharacterStatus_AskHelp = 0x1000,
+		kCharacterStatus_FUKIDASHI = 0x2000,
+		kCharacterStatus_Watching = 0x4000,
+		kCharacterStatus_Trading = 0x8000,			// 交易中
+
+		kCharacterStatus_Angel = 0x10000			// 使者任務中
 	};
 
-	enum CHR_STATUS
-	{
-		CHR_STATUS_NONE = 0,
-		CHR_STATUS_P = 0x0001,
-		CHR_STATUS_N = 0x0002,
-		CHR_STATUS_Q = 0x0004,
-		CHR_STATUS_S = 0x0008,
-		CHR_STATUS_D = 0x0010,
-		CHR_STATUS_C = 0x0020,
-		CHR_STATUS_W = 0x0040,
-		CHR_STATUS_H = 0x0080,
-		CHR_STATUS_LEADER = 0x0100,
-		CHR_STATUS_PARTY = 0x0200,
-		CHR_STATUS_BATTLE = 0x0400,
-		CHR_STATUS_USE_MAGIC = 0x0800,
-		CHR_STATUS_HELP = 0x1000,
-		CHR_STATUS_FUKIDASHI = 0x2000,
-		CHR_STATUS_WATCH = 0x4000,
-		CHR_STATUS_TRADE = 0x8000,			// 交易中
-
-		CHR_STATUS_ANGEL = 0x10000			// 使者任務中
-	};
-
-	enum CHAROBJ_TYPE
-	{
-		CHAROBJ_TYPE_NONE = 0x0000,
-		CHAROBJ_TYPE_NPC = 0x0001,		// NPC
-		CHAROBJ_TYPE_ITEM = 0x0002,
-		CHAROBJ_TYPE_MONEY = 0x0004,
-		CHAROBJ_TYPE_USER_NPC = 0x0008,
-		CHAROBJ_TYPE_LOOKAT = 0x0010,
-		CHAROBJ_TYPE_PARTY_OK = 0x0020,
-		CHAROBJ_TYPE_ALL = 0x00FF
-	};
+	//enum CharacterObjectType
+	//{
+	//	CharacterObjectNone    = 0x0000,
+	//	CharacterObjectNPC     = 0x0001,// NPC
+	//	CharacterObjectItem    = 0x0002,
+	//	CharacterObjectMoney   = 0x0004,
+	//	CharacterObjectUserNPC = 0x0008,
+	//	CharacterObjectLookAt  = 0x0010,
+	//	CharacterObjectTeamOk = 0x0020,
+	//	CharacterObjectAll     = 0x00FF
+	//};
 
 	enum CHAR_TYPE
 	{
@@ -802,35 +788,35 @@ namespace sa
 		CHAR_TYPENUM
 	};
 
-	typedef enum
+	enum LSTimeSection
 	{
-		LS_NOON,
-		LS_EVENING,
-		LS_NIGHT,
-		LS_MORNING,
-	}LSTIME_SECTION;
-
-	enum
-	{
-		FMMEMBER_NONE = -1,  // 未加入任何家族
-		FMMEMBER_MEMBER = 1,   // 一般成員
-		FMMEMBER_APPLY,        // 申請加入家族
-		FMMEMBER_LEADER,       // 家族族長
-		FMMEMBER_ELDER,        // 長老
-		//FMMEMBER_INVITE,     // 祭司
-		//FMMEMBER_BAILEE,     // 財務長
-		//FMMEMBER_VICELEADER, // 副族長
-		FMMEMBER_NUMBER,
+		kTimeNoon,
+		kTimeEvening,
+		kTimeNight,
+		kTimeMorning,
 	};
 
-	enum
+	enum FamilyPosition
+	{
+		kFamilyPositionNone = -1,    // 未加入任何家族
+		kFamilyPositionMember = 1,   // 一般成員
+		kFamilyPositionApplying,     // 申請加入家族
+		kFamilyPositionLeader,       // 家族族長
+		kFamilyPositionElder,        // 長老
+		//kFamilyPositionInvite,       // 祭司
+		//kFamilyPositionBailee,       // 財務長
+		//kFamilyPositionViceLeader,   // 副族長
+		kFamilyPositionCount,
+	};
+
+	enum MagicFieldFlag
 	{
 		MAGIC_FIELD_ALL,
 		MAGIC_FIELD_BATTLE,
 		MAGIC_FIELD_MAP
 	};
 
-	enum
+	enum MagicTargetFlag
 	{
 		MAGIC_TARGET_MYSELF,//自己
 		MAGIC_TARGET_OTHER,//雙方任意
@@ -847,14 +833,14 @@ namespace sa
 		MAGIC_TARGET_ALL_ROWS,				// 針對敵方所有人
 	};
 
-	enum
+	enum PetSkillFieldFlag
 	{
 		PETSKILL_FIELD_ALL,
 		PETSKILL_FIELD_BATTLE,
 		PETSKILL_FIELD_MAP
 	};
 
-	enum
+	enum PetSkillTargetFlag
 	{
 		PETSKILL_TARGET_MYSELF,
 		PETSKILL_TARGET_OTHER,
@@ -872,14 +858,14 @@ namespace sa
 		PETSKILL_TARGET_ONE_ROW_ALL, //選我方的單排
 	};
 
-	enum
+	enum ItemFieldFlag
 	{
 		ITEM_FIELD_ALL,
 		ITEM_FIELD_BATTLE,
 		ITEM_FIELD_MAP,
 	};
 
-	enum
+	enum ItemTargetFlag
 	{
 		ITEM_TARGET_MYSELF,
 		ITEM_TARGET_OTHER,
@@ -893,13 +879,13 @@ namespace sa
 		ITEM_TARGET_PET
 	};
 
-	enum
+	enum MouseCursorMode
 	{
 		MOUSE_CURSOR_MODE_NORMAL,
 		MOUSE_CURSOR_MODE_MOVE
 	};
 
-	enum
+	enum ProcMode
 	{
 		PROC_INIT,
 		PROC_ID_PASSWORD,
@@ -941,25 +927,24 @@ namespace sa
 		kDouble,
 	};
 
-	enum BUTTON_TYPE
+	enum ButtonType
 	{
-		BUTTON_CLOSE = -1,
-		BUTTON_NOTUSED = 0,
-		BUTTON_OK = 1LL << 0,	   //確定
-		BUTTON_CANCEL = 1LL << 1, //取消
-		BUTTON_YES = 1LL << 2,	   //
-		BUTTON_NO = 1LL << 3,
-		BUTTON_PREVIOUS = 1LL << 4,  //上一頁
-		BUTTON_NEXT = 1LL << 5,
-		BUTTON_BUY,
-		BUTTON_SELL,
-		BUTTON_OUT,
-		BUTTON_BACK,
+		kButtonClose = -1,
+		kButtonNone = 0,
+		kButtonOk = 1LL << 0,	   //確定
+		kButtonCancel = 1LL << 1, //取消
+		kButtonYes = 1LL << 2,	   //
+		kButtonNo = 1LL << 3,
+		kButtonPrevious = 1LL << 4,  //上一頁
+		kButtonNext = 1LL << 5,
+		kButtonBuy = 100,
+		kButtonSell,
+		kButtonLeave,
+		kButtonBack,
 		BUTTON_1,//是
 		BUTTON_2,//不是
-		BUTTON_AUTO,
+		kButtonAuto,
 	};
-
 
 	enum DirType
 	{
@@ -1014,7 +999,7 @@ namespace sa
 #pragma region Structs
 #pragma pack(8)
 	//用於掛機訊息紀錄
-	typedef struct tagAfkRecorder
+	typedef struct afk_record_data_s
 	{
 		long long levelrecord = 0;
 		long long leveldifference = 0;
@@ -1025,31 +1010,31 @@ namespace sa
 		long long reprecord = 0;
 		long long repearn = 0;
 		bool deadthcountflag = false;
-	}AfkRecorder;
+	}afk_record_data_t;
 
-	typedef struct customdialog_s
+	typedef struct custom_dialog_s
 	{
 		long long x = 0;
 		long long y = 0;
-		BUTTON_TYPE button = BUTTON_NOTUSED;
+		ButtonType button = kButtonNone;
 		long long row = 0;
 		long long rawbutton = 0;
 		QString rawdata;
-	} customdialog_t;
+	} custom_dialog_t;
 
-	typedef struct tagLSTIME
+	typedef struct ls_time_s
 	{
 		long long year = 0;
 		long long day = 0;
 		long long hour = 0;
-	}LSTIME;
+	}ls_time_t;
 
-	typedef struct tagMAIL_HISTORY
+	typedef struct mail_history_s
 	{
+		long long 	newHistoryNo = 0;
 		long long 	noReadFlag[MAIL_MAX_HISTORY] = {};
 		long long 	petLevel[MAIL_MAX_HISTORY] = {};
 		long long 	itemGraNo[MAIL_MAX_HISTORY] = {};
-		long long 	newHistoryNo = 0;
 		QString str[MAIL_MAX_HISTORY];
 		QString dateStr[MAIL_MAX_HISTORY];
 		QString petName[MAIL_MAX_HISTORY];
@@ -1067,9 +1052,9 @@ namespace sa
 			}
 			newHistoryNo = 0;
 		}
-	}MAIL_HISTORY;
+	}mail_history_t;
 
-	typedef struct tagITEM
+	typedef struct item_s
 	{
 		bool valid = false;
 		long long color = 0;
@@ -1100,9 +1085,9 @@ namespace sa
 		std::string getName2() const { return util::toConstData(name2); }
 		std::string getMemo() const { return util::toConstData(memo); }
 
-	} ITEM;
+	} item_t;
 
-	typedef struct tagPC
+	typedef struct character_s
 	{
 		long long selectPetNo[MAX_PET] = { 0, 0, 0, 0, 0 };
 		long long battlePetNo = -1;
@@ -1195,9 +1180,9 @@ namespace sa
 		//long long 簽到標記 = 0;
 		//long long 法寶道具狀態 = 0;
 		//long long 道具光環效果 = 0;
-	} PC;
+	} character_t;
 
-	typedef struct tagPET
+	typedef struct pet_s
 	{
 		bool valid = false;
 		PetState state = PetState::kNoneState;
@@ -1232,10 +1217,9 @@ namespace sa
 		qreal growth = 0.0;
 
 		//ITEM item[MAX_PET_ITEM] = {};		// 寵物道具
-	} PET;
+	} pet_t;
 
-
-	typedef struct tagMAGIC
+	typedef struct magic_s
 	{
 		bool valid = false;
 		long long costmp = 0;
@@ -1244,10 +1228,9 @@ namespace sa
 		long long deadTargetFlag = 0;
 		QString name = "";
 		QString memo = "";
-	} MAGIC;
+	} magic_t;
 
-
-	typedef struct tagPARTY
+	typedef struct team_s
 	{
 		bool valid = false;
 		long long id = 0;
@@ -1258,10 +1241,9 @@ namespace sa
 		long long mp = 0;
 		QString name = "";
 		//ACTION* ptAct;
-	} PARTY;
+	} team_t;
 
-
-	typedef struct tagADDRESS_BOOK
+	typedef struct address_bool_s
 	{
 		bool valid = false;
 		bool onlineFlag = false;
@@ -1273,9 +1255,9 @@ namespace sa
 		//顯示名片星球
 		QString planetname = "";
 
-	} ADDRESS_BOOK;
+	} address_bool_t;
 
-	typedef struct tagPET_SKILL
+	typedef struct pet_skill_s
 	{
 		bool valid = false;
 		long long skillId = 0;
@@ -1283,10 +1265,10 @@ namespace sa
 		long long target = 0;
 		QString name = "";
 		QString memo = "";
-	} PET_SKILL;
+	} pet_skill_t;
 
 	//人物職業
-	typedef struct tagPROFESSION_SKILL
+	typedef struct profession_skill_s
 	{
 		bool valid = false;
 		long long skillId = 0;
@@ -1298,9 +1280,9 @@ namespace sa
 		long long cooltime = 0;
 		QString name = "";
 		QString memo = "";
-	} PROFESSION_SKILL;
+	} profession_skill_t;
 
-	typedef struct tagCHARLISTTABLE
+	typedef struct char_list_data_s
 	{
 		bool valid = false;
 		long long attr[4] = { 0, 0, 0, 0 };
@@ -1315,7 +1297,7 @@ namespace sa
 		long long dp = 0;
 		long long pos = -1;
 		QString name = "";
-	} CHARLISTTABLE;
+	} char_list_data_t;
 
 	//typedef struct
 	//{
@@ -1330,15 +1312,15 @@ namespace sa
 	//	char 登陸人物名稱[4][32] = {};
 	//}Landed;
 
-	constexpr long long MAX_MISSION = 300;
-	typedef struct tagJOBDAILY
+
+	typedef struct mission_data_s
 	{
 		long long id = 0;								// 任務編號
 		long long state = 0;							//0無 1進行中 2已完成
 		QString name = "";						// 任務說明
-	}JOBDAILY;
+	}mission_data_t;
 
-	struct showitem
+	typedef struct show_item_s
 	{
 		QString name;
 		QString freeName;
@@ -1347,18 +1329,18 @@ namespace sa
 		QString color;
 		QString itemIndex;
 		QString damage;
-	};
+	}show_item_t;
 
-	typedef struct SPetItemInfo
+	typedef struct pet_item_info_s
 	{
-		long long bmpNo = 0;										// 图号
-		long long color = 0;										// 文字颜色
-		QString memo;						// 说明
+		long long bmpNo = 0;				// 圖號
+		long long color = 0;				// 文字顏色
+		QString memo;						// 說明
 		QString name;						// 名字
-		QString damage;								// 耐久度
-	}PetItemInfo;
+		QString damage;						// 耐久度
+	} pet_item_info_t;
 
-	struct showpet
+	typedef struct show_pet_s
 	{
 		QString opp_petname;
 		QString opp_petfreename;
@@ -1381,8 +1363,8 @@ namespace sa
 
 		QString opp_fusion;
 
-		PetItemInfo oPetItemInfo[MAX_PET_ITEM];			// 宠物身上的道具
-	};
+		pet_item_info_t oPetItemInfo[MAX_PET_ITEM] = {};			// 宠物身上的道具
+	}show_pet_t;
 
 	typedef struct dialog_s
 	{
@@ -1395,8 +1377,7 @@ namespace sa
 		QStringList linebuttontext;
 	}dialog_t;
 
-
-	typedef struct battleobject_s
+	typedef struct battle_object_s
 	{
 		bool ready = false;
 		long long pos = -1;
@@ -1414,18 +1395,17 @@ namespace sa
 		QString rideName = 0;
 		QString name = "";
 		QString freeName = "";
-	} battleobject_t;
+	} battle_object_t;
 
-	typedef struct battledata_s
+	typedef struct battle_data_s
 	{
 		long long alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
-		QVector<battleobject_t> objects;
-		QVector<battleobject_t> allies;
-		QVector<battleobject_t> enemies;
-	} battledata_t;
+		QVector<battle_object_t> objects;
+		QVector<battle_object_t> allies;
+		QVector<battle_object_t> enemies;
+	} battle_data_t;
 
-
-	typedef struct mapunit_s
+	typedef struct map_unit_s
 	{
 		bool isVisible = false;
 		bool walkable = false;
@@ -1446,23 +1426,23 @@ namespace sa
 		long long profession_skill_point = 0;
 		QPoint p;
 		CHAR_TYPE type = CHAR_TYPENONE;
-		ObjectType objType = ObjectType::OBJ_UNKNOWN;
-		CHR_STATUS status = CHR_STATUS::CHR_STATUS_NONE;
+		ObjectType objType = ObjectType::kObjectUnknown;
+		CharacterStatusFlag status = CharacterStatusFlag::kCharacterStatus_None;
 		QString name = "";
 		QString freeName = "";
 		QString family = "";
 		QString petname = "";
 		QString item_name = "";
-	} mapunit_t;
+	} map_unit_t;
 
-	typedef struct bankpet_s
+	typedef struct bank_pet_s
 	{
 		long long level = 0;
 		long long maxHp = 0;
 		QString name;
-	}bankpet_t;
+	}bank_pet_t;
 
-	typedef struct currencydata_s
+	typedef struct currency_data_s
 	{
 		long long expbufftime = 0;
 		long long prestige = 0;      // 聲望
@@ -1471,57 +1451,83 @@ namespace sa
 		long long vitality = 0;      // 活力
 		long long points = 0;        // 積分
 		long long VIPPoints = 0;  // 會員點
-	} currencydata_t;
+	} currency_data_t;
+
+	typedef struct map_point_s
+	{
+		sa::ObjectType type = sa::kObjectUnknown;
+		QPoint p = {};
+	} map_point_t;
+
+	typedef struct map_s
+	{
+		long long floor = 0;
+		long long width = 0;
+		long long height = 0;
+		QString name = "";
+		QVector<map_point_t> stair = {};
+		QSet<QPoint> workable = {};
+
+		QHash<QPoint, sa::ObjectType> data;
+		QHash<QPoint, long long> ground;
+		QHash<QPoint, long long> object;
+		QHash<QPoint, long long> flag;
+
+		long long refCount = 0;
+		QElapsedTimer timer;
+	}map_t;
 
 #pragma pack()
 
 #pragma endregion
 
-	static const QHash<QString, BUTTON_TYPE> buttonMap = {
-		{"OK", BUTTON_OK},
-		{"CANCEL", BUTTON_CANCEL},
-		{"YES", BUTTON_YES},
-		{"NO", BUTTON_NO},
-		{"PREVIOUS", BUTTON_PREVIOUS},
-		{"NEXT", BUTTON_NEXT},
-		{"AUTO", BUTTON_AUTO},
-		{"CLOSE", BUTTON_CLOSE },
+	static const QHash<QString, ButtonType> buttonMap = {
+		{ "OK", kButtonOk },
+		{ "CANCEL", kButtonCancel },
+		{ "YES", kButtonYes },
+		{ "NO", kButtonNo },
+		{ "PREVIOUS", kButtonPrevious },
+		{ "NEXT", kButtonNext },
+		{ "AUTO", kButtonAuto },
+		{ "CLOSE", kButtonClose },
 
 		//big5
-		{"確認", BUTTON_YES},
-		{"確定", BUTTON_YES},
-		{"取消", BUTTON_NO},
-		{"好", BUTTON_YES},
-		{"不好", BUTTON_NO},
-		{"可以", BUTTON_YES},
-		{"不可以", BUTTON_NO},
-		{"上一頁", BUTTON_PREVIOUS},
-		{"上一步", BUTTON_PREVIOUS},
-		{"下一頁", BUTTON_NEXT},
-		{"下一步", BUTTON_NEXT},
-		{"買", BUTTON_BUY},
-		{"賣", BUTTON_SELL},
-		{"出去", BUTTON_OUT},
-		{"回上一頁", BUTTON_BACK},
-		{ "關閉", BUTTON_CLOSE },
+		{ "確認", kButtonYes },
+		{ "確定", kButtonYes },
+		{ "取消", kButtonNo },
+		{ "好", kButtonYes },
+		{ "不好", kButtonNo },
+		{ "可以", kButtonYes },
+		{ "不可以", kButtonNo },
+		{ "上一頁", kButtonPrevious },
+		{ "上一步", kButtonPrevious },
+		{ "下一頁", kButtonNext },
+		{ "下一步", kButtonNext },
+		{ "買", kButtonBuy },
+		{ "賣", kButtonSell },
+		{ "出去", kButtonLeave },
+		{ "回上一頁", kButtonBack },
+		{ "關閉", kButtonClose },
+		{ "自動", kButtonAuto },
 
 		//gb2312
-		{"确认", BUTTON_YES},
-		{"确定", BUTTON_YES},
-		{"取消", BUTTON_NO},
-		{"好", BUTTON_YES},
-		{"不好", BUTTON_NO},
-		{"可以", BUTTON_YES},
-		{"不可以", BUTTON_NO},
-		{"上一页", BUTTON_PREVIOUS},
-		{"上一步", BUTTON_PREVIOUS},
-		{"下一页", BUTTON_NEXT},
-		{"下一步", BUTTON_NEXT},
-		{"买", BUTTON_BUY},
-		{"卖", BUTTON_SELL},
-		{"出去", BUTTON_OUT},
-		{"回上一页", BUTTON_BACK},
-		{ "关闭", BUTTON_CLOSE },
+		{ "确认", kButtonYes },
+		{ "确定", kButtonYes },
+		{ "取消", kButtonNo },
+		{ "好", kButtonYes },
+		{ "不好", kButtonNo },
+		{ "可以", kButtonYes },
+		{ "不可以", kButtonNo },
+		{ "上一页", kButtonPrevious },
+		{ "上一步", kButtonPrevious },
+		{ "下一页", kButtonNext },
+		{ "下一步", kButtonNext },
+		{ "买", kButtonBuy },
+		{ "卖", kButtonSell },
+		{ "出去", kButtonLeave },
+		{ "回上一页", kButtonBack },
+		{ "关闭", kButtonClose },
+		{ "自动", kButtonAuto },
 	};
 
 	static const QHash<QString, PetState> petStateMap = {
@@ -1573,7 +1579,7 @@ namespace sa
 		{ "H", kDirNorthWest },
 	};
 
-	static const QHash<QString, CHAR_EquipPlace> equipMap = {
+	static const QHash<QString, EquipmentSlot> equipMap = {
 		{ "頭", CHAR_HEAD },
 		{ "身體", CHAR_BODY },
 		{ "右手", CHAR_ARM },
@@ -1605,7 +1611,7 @@ namespace sa
 		{ "glove", CHAR_EQGLOVE },
 	};
 
-	static const QHash<QString, CHAR_EquipPlace> petEquipMap = {
+	static const QHash<QString, EquipmentSlot> petEquipMap = {
 		{ "頭", PET_HEAD },
 		{ "翅", PET_WING },
 		{ "牙", PET_TOOTH },
@@ -1630,4 +1636,40 @@ namespace sa
 		{ "claw", PET_CLAW },
 		{ "foot", PET_FOOT },
 	};
+
+	static const QHash<sa::ObjectType, QColor> MAP_COLOR_HASH = {
+		{ sa::kObjectUnknown,  QColor(0, 0, 1) },		 //黑
+		{ sa::kObjectRoad,     QColor(64, 74, 41) },	     //墨綠
+		{ sa::kObjectUp,       QColor(255, 128, 128) },   //乳紅
+		{ sa::kObjectDown,     QColor(128, 128, 255) },   //乳紫
+		{ sa::kObjectJump,     QColor(200, 200, 65) },	 //乳黃
+		{ sa::kObjectWarp,     QColor(200, 137, 48) },    //乳橘
+		{ sa::kObjectWall,     QColor(35, 35, 35) },	     //灰黑
+		{ sa::kObjectRock,     QColor(46, 55, 25) },		 //灰
+		{ sa::kObjectRockEx,   QColor(81, 53, 28) },		 //咖啡
+		{ sa::kObjectBoundary, QColor(112, 146, 190) },   //湛藍
+		{ sa::kObjectWater,    QColor(29, 73, 97) },		 //深湛藍
+		{ sa::kObjectEmpty,    QColor(0, 0, 1) },		 //黑
+		{ sa::kObjectNPC,      QColor(198, 211, 255) },	 //淺紫
+		{ sa::kObjectItem,     QColor(32, 255, 141) },	 //青綠
+		{ sa::kObjectHuman,    QColor(255, 194, 194) },   //淺粉
+		{ sa::kObjectPet,      QColor(149, 153, 124) },   //亞麻
+		{ sa::kObjectGold,     QColor(247, 255, 0) },     //黃
+		{ sa::kObjectGameMaster,       QColor(212, 25, 25) },     //紅
+	};
+
 }
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+static inline uint qHash(const QPoint& key, uint seed) Q_DECL_NOTHROW
+{
+	const uint val = (key.x() * 10000) + key.y();
+	return qHash<uint>(val, seed);
+}
+
+static inline uint qHash(const sa::map_t& key, uint seed) Q_DECL_NOTHROW
+{
+	const uint val = (key.width * 10000) + (key.height) + (key.floor * 1000) + (key.data.size());
+	return qHash<uint>(val, seed);
+}
+#endif

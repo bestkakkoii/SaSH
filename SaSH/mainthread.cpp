@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "net/tcpserver.h"
 #include "net/autil.h"
 #include <injector.h>
-#include "map/mapanalyzer.h"
+#include "map/mapdevice.h"
 #include "update/downloader.h"
 
 QSharedMemory g_sharedMemory;
@@ -276,6 +276,7 @@ bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* p
 	do
 	{
 		MainObject* object = q_check_ptr(new MainObject(index, nullptr));
+		sash_assume(object != nullptr);
 		if (nullptr == object)
 			break;
 
@@ -808,6 +809,7 @@ long long MainObject::checkAndRunFunctions()
 		if (p == nullptr)
 		{
 			p = q_check_ptr(new MissionThread(currentIndex, i));
+			sash_assume(p != nullptr);
 			if (p == nullptr)
 				continue;
 
@@ -816,7 +818,7 @@ long long MainObject::checkAndRunFunctions()
 		}
 
 		if (p != nullptr)
-			p->start();
+			emit p->started();
 	}
 
 	//平時
@@ -851,46 +853,46 @@ void MainObject::updateAfkInfos()
 	long long duration = injector.worker->loginTimer.cost();
 	emit signalDispatcher.updateAfkInfoTable(0, util::formatMilliseconds(duration));
 
-	sa::AfkRecorder recorder = injector.worker->recorder[0];
+	sa::afk_record_data_t records = injector.worker->afkRecords[0];
 
 	long long avgLevelPerHour = 0;
-	if (duration > 0 && recorder.leveldifference > 0)
-		avgLevelPerHour = recorder.leveldifference * 3600000.0 / duration;
+	if (duration > 0 && records.leveldifference > 0)
+		avgLevelPerHour = records.leveldifference * 3600000.0 / duration;
 	emit signalDispatcher.updateAfkInfoTable(2, QString(tr("%1→%2 (avg level: %3)"))
-		.arg(recorder.levelrecord).arg(recorder.levelrecord + recorder.leveldifference).arg(avgLevelPerHour));
+		.arg(records.levelrecord).arg(records.levelrecord + records.leveldifference).arg(avgLevelPerHour));
 
 	long long avgExpPerHour = 0;
-	if (duration > 0 && recorder.expdifference > 0)
-		avgExpPerHour = recorder.expdifference * 3600000.0 / duration;
+	if (duration > 0 && records.expdifference > 0)
+		avgExpPerHour = records.expdifference * 3600000.0 / duration;
 
-	emit signalDispatcher.updateAfkInfoTable(3, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
+	emit signalDispatcher.updateAfkInfoTable(3, tr("%1 (avg exp: %2)").arg(records.expdifference).arg(avgExpPerHour));
 
-	emit signalDispatcher.updateAfkInfoTable(4, util::toQString(recorder.deadthcount));
+	emit signalDispatcher.updateAfkInfoTable(4, util::toQString(records.deadthcount));
 
 	long long avgGoldPerHour = 0;
-	if (duration > 0 && recorder.goldearn > 0)
-		avgGoldPerHour = recorder.goldearn * 3600000.0 / duration;
-	emit signalDispatcher.updateAfkInfoTable(5, tr("%1 (avg gold: %2)").arg(recorder.goldearn).arg(avgGoldPerHour));
+	if (duration > 0 && records.goldearn > 0)
+		avgGoldPerHour = records.goldearn * 3600000.0 / duration;
+	emit signalDispatcher.updateAfkInfoTable(5, tr("%1 (avg gold: %2)").arg(records.goldearn).arg(avgGoldPerHour));
 
 	constexpr long long n = 7;
 	long long j = 0;
 	for (long long i = 0; i < sa::MAX_PET; ++i)
 	{
-		recorder = injector.worker->recorder[i + 1];
+		records = injector.worker->afkRecords[i + 1];
 
 		avgExpPerHour = 0;
-		if (duration > 0 && recorder.leveldifference > 0)
-			avgExpPerHour = recorder.leveldifference * 3600000.0 / duration;
+		if (duration > 0 && records.leveldifference > 0)
+			avgExpPerHour = records.leveldifference * 3600000.0 / duration;
 
 		emit signalDispatcher.updateAfkInfoTable(i + n + j, QString(tr("%1→%2 (avg level: %3)"))
-			.arg(recorder.levelrecord).arg(recorder.levelrecord + recorder.leveldifference).arg(avgExpPerHour));
+			.arg(records.levelrecord).arg(records.levelrecord + records.leveldifference).arg(avgExpPerHour));
 
 		avgExpPerHour = 0;
-		if (duration > 0 && recorder.expdifference > 0)
-			avgExpPerHour = recorder.expdifference * 3600000.0 / duration;
-		emit signalDispatcher.updateAfkInfoTable(i + n + 1 + j, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
+		if (duration > 0 && records.expdifference > 0)
+			avgExpPerHour = records.expdifference * 3600000.0 / duration;
+		emit signalDispatcher.updateAfkInfoTable(i + n + 1 + j, tr("%1 (avg exp: %2)").arg(records.expdifference).arg(avgExpPerHour));
 
-		emit signalDispatcher.updateAfkInfoTable(i + n + 2 + j, util::toQString(recorder.deadthcount));
+		emit signalDispatcher.updateAfkInfoTable(i + n + 2 + j, util::toQString(records.deadthcount));
 
 		emit signalDispatcher.updateAfkInfoTable(i + n + 3 + j, "");
 
@@ -928,7 +930,7 @@ void MainObject::checkEtcFlag()
 	if (injector.worker.isNull())
 		return;
 
-	long long flg = injector.worker->getPC().etcFlag;
+	long long flg = injector.worker->getCharacter().etcFlag;
 	bool hasChange = false;
 	auto toBool = [flg](long long f)->bool
 		{
@@ -980,12 +982,12 @@ void MainObject::checkEtcFlag()
 	}
 
 	bCurrent = injector.getEnableHash(util::kSwitcherGroupEnable);
-	if (toBool(sa::PC_ETCFLAG_PARTY_CHAT) != bCurrent)
+	if (toBool(sa::PC_ETCFLAG_TEAM_CHAT) != bCurrent)
 	{
 		if (bCurrent)
-			flg |= sa::PC_ETCFLAG_PARTY_CHAT;
+			flg |= sa::PC_ETCFLAG_TEAM_CHAT;
 		else
-			flg &= ~sa::PC_ETCFLAG_PARTY_CHAT;
+			flg &= ~sa::PC_ETCFLAG_TEAM_CHAT;
 
 		hasChange = true;
 	}
@@ -1033,19 +1035,19 @@ MissionThread::MissionThread(long long index, long long type, QObject* parent)
 	switch (type)
 	{
 	case kAutoJoin:
-		connect(this, &MissionThread::start, this, &MissionThread::autoJoin, Qt::QueuedConnection);
+		connect(this, &MissionThread::started, this, &MissionThread::autoJoin, Qt::QueuedConnection);
 		break;
 	case kAutoWalk:
-		connect(this, &MissionThread::start, this, &MissionThread::autoWalk, Qt::QueuedConnection);
+		connect(this, &MissionThread::started, this, &MissionThread::autoWalk, Qt::QueuedConnection);
 		break;
 	case kAutoSortItem:
-		connect(this, &MissionThread::start, this, &MissionThread::autoSortItem, Qt::QueuedConnection);
+		connect(this, &MissionThread::started, this, &MissionThread::autoSortItem, Qt::QueuedConnection);
 		break;
 	case kAutoRecordNPC:
-		connect(this, &MissionThread::start, this, &MissionThread::autoRecordNPC, Qt::QueuedConnection);
+		connect(this, &MissionThread::started, this, &MissionThread::autoRecordNPC, Qt::QueuedConnection);
 		break;
 	case kAsyncFindPath:
-		connect(this, &MissionThread::start, this, &MissionThread::asyncFindPath, Qt::QueuedConnection);
+		connect(this, &MissionThread::started, this, &MissionThread::asyncFindPath, Qt::QueuedConnection);
 		break;
 	}
 
@@ -1084,17 +1086,17 @@ void MissionThread::autoJoin()
 	Injector& injector = Injector::getInstance(index);
 
 	constexpr long long MAX_SINGLE_STEP = 3;
-	map_t map;
+	sa::map_t map = {};
 	std::vector<QPoint> path;
 	QPoint current_point;
 	QPoint newpoint;
-	sa::mapunit_t unit = {};
+	sa::map_unit_t unit = {};
 	long long dir = -1;
 	long long floor = injector.worker->getFloor();
 	long long len = MAX_SINGLE_STEP;
 	long long size = 0;
-	CAStar astar;
-	sa::PC ch = {};
+	AStarDevice astar;
+	sa::character_t ch = {};
 	long long actionType = 0;
 	QString leader;
 
@@ -1117,22 +1119,22 @@ void MissionThread::autoJoin()
 		if (leader.isEmpty())
 			return;
 
-		if (!injector.worker->mapAnalyzer.getMapDataByFloor(floor, &map))
+		if (!injector.worker->mapDevice.getMapDataByFloor(floor, &map))
 		{
-			injector.worker->mapAnalyzer.readFromBinary(index, floor, injector.worker->getFloorName(), false);
+			injector.worker->mapDevice.readFromBinary(index, floor, injector.worker->getFloorName(), false);
 		}
 
-		ch = injector.worker->getPC();
+		ch = injector.worker->getCharacter();
 		actionType = injector.getValueHash(util::kAutoFunTypeValue);
 		if (actionType == 0)
 		{
 			//檢查隊長是否正確
-			if (util::checkAND(ch.status, sa::CHR_STATUS_LEADER))
+			if (util::checkAND(ch.status, sa::kCharacterStatus_IsLeader))
 				return;
 
-			if (util::checkAND(ch.status, sa::CHR_STATUS_PARTY))
+			if (util::checkAND(ch.status, sa::kCharacterStatus_HasTeam))
 			{
-				QString name = injector.worker->getParty(0).name;
+				QString name = injector.worker->getTeam(0).name;
 				if ((!name.isEmpty() && leader == name)
 					|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
 					return;
@@ -1162,7 +1164,7 @@ void MissionThread::autoJoin()
 			continue;
 		}
 
-		ch = injector.worker->getPC();
+		ch = injector.worker->getCharacter();
 
 		if (floor != injector.worker->getFloor())
 			break;
@@ -1179,7 +1181,7 @@ void MissionThread::autoJoin()
 		}
 
 		//查找目標人物所在坐標
-		if (!injector.worker->findUnit(leader, sa::OBJ_HUMAN, &unit, freeName))
+		if (!injector.worker->findUnit(leader, sa::kObjectHuman, &unit, freeName))
 			break;
 
 		//如果和目標人物處於同一個坐標則向隨機方向移動一格
@@ -1192,7 +1194,7 @@ void MissionThread::autoJoin()
 		}
 
 		//計算最短離靠近目標人物的坐標和面相的方向
-		dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(index, astar, floor, current_point, unit.p, &newpoint, false, -1);
+		dir = injector.worker->mapDevice.calcBestFollowPointByDstPoint(index, &astar, floor, current_point, unit.p, &newpoint, false, -1);
 		if (-1 == dir)
 			return;
 
@@ -1207,7 +1209,7 @@ void MissionThread::autoJoin()
 			}
 		}
 
-		if (!injector.worker->mapAnalyzer.calcNewRoute(index, astar, floor, current_point, newpoint, blockList, &path))
+		if (!injector.worker->mapDevice.calcNewRoute(index, &astar, floor, current_point, newpoint, blockList, &path))
 			return;
 
 		len = MAX_SINGLE_STEP;
@@ -1415,12 +1417,12 @@ void MissionThread::autoRecordNPC()
 		if (injector.worker->getBattleFlag())
 			continue;
 
-		CAStar astar;
+		AStarDevice astar;
 
-		QHash<long long, sa::mapunit_t> units = injector.worker->mapUnitHash.toHash();
+		QHash<long long, sa::map_unit_t> units = injector.worker->mapUnitHash.toHash();
 		util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
-		for (const sa::mapunit_t& unit : units)
+		for (const sa::map_unit_t& unit : units)
 		{
 			if (isInterruptionRequested())
 				return;
@@ -1434,7 +1436,7 @@ void MissionThread::autoRecordNPC()
 			if (injector.worker->getBattleFlag())
 				break;
 
-			if ((unit.objType != sa::OBJ_NPC)
+			if ((unit.objType != sa::kObjectNPC)
 				|| unit.name.isEmpty()
 				|| (injector.worker->getWorldStatus() != 9)
 				|| (injector.worker->getGameStatus() != 3)
@@ -1455,7 +1457,7 @@ void MissionThread::autoRecordNPC()
 			//npc前方一格
 			QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
 			//檢查是否可走
-			if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, newPoint))
+			if (injector.worker->mapDevice.isPassable(currentIndex, &astar, nowFloor, nowPoint, newPoint))
 			{
 				d.x = newPoint.x();
 				d.y = newPoint.y();
@@ -1465,7 +1467,7 @@ void MissionThread::autoRecordNPC()
 				//再往前一格
 				QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
 				//檢查是否可走
-				if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, additionPoint))
+				if (injector.worker->mapDevice.isPassable(currentIndex, &astar, nowFloor, nowPoint, additionPoint))
 				{
 					d.x = additionPoint.x();
 					d.y = additionPoint.y();
@@ -1477,7 +1479,7 @@ void MissionThread::autoRecordNPC()
 					for (long long i = 0; i < 8; ++i)
 					{
 						newPoint = util::fix_point.value(i) + unit.p;
-						if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, nowFloor, nowPoint, newPoint))
+						if (injector.worker->mapDevice.isPassable(currentIndex, &astar, nowFloor, nowPoint, newPoint))
 						{
 							d.x = newPoint.x();
 							d.y = newPoint.y();
@@ -1551,7 +1553,7 @@ void MissionThread::autoRecordNPC()
 			d.x = x;
 			d.y = y;
 
-			sa::mapunit_t unit;
+			sa::map_unit_t unit;
 			unit.x = x;
 			unit.y = y;
 			unit.p = pos;

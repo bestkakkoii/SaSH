@@ -101,6 +101,7 @@ QString __fastcall mem::readString(HANDLE hProcess, unsigned long long desiredAc
 		return "\0";
 
 	QScopedArrayPointer <char> p(q_check_ptr(new char[size + 1]()));
+	sash_assume(!p.isNull());
 	memset(p.get(), 0, size + 1);
 
 	BOOL ret = read(hProcess, desiredAccess, size, p.get());
@@ -340,8 +341,11 @@ long __fastcall mem::getProcessExportTable32(HANDLE hProcess, const QString& Mod
 {
 	ULONG64 muBase = 0, count = 0;
 	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)q_check_ptr(new BYTE[sizeof(IMAGE_DOS_HEADER)]);
+	sash_assume(pDosHeader != nullptr);
 	PIMAGE_NT_HEADERS32 pNtHeaders = (PIMAGE_NT_HEADERS32)q_check_ptr(new BYTE[sizeof(IMAGE_NT_HEADERS32)]);
+	sash_assume(pNtHeaders != nullptr);
 	PIMAGE_EXPORT_DIRECTORY pExport = (PIMAGE_EXPORT_DIRECTORY)q_check_ptr(new BYTE[sizeof(IMAGE_EXPORT_DIRECTORY)]);
+	sash_assume(pExport != nullptr);
 
 	char strName[130] = {};
 	memset(strName, 0, sizeof(strName));
@@ -817,7 +821,11 @@ void __fastcall tryLock(const QString& fileName)
 {
 	if (!g_fileLockHash.contains(fileName))
 	{
-		g_fileLockHash.insert(fileName, q_check_ptr(new QMutex()));
+		std::unique_ptr<QMutex> mutex(new QMutex());
+		sash_assume(mutex != nullptr);
+		if (mutex == nullptr)
+			return;
+		g_fileLockHash.insert(fileName, mutex.release());
 	}
 
 	g_fileLockHash.value(fileName)->lock();
@@ -1298,6 +1306,7 @@ QFileInfoList __fastcall util::loadAllFileLists(
 			continue;
 
 		std::unique_ptr<TreeWidgetItem> child(q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1)));
+		sash_assume(child != nullptr);
 		if (child == nullptr)
 			continue;
 
@@ -1324,6 +1333,7 @@ QFileInfoList __fastcall util::loadAllFileLists(
 			list->append(name);
 
 		std::unique_ptr<TreeWidgetItem> childroot(q_check_ptr(new TreeWidgetItem(QStringList{ name }, 1)));
+		sash_assume(childroot != nullptr);
 		if (childroot == nullptr)
 			continue;
 
@@ -1367,7 +1377,7 @@ QFileInfoList __fastcall util::loadAllFileLists(
 	for (const QFileInfo& item : list_file)
 	{
 		std::unique_ptr<TreeWidgetItem> child(q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1)));
-
+		sash_assume(child != nullptr);
 		if (child == nullptr)
 			continue;
 
@@ -1400,6 +1410,7 @@ QFileInfoList __fastcall util::loadAllFileLists(
 		const QString name = folderinfo.fileName(); //獲取目錄名
 
 		std::unique_ptr<TreeWidgetItem> childroot(q_check_ptr(new TreeWidgetItem()));
+		sash_assume(childroot != nullptr);
 		if (childroot == nullptr)
 			continue;
 

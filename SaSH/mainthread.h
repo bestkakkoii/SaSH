@@ -50,7 +50,7 @@ public:
 	inline void appendArgs(const QVariantList& args) { args_.append(args); }
 
 signals:
-	void start();
+	void started();
 
 public slots:
 	void autoJoin();

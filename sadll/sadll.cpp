@@ -59,6 +59,8 @@ void CreateConsole()
 
 #ifdef USE_MINIDUMP
 #include <DbgHelp.h>
+#include <assert.h>
+#include <cassert>
 #pragma comment(lib, "dbghelp.lib")
 LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 {
@@ -1618,6 +1620,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	{
 		//與外掛連線
 		asyncClient_.reset(new AsyncClient(parentHwnd, index));
+		assert(nullptr != asyncClient_);
 		if (nullptr == asyncClient_)
 			return FALSE;
 
@@ -1636,6 +1639,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 
 	//與外掛連線
 	syncClient_.reset(new SyncClient(parentHwnd, index));
+	assert(nullptr != syncClient_);
 	if (nullptr == syncClient_)
 		return FALSE;
 
@@ -1643,7 +1647,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	syncClient_->setRecvFunction(precv);
 	if (syncClient_->Connect(type, port) == TRUE)
 	{
-		WM_Announce(const_cast<char*>("connected"), 0);
+		WM_Announce(const_cast<char*>(u8"<SASH> connected to SASH local host."), 0);
 		*CONVERT_GAMEVAR<int*>(0x4200000) = 1;
 		return TRUE;
 	}
@@ -1660,13 +1664,11 @@ void GameService::uninitialize()
 
 	isInitialized_.store(FALSE, std::memory_order_release);
 
-	WM_Announce(const_cast<char*>("disconnected"), 0);
+	WM_Announce(const_cast<char*>(u8"<SASH> disconnected from SASH local host."), 6);
 #ifdef USE_ASYNC_TCP
-	if (asyncClient_ != nullptr)
-		asyncClient_.reset();
+	asyncClient_.reset();
 #else
-	if (syncClient_ != nullptr)
-		syncClient_.reset();
+	syncClient_.reset();
 #endif
 
 	* CONVERT_GAMEVAR<int*>(0x4200000) = 0;

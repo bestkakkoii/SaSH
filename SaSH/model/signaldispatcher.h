@@ -44,6 +44,7 @@ public:
 		if (!instances.contains(index))
 		{
 			SignalDispatcher* instance = q_check_ptr(new SignalDispatcher(index));
+			sash_assume(instance != nullptr);
 			instances.insert(index, instance);
 		}
 		return *instances.value(index);

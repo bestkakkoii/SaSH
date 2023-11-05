@@ -25,6 +25,7 @@
 #include <condition_variable>
 #include <queue>
 #include <timeapi.h>
+#include <cassert>
 #ifndef MINT_USE_SEPARATE_NAMESPACE
 #define MINT_USE_SEPARATE_NAMESPACE
 #include <MINT/MINT.h>

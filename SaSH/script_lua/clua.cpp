@@ -885,28 +885,41 @@ void CLua::open_syslibs(sol::state& lua)
 
 void CLua::open_itemlibs(sol::state& lua)
 {
-	lua.new_usertype<sa::ITEM>("ItemStruct",
-		"valid", sol::readonly(&sa::ITEM::valid),
-		"color", sol::readonly(&sa::ITEM::color),
-		"modelid", sol::readonly(&sa::ITEM::modelid),
-		"lv", sol::readonly(&sa::ITEM::level),
-		"stack", sol::readonly(&sa::ITEM::stack),
-		"type", sol::readonly(&sa::ITEM::type),
-		"field", sol::readonly(&sa::ITEM::field),
-		"target", sol::readonly(&sa::ITEM::target),
-		"flag", sol::readonly(&sa::ITEM::deadTargetFlag),
-		"sflag", sol::readonly(&sa::ITEM::sendFlag),
-		"itemup", sol::readonly(&sa::ITEM::itemup),
-		"counttime", sol::readonly(&sa::ITEM::counttime),
-		"dura", sol::readonly(&sa::ITEM::damage),
+	lua.set_function("swapitem", &CLuaItem::swapitem, &luaItem_);
+	lua.set_function("make", &CLuaItem::make, &luaItem_);
+	lua.set_function("cook", &CLuaItem::cook, &luaItem_);
+	lua.set_function("getstone", &CLuaItem::withdrawgold, &luaItem_);
+	lua.set_function("putstone", &CLuaItem::depositgold, &luaItem_);
+	lua.set_function("doffstone", &CLuaItem::dropgold, &luaItem_);
+	lua.set_function("buy", &CLuaItem::buy, &luaItem_);
+	lua.set_function("sell", &CLuaItem::sell, &luaItem_);
+	lua.set_function("sellpet", &CLuaItem::sellpet, &luaItem_);
+	lua.set_function("doffpet", &CLuaItem::droppet, &luaItem_);
 
-		"name", sol::property(&sa::ITEM::getName),
-		"name2", sol::property(&sa::ITEM::getName2),
-		"memo", sol::property(&sa::ITEM::getMemo),
+	lua.set_function("pickup", &CLuaItem::pickitem, &luaItem_);
+
+	lua.new_usertype<sa::item_t>("ItemStruct",
+		"valid", sol::readonly(&sa::item_t::valid),
+		"color", sol::readonly(&sa::item_t::color),
+		"modelid", sol::readonly(&sa::item_t::modelid),
+		"lv", sol::readonly(&sa::item_t::level),
+		"stack", sol::readonly(&sa::item_t::stack),
+		"type", sol::readonly(&sa::item_t::type),
+		"field", sol::readonly(&sa::item_t::field),
+		"target", sol::readonly(&sa::item_t::target),
+		"flag", sol::readonly(&sa::item_t::deadTargetFlag),
+		"sflag", sol::readonly(&sa::item_t::sendFlag),
+		"itemup", sol::readonly(&sa::item_t::itemup),
+		"counttime", sol::readonly(&sa::item_t::counttime),
+		"dura", sol::readonly(&sa::item_t::damage),
+
+		"name", sol::property(&sa::item_t::getName),
+		"name2", sol::property(&sa::item_t::getName2),
+		"memo", sol::property(&sa::item_t::getMemo),
 
 		/*custom*/
-		"max", sol::readonly(&sa::ITEM::maxStack),
-		"count", sol::readonly(&sa::ITEM::count)
+		"max", sol::readonly(&sa::item_t::maxStack),
+		"count", sol::readonly(&sa::item_t::count)
 	);
 
 	lua.new_usertype<CLuaItem>("ItemClass",
@@ -929,11 +942,12 @@ void CLua::open_charlibs(sol::state& lua)
 	lua.set_function("join", &CLuaChar::join, &luaChar_);
 	lua.set_function("leave", &CLuaChar::leave, &luaChar_);
 	lua.set_function("kick", &CLuaChar::kick, &luaChar_);
-	lua.set_function("doffstone", &CLuaChar::doffstone, &luaChar_);
+	lua.set_function("skup", &CLuaChar::skup, &luaChar_);
 }
 
 void CLua::open_petlibs(sol::state& lua)
 {
+	lua.set_function("learn", &CLuaPet::learn, &luaPet_);
 	lua.new_usertype<CLuaPet>("PetClass",
 		sol::call_constructor,
 		sol::constructors<CLuaPet()>(),

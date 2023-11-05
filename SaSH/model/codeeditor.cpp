@@ -529,10 +529,12 @@ void CodeEditor::commentSwitch()
 void CodeEditor::jumpToLineDialog()
 {
 	long long* pline(q_check_ptr(new long long(1)));
+	sash_assume(pline != nullptr);
 	if (nullptr == pline)
 		return;
 
 	JumpToLineDialog* dialog = q_check_ptr(new JumpToLineDialog(this, pline));
+	sash_assume(dialog != nullptr);
 	if (dialog == nullptr)
 		return;
 

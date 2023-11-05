@@ -21,29 +21,470 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-sa::ITEM& CLuaItem::operator[](long long index)
+sa::item_t& CLuaItem::operator[](long long index)
 {
 	--index;
 	if (index >= 100)
 		index -= 100;
 	else if (index < 100)
 	{
-		index += sa::CHAR_EQUIPPLACENUM;
+		index += sa::CHAR_EQUIPSLOT_COUNT;
 	}
 
 	Injector& injector = Injector::getInstance(index_);
 	if (!injector.worker.isNull())
 	{
 		injector.worker->updateItemByMemory();
-		QHash<long long, sa::ITEM> items = injector.worker->getItems();
+		QHash<long long, sa::item_t> items = injector.worker->getItems();
 		if (items.contains(index))
 			items_.insert(index, items.value(index));
 	}
 
 	if (!items_.contains(index))
-		items_.insert(index, sa::ITEM());
+		items_.insert(index, sa::item_t());
 
 	return items_[index];
+}
+
+long long CLuaItem::swapitem(long long fromIndex, long long toIndex, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	if (fromIndex > 100)
+		fromIndex -= 100;
+	else
+		fromIndex += sa::CHAR_EQUIPSLOT_COUNT;
+	if (toIndex > 100)
+		toIndex -= 100;
+	else
+		toIndex += sa::CHAR_EQUIPSLOT_COUNT;
+
+	--fromIndex;
+	--toIndex;
+
+	if (fromIndex < 0 || fromIndex >= sa::MAX_ITEM)
+		return FALSE;
+
+	if (toIndex < 0 || toIndex >= sa::MAX_ITEM)
+		return FALSE;
+
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	injector.worker->swapItem(fromIndex, toIndex);
+
+	bool bret = luadebug::waitfor(s, 500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return bret;
+}
+
+long long CLuaItem::make(std::string singre, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString ingreName = util::toQString(singre);
+
+	QStringList ingreNameList = ingreName.split(util::rexOR, Qt::SkipEmptyParts);
+	if (ingreNameList.isEmpty())
+		return FALSE;
+
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+
+	injector.worker->craft(sa::kCraftItem, ingreNameList);
+
+	bool bret = luadebug::waitfor(s, 500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return bret;
+}
+
+long long CLuaItem::cook(std::string singre, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString ingreName = util::toQString(singre);
+
+	QStringList ingreNameList = ingreName.split(util::rexOR, Qt::SkipEmptyParts);
+	if (ingreNameList.isEmpty())
+		return FALSE;
+
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+
+	injector.worker->craft(sa::kCraftFood, ingreNameList);
+
+	bool bret = luadebug::waitfor(s, 500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return bret;
+}
+
+long long CLuaItem::depositgold(long long gold, sol::object oispublic, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	long long currentGold = injector.worker->getCharacter().gold;
+	if (currentGold <= 0)
+		return FALSE;
+
+	if (gold != -1 && gold <= 0)
+		return false;
+
+	if (-1 == gold)
+		gold = currentGold;
+	else if (gold > currentGold)
+		gold = currentGold;
+
+	bool isPublic = false;
+	if (oispublic.is<bool>())
+		isPublic = oispublic.as<bool>();
+
+	injector.worker->depositGold(gold, isPublic);
+
+	return TRUE;
+}
+
+long long CLuaItem::withdrawgold(long long gold, sol::object oispublic, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	bool isPublic = false;
+	if (oispublic.is<bool>())
+		isPublic = oispublic.as<bool>();
+
+	injector.worker->withdrawGold(gold, isPublic);
+
+	return TRUE;
+}
+
+long long CLuaItem::dropgold(long long goldamount, sol::this_state s)
+{
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	if (goldamount == -1)
+	{
+		sa::character_t pc = injector.worker->getCharacter();
+		goldamount = pc.gold;
+	}
+
+	if (goldamount <= 0)
+		return FALSE;
+
+	injector.worker->dropGold(goldamount);
+
+	return TRUE;
+}
+
+long long CLuaItem::buy(long long productindex, long long count, sol::object ounit, sol::object odialogid, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	--productindex;
+
+	if (productindex < 0)
+		return FALSE;
+
+	if (count <= 0)
+		return FALSE;
+
+	QString npcName;
+	long long modelid = -1;
+	if (ounit.is<std::string>())
+		npcName = util::toQString(ounit.as<std::string>());
+	else if (ounit.is<long long>())
+		modelid = ounit.as<long long>();
+
+	long long dialogid = -1;
+	if (odialogid.is<long long>())
+		dialogid = odialogid.as<long long>();
+
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+
+	if (npcName.isEmpty() && -1 == modelid)
+		injector.worker->buy(productindex, count, dialogid);
+	else
+	{
+		sa::map_unit_t unit;
+		if (injector.worker->findUnit(npcName, sa::kObjectNPC, &unit, "", modelid))
+		{
+			injector.worker->buy(productindex, count, dialogid, unit.id);
+		}
+	}
+
+	bool bret = luadebug::waitfor(s, 500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return bret;
+}
+
+long long CLuaItem::sell(std::string sname, sol::object ounit, sol::object odialogid, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString name = util::toQString(sname);
+	QStringList nameList = name.split(util::rexOR, Qt::SkipEmptyParts);
+	if (nameList.isEmpty())
+		return FALSE;
+
+	QString npcName;
+	long long modelid = -1;
+	if (ounit.is<std::string>())
+		npcName = util::toQString(ounit.as<std::string>());
+	else if (ounit.is<long long>())
+		modelid = ounit.as<long long>();
+
+	long long dialogid = -1;
+	if (odialogid.is<long long>())
+		dialogid = odialogid.as<long long>();
+
+	QVector<long long> itemIndexs;
+	for (const QString& it : nameList)
+	{
+		QVector<long long> indexs;
+		if (!injector.worker->getItemIndexsByName(it, "", &indexs, sa::CHAR_EQUIPSLOT_COUNT))
+			continue;
+		itemIndexs.append(indexs);
+	}
+
+	std::sort(itemIndexs.begin(), itemIndexs.end());
+	auto it = std::unique(itemIndexs.begin(), itemIndexs.end());
+	itemIndexs.erase(it, itemIndexs.end());
+
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+
+	if (npcName.isEmpty() && -1 == modelid)
+		injector.worker->sell(itemIndexs, dialogid);
+	else
+	{
+		sa::map_unit_t unit;
+		if (injector.worker->findUnit(npcName, sa::kObjectNPC, &unit, "", modelid))
+		{
+			injector.worker->sell(itemIndexs, dialogid, unit.id);
+		}
+	}
+
+	bool bret = luadebug::waitfor(s, 500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return bret;
+}
+
+long long CLuaItem::pickitem(sol::object odir, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString dirStr;
+	long long dir = -2;
+	if (odir.is<std::string>())
+		dirStr = util::toQString(odir.as<std::string>());
+	else if (odir.is<long long>())
+		dir = odir.as<long long>();
+
+	if (dirStr.isEmpty() && dir == -2)
+		return FALSE;
+
+	if (dirStr.startsWith("全") || dir == -1)
+	{
+		for (long long i = 0; i < 7; ++i)
+		{
+			injector.worker->setCharFaceDirection(i);
+			injector.worker->pickItem(i);
+		}
+	}
+	else if (dir >= 0)
+	{
+		injector.worker->setCharFaceDirection(dir);
+		injector.worker->pickItem(dir);
+	}
+	else
+	{
+		sa::DirType type = sa::dirMap.value(dirStr, sa::kDirNone);
+		if (type == sa::kDirNone)
+			return FALSE;
+
+		injector.worker->setCharFaceDirection(type);
+		injector.worker->pickItem(type);
+	}
+
+	return TRUE;
+}
+
+long long CLuaItem::sellpet(sol::object range, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	sa::map_unit_t unit;
+	if (!injector.worker->findUnit("宠物店", sa::kObjectNPC, &unit))
+	{
+		if (!injector.worker->findUnit("寵物店", sa::kObjectNPC, &unit))
+			return FALSE;
+	}
+
+	//long long petIndex = -1;
+	long long min = 0, max = sa::MAX_PET;
+	if (!luatool::checkRange(range, min, max, nullptr))
+	{
+		return FALSE;
+	}
+
+	for (long long petIndex = min; petIndex <= max; ++petIndex)
+	{
+		if (injector.IS_SCRIPT_INTERRUPT.get())
+			return FALSE;
+
+		if (injector.worker.isNull())
+			return FALSE;
+
+		if (petIndex < 0 || petIndex >= sa::MAX_PET)
+			return FALSE;
+
+		sa::pet_t pet = injector.worker->getPet(petIndex);
+
+		if (!pet.valid)
+			continue;
+
+		bool bret = false;
+		for (;;)
+		{
+			if (injector.worker.isNull())
+				return FALSE;
+
+			sa::dialog_t dialog = injector.worker->currentDialog.get();
+			switch (dialog.dialogid)
+			{
+			case 263:
+			{
+				injector.worker->press(sa::kButtonYes, 263, unit.id);
+				bret = true;
+				break;
+			}
+			case 262:
+			{
+				injector.worker->press(petIndex + 1, 262, unit.id);
+				injector.worker->press(sa::kButtonYes, 263, unit.id);
+				bret = true;
+				break;
+			}
+			default:
+			{
+				injector.worker->press(3, 261, unit.id);
+				injector.worker->press(petIndex + 1, 262, unit.id);
+				injector.worker->press(sa::kButtonYes, 263, unit.id);
+				bret = true;
+				break;
+			}
+			}
+
+			if (bret)
+				break;
+
+			//QThread::msleep(300);
+		}
+	}
+
+
+	return TRUE;
+}
+
+long long CLuaItem::droppet(sol::object oname, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	long long petIndex = -1;
+	QString petName;
+	if (oname.is <long long>())
+	{
+		petIndex = oname.as<long long>();
+		--petIndex;
+	}
+	else if (oname.is<std::string>())
+		petName = util::toQString(oname.as<std::string>());
+
+	if (petIndex < 0 && petName.isEmpty())
+		return FALSE;
+
+	if (petIndex >= 0)
+		injector.worker->dropPet(petIndex);
+	else if (!petName.isEmpty())
+	{
+		QVector<long long> v;
+		if (injector.worker->getPetIndexsByName(petName, &v))
+		{
+			for (const long long it : v)
+				injector.worker->dropPet(it);
+		}
+	}
+
+	return TRUE;
 }
 
 long long CLuaItem::getSpace()
@@ -70,7 +511,7 @@ bool CLuaItem::getIsFull()
 	return itemIndexs.isEmpty();
 }
 
-QVector<long long> itemGetIndexs(long long currentIndex, sol::object oitemnames, sol::object oitemmemos, bool includeEequip)
+QVector<long long> itemGetIndexs(long long currentIndex, sol::object oitemnames, sol::object oitemmemos, bool includeEequip, sol::object ostartFrom)
 {
 	QVector<long long> itemIndexs;
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -89,7 +530,16 @@ QVector<long long> itemGetIndexs(long long currentIndex, sol::object oitemnames,
 		return itemIndexs;
 	}
 
-	long long min = sa::CHAR_EQUIPPLACENUM;
+	long long startFrom = -1;
+	if (ostartFrom.is<long long>())
+		startFrom = ostartFrom.as<long long>();
+	if (startFrom < 0 || startFrom >= (sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT))
+		startFrom = -1;
+
+	long long min = sa::CHAR_EQUIPSLOT_COUNT;
+	if (startFrom != -1)
+		min += startFrom;
+
 	long long max = sa::MAX_ITEM;
 	if (includeEequip)
 		min = 0;
@@ -102,7 +552,7 @@ QVector<long long> itemGetIndexs(long long currentIndex, sol::object oitemnames,
 }
 
 
-long long CLuaItem::count(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s)
+long long CLuaItem::count(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(index_);
@@ -114,14 +564,14 @@ long long CLuaItem::count(sol::object oitemnames, sol::object oitemmemos, sol::o
 		includeEequip = oincludeEequip.as<bool>();
 
 	long long c = 0;
-	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip);
+	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip, ostartFrom);
 	if (itemIndexs.isEmpty())
 		return c;
 
-	QHash<long long, sa::ITEM> items = injector.worker->getItems();
+	QHash<long long, sa::item_t> items = injector.worker->getItems();
 	for (const long long itemIndex : itemIndexs)
 	{
-		sa::ITEM item = items.value(itemIndex);
+		sa::item_t item = items.value(itemIndex);
 		if (item.valid)
 			c += item.stack;
 	}
@@ -129,7 +579,7 @@ long long CLuaItem::count(sol::object oitemnames, sol::object oitemmemos, sol::o
 	return c;
 }
 
-long long CLuaItem::indexof(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s)
+long long CLuaItem::indexof(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s)
 {
 	Injector& injector = Injector::getInstance(index_);
 	if (injector.worker.isNull())
@@ -139,22 +589,22 @@ long long CLuaItem::indexof(sol::object oitemnames, sol::object oitemmemos, sol:
 	if (oincludeEequip.is<bool>())
 		includeEequip = oincludeEequip.as<bool>();
 
-	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip);
+	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip, ostartFrom);
 	if (itemIndexs.isEmpty())
 		return -1;
 
 	long long index = itemIndexs.front();
-	if (index < sa::CHAR_EQUIPPLACENUM)
+	if (index < sa::CHAR_EQUIPSLOT_COUNT)
 		index += 100LL;
 	else
-		index -= static_cast<long long>(sa::CHAR_EQUIPPLACENUM);
+		index -= static_cast<long long>(sa::CHAR_EQUIPSLOT_COUNT);
 
 	++index;
 
 	return index;
 }
 
-sol::object CLuaItem::find(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s)
+sol::object CLuaItem::find(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(index_);
@@ -165,22 +615,22 @@ sol::object CLuaItem::find(sol::object oitemnames, sol::object oitemmemos, sol::
 	if (oincludeEequip.is<bool>())
 		includeEequip = oincludeEequip.as<bool>();
 
-	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip);
+	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip, ostartFrom);
 	if (itemIndexs.isEmpty())
 		return sol::lua_nil;
 
 	long long index = itemIndexs.front();
-	if (index < sa::CHAR_EQUIPPLACENUM)
+	if (index < sa::CHAR_EQUIPSLOT_COUNT)
 		index += 100LL;
 	else
-		index -= static_cast<long long>(sa::CHAR_EQUIPPLACENUM);
+		index -= static_cast<long long>(sa::CHAR_EQUIPSLOT_COUNT);
 
 	++index;
 
 	if (index < 0 || index >= sa::MAX_ITEM)
 		return sol::lua_nil;
 
-	sa::ITEM item = injector.worker->getItem(index);
+	sa::item_t item = injector.worker->getItem(index);
 
 	sol::table t = lua.create_table();
 	t["valid"] = item.valid;
@@ -213,18 +663,18 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 
 	QHash<QString, long long> hash = {
 		{ "自己", 0},
-		{ "戰寵", injector.worker->getPC().battlePetNo},
-		{ "騎寵", injector.worker->getPC().ridePetNo},
+		{ "戰寵", injector.worker->getCharacter().battlePetNo},
+		{ "騎寵", injector.worker->getCharacter().ridePetNo},
 		{ "隊長", 6},
 
 		{ "自己", 0},
-		{ "战宠", injector.worker->getPC().battlePetNo},
-		{ "骑宠", injector.worker->getPC().ridePetNo},
+		{ "战宠", injector.worker->getCharacter().battlePetNo},
+		{ "骑宠", injector.worker->getCharacter().ridePetNo},
 		{ "队长", 6},
 
 		{ "self", 0},
-		{ "battlepet", injector.worker->getPC().battlePetNo},
-		{ "ride", injector.worker->getPC().ridePetNo},
+		{ "battlepet", injector.worker->getCharacter().battlePetNo},
+		{ "ride", injector.worker->getCharacter().ridePetNo},
 		{ "leader", 6},
 	};
 
@@ -235,7 +685,7 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 		hash.insert("pet" + util::toQString(i + 1), i + 1);
 	}
 
-	for (long long i = 1; i < sa::MAX_PARTY; ++i)
+	for (long long i = 1; i < sa::MAX_TEAM; ++i)
 	{
 		hash.insert("隊員" + util::toQString(i), i + 1 + sa::MAX_PET);
 		hash.insert("队员" + util::toQString(i), i + 1 + sa::MAX_PET);
@@ -252,7 +702,7 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 	long long target = 0;
 	long long totalUse = 1;
 
-	long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM - 1);
+	long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT - 1);
 	if (!checkRange(TK, 1, &min, &max))
 	{
 		checkString(TK, 1, &itemName);
@@ -290,8 +740,8 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 	}
 	else
 	{
-		min += sa::CHAR_EQUIPPLACENUM;
-		max += sa::CHAR_EQUIPPLACENUM;
+		min += sa::CHAR_EQUIPSLOT_COUNT;
+		max += sa::CHAR_EQUIPSLOT_COUNT;
 
 		target = -2;
 		checkInteger(TK, 2, &target);
@@ -333,16 +783,16 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 					memo = itemMemos.takeFirst();
 
 				QVector<long long> v;
-				if (!injector.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPPLACENUM))
+				if (!injector.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
 					continue;
 
 				totalUse = target - 100;
 
 				bool ok = false;
-				QHash<long long, sa::ITEM> items = injector.worker->getItems();
+				QHash<long long, sa::item_t> items = injector.worker->getItems();
 				for (const long long& it : v)
 				{
-					sa::ITEM item = items.value(it);
+					sa::item_t item = items.value(it);
 					long long size = item.stack;
 					for (long long i = 0; i < size; ++i)
 					{
@@ -372,16 +822,16 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 					name = itemNames.takeFirst();
 
 				QVector<long long> v;
-				if (!injector.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPPLACENUM))
+				if (!injector.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
 					continue;
 
 				totalUse = target - 100;
 
 				bool ok = false;
-				QHash<long long, sa::ITEM> items = injector.worker->getItems();
+				QHash<long long, sa::item_t> items = injector.worker->getItems();
 				for (const long long& it : v)
 				{
-					sa::ITEM item = items.value(it);
+					sa::item_t item = items.value(it);
 					long long size = item.stack;
 					for (long long i = 0; i < size; ++i)
 					{
@@ -416,7 +866,7 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 				memo = itemMemos.takeFirst();
 
 			QVector<long long> v;
-			if (!injector.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPPLACENUM))
+			if (!injector.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
 				continue;
 
 			if (totalUse == 1)
@@ -450,7 +900,7 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 				name = itemNames.takeFirst();
 
 			QVector<long long> v;
-			if (!injector.worker->getItemIndexsByName(itemName, memo, &v, sa::CHAR_EQUIPPLACENUM))
+			if (!injector.worker->getItemIndexsByName(itemName, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
 				continue;
 
 			if (totalUse == 1)
@@ -508,18 +958,18 @@ long long Interpreter::dropitem(long long currentIndex, long long currentLine, c
 
 	if (tempName == kFuzzyPrefix)
 	{
-		for (long long i = sa::CHAR_EQUIPPLACENUM; i < sa::MAX_ITEM; ++i)
+		for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
 			injector.worker->dropItem(i);
 	}
 
 	if (tempName.isEmpty() && memo.isEmpty()
-		&& ((itemIndex >= 1 && itemIndex <= (sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM))
-			|| (itemIndex >= 101 && itemIndex <= static_cast<long long>(sa::CHAR_EQUIPPLACENUM + 100))))
+		&& ((itemIndex >= 1 && itemIndex <= (sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT))
+			|| (itemIndex >= 101 && itemIndex <= static_cast<long long>(sa::CHAR_EQUIPSLOT_COUNT + 100))))
 	{
 		if (itemIndex < 100)
 		{
 			--itemIndex;
-			itemIndex += sa::CHAR_EQUIPPLACENUM;
+			itemIndex += sa::CHAR_EQUIPSLOT_COUNT;
 		}
 		else
 			itemIndex -= 100;
@@ -533,12 +983,12 @@ long long Interpreter::dropitem(long long currentIndex, long long currentLine, c
 	//指定丟棄白名單，位於白名單的物品不丟棄
 	if (tempName == QString("非"))
 	{
-		long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM - 1);
+		long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT - 1);
 		if (!checkRange(TK, 2, &min, &max))
 			return Parser::kArgError + 2ll;
 
-		min += sa::CHAR_EQUIPPLACENUM;
-		max += sa::CHAR_EQUIPPLACENUM;
+		min += sa::CHAR_EQUIPSLOT_COUNT;
+		max += sa::CHAR_EQUIPSLOT_COUNT;
 
 		QString itemNames;
 		checkString(TK, 3, &itemNames);
@@ -620,11 +1070,11 @@ long long Interpreter::swapitem(long long currentIndex, long long currentLine, c
 	if (a > 100)
 		a -= 100;
 	else
-		a += sa::CHAR_EQUIPPLACENUM;
+		a += sa::CHAR_EQUIPSLOT_COUNT;
 	if (b > 100)
 		b -= 100;
 	else
-		b += sa::CHAR_EQUIPPLACENUM;
+		b += sa::CHAR_EQUIPSLOT_COUNT;
 
 	--a;
 	--b;
@@ -730,8 +1180,8 @@ long long Interpreter::buy(long long currentIndex, long long currentLine, const 
 		injector.worker->buy(itemIndex, count, dlgid);
 	else
 	{
-		sa::mapunit_t unit;
-		if (injector.worker->findUnit(npcName, sa::OBJ_NPC, &unit))
+		sa::map_unit_t unit;
+		if (injector.worker->findUnit(npcName, sa::kObjectNPC, &unit))
 		{
 			injector.worker->buy(itemIndex, count, dlgid, unit.id);
 		}
@@ -768,7 +1218,7 @@ long long Interpreter::sell(long long currentIndex, long long currentLine, const
 	for (const QString& it : nameList)
 	{
 		QVector<long long> indexs;
-		if (!injector.worker->getItemIndexsByName(it, "", &indexs, sa::CHAR_EQUIPPLACENUM))
+		if (!injector.worker->getItemIndexsByName(it, "", &indexs, sa::CHAR_EQUIPSLOT_COUNT))
 			continue;
 		itemIndexs.append(indexs);
 	}
@@ -783,8 +1233,8 @@ long long Interpreter::sell(long long currentIndex, long long currentLine, const
 		injector.worker->sell(itemIndexs, dlgid);
 	else
 	{
-		sa::mapunit_t unit;
-		if (injector.worker->findUnit(npcName, sa::OBJ_NPC, &unit))
+		sa::map_unit_t unit;
+		if (injector.worker->findUnit(npcName, sa::kObjectNPC, &unit))
 		{
 			injector.worker->sell(itemIndexs, dlgid, unit.id);
 		}
@@ -805,10 +1255,10 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	sa::mapunit_t unit;
-	if (!injector.worker->findUnit("宠物店", sa::OBJ_NPC, &unit))
+	sa::map_unit_t unit;
+	if (!injector.worker->findUnit("宠物店", sa::kObjectNPC, &unit))
 	{
-		if (!injector.worker->findUnit("寵物店", sa::OBJ_NPC, &unit))
+		if (!injector.worker->findUnit("寵物店", sa::kObjectNPC, &unit))
 			return Parser::kNoChange;
 	}
 
@@ -834,7 +1284,7 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 		if (petIndex - 1 < 0 || petIndex - 1 >= sa::MAX_PET)
 			return Parser::kArgError + 1ll;
 
-		sa::PET pet = injector.worker->getPet(petIndex - 1);
+		sa::pet_t pet = injector.worker->getPet(petIndex - 1);
 
 		if (!pet.valid)
 			continue;
@@ -851,7 +1301,7 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 			case 263:
 			{
 				//injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-				injector.worker->press(sa::BUTTON_YES, 263, unit.id);
+				injector.worker->press(sa::kButtonYes, 263, unit.id);
 				//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get() });
 				bret = true;
 				break;
@@ -860,7 +1310,7 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 			{
 				//injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
 				injector.worker->press(petIndex, 262, unit.id);
-				injector.worker->press(sa::BUTTON_YES, 263, unit.id);
+				injector.worker->press(sa::kButtonYes, 263, unit.id);
 				bret = true;
 				//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get() });
 				break;
@@ -870,7 +1320,7 @@ long long Interpreter::sellpet(long long currentIndex, long long currentLine, co
 				//injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
 				injector.worker->press(3, 261, unit.id);
 				injector.worker->press(petIndex, 262, unit.id);
-				injector.worker->press(sa::BUTTON_YES, 263, unit.id);
+				injector.worker->press(sa::kButtonYes, 263, unit.id);
 				bret = true;
 				//waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get() });
 				break;
@@ -965,7 +1415,7 @@ long long Interpreter::depositgold(long long currentIndex, long long currentLine
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	if (injector.worker->getPC().gold <= 0)
+	if (injector.worker->getCharacter().gold <= 0)
 		return Parser::kNoChange;
 
 	long long gold;
@@ -977,8 +1427,8 @@ long long Interpreter::depositgold(long long currentIndex, long long currentLine
 	long long isPublic = 0;
 	checkInteger(TK, 2, &isPublic);
 
-	if (gold > injector.worker->getPC().gold)
-		gold = injector.worker->getPC().gold;
+	if (gold > injector.worker->getCharacter().gold)
+		gold = injector.worker->getCharacter().gold;
 
 	injector.worker->depositGold(gold, isPublic > 0);
 
@@ -1006,7 +1456,7 @@ long long Interpreter::withdrawgold(long long currentIndex, long long currentLin
 	return Parser::kNoChange;
 }
 
-safe::Hash<long long, QHash<long long, sa::ITEM>> recordedEquip_;
+safe::Hash<long long, QHash<long long, sa::item_t>> recordedEquip_;
 long long Interpreter::recordequip(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -1016,9 +1466,9 @@ long long Interpreter::recordequip(long long currentIndex, long long currentLine
 
 	checkOnlineThenWait();
 
-	QHash<long long, sa::ITEM> items = injector.worker->getItems();
-	QHash<long long, sa::ITEM> recordedItems = recordedEquip_.value(currentIndex);
-	for (long long i = 0; i < sa::CHAR_EQUIPPLACENUM; ++i)
+	QHash<long long, sa::item_t> items = injector.worker->getItems();
+	QHash<long long, sa::item_t> recordedItems = recordedEquip_.value(currentIndex);
+	for (long long i = 0; i < sa::CHAR_EQUIPSLOT_COUNT; ++i)
 	{
 		injector.worker->announce(QObject::tr("record equip:[%1]%2").arg(i + 1).arg(items.value(i).name));
 		recordedItems.insert(i, items.value(i));
@@ -1042,18 +1492,18 @@ long long Interpreter::wearequip(long long currentIndex, long long currentLine, 
 
 	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
-	QHash<long long, sa::ITEM> items = injector.worker->getItems();
-	for (long long i = 0; i < sa::CHAR_EQUIPPLACENUM; ++i)
+	QHash<long long, sa::item_t> items = injector.worker->getItems();
+	for (long long i = 0; i < sa::CHAR_EQUIPSLOT_COUNT; ++i)
 	{
-		sa::ITEM item = items.value(i);
-		sa::ITEM recordedItem = recordedEquip_.value(currentIndex).value(i);
+		sa::item_t item = items.value(i);
+		sa::item_t recordedItem = recordedEquip_.value(currentIndex).value(i);
 		if (!recordedItem.valid || recordedItem.name.isEmpty())
 			continue;
 
 		if (item.name == recordedItem.name && item.memo == recordedItem.memo)
 			continue;
 
-		long long itemIndex = injector.worker->getItemIndexByName(recordedItem.name, true, "", sa::CHAR_EQUIPPLACENUM);
+		long long itemIndex = injector.worker->getItemIndexByName(recordedItem.name, true, "", sa::CHAR_EQUIPSLOT_COUNT);
 		if (itemIndex == -1)
 			continue;
 
@@ -1114,7 +1564,7 @@ long long Interpreter::unwearequip(long long currentIndex, long long currentLine
 		if (!injector.worker->getItemEmptySpotIndexs(&v))
 			return Parser::kNoChange;
 
-		for (long long i = 0; i < sa::CHAR_EQUIPPLACENUM; ++i)
+		for (long long i = 0; i < sa::CHAR_EQUIPSLOT_COUNT; ++i)
 		{
 			if (v.isEmpty())
 				break;
@@ -1169,7 +1619,7 @@ long long Interpreter::petequip(long long currentIndex, long long currentLine, c
 		if (!itemMemos2.isEmpty())
 			memo = itemMemos2.takeFirst();
 
-		long long itemIndex = injector.worker->getItemIndexByName(name, true, memo, sa::CHAR_EQUIPPLACENUM);
+		long long itemIndex = injector.worker->getItemIndexByName(name, true, memo, sa::CHAR_EQUIPSLOT_COUNT);
 		if (itemIndex != -1)
 			injector.worker->petitemswap(petIndex, itemIndex, -1);
 	}
@@ -1181,7 +1631,7 @@ long long Interpreter::petequip(long long currentIndex, long long currentLine, c
 		if (!itemNames2.isEmpty())
 			name = itemNames2.takeFirst();
 
-		long long itemIndex = injector.worker->getItemIndexByName(name, true, memo, sa::CHAR_EQUIPPLACENUM);
+		long long itemIndex = injector.worker->getItemIndexByName(name, true, memo, sa::CHAR_EQUIPSLOT_COUNT);
 		if (itemIndex != -1)
 			injector.worker->petitemswap(petIndex, itemIndex, -1);
 	}
@@ -1316,11 +1766,11 @@ long long Interpreter::depositpet(long long currentIndex, long long currentLine,
 	waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 	injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-	injector.worker->press(sa::BUTTON_YES);
+	injector.worker->press(sa::kButtonYes);
 	waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 	injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-	injector.worker->press(sa::BUTTON_OK);
+	injector.worker->press(sa::kButtonOk);
 	waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 	injector.worker->IS_WAITFOR_DIALOG_FLAG.off();
@@ -1337,12 +1787,12 @@ long long Interpreter::deposititem(long long currentIndex, long long currentLine
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM - 1);
+	long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT - 1);
 	if (!checkRange(TK, 1, &min, &max))
 		return Parser::kArgError + 1ll;
 
-	min += sa::CHAR_EQUIPPLACENUM;
-	max += sa::CHAR_EQUIPPLACENUM;
+	min += sa::CHAR_EQUIPSLOT_COUNT;
+	max += sa::CHAR_EQUIPSLOT_COUNT;
 
 	QString itemName;
 	checkString(TK, 2, &itemName);
@@ -1359,7 +1809,7 @@ long long Interpreter::deposititem(long long currentIndex, long long currentLine
 		for (const QString& name : itemNames)
 		{
 			QVector<long long> v;
-			if (!injector.worker->getItemIndexsByName(name, "", &v, sa::CHAR_EQUIPPLACENUM))
+			if (!injector.worker->getItemIndexsByName(name, "", &v, sa::CHAR_EQUIPSLOT_COUNT))
 				return Parser::kArgError;
 			else
 				allv.append(v);
@@ -1385,10 +1835,10 @@ long long Interpreter::deposititem(long long currentIndex, long long currentLine
 	}
 	else
 	{
-		QHash<long long, sa::ITEM> items = injector.worker->getItems();
-		for (long long i = sa::CHAR_EQUIPPLACENUM; i < sa::MAX_ITEM; ++i)
+		QHash<long long, sa::item_t> items = injector.worker->getItems();
+		for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
 		{
-			sa::ITEM item = items.value(i);
+			sa::item_t item = items.value(i);
 			if (item.name.isEmpty() || !item.valid)
 				continue;
 
@@ -1428,15 +1878,15 @@ long long Interpreter::withdrawpet(long long currentIndex, long long currentLine
 
 	for (;;)
 	{
-		QPair<long long, QVector<sa::bankpet_t>> bankPetList = injector.worker->currentBankPetList;
+		QPair<long long, QVector<sa::bank_pet_t>> bankPetList = injector.worker->currentBankPetList;
 		long long button = bankPetList.first;
 		if (button == 0)
 			break;
 
-		QVector<sa::bankpet_t> petList = bankPetList.second;
+		QVector<sa::bank_pet_t> petList = bankPetList.second;
 		long long petIndex = 0;
 		bool bret = false;
-		for (const sa::bankpet_t& it : petList)
+		for (const sa::bank_pet_t& it : petList)
 		{
 			if (!petName.startsWith(kFuzzyPrefix))
 			{
@@ -1475,21 +1925,21 @@ long long Interpreter::withdrawpet(long long currentIndex, long long currentLine
 			waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 			injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-			injector.worker->press(sa::BUTTON_YES);
+			injector.worker->press(sa::kButtonYes);
 			waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 			injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-			injector.worker->press(sa::BUTTON_OK);
+			injector.worker->press(sa::kButtonOk);
 			waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 			injector.worker->IS_WAITFOR_DIALOG_FLAG.off();
 			break;
 		}
 
-		if (util::checkAND(button, sa::BUTTON_NEXT))
+		if (util::checkAND(button, sa::kButtonNext))
 		{
 			injector.worker->IS_WAITFOR_BANK_FLAG.on();
-			injector.worker->press(sa::BUTTON_NEXT);
+			injector.worker->press(sa::kButtonNext);
 			if (!waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_BANK_FLAG.get(); }))
 			{
 				injector.worker->IS_WAITFOR_BANK_FLAG.off();
@@ -1541,7 +1991,7 @@ long long Interpreter::withdrawitem(long long currentIndex, long long currentLin
 	if (memoListSize > 0 && (max == 0 || memoListSize < max))
 		max = memoListSize;
 
-	QVector<sa::ITEM> bankItemList = injector.worker->currentBankItemList.toVector();
+	QVector<sa::item_t> bankItemList = injector.worker->currentBankItemList.toVector();
 
 	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
@@ -1556,7 +2006,7 @@ long long Interpreter::withdrawitem(long long currentIndex, long long currentLin
 
 		long long itemIndex = 0;
 		bool bret = false;
-		for (const sa::ITEM& it : bankItemList)
+		for (const sa::item_t& it : bankItemList)
 		{
 			if (!name.isEmpty())
 			{
@@ -1634,20 +2084,20 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 	{
 		QString tmp;
 		if (checkString(TK, 4, &tmp) && tmp == "all")
-			gold = injector.worker->getPC().gold;
+			gold = injector.worker->getCharacter().gold;
 	}
 
 
 	long long timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 5, &timeout);
 
-	sa::mapunit_s unit;
-	if (!injector.worker->findUnit(name, sa::OBJ_HUMAN, &unit))
+	sa::map_unit_t unit;
+	if (!injector.worker->findUnit(name, sa::kObjectHuman, &unit))
 		return Parser::kNoChange;
 
 	QPoint dst;
-	CAStar astar;
-	long long dir = injector.worker->mapAnalyzer.calcBestFollowPointByDstPoint(
+	AStarDevice astar;
+	long long dir = injector.worker->mapDevice.calcBestFollowPointByDstPoint(
 		currentIndex, astar, injector.worker->getFloor(), injector.worker->getPoint(), unit.p, &dst, true, unit.dir);
 	if (dir == -1)
 		return Parser::kNoChange;
@@ -1669,7 +2119,7 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 		else if (itemListStr.count("-") == 1)
 		{
 			long long min = 1;
-			long long max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM);
+			long long max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT);
 			if (!checkRange(TK, 2, &min, &max))
 				return Parser::kArgError + 2ll;
 
@@ -1683,9 +2133,9 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 			bool bret = false;
 			long long index = itemIndex.toLongLong(&bret);
 			--index;
-			index += sa::CHAR_EQUIPPLACENUM;
-			QHash<long long, sa::ITEM> items = injector.worker->getItems();
-			if (bret && index >= sa::CHAR_EQUIPPLACENUM && index < sa::MAX_ITEM)
+			index += sa::CHAR_EQUIPSLOT_COUNT;
+			QHash<long long, sa::item_t> items = injector.worker->getItems();
+			if (bret && index >= sa::CHAR_EQUIPSLOT_COUNT && index < sa::MAX_ITEM)
 			{
 				if (items.value(index).valid)
 					itemIndexVec.append(index);
@@ -1736,7 +2186,7 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 
 			if (bret && index >= 0 && index < sa::MAX_PET)
 			{
-				sa::PET pet = injector.worker->getPet(index);
+				sa::pet_t pet = injector.worker->getPet(index);
 				if (pet.valid)
 					petIndexVec.append(index);
 			}
@@ -1755,7 +2205,7 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 			return Parser::kArgError + 3ll;
 	}
 
-	if (gold > 0 && gold <= injector.worker->getPC().gold)
+	if (gold > 0 && gold <= injector.worker->getCharacter().gold)
 	{
 		injector.worker->tradeAppendGold(name, gold);
 		//ok = true;
@@ -1765,7 +2215,7 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 
 	waitfor(timeout, [&injector]()
 		{
-			return injector.worker->getPC().trade_confirm >= 3;
+			return injector.worker->getCharacter().trade_confirm >= 3;
 		});
 
 	injector.worker->tradeComplete(name);

@@ -111,6 +111,7 @@ QScrollBar::handle:pressed:vertical {
 	setAttribute(Qt::WA_StyledBackground);
 
 	QListView* pview = q_check_ptr(new QListView(this));
+	sash_assume(pview != nullptr);
 	if (nullptr != pview)
 	{
 		pview->setStyleSheet(styleStr);

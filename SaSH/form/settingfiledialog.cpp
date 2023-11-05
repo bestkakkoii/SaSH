@@ -26,12 +26,14 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 	{
 		QFileInfo info(defaultName);
 		firstItem_ = q_check_ptr(new QListWidgetItem(info.fileName()));
+		sash_assume(firstItem_ != nullptr);
 		if (firstItem_ != nullptr)
 		{
 			firstItem_->setData(Qt::UserRole, QString("custom"));
 			firstItem_->setForeground(QColor("#BD5F5F"));
 			ui.listWidget->addItem(firstItem_);
 			lineEdit_ = q_check_ptr(new QLineEdit(info.fileName()));
+			sash_assume(lineEdit_ != nullptr);
 			if (lineEdit_ != nullptr)
 			{
 				util::setLineEdit(lineEdit_);
@@ -50,6 +52,7 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 		QFileInfo info(str);
 
 		QListWidgetItem* item = q_check_ptr(new QListWidgetItem(info.fileName()));
+		sash_assume(item != nullptr);
 		if (item == nullptr)
 			continue;
 

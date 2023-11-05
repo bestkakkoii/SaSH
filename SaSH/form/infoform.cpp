@@ -167,7 +167,7 @@ void InfoForm::onApplyHashSettingsToUI()
 	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
 	{
 		QString title = tr("InfoForm");
-		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(injector.worker->getPC().name).arg(title);
+		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(injector.worker->getCharacter().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 }

@@ -109,6 +109,7 @@ QScrollBar::handle:pressed:horizontal {
 			for (long long column = 0; column < columnCount; ++column)
 			{
 				QTableWidgetItem* item = q_check_ptr(new QTableWidgetItem(""));
+				sash_assume(item != nullptr);
 				if (item == nullptr)
 					continue;
 
@@ -139,12 +140,13 @@ QScrollBar::handle:pressed:horizontal {
 		horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
 
 		QAbstractButton* button = findChild<QAbstractButton*>();
-		if (button)
+		if (button != nullptr)
 		{
 			QVBoxLayout* lay = q_check_ptr(new QVBoxLayout(button));
+			sash_assume(lay != nullptr);
 			lay->setContentsMargins(0, 0, 0, 0);
 			pCornerLabel = q_check_ptr(new QLabel());
-			__assume(pCornerLabel != nullptr);
+			sash_assume(pCornerLabel != nullptr);
 			if (pCornerLabel)
 			{
 				pCornerLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
@@ -218,6 +220,7 @@ QScrollBar::handle:pressed:horizontal {
 		else
 		{
 			item = q_check_ptr(new QTableWidgetItem(text));
+			sash_assume(item != nullptr);
 			if (item == nullptr)
 				return;
 
@@ -238,6 +241,7 @@ QScrollBar::handle:pressed:horizontal {
 		if (item == nullptr)
 		{
 			item = q_check_ptr(new QTableWidgetItem(text));
+			sash_assume(item != nullptr);
 			if (item == nullptr)
 				return;
 

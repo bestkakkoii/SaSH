@@ -326,7 +326,7 @@ QString SelectTargetForm::generateShortName(unsigned long long flg)
 
 void SelectTargetForm::onUpdateTeamInfo(const QStringList& strList)
 {
-	for (long long i = 0; i <= sa::MAX_PARTY; ++i)
+	for (long long i = 0; i <= sa::MAX_TEAM; ++i)
 	{
 		QString objName = QString("checkBox_teammate%1").arg(i);
 		QCheckBox* label = ui.groupBox->findChild<QCheckBox*>(objName);

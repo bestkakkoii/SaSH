@@ -17,15 +17,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #include "stdafx.h"
-#include "mapanalyzer.h"
-#include "astar.h"
+#include "mapdevice.h"
+#include "astardevice.h"
 #include <net/tcpserver.h>
 #include "injector.h"
+
+//魔力包含3字節的'MAP'和 9個'\0' 石器沒有
+struct mapheader_s
+{
+	//char head[3] = {};                   // +0
+	//char padding[9] = {};                // +3
+	DWORD width = 0UL;                     // +12
+	DWORD height = 0UL;                    // +16
+};
 
 constexpr const char* kDefaultMapSuffix = ".dat";
 
 safe::Hash<long long, QPixmap> g_pixMap;
-safe::Hash<long long, map_t> g_maps;
+safe::Hash<long long, sa::map_t> g_maps;
 
 //不可通行地面、物件數據 或 傳點|樓梯
 #pragma region StaticTable
@@ -817,7 +826,7 @@ static const QSet<QPair<QPair<long long, long long >, QSet<unsigned short>>> ROC
 #pragma endregion
 
 //檢查地圖大小是否合法
-inline constexpr bool __fastcall CHECKSIZE(long long w, long long h)
+inline constexpr bool __fastcall checkSizeRange(long long w, long long h)
 {
 	if (w < 0 || h < 0 || w > 1500 || h > 1500)
 		return false;
@@ -826,7 +835,7 @@ inline constexpr bool __fastcall CHECKSIZE(long long w, long long h)
 }
 
 //找大石頭(占用坐標超過1格)並設置標記
-void __fastcall checkAndSetRockEx(map_t& map, const QPoint& p, unsigned short sObject)
+void __fastcall checkAndSetRockEx(sa::map_t& map, const QPoint& p, unsigned short sObject)
 {
 	//    X = 12220 || 12222 為起點往右上畫6格長方形
 	// 
@@ -847,65 +856,58 @@ void __fastcall checkAndSetRockEx(map_t& map, const QPoint& p, unsigned short sO
 			for (x = 0; x < max_x; ++x)
 			{
 				const QPoint point(p.x() + x, p.y() - y);
-				map.data.insert(point, sa::OBJ_ROCKEX);
+				map.data.insert(point, sa::kObjectRockEx);
 			}
 		}
 	}
 };
 
 //重複檢查大石頭
-void __fastcall reCheckAndRockEx(map_t& map, const QPoint& point, unsigned short sObject)
+void __fastcall reCheckAndRockEx(sa::map_t& map, const QPoint& point, unsigned short sObject)
 {
 	for (const QPair<QPair<long long, long long>, QSet<unsigned short>>& it : ROCKEX_SET)
 	{
 		const QSet<unsigned short> set = it.second;
 		if (!set.size() || !set.contains(sObject))
 			continue;
-		map.data.insert(point, sa::OBJ_ROCKEX);
+		map.data.insert(point, sa::kObjectRockEx);
 		return;
 	}
 };
 
 //用於從映射到內存的數據中取出特定的數據塊
-std::vector<unsigned short> load(const UCHAR* pFileMap, long long sectionOffset, long long offest)
+std::vector<unsigned short> loadMapBlock(const unsigned char* pFileMap, long long sectionOffset, long long offest)
 {
 	std::vector<unsigned short> v = {};
 	do
 	{
-		if (!pFileMap)
-		{
+		if (nullptr == pFileMap)
 			break;
-		}
 
-		long long size = sizeof(mapheader_t) + (sectionOffset * offest);
-		const UCHAR* p = pFileMap + size;
+		long long size = sizeof(struct mapheader_s) + (sectionOffset * offest);
+		const unsigned char* p = pFileMap + size;
 		for (size_t i = 0u; i < static_cast<size_t>(sectionOffset); i += 2u)
 		{
-			v.push_back(*reinterpret_cast<const unsigned short*>(p + i));
+			v.emplace_back(*reinterpret_cast<const unsigned short*>(p + i));
 		}
 	} while (false);
+
 	return v;
 }
 
-//用於距離排序找到最近的坐標
-bool compareDistance(qdistance_t& a, qdistance_t& b)
-{
-	return (a.distance < b.distance);
-}
-
-MapAnalyzer::MapAnalyzer(long long index)
+MapDevice::MapDevice(long long index)
 	: Indexer(index)
 	, directory(util::toQString(qgetenv("GAME_DIR_PATH")))
 {
 
 }
 
-MapAnalyzer::~MapAnalyzer()
+MapDevice::~MapDevice()
 {
-	qDebug() << "MapAnalyzer distory!!";
+	qDebug() << "MapDevice distory!!";
 }
 
-void MapAnalyzer::loadHotData(Downloader& downloader)
+void MapDevice::loadHotData(Downloader& downloader)
 {
 	QString fileName = util::applicationDirPath() + "/lib/map/mapdata.lua";
 	QString strdata;
@@ -993,74 +995,74 @@ void MapAnalyzer::loadHotData(Downloader& downloader)
 	}
 }
 
-void MapAnalyzer::clear() const { g_maps.clear(); g_pixMap.clear(); }
+void MapDevice::clear() const { g_maps.clear(); g_pixMap.clear(); }
 
-void MapAnalyzer::clear(long long floor) const { g_maps.remove(floor); g_pixMap.remove(floor); }
+void MapDevice::clear(long long floor) const { g_maps.remove(floor); g_pixMap.remove(floor); }
 
-QPixmap MapAnalyzer::getPixmapByIndex(long long index) const { return g_pixMap.value(index); }
+QPixmap MapDevice::getPixmapByIndex(long long index) const { return g_pixMap.value(index); }
 
 //查找地形
-sa::ObjectType MapAnalyzer::getGroundType(const unsigned short data) const
+sa::ObjectType MapDevice::getGroundType(const unsigned short data) const
 {
 	if (UP.contains(data))
-		return sa::OBJ_UP;
+		return sa::kObjectUp;
 
 	if (DOWN.contains(data))
-		return sa::OBJ_DOWN;
+		return sa::kObjectDown;
 
 	if (JUMP.contains(data))
-		return sa::OBJ_JUMP;
+		return sa::kObjectJump;
 
 	if (ROAD.contains(data))
-		return sa::OBJ_ROAD;
+		return sa::kObjectRoad;
 
 	if (WATER.contains(data))
-		return sa::OBJ_WATER;
+		return sa::kObjectWater;
 
 	if (GROUND.contains(data))
-		return sa::OBJ_WALL;
+		return sa::kObjectWall;
 
 	if (EMPTY.contains(data))
-		return sa::OBJ_EMPTY;
+		return sa::kObjectEmpty;
 
-	return sa::OBJ_UNKNOWN;
+	return sa::kObjectUnknown;
 }
 
 //查找物件
-sa::ObjectType MapAnalyzer::getObjectType(const unsigned short data) const
+sa::ObjectType MapDevice::getObjectType(const unsigned short data) const
 {
 	if (UP.contains(data))
-		return sa::OBJ_UP;
+		return sa::kObjectUp;
 
 	if (DOWN.contains(data))
-		return sa::OBJ_DOWN;
+		return sa::kObjectDown;
 
 	if (JUMP.contains(data))
-		return sa::OBJ_JUMP;
+		return sa::kObjectJump;
 
 	if (ROAD.contains(data))
-		return sa::OBJ_ROAD;
+		return sa::kObjectRoad;
 
 	if (WATER.contains(data))
-		return sa::OBJ_WATER;
+		return sa::kObjectWater;
 
 	if ((WALL.contains(data)))
-		return sa::OBJ_WALL;
+		return sa::kObjectWall;
 
 	if (ROCK.contains(data))
-		return sa::OBJ_ROCK;
+		return sa::kObjectRock;
 
 	if (EMPTY.contains(data))
-		return sa::OBJ_EMPTY;
+		return sa::kObjectEmpty;
 
-	return sa::OBJ_UNKNOWN;
+	return sa::kObjectUnknown;
 }
 
-bool MapAnalyzer::getMapDataByFloor(long long floor, map_t* map)
+bool MapDevice::getMapDataByFloor(long long floor, sa::map_t* map)
 {
 	if (g_maps.contains(floor))
 	{
-		map_t m = g_maps.value(floor);
+		sa::map_t m = g_maps.value(floor);
 		if (m.data.isEmpty())
 			return false;
 
@@ -1076,12 +1078,12 @@ bool MapAnalyzer::getMapDataByFloor(long long floor, map_t* map)
 	return false;
 }
 
-void MapAnalyzer::setMapDataByFloor(long long floor, const map_t& map)
+void MapDevice::setMapDataByFloor(long long floor, const sa::map_t& map)
 {
 	g_maps.insert(floor, map);
 }
 
-void MapAnalyzer::setPixmapByIndex(long long index, const QPixmap& pix)
+void MapDevice::setPixmapByIndex(long long index, const QPixmap& pix)
 {
 	if (g_pixMap.contains(index))
 	{
@@ -1094,13 +1096,13 @@ void MapAnalyzer::setPixmapByIndex(long long index, const QPixmap& pix)
 }
 
 //取遊戲原始二進制地圖路徑
-QString MapAnalyzer::getCurrentMapPath(long long floor) const
+QString MapDevice::getCurrentMapPath(long long floor) const
 {
 	const QString path = directory + "/map/" + util::toQString(floor) + kDefaultMapSuffix;
 	return path;
 }
 
-QString MapAnalyzer::getCurrentPreHandleMapPath(long long currentIndex, long long floor) const
+QString MapDevice::getCurrentPreHandleMapPath(long long currentIndex, long long floor) const
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 	const QString dirPath(QString("%1/lib/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
@@ -1112,7 +1114,8 @@ QString MapAnalyzer::getCurrentPreHandleMapPath(long long currentIndex, long lon
 	return newFileName;
 }
 
-bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const QString& name, bool enableDraw, bool enableRewrite)
+//從遊戲原始二進制地圖中讀取數據
+bool MapDevice::readFromBinary(long long currentIndex, long long floor, const QString& name, bool enableDraw, bool enableRewrite)
 {
 	if (floor < 0)
 		return false;
@@ -1120,10 +1123,10 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 	//%(GAME_DIRECTORY)/map/{floor}.dat
 	const QString path(getCurrentMapPath(floor));
 
-	map_t map;
+	sa::map_t map = {};
 	long long width = 0;
 	long long height = 0;
-	uchar* pFileMap = nullptr;
+	unsigned char* pFileMap = nullptr;
 
 	{
 		//check file exist
@@ -1134,14 +1137,15 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 			return false;
 		}
 
-		if (!file.mmap(pFileMap, 0, sizeof(mapheader_t)))
+		//映射文件到內存
+		if (!file.mmap(pFileMap, 0, sizeof(struct mapheader_s)))
 		{
 			qDebug() << __FUNCTION__ << " @" << __LINE__ << " Failed to map file.";
 			return false;
 		}
 
 		//2個DWORD(4字節)的數據，第1個表示地圖長度 - 東(W)，第2個表示地圖長度 - 南(H)。
-		mapheader_t* _header = reinterpret_cast<mapheader_t*>(pFileMap);
+		struct mapheader_s* _header = reinterpret_cast<struct mapheader_s*>(pFileMap);
 		if (_header == nullptr)
 		{
 			qDebug() << __FUNCTION__ << " Failed to map file.";
@@ -1153,7 +1157,7 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 		height = _header->height;
 	}
 
-	if (!CHECKSIZE(width, height))
+	if (!checkSizeRange(width, height))
 	{
 		qDebug() << __FUNCTION__ << " Invalid map size.";
 		return false;
@@ -1183,13 +1187,13 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 
 				//QT圖像類 QImage 圖像(QSize(地圖.寬, 地圖.高), 格式32色帶透明)
 				QImage img(QSize(map.width, map.height), QImage::Format_ARGB32);//生成圖像
-				img.fill(MAP_COLOR_HASH.value(sa::OBJ_EMPTY));//填充背景色
+				img.fill(sa::MAP_COLOR_HASH.value(sa::kObjectEmpty));//填充背景色
 
 				QPainter painter(&img);//實例繪製引擎
 				for (const QPoint& it : list) //遍歷地圖數據
 				{
 					sa::ObjectType typeOriginal = map.data.value(it);
-					const QBrush brush(MAP_COLOR_HASH.value(typeOriginal), Qt::SolidPattern); //獲取並設置顏色
+					const QBrush brush(sa::MAP_COLOR_HASH.value(typeOriginal), Qt::SolidPattern); //獲取並設置顏色
 					const QPen pen(brush, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);  //實例畫筆
 
 					painter.setPen(pen); //設置畫筆
@@ -1218,14 +1222,16 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 	//再隨後 W * H * 2 字節為地圖標誌，每 2 字節為 1 數據塊，
 
 	QList<QFuture<std::vector<unsigned short>>> futures;
+
 	{
+		//多線程併發將內存中的數據分別讀到3個容器中
 		util::ScopedFile file(path);
 		if (file.openRead() && file.mmap(pFileMap, 0, file.size()))
 		{
 			QFutureSynchronizer<std::vector<unsigned short>> sync;
-			sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 0));
-			sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 1));
-			sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 2));
+			sync.addFuture(QtConcurrent::run(loadMapBlock, pFileMap, sectionOffset, 0));
+			sync.addFuture(QtConcurrent::run(loadMapBlock, pFileMap, sectionOffset, 1));
+			sync.addFuture(QtConcurrent::run(loadMapBlock, pFileMap, sectionOffset, 2));
 			sync.waitForFinished();
 			futures = sync.futures();
 		}
@@ -1237,13 +1243,14 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 		return false;
 	}
 
-	const std::vector<unsigned short> bGround = futures[0].result();
-	const std::vector<unsigned short> bObject = futures[1].result();
-	const std::vector<unsigned short> bLabel = futures[2].result();
+	const std::vector<unsigned short> vecGround = futures.value(0).result();
+	const std::vector<unsigned short> vecObject = futures.value(1).result();
+	const std::vector<unsigned short> vecLabel = futures.value(2).result();
 
-	if (bGround.size() != bObject.size() || bGround.size() != bLabel.size())
+	//檢查數據塊大小是否一致
+	if (vecGround.size() != vecObject.size() || vecGround.size() != vecLabel.size())
 	{
-		qDebug() << "map data error" << bGround.size() << bObject.size() << bLabel.size();
+		qDebug() << "map data error" << vecGround.size() << vecObject.size() << vecLabel.size();
 		return false;
 	}
 
@@ -1258,9 +1265,9 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 
 	bool bret = false;
 	unsigned short sGround = 0, sObject = 0, sLabel = 0;
-	sa::ObjectType typeGround = sa::OBJ_UNKNOWN;
-	sa::ObjectType typeObject = sa::OBJ_UNKNOWN;
-	sa::ObjectType typeOriginal = sa::OBJ_UNKNOWN;
+	sa::ObjectType typeGround = sa::kObjectUnknown;
+	sa::ObjectType typeObject = sa::kObjectUnknown;
+	sa::ObjectType typeOriginal = sa::kObjectUnknown;
 	QPoint point(0, 0);
 
 	for (y = 0; y < height; ++y)
@@ -1269,9 +1276,9 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 		{
 			point.setX(x); point.setY(y);
 
-			sGround = read(bGround, point);
-			sObject = read(bObject, point);
-			sLabel = read(bLabel, point);
+			sGround = read(vecGround, point);
+			sObject = read(vecObject, point);
+			sLabel = read(vecLabel, point);
 
 			map.ground.insert(point, sGround);
 			map.object.insert(point, sObject);
@@ -1293,57 +1300,61 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 //#endif
 
 			//排除樓梯或水晶
-			if ((sa::OBJ_UP == typeOriginal) || (sa::OBJ_DOWN == typeOriginal) || (sa::OBJ_JUMP == typeOriginal) || (sa::OBJ_WARP == typeOriginal) || (sa::OBJ_ROCKEX == typeOriginal))
+			if ((sa::kObjectUp == typeOriginal)
+				|| (sa::kObjectDown == typeOriginal)
+				|| (sa::kObjectJump == typeOriginal)
+				|| (sa::kObjectWarp == typeOriginal)
+				|| (sa::kObjectRockEx == typeOriginal))
 			{
 				continue;
 			}
 			else
-				map.data.insert(point, sa::OBJ_UNKNOWN);
+				map.data.insert(point, sa::kObjectUnknown);
 
-			if (sa::OBJ_ROAD == typeObject || sa::OBJ_ROAD == typeGround)
+			if (sa::kObjectRoad == typeObject || sa::kObjectRoad == typeGround)
 			{
-				map.data.insert(point, sa::OBJ_ROAD);
+				map.data.insert(point, sa::kObjectRoad);
 				continue;
 			}
 
 			//排除水
-			if ((sa::OBJ_WATER == typeGround))
+			if ((sa::kObjectWater == typeGround))
 			{
-				map.data.insert(point, sa::OBJ_WATER);
+				map.data.insert(point, sa::kObjectWater);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 			//排除牆壁
-			else if ((sa::OBJ_WALL == typeGround))
+			else if ((sa::kObjectWall == typeGround))
 			{
-				if (typeObject != sa::OBJ_ROCK)
-					map.data.insert(point, sa::OBJ_WALL);
+				if (typeObject != sa::kObjectRock)
+					map.data.insert(point, sa::kObjectWall);
 				else
-					map.data.insert(point, sa::OBJ_ROCK);
+					map.data.insert(point, sa::kObjectRock);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 			//排除石頭
-			else if ((sa::OBJ_ROCK == typeGround))
+			else if ((sa::kObjectRock == typeGround))
 			{
-				map.data.insert(point, sa::OBJ_ROCK);
+				map.data.insert(point, sa::kObjectRock);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 			//排除牆壁
-			else if (((6693 == sGround) && (17534 == sObject) && (0xC000 == sLabel)) || (sGround == 0x64))
+			else if (((6693 == sGround) && (17534 == sObject) && (0xC000 == sLabel)) || (0x64 == sGround))
 			{
-				if (typeObject != sa::OBJ_ROCK)
-					map.data.insert(point, sa::OBJ_WALL);
+				if (typeObject != sa::kObjectRock)
+					map.data.insert(point, sa::kObjectWall);
 				else
-					map.data.insert(point, sa::OBJ_ROCK);
+					map.data.insert(point, sa::kObjectRock);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 			//排除空白區
-			else if (((sGround < 0x64) || (sa::OBJ_EMPTY == typeGround)))
+			else if (((sGround < 0x64) || (sa::kObjectEmpty == typeGround)))
 			{
-				map.data.insert(point, sa::OBJ_EMPTY);
+				map.data.insert(point, sa::kObjectEmpty);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
@@ -1353,15 +1364,15 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 			if ((0xC003 == sLabel))
 			{
 				//如果是傳點，但沒有標明是上樓/下樓或水晶，則默認為水晶
-				if (((LOBYTE(sLabel) == 3) && (HIBYTE(sLabel) == 192)) && ((typeObject != sa::OBJ_JUMP) && (typeObject != sa::OBJ_UP) && (typeObject != sa::OBJ_DOWN)))
+				if (((LOBYTE(sLabel) == 3) && (HIBYTE(sLabel) == 192)) && ((typeObject != sa::kObjectJump) && (typeObject != sa::kObjectUp) && (typeObject != sa::kObjectDown)))
 				{
-					typeObject = sa::OBJ_JUMP;
+					typeObject = sa::kObjectJump;
 				}
 
-				if (sa::OBJ_ROAD == typeObject)
+				if (sa::kObjectRoad == typeObject)
 					map.workable.insert(point);
 				else
-					map.stair.append(qmappoint_t{ typeObject , point });
+					map.stair.append(sa::map_point_t{ typeObject , point });
 
 				map.data.insert(point, typeObject);//傳點
 				continue;
@@ -1369,20 +1380,20 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 			//找傳點
 			else if ((0xC00A == sLabel) || ((LOBYTE(sLabel) == 10) && (HIBYTE(sLabel) == 192)))
 			{
-				if ((sa::OBJ_UP != typeObject) && (sa::OBJ_DOWN != typeObject) && (sa::OBJ_JUMP != typeObject))
-					typeObject = sa::OBJ_WARP;
-				map.stair.append(qmappoint_t{ typeObject, point });
+				if ((sa::kObjectUp != typeObject) && (sa::kObjectDown != typeObject) && (sa::kObjectJump != typeObject))
+					typeObject = sa::kObjectWarp;
+				map.stair.append(sa::map_point_t{ typeObject, point });
 				map.data.insert(point, typeObject);//可通行
 				continue;
 			}
 
 			//排除牆壁,障礙
-			if ((sObject != 0) && (typeObject != sa::OBJ_ROAD))
+			if ((sObject != 0) && (typeObject != sa::kObjectRoad))
 			{
-				if (typeObject != sa::OBJ_ROCK)
-					map.data.insert(point, sa::OBJ_WALL);
+				if (typeObject != sa::kObjectRock)
+					map.data.insert(point, sa::kObjectWall);
 				else
-					map.data.insert(point, sa::OBJ_ROCK);
+					map.data.insert(point, sa::kObjectRock);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
@@ -1390,24 +1401,25 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 			//排除非通行區塊 193 表示不能穿越該坐標，反之為 192
 			if (HIBYTE(sLabel) == 193)
 			{
-				map.data.insert(point, sa::OBJ_EMPTY);
+				map.data.insert(point, sa::kObjectEmpty);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 
-			if (typeObject == sa::OBJ_ROCK)
+			if (typeObject == sa::kObjectRock)
 			{
-				map.data.insert(point, sa::OBJ_ROCK);
+				map.data.insert(point, sa::kObjectRock);
 				reCheckAndRockEx(map, point, sObject);
 				continue;
 			}
 
 			//不是傳點則強制換成路
-			if (((typeObject != sa::OBJ_UP) && (typeObject != sa::OBJ_DOWN) && (typeObject != sa::OBJ_JUMP)) || (sa::OBJ_ROAD == typeGround))
-				typeObject = sa::OBJ_ROAD;
+			if (((typeObject != sa::kObjectUp) && (typeObject != sa::kObjectDown) && (typeObject != sa::kObjectJump))
+				|| (sa::kObjectRoad == typeGround))
+				typeObject = sa::kObjectRoad;
 
 			//如果是路，則加入可通行列表
-			if ((sa::OBJ_ROAD == typeObject) || (sa::OBJ_BOUNDARY == typeObject))
+			if ((sa::kObjectRoad == typeObject) || (sa::kObjectBoundary == typeObject))
 				map.workable.insert(point);
 
 			map.data.insert(point, typeObject);//可通行
@@ -1426,7 +1438,8 @@ bool MapAnalyzer::readFromBinary(long long currentIndex, long long floor, const 
 	return bret;
 }
 
-bool MapAnalyzer::loadFromBinary(long long currentIndex, long long floor, map_t* _map)
+//從自訂二進制地圖中讀取地圖數據
+bool MapDevice::loadFromBinary(long long currentIndex, long long floor, sa::map_t* _map)
 {
 	QMutexLocker locker(&mutex_);
 	if (!floor)
@@ -1443,8 +1456,7 @@ bool MapAnalyzer::loadFromBinary(long long currentIndex, long long floor, map_t*
 
 	util::ScopedFileLocker fileLock(fileName);
 
-	map_t map = {};
-
+	sa::map_t map = {};
 
 	ifs.read(reinterpret_cast<char*>(&map.floor), sizeof(short));
 	ifs.read(reinterpret_cast<char*>(&map.width), sizeof(short));
@@ -1459,7 +1471,7 @@ bool MapAnalyzer::loadFromBinary(long long currentIndex, long long floor, map_t*
 		for (y = 0; y < map.height; ++y)
 		{
 			ifs.read(reinterpret_cast<char*>(&type), sizeof(BYTE));
-			if (sa::OBJ_MAX >= 0 && type < sa::OBJ_MAX)
+			if (sa::kObjectMaxCount >= 0 && type < sa::kObjectMaxCount)
 			{
 				map.data.insert(QPoint(x, y), static_cast<sa::ObjectType>(type));
 			}
@@ -1470,14 +1482,14 @@ bool MapAnalyzer::loadFromBinary(long long currentIndex, long long floor, map_t*
 	long long stairSize = 0;
 	long long i = 0;
 	ifs.read(reinterpret_cast<char*>(&stairSize), sizeof(int));
-	qmappoint_t qmappoint = {};
+	sa::map_point_t mappoint = {};
 	for (i = 0; i < stairSize; ++i)
 	{
-		qmappoint = {};
-		ifs.read(reinterpret_cast<char*>(&qmappoint.type), sizeof(BYTE));
-		ifs.read(reinterpret_cast<char*>(&qmappoint.p.rx()), sizeof(short));
-		ifs.read(reinterpret_cast<char*>(&qmappoint.p.ry()), sizeof(short));
-		map.stair.append(qmappoint);
+		mappoint = {};
+		ifs.read(reinterpret_cast<char*>(&mappoint.type), sizeof(BYTE));
+		ifs.read(reinterpret_cast<char*>(&mappoint.p.rx()), sizeof(short));
+		ifs.read(reinterpret_cast<char*>(&mappoint.p.ry()), sizeof(short));
+		map.stair.append(mappoint);
 	}
 
 	// QSet<QPoint> workable = {};
@@ -1502,7 +1514,8 @@ bool MapAnalyzer::loadFromBinary(long long currentIndex, long long floor, map_t*
 	return true;
 }
 
-bool MapAnalyzer::saveAsBinary(long long currentIndex, map_t map, const QString& fileName)
+//保存自訂地圖數據到二進制文件
+bool MapDevice::saveAsBinary(long long currentIndex, sa::map_t map, const QString& fileName)
 {
 	QMutexLocker locker(&mutex_);
 	if (!map.floor)
@@ -1575,7 +1588,7 @@ bool MapAnalyzer::saveAsBinary(long long currentIndex, map_t map, const QString&
 	//	for (unsigned short y = 0; y < map.height; ++y)
 	//	{
 	//		ObjectType type = map.data[QPoint{ x, y }];
-	//		QColor color = MAP_COLOR_HASH.value(type, QColor(0, 0, 0));
+	//		QColor color = sa::MAP_COLOR_HASH.value(type, QColor(0, 0, 0));
 	//		CRGB fillColor = { (uint8_t)color.red(), (uint8_t)color.green(), (uint8_t)color.blue() };
 	//		img.setPixel(QPoint{ x, y }, fillColor);
 	//	}
@@ -1589,7 +1602,9 @@ bool MapAnalyzer::saveAsBinary(long long currentIndex, map_t map, const QString&
 	return true;
 }
 
-bool MapAnalyzer::calcNewRoute(long long currentIndex, CAStar& astar, long long floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths)
+//A*計算路線
+bool MapDevice::calcNewRoute(long long currentIndex, AStarDevice* pastar,
+	long long floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths)
 {
 	do
 	{
@@ -1602,7 +1617,7 @@ bool MapAnalyzer::calcNewRoute(long long currentIndex, CAStar& astar, long long 
 			return true;
 		}
 
-		map_t map;
+		sa::map_t map = {};
 		if (!getMapDataByFloor(floor, &map))
 		{
 			if (!readFromBinary(currentIndex, floor, map.name))
@@ -1611,10 +1626,10 @@ bool MapAnalyzer::calcNewRoute(long long currentIndex, CAStar& astar, long long 
 				break;
 		}
 
-		sa::ObjectType dstobj = map.data.value(dst, sa::OBJ_UNKNOWN);
-		bool isDstAsWarpPoint = (dstobj == sa::OBJ_WARP) || (dstobj == sa::OBJ_JUMP) || (dstobj == sa::OBJ_UP) || (dstobj == sa::OBJ_DOWN);
+		sa::ObjectType dstobj = map.data.value(dst, sa::kObjectUnknown);
+		bool isDstAsWarpPoint = (dstobj == sa::kObjectWarp) || (dstobj == sa::kObjectJump) || (dstobj == sa::kObjectUp) || (dstobj == sa::kObjectDown);
 
-		if (!isDstAsWarpPoint && dstobj != sa::OBJ_ROAD)
+		if (!isDstAsWarpPoint && dstobj != sa::kObjectRoad)
 			break;
 
 		Injector& injector = Injector::getInstance(currentIndex);
@@ -1632,8 +1647,8 @@ bool MapAnalyzer::calcNewRoute(long long currentIndex, CAStar& astar, long long 
 				{
 					if (injector.worker->npcUnitPointHash.contains(point))
 					{
-						sa::mapunit_t unit = injector.worker->npcUnitPointHash.value(point);
-						if (unit.type == sa::OBJ_NPC && unit.modelid > 0)
+						sa::map_unit_t unit = injector.worker->npcUnitPointHash.value(point);
+						if (unit.type == sa::kObjectNPC && unit.modelid > 0)
 							return false;
 					}
 
@@ -1642,22 +1657,22 @@ bool MapAnalyzer::calcNewRoute(long long currentIndex, CAStar& astar, long long 
 						return false;
 				}
 
-				const sa::ObjectType obj = map.data.value(point, sa::OBJ_UNKNOWN);
+				const sa::ObjectType obj = map.data.value(point, sa::kObjectUnknown);
 
 				//If the destination coordinates are a teleportation point, treat it as a non-obstacle
 				if (isDstAsWarpPoint)
-					return (obj == sa::OBJ_ROAD) || (obj == sa::OBJ_WARP) || (obj == sa::OBJ_JUMP) || (obj == sa::OBJ_UP) || (obj == sa::OBJ_DOWN);
+					return (obj == sa::kObjectRoad) || (obj == sa::kObjectWarp) || (obj == sa::kObjectJump) || (obj == sa::kObjectUp) || (obj == sa::kObjectDown);
 				else
-					return  (obj == sa::OBJ_ROAD);
+					return  (obj == sa::kObjectRoad);
 			};
 
-		astar.set_canpass(canPassCallback);
-		astar.set_corner(true);
-		astar.init(map.width, map.height);
+		pastar->set_canpass(canPassCallback);
+		pastar->set_corner(true);
+		pastar->init(map.width, map.height);
 
 		try
 		{
-			return astar.find(src, dst, pPaths);
+			return pastar->find(src, dst, pPaths);
 		}
 		catch (...)
 		{
@@ -1669,13 +1684,13 @@ bool MapAnalyzer::calcNewRoute(long long currentIndex, CAStar& astar, long long 
 }
 
 //快速檢查是否能通行
-bool MapAnalyzer::isPassable(long long currentIndex, CAStar& astar, long long floor, const QPoint& src, const QPoint& dst)
+bool MapDevice::isPassable(long long currentIndex, AStarDevice* pastar, long long floor, const QPoint& src, const QPoint& dst)
 {
 
 	bool bret = false;
 	do
 	{
-		map_t map;
+		sa::map_t map = {};
 		if (!getMapDataByFloor(floor, &map))
 		{
 			if (!readFromBinary(currentIndex, floor, map.name))
@@ -1692,18 +1707,18 @@ bool MapAnalyzer::isPassable(long long currentIndex, CAStar& astar, long long fl
 				if (src == p)
 					return true;
 
-				const sa::ObjectType& obj = map.data.value(p, sa::OBJ_UNKNOWN);
-				return obj == sa::OBJ_ROAD;
-				//return ((obj != sa::OBJ_EMPTY) && (obj != sa::OBJ_WATER) && (obj != sa::OBJ_UNKNOWN) && (obj != sa::OBJ_WALL) && (obj != sa::OBJ_ROCK) && (obj != sa::OBJ_ROCKEX));
+				const sa::ObjectType& obj = map.data.value(p, sa::kObjectUnknown);
+				return obj == sa::kObjectRoad;
+				//return ((obj != sa::kObjectEmpty) && (obj != sa::kObjectWater) && (obj != sa::kObjectUnknown) && (obj != sa::kObjectWall) && (obj != sa::kObjectRock) && (obj != sa::kObjectRockEx));
 			};
 
-		astar.set_canpass(canPassCallback);
-		astar.set_corner(true);
-		astar.init(map.width, map.height);
+		pastar->set_canpass(canPassCallback);
+		pastar->set_corner(true);
+		pastar->init(map.width, map.height);
 
 		try
 		{
-			return astar.find(src, dst, nullptr);
+			return pastar->find(src, dst, nullptr);
 		}
 		catch (...)
 		{
@@ -1714,9 +1729,9 @@ bool MapAnalyzer::isPassable(long long currentIndex, CAStar& astar, long long fl
 	return bret;
 }
 
-QString MapAnalyzer::getGround(long long currentIndex, long long floor, const QString& name, const QPoint& src)
+QString MapDevice::getGround(long long currentIndex, long long floor, const QString& name, const QPoint& src)
 {
-	map_t map;
+	sa::map_t map = {};
 	if (getMapDataByFloor(floor, &map) &&
 		(map.ground.isEmpty() || map.object.isEmpty() || map.flag.isEmpty()))
 	{
@@ -1728,26 +1743,26 @@ QString MapAnalyzer::getGround(long long currentIndex, long long floor, const QS
 	}
 
 	static const QHash<long long, QString> hash = {
-		{ static_cast<long long>(sa::OBJ_UNKNOWN), "Unknown" },
-		{ static_cast<long long>(sa::OBJ_ROAD), "Road" },
-		{ static_cast<long long>(sa::OBJ_UP), "Up" },
-		{ static_cast<long long>(sa::OBJ_DOWN), "Down" },
-		{ static_cast<long long>(sa::OBJ_JUMP), "Jump" },
-		{ static_cast<long long>(sa::OBJ_WARP), "Warp" },
-		{ static_cast<long long>(sa::OBJ_WALL), "Wall" },
-		{ static_cast<long long>(sa::OBJ_ROCK), "Rock" },
-		{ static_cast<long long>(sa::OBJ_ROCKEX), "RockEx" },
-		{ static_cast<long long>(sa::OBJ_BOUNDARY), "Boundary" },
-		{ static_cast<long long>(sa::OBJ_WATER), "Water" },
-		{ static_cast<long long>(sa::OBJ_EMPTY), "Empty" },
-		{ static_cast<long long>(sa::OBJ_HUMAN), "Human" },
-		{ static_cast<long long>(sa::OBJ_NPC), "NPC" },
-		{ static_cast<long long>(sa::OBJ_BUILDING), "Building" },
-		{ static_cast<long long>(sa::OBJ_ITEM), "Item" },
-		{ static_cast<long long>(sa::OBJ_PET), "Pet" },
-		{ static_cast<long long>(sa::OBJ_GOLD), "Gold" },
-		{ static_cast<long long>(sa::OBJ_GM), "GM" },
-		{ static_cast<long long>(sa::OBJ_MAX), "Max" },
+		{ static_cast<long long>(sa::kObjectUnknown), "Unknown" },
+		{ static_cast<long long>(sa::kObjectRoad), "Road" },
+		{ static_cast<long long>(sa::kObjectUp), "Up" },
+		{ static_cast<long long>(sa::kObjectDown), "Down" },
+		{ static_cast<long long>(sa::kObjectJump), "Jump" },
+		{ static_cast<long long>(sa::kObjectWarp), "Warp" },
+		{ static_cast<long long>(sa::kObjectWall), "Wall" },
+		{ static_cast<long long>(sa::kObjectRock), "Rock" },
+		{ static_cast<long long>(sa::kObjectRockEx), "RockEx" },
+		{ static_cast<long long>(sa::kObjectBoundary), "Boundary" },
+		{ static_cast<long long>(sa::kObjectWater), "Water" },
+		{ static_cast<long long>(sa::kObjectEmpty), "Empty" },
+		{ static_cast<long long>(sa::kObjectHuman), "Human" },
+		{ static_cast<long long>(sa::kObjectNPC), "NPC" },
+		{ static_cast<long long>(sa::kObjectBuilding), "Building" },
+		{ static_cast<long long>(sa::kObjectItem), "Item" },
+		{ static_cast<long long>(sa::kObjectPet), "Pet" },
+		{ static_cast<long long>(sa::kObjectGold), "Gold" },
+		{ static_cast<long long>(sa::kObjectGameMaster), "GM" },
+		{ static_cast<long long>(sa::kObjectMaxCount), "Max" },
 	};
 
 	long long flag = map.flag.value(src, 0);
@@ -1755,11 +1770,10 @@ QString MapAnalyzer::getGround(long long currentIndex, long long floor, const QS
 }
 
 // 取靠近目標的最佳座標和方向
-long long MapAnalyzer::calcBestFollowPointByDstPoint(long long currentIndex, CAStar& astar, long long floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, long long npcdir)
+long long MapDevice::calcBestFollowPointByDstPoint(long long currentIndex, AStarDevice* pastar,
+	long long floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, long long npcdir)
 {
-
-	QVector<qdistance_t> disV;// <distance, point>
-	map_t map;
+	sa::map_t map = {};
 	if (!getMapDataByFloor(floor, &map))
 	{
 		if (!readFromBinary(currentIndex, floor, map.name))
@@ -1768,81 +1782,144 @@ long long MapAnalyzer::calcBestFollowPointByDstPoint(long long currentIndex, CAS
 			return -1;
 	}
 
-	long long d = 0;
-	long long invalidcount = 0;
-
-	for (const QPoint& it : util::fix_point)
+	//取靠近目標的最佳座標和方向
+	struct unitdistance
 	{
-		qdistance_t c = {};
-		c.dir = d;
-		c.pf = dst + it;
-		c.p = dst + it;
-		if (src == c.p)//如果已經在目標點
-		{
-			if (ret)
-				*ret = c.p;
-			long long n = c.dir + 4;
-			return ((n) <= (7)) ? (n) : ((n)-(sa::MAX_DIR));
-		}
+		long long dir = -1;
+		double distance = 0.0;//for euclidean distance
+		QPoint p = { 0, 0 };
+		QPointF pf = { 0.0, 0.0 };
+	};
 
-		if (isPassable(currentIndex, astar, floor, src, dst + it))//確定是否可走
-		{
-			//計算src 到 c.p直線距離
-			c.distance = std::sqrt(std::pow((qreal)src.x() - c.pf.x(), 2) + std::pow((qreal)src.y() - c.pf.y(), 2));
-		}
-		else//不可走就隨便加個超長距離
-		{
-			c.distance = std::numeric_limits<double>::max();
-			++invalidcount;
-		}
-		++d;
-		disV.append(c);
+	QVector<unitdistance> unitDistanceVec;// <distance, point>
+	long long currentDir = -1;
+	long long newnpcdir = -1;
+	bool firstExisted = false;
+	unitdistance firstUd = {};
+	unitdistance ud = {};
+	long long finalFaceDir = -1;
+
+	//將NPC面向的座標修正紀錄下來
+	QPoint firstFixPoint;
+	if (npcdir != -1)
+	{
+		newnpcdir = (npcdir + 5) % sa::MAX_DIR;
+		firstFixPoint = util::fix_point.value(newnpcdir);
 	}
 
-	if (invalidcount >= sa::MAX_DIR && enableExt && npcdir != -1)//如果周圍8格都不能走搜尋NPC面相方向兩格(中間隔著櫃檯)
+	for (const QPoint fixPoint : util::fix_point)
 	{
-		for (long long i = 0; i < 7; ++i)
+		ud = {};
+		ud.dir = currentDir;
+		ud.pf = dst + fixPoint;
+		ud.p = dst + fixPoint;
+		if (src == ud.p)//如果已經在目標點
 		{
-			QPoint newP;
-			switch (i)//找出NPC面相方向的兩格
+			if (ret)
+				*ret = ud.p;
+			finalFaceDir = (ud.dir + 4) % sa::MAX_DIR;
+			return  finalFaceDir;
+		}
+
+		//確定是否可走
+		if (isPassable(currentIndex, pastar, floor, src, dst + fixPoint))
+		{
+			//計算 src 到 c.p 直線距離
+			ud.distance = std::sqrt(std::pow(static_cast<double>(src.x()) - ud.pf.x(), 2) + std::pow(static_cast<double>(src.y()) - ud.pf.y(), 2));
+
+			//將NPC面前的點記錄起來
+			if (firstFixPoint == fixPoint && npcdir != -1)
 			{
-			case 0://NPC面相北找往北兩格
-				newP = dst + QPoint(0, -2);
-				break;
-			case 2://NPC面相東
-				newP = dst + QPoint(2, 0);
-				break;
-			case 4://NPC面相南
-				newP = dst + QPoint(0, 2);
-				break;
-			case 6://NPC面相西
-				newP = dst + QPoint(-2, 0);
+				firstExisted = true;
+				firstUd = ud;
 				break;
 			}
+			else
+				unitDistanceVec.append(ud);
+		}
 
-			if (isPassable(currentIndex, astar, floor, src, newP) || src == newP)//確定是否可走
+		++currentDir;
+	}
+
+	//如果周圍8格都不能走搜尋NPC面相方向兩格(中間隔著櫃檯)
+	if (unitDistanceVec.isEmpty() && !firstExisted)
+	{
+		if (!enableExt || -1 == npcdir)// 周圍8格都不能走
+			return -1;
+
+		QPoint newPoint;
+
+		auto getNewPoint = [&newPoint, &dst](long long i)->bool
+			{
+				switch (i)//找出NPC面相方向的兩格
+				{
+				case 0://NPC面相北找往北兩格
+					newPoint = dst + QPoint(0, -2);
+					return true;
+				case 2://NPC面相東
+					newPoint = dst + QPoint(2, 0);
+					return true;
+				case 4://NPC面相南
+					newPoint = dst + QPoint(0, 2);
+					return true;
+				case 6://NPC面相西
+					newPoint = dst + QPoint(-2, 0);
+					return true;
+				default:
+					return false;
+				}
+			};
+
+		if (newnpcdir != -1)
+		{
+			getNewPoint(newnpcdir);
+			if (isPassable(currentIndex, pastar, floor, src, newPoint) || src == newPoint)//確定是否可走
+			{
+				if (ret)
+					*ret = newPoint;
+				finalFaceDir = (npcdir + 4) % sa::MAX_DIR;
+				return finalFaceDir;
+			}
+		}
+
+		//這裡只考慮4方位
+		for (long long i = 0; i < sa::MAX_DIR; ++i)
+		{
+			getNewPoint(i);
+
+			if (isPassable(currentIndex, pastar, floor, src, newPoint) || src == newPoint)//確定是否可走
 			{
 				//qdistance_t c = {};
 				//要面相npc的方向  (當前人物要面向newP的方向)
 				if (ret)
-					*ret = newP;
-				long long n = npcdir + 4;
-				return ((n) <= (7)) ? (n) : ((n)-(sa::MAX_DIR));
+					*ret = newPoint;
+				finalFaceDir = (npcdir + 4) % sa::MAX_DIR;
+				return finalFaceDir;
 			}
 		}
 		return -1;
 	}
-	else if (invalidcount >= 8)// 如果周圍8格都不能走
-	{
+
+	//按照距離排序
+	std::sort(unitDistanceVec.begin(), unitDistanceVec.end(), [](const unitdistance& a, const unitdistance& b)->bool
+		{
+			return a.distance < b.distance;
+		});
+
+	//將額外紀錄的座標放在最前面
+	if (firstExisted)
+		unitDistanceVec.insert(0, firstUd);
+
+	if (unitDistanceVec.isEmpty())
 		return -1;
-	}
 
-	std::sort(disV.begin(), disV.end(), compareDistance);
-
-	if (!disV.size()) return -1;
+	//取第一個
 	if (ret)
-		*ret = disV.value(0).p;
+		*ret = unitDistanceVec.front().p;
+
 	//計算方向
-	long long n = disV.value(0).dir + 4;
-	return ((n) <= (7)) ? (n) : ((n)-(sa::MAX_DIR));//返回方向
+	finalFaceDir = (unitDistanceVec.front().dir + 4) % sa::MAX_DIR;
+
+	//返回方向
+	return finalFaceDir;
 }

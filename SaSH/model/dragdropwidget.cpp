@@ -53,6 +53,7 @@ void DragDropWidget::onResetControlTextLanguage()
 			insertRow(count);
 
 		QTableWidgetItem* item = q_check_ptr(new QTableWidgetItem(name));
+		sash_assume(item != nullptr);
 		if (item == nullptr)
 			continue;
 

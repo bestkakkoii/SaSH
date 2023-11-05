@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "interpreter.h"
 
-#include "map/mapanalyzer.h"
+#include "map/mapdevice.h"
 #include "injector.h"
 #include "signaldispatcher.h"
 
@@ -335,19 +335,7 @@ void Interpreter::openLibs()
 	//action
 	registerFunction("useitem", &Interpreter::useitem);
 	registerFunction("doffitem", &Interpreter::dropitem);
-	registerFunction("swapitem", &Interpreter::swapitem);
-	registerFunction("doffpet", &Interpreter::droppet);
-	registerFunction("buy", &Interpreter::buy);
-	registerFunction("sell", &Interpreter::sell);
-	registerFunction("sellpet", &Interpreter::sellpet);
-	registerFunction("make", &Interpreter::make);
-	registerFunction("cook", &Interpreter::cook);
 	registerFunction("usemagic", &Interpreter::usemagic);
-	registerFunction("pickup", &Interpreter::pickitem);
-	registerFunction("putstone", &Interpreter::depositgold);
-	registerFunction("getstone", &Interpreter::withdrawgold);
-	registerFunction("skup", &Interpreter::addpoint);
-	registerFunction("learn", &Interpreter::learn);
 	registerFunction("trade", &Interpreter::trade);
 	registerFunction("mail", &Interpreter::mail);
 
@@ -633,6 +621,7 @@ long long Interpreter::run(long long currentIndex, long long currentline, const 
 		long long currentLine = parser_.getCurrentLine();
 
 		std::unique_ptr<Interpreter> interpreter(q_check_ptr(new Interpreter(currentIndex)));
+		sash_assume(interpreter != nullptr);
 		if (interpreter == nullptr)
 			return Parser::kError;
 
@@ -674,6 +663,7 @@ long long Interpreter::run(long long currentIndex, long long currentline, const 
 		subThreadFutureSync_.addFuture(QtConcurrent::run([this, beginLine, fileName, varShareMode, asyncMode, currentIndex]()->bool
 			{
 				std::unique_ptr<Interpreter> interpreter(q_check_ptr(new Interpreter(currentIndex)));
+				sash_assume(interpreter != nullptr);
 				if (nullptr == interpreter)
 					return false;
 
@@ -705,6 +695,7 @@ long long Interpreter::dostr(long long currentIndex, long long currentline, cons
 	}
 
 	std::unique_ptr<Interpreter> interpreter(q_check_ptr(new Interpreter(currentIndex)));
+	sash_assume(interpreter != nullptr);
 	if (nullptr == interpreter)
 		return Parser::kError;
 

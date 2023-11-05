@@ -56,22 +56,22 @@ void AfkInfoForm::onButtonClicked()
 		return;
 
 	injector.worker->loginTimer.restart();
-	sa::PC pc = injector.worker->getPC();
-	sa::AfkRecorder recorder;
+	sa::character_t pc = injector.worker->getCharacter();
+	sa::afk_record_data_t recorder;
 	recorder.levelrecord = pc.level;
 	recorder.exprecord = pc.exp;
 	recorder.goldearn = 0;
 	recorder.deadthcount = 0;
-	injector.worker->recorder[0] = recorder;
+	injector.worker->afkRecords[0] = recorder;
 
 	for (long long i = 0; i < sa::MAX_PET; ++i)
 	{
-		sa::PET pet = injector.worker->getPet(i);
+		sa::pet_t pet = injector.worker->getPet(i);
 		recorder = {};
 		recorder.levelrecord = pet.level;
 		recorder.exprecord = pet.exp;
 		recorder.deadthcount = 0;
-		injector.worker->recorder[i + 1] = recorder;
+		injector.worker->afkRecords[i + 1] = recorder;
 	}
 }
 

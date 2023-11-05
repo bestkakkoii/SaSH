@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 using AStarCallback = std::function<bool(const QPoint&)>;
 
-class CAStar
+class AStarDevice
 {
 private:
 	/**
@@ -64,9 +64,9 @@ private:
 	};
 
 public:
-	explicit CAStar();
+	explicit AStarDevice();
 
-	virtual ~CAStar();
+	virtual ~AStarDevice();
 
 public:
 	/**

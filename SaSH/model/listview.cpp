@@ -417,6 +417,7 @@ ListView::ListView(QWidget* parent)
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 	setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 	ItemDelegate* pdelegate = q_check_ptr(new ItemDelegate(this));
+	sash_assume(pdelegate != nullptr);
 	if (pdelegate != nullptr)
 		setItemDelegate(pdelegate);
 }

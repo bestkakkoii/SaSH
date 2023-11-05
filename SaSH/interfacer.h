@@ -33,6 +33,7 @@ enum InterfaceFunctionType
 	HideGame,			//隱藏遊戲
 };
 
+#pragma pack(4)
 typedef struct tagLoginInfo
 {
 	int server = 0;
@@ -41,6 +42,7 @@ typedef struct tagLoginInfo
 	char* username = nullptr;
 	char* password = nullptr;
 }LoginInfo;
+#pragma pack()
 
 class InterfaceSender : public QObject {
 	Q_OBJECT

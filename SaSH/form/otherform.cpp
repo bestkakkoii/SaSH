@@ -276,7 +276,7 @@ void OtherForm::onButtonClicked()
 		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
 			QString text;
-			sa::PET pet = injector.worker->getPet(i);
+			sa::pet_t pet = injector.worker->getPet(i);
 			if (pet.valid && !pet.name.isEmpty())
 				text = QString("%1:%2").arg(i + 1).arg(pet.name.simplified());
 			else
@@ -307,7 +307,7 @@ void OtherForm::onButtonClicked()
 		injector.worker->setTeamState(false);
 	}
 
-	for (long long i = 1; i < sa::MAX_PARTY; ++i)
+	for (long long i = 1; i < sa::MAX_TEAM; ++i)
 	{
 		if (name == QString("pushButton_teammate%1kick").arg(i))
 		{
@@ -467,7 +467,7 @@ void OtherForm::onComboBoxClicked()
 		{
 			for (long long i = 0; i < sa::MAX_PET; ++i)
 			{
-				sa::PET pet = injector.worker->getPet(i);
+				sa::pet_t pet = injector.worker->getPet(i);
 				if (pet.name.isEmpty() || !pet.valid)
 				{
 					list.append(QString("%1:").arg(i + 1));
@@ -613,7 +613,7 @@ void OtherForm::onApplyHashSettingsToUI()
 	{
 		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
-			sa::PET pet = injector.worker->getPet(i);
+			sa::pet_t pet = injector.worker->getPet(i);
 			if (pet.name.isEmpty() || !pet.valid)
 			{
 				list.append(QString("%1:").arg(i + 1));
@@ -668,7 +668,7 @@ void OtherForm::onApplyHashSettingsToUI()
 
 void OtherForm::onUpdateTeamInfo(const QStringList& strList)
 {
-	for (long long i = 0; i <= sa::MAX_PARTY; ++i)
+	for (long long i = 0; i <= sa::MAX_TEAM; ++i)
 	{
 		QString objName = QString("label_teammate%1").arg(i);
 		QLabel* label = ui.groupBox_team->findChild<QLabel*>(objName);

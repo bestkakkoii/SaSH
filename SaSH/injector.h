@@ -41,8 +41,7 @@ public:
 		if (!instances.contains(index))
 		{
 			Injector* instance = q_check_ptr(new Injector(index));
-			Q_ASSERT(instance != nullptr);
-
+			sash_assume(instance != nullptr);
 			if (instance != nullptr)
 				instances.insert(index, instance);
 

@@ -500,11 +500,11 @@ int main(int argc, char* argv[])
 	}
 
 	Downloader downloader;
-	MapAnalyzer::loadHotData(downloader);
+	MapDevice::loadHotData(downloader);
 
 	/* 實例化單個或多個主窗口 */
 
-	RPC::initialize(RPC::ProtocolType::IPV6, &a);
+	RPC::initialize(&a);
 
 	RPC& rpc = RPC::getInstance();
 	if (rpc.listen(_getpid()))
@@ -557,6 +557,7 @@ int main(int argc, char* argv[])
 		}
 	}
 
-
-	return a.exec();
+	int ret = a.exec();
+	rpc.close();
+	return ret;
 }

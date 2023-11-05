@@ -1,4 +1,5 @@
 ﻿/*
+/*
 				GNU GENERAL PUBLIC LICENSE
 				   Version 2, June 1991
 COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
@@ -88,24 +89,12 @@ private: //註冊給Parser的函數
 	long long run(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long dostr(long long currentIndex, long long currentLine, const TokenMap& TK);
 
-	long long addpoint(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long learn(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long usemagic(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long mail(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	//action
 	long long useitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long dropitem(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long swapitem(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long droppet(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long buy(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long sell(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long sellpet(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long make(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long cook(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long pickitem(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long depositgold(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long withdrawgold(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	long long trade(long long currentIndex, long long currentLine, const TokenMap& TK);
 

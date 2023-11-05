@@ -152,11 +152,17 @@ public:
 		parent->getCursorPosition(&currentLine, &currentIndex);
 
 		QLabel* label = q_check_ptr(new QLabel(tr("Current Line: %1 Index: %2").arg(currentLine + 1).arg(currentIndex), this));
+		sash_assume(label != nullptr);
+
 		QLineEdit* lineEdit = q_check_ptr(new QLineEdit(this));
+		sash_assume(lineEdit != nullptr);
+
 		lineEdit->setPlaceholderText(tr(":"));
 		lineEdit->setValidator(q_check_ptr(new QIntValidator(1, parent->text().split("\n").size(), this)));
 
 		QHBoxLayout* layout = q_check_ptr(new QHBoxLayout);
+		sash_assume(layout != nullptr);
+
 		layout->addWidget(lineEdit);
 		layout->addWidget(label);
 		setLayout(layout);

@@ -105,6 +105,7 @@ BattleSettingFrom::BattleSettingFrom(long long index, QWidget* parent)
 
 	// 創建 QGraphicsScene 和 QGraphicsView
 	QGraphicsScene* scene = q_check_ptr(new QGraphicsScene(this));
+	sash_assume(scene != nullptr);
 	if (scene != nullptr)
 	{
 		ui.graphicsView_condition->setScene(scene);
@@ -181,6 +182,7 @@ BattleSettingFrom::BattleSettingFrom(long long index, QWidget* parent)
 		}
 
 		BattleConditionTextItem* item = q_check_ptr(new  BattleConditionTextItem(textPair.first));
+		sash_assume(item != nullptr);
 		if (item == nullptr)
 			continue;
 
@@ -326,6 +328,7 @@ void BattleSettingFrom::onButtonClicked()
 			return;
 
 		QListWidgetItem* item = q_check_ptr(new QListWidgetItem(text));
+		sash_assume(item != nullptr);
 		if (item == nullptr)
 			return;
 

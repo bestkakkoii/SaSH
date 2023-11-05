@@ -87,8 +87,9 @@ long long CLuaSystem::eo(sol::this_state s)
 	long long currentIndex = lua["_INDEX"].get<long long>();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.worker.isNull())
-		return 0;
+		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	util::Timer timer;
@@ -389,17 +390,17 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		dialogid = odialogid.as<long long>();
 
 	QString text = util::toQString(sbuttonStr);
-	sa::BUTTON_TYPE button = sa::buttonMap.value(text.toUpper(), sa::BUTTON_NOTUSED);
+	sa::ButtonType button = sa::buttonMap.value(text.toUpper(), sa::kButtonNone);
 
 	if (ounitid.is<std::string>())
 	{
 		QString searchStr = util::toQString(ounitid.as<std::string>());
-		sa::mapunit_t unit;
-		if (injector.worker->findUnit(searchStr, sa::OBJ_NPC, &unit, "", unitid))
+		sa::map_unit_t unit;
+		if (injector.worker->findUnit(searchStr, sa::kObjectNPC, &unit, "", unitid))
 		{
 			if (!injector.worker->isDialogVisible())
 				injector.worker->setCharFaceToPoint(unit.p);
-			if (button == sa::BUTTON_NOTUSED && row == -1)
+			if (button == sa::kButtonNone && row == -1)
 				QThread::msleep(300);
 			unitid = unit.id;
 		}
@@ -411,7 +412,7 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		return TRUE;
 	}
 
-	if (button == sa::BUTTON_NOTUSED)
+	if (button == sa::kButtonNone)
 	{
 		sa::dialog_t dialog = injector.worker->currentDialog.get();
 		QStringList textList = dialog.linebuttontext;
@@ -443,7 +444,7 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 
 	unitid += ext;
 
-	if (button != sa::BUTTON_NOTUSED)
+	if (button != sa::kButtonNone)
 		injector.worker->press(button, dialogid, unitid);
 	else if (row != -1)
 		injector.worker->press(row, dialogid, unitid);
@@ -895,7 +896,7 @@ long long CLuaSystem::chpet(long long petindex, sol::object ostate, sol::this_st
 
 	sa::PetState state = sa::petStateMap.value(stateStr.toLower(), sa::PetState::kRest);
 
-	sa::PET pet = injector.worker->getPet(petindex);
+	sa::pet_t pet = injector.worker->getPet(petindex);
 	if (pet.state == state)
 		return TRUE;
 
@@ -1087,7 +1088,7 @@ bool CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object otim
 	luadebug::checkBattleThenWait(s);
 
 	long long min = 0;
-	long long max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM);
+	long long max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT);
 
 	QString itemName;
 	if (oname.is<std::string>())
@@ -1144,7 +1145,7 @@ bool CLuaSystem::waitteam(sol::object otimeout, sol::this_state s)
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	sa::PC pc = injector.worker->getPC();
+	sa::character_t pc = injector.worker->getCharacter();
 
 	long long timeout = 5000;
 	if (otimeout.is<long long>())
@@ -1152,7 +1153,7 @@ bool CLuaSystem::waitteam(sol::object otimeout, sol::this_state s)
 
 	bool bret = luadebug::waitfor(s, timeout, [&pc]()->bool
 		{
-			return util::checkAND(pc.status, sa::CHR_STATUS_LEADER) || util::checkAND(pc.status, sa::CHR_STATUS_PARTY);
+			return util::checkAND(pc.status, sa::kCharacterStatus_IsLeader) || util::checkAND(pc.status, sa::kCharacterStatus_HasTeam);
 		});
 
 	return bret;

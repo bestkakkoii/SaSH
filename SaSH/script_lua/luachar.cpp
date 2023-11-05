@@ -38,7 +38,7 @@ long long CLuaChar::rename(std::string sfname, sol::this_state s)
 	return TRUE;
 }
 
-long long CLuaChar::useMagic(long long magicIndex, long long target, sol::this_state s)
+long long CLuaChar::skup(sol::object otype, long long count, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
@@ -48,105 +48,50 @@ long long CLuaChar::useMagic(long long magicIndex, long long target, sol::this_s
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->useMagic(--magicIndex, target);
-
-	return TRUE;
-}
-
-long long CLuaChar::depositGold(long long gold, sol::object oispublic, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	long long point = -1;
+	QString pointName;
+	if (otype.is<std::string>())
+		pointName = util::toQString(otype);
+	else if (otype.is<long long>())
+	{
+		point = otype.as<long long>();
+		--point;
+	}
+	else
 		return FALSE;
 
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	injector.worker->depositGold(gold, oispublic.is<bool>() ? oispublic.as<bool>() : false);
-
-	return TRUE;
-}
-
-long long CLuaChar::withdrawGold(long long gold, sol::object oispublic, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	if (pointName.isEmpty())
 		return FALSE;
 
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
+	if (!pointName.isEmpty())
+	{
+		static const QHash<QString, long long> hash = {
+		{ "體力", 0},
+		{ "腕力", 1},
+		{ "耐力", 2},
+		{ "速度", 3},
 
-	injector.worker->withdrawGold(gold, oispublic.is<bool>() ? oispublic.as<bool>() : false);
+		{ "体力", 0},
+		{ "腕力", 1},
+		{ "耐力", 2},
+		{ "速度", 3},
 
-	return TRUE;
-}
+		{ "vit", 0},
+		{ "str", 1},
+		{ "tgh", 2},
+		{ "dex", 3},
+		};
 
-long long CLuaChar::dropGold(long long gold, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+		point = hash.value(pointName.toLower(), -1);
+	}
+
+	if (point < 0)
 		return FALSE;
 
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	injector.worker->dropGold(gold);
-
-	return TRUE;
-}
-
-long long CLuaChar::mail(long long cardIndex, std::string stext, long long petIndex, std::string sitemName, std::string sitemMemo, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	if (count <= 0)
 		return FALSE;
 
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	QString text = util::toQString(stext);
-
-	QString itemName = util::toQString(sitemName);
-
-	QString itemMemo = util::toQString(sitemMemo);
-
-	injector.worker->mail(--cardIndex, text, petIndex, itemName, itemMemo);
-
-	return TRUE;
-}
-
-long long CLuaChar::mail(long long cardIndex, std::string stext, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
-		return FALSE;
-
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	QString text = util::toQString(stext);
-
-	injector.worker->mail(--cardIndex, text, -1, "", "");
-
-	return TRUE;
-}
-
-long long CLuaChar::skillUp(long long abilityIndex, long long amount, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
-		return FALSE;
-
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	injector.worker->addPoint(--abilityIndex, amount);
+	injector.worker->addPoint(point, count);
 
 	return TRUE;
 }
@@ -193,30 +138,6 @@ long long CLuaChar::kick(long long teammateIndex, sol::this_state s)
 	luadebug::checkBattleThenWait(s);
 
 	injector.worker->kickteam(--teammateIndex);
-
-	return TRUE;
-}
-
-long long CLuaChar::doffstone(long long goldamount, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
-		return FALSE;
-
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	if (goldamount == -1)
-	{
-		sa::PC pc = injector.worker->getPC();
-		goldamount = pc.gold;
-	}
-
-	if (goldamount <= 0)
-		return FALSE;
-
-	injector.worker->dropGold(goldamount);
 
 	return TRUE;
 }

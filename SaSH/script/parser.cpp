@@ -244,6 +244,11 @@ Parser::Parser(long long index)
 	, luaLocalVarStringList_(q_check_ptr(new QStringList()))
 	, pLua_(q_check_ptr(new CLua(index)))
 {
+	sash_assume(counter_ != nullptr);
+	sash_assume(globalNames_ != nullptr);
+	sash_assume(localVarStack_ != nullptr);
+	sash_assume(luaLocalVarStringList_ != nullptr);
+	sash_assume(pLua_ != nullptr);
 	qDebug() << "Parser is created!!";
 }
 
@@ -260,17 +265,27 @@ void Parser::initialize(Parser* pparent)
 	if (nullptr == counter_)
 		counter_.reset(q_check_ptr(new Counter()));
 
+	sash_assume(counter_ != nullptr);
+
 	if (nullptr == globalNames_)
 		globalNames_.reset(q_check_ptr(new QStringList()));
+
+	sash_assume(globalNames_ != nullptr);
 
 	if (nullptr == localVarStack_)
 		localVarStack_.reset(q_check_ptr(new QStack<QHash<QString, QVariant>>()));
 
+	sash_assume(localVarStack_ != nullptr);
+
 	if (nullptr == luaLocalVarStringList_)
 		luaLocalVarStringList_.reset(q_check_ptr(new QStringList()));
 
+	sash_assume(luaLocalVarStringList_ != nullptr);
+
 	if (nullptr == pLua_)
 		pLua_.reset(q_check_ptr(new CLua(index)));
+
+	sash_assume(pLua_ != nullptr);
 
 	pLua_->setHookEnabled(false);
 
@@ -285,7 +300,7 @@ void Parser::initialize(Parser* pparent)
 	makeTable(lua_, "chat", sa::MAX_CHAT_HISTORY);
 	makeTable(lua_, "card", sa::MAX_ADDRESS_BOOK);
 	makeTable(lua_, "map");
-	makeTable(lua_, "team", sa::MAX_PARTY);
+	makeTable(lua_, "team", sa::MAX_TEAM);
 	//makeTable(lua_, "item", sa::MAX_ITEM + 200);
 	makeTable(lua_, "pet", sa::MAX_PET);
 	makeTable(lua_, "char");
@@ -293,7 +308,7 @@ void Parser::initialize(Parser* pparent)
 	makeTable(lua_, "dialog", sa::MAX_DIALOG_LINE);
 	makeTable(lua_, "magic", sa::MAX_MAGIC);
 	makeTable(lua_, "skill", sa::MAX_PROFESSION_SKILL);
-	makeTable(lua_, "petskill", sa::MAX_PET, sa::MAX_SKILL);
+	makeTable(lua_, "petskill", sa::MAX_PET, sa::MAX_PET_SKILL);
 	makeTable(lua_, "petequip", sa::MAX_PET, sa::MAX_PET_ITEM);
 	makeTable(lua_, "point");
 	makeTable(lua_, "mails", sa::MAX_ADDRESS_BOOK, sa::MAIL_MAX_HISTORY);
@@ -507,31 +522,31 @@ void Parser::initialize(Parser* pparent)
 				return sol::lua_nil;
 			}
 
-			QHash<QString, sa::BUTTON_TYPE> big5 = {
-				{ "OK", sa::BUTTON_OK},
-				{ "CANCEL", sa::BUTTON_CANCEL },
-				{ "CLOSE",sa::BUTTON_CLOSE },
-				{ "關閉",sa::BUTTON_CLOSE },
+			QHash<QString, sa::ButtonType> big5 = {
+				{ "OK", sa::kButtonOk},
+				{ "CANCEL", sa::kButtonCancel },
+				{ "CLOSE",sa::kButtonClose },
+				{ "關閉",sa::kButtonClose },
 				//big5
-				{ "確定", sa::BUTTON_YES },
-				{ "取消", sa::BUTTON_NO },
-				{ "上一頁",sa::BUTTON_PREVIOUS },
-				{ "下一頁",sa::BUTTON_NEXT },
-				{ "取消",sa::BUTTON_NO },
+				{ "確定", sa::kButtonYes },
+				{ "取消", sa::kButtonNo },
+				{ "上一頁",sa::kButtonPrevious },
+				{ "下一頁",sa::kButtonNext },
+				{ "取消",sa::kButtonNo },
 			};
 
-			QHash<QString, sa::BUTTON_TYPE> gb2312 = {
-				{ "OK",sa::BUTTON_OK},
-				{ "CANCEL",sa::BUTTON_CANCEL },
-				{ "关闭", sa::BUTTON_CLOSE },
+			QHash<QString, sa::ButtonType> gb2312 = {
+				{ "OK",sa::kButtonOk},
+				{ "CANCEL",sa::kButtonCancel },
+				{ "关闭", sa::kButtonClose },
 				//gb2312
-				{ "确定", sa::BUTTON_YES },
-				{ "取消", sa::BUTTON_NO },
-				{ "上一页",sa::BUTTON_PREVIOUS },
-				{ "下一页", sa::BUTTON_NEXT },
+				{ "确定", sa::kButtonYes },
+				{ "取消", sa::kButtonNo },
+				{ "上一页",sa::kButtonPrevious },
+				{ "下一页", sa::kButtonNext },
 			};
 
-			sa::customdialog_t dialog = injector.worker->customDialog.get();
+			sa::custom_dialog_t dialog = injector.worker->customDialog.get();
 
 			QString sbtype;
 			sbtype = big5.key(dialog.button, "");
@@ -640,6 +655,7 @@ void Parser::initialize(Parser* pparent)
 	timer["new"] = [this](sol::this_state s)->long long
 		{
 			std::unique_ptr<util::Timer> timer(q_check_ptr(new util::Timer()));
+			sash_assume(timer != nullptr);
 			if (nullptr == timer)
 				return 0;
 
@@ -4208,11 +4224,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	}
 	if (expr.contains("MAXITEM"))
 	{
-		lua_.set("MAXITEM", sa::MAX_ITEM - sa::CHAR_EQUIPPLACENUM);
+		lua_.set("MAXITEM", sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT);
 	}
 	if (expr.contains("MAXEQUIP"))
 	{
-		lua_.set("MAXEQUIP", sa::CHAR_EQUIPPLACENUM);
+		lua_.set("MAXEQUIP", sa::CHAR_EQUIPSLOT_COUNT);
 	}
 	if (expr.contains("MAXCARD"))
 	{
@@ -4232,7 +4248,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	}
 	if (expr.contains("MAXPETSKILL"))
 	{
-		lua_.set("MAXPETSKILL", sa::MAX_SKILL);
+		lua_.set("MAXPETSKILL", sa::MAX_PET_SKILL);
 	}
 	if (expr.contains("MAXCHAT"))
 	{
@@ -4324,10 +4340,10 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	if (expr.contains("gtime"))
 	{
 		static const QHash<long long, QString> hash = {
-			{ sa::LS_NOON, QObject::tr("noon") },
-			{ sa::LS_EVENING, QObject::tr("evening") },
-			{ sa::LS_NIGHT , QObject::tr("night") },
-			{ sa::LS_MORNING, QObject::tr("morning") },
+			{ sa::kTimeNoon, QObject::tr("noon") },
+			{ sa::kTimeEvening, QObject::tr("evening") },
+			{ sa::kTimeNight , QObject::tr("night") },
+			{ sa::kTimeMorning, QObject::tr("morning") },
 		};
 
 		long long satime = injector.worker->saCurrentGameTime.get();
@@ -4342,7 +4358,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		sol::meta::unqualified_t<sol::table> ch = lua_["char"];
 
-		sa::PC _pc = injector.worker->getPC();
+		sa::character_t _pc = injector.worker->getCharacter();
 
 		if (injector.worker->getOnlineFlag())
 		{
@@ -4445,10 +4461,10 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		pet["count"] = injector.worker->getPetSize();
 
-		QHash<long long, sa::PET> pets = injector.worker->getPets();
+		QHash<long long, sa::pet_t> pets = injector.worker->getPets();
 		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
-			sa::PET p = pets.value(i);
+			sa::pet_t p = pets.value(i);
 			long long index = i + 1;
 
 			pet[index]["valid"] = p.valid;
@@ -4527,41 +4543,41 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	{
 		sol::meta::unqualified_t<sol::table> team = lua_["team"];
 
-		team["count"] = static_cast<long long>(injector.worker->getPartySize());
+		team["count"] = static_cast<long long>(injector.worker->getTeamSize());
 
-		sa::mapunit_s unit = {};
-		sa::PARTY party = {};
+		sa::map_unit_t unit = {};
+		sa::team_t t = {};
 		long long index = -1;
 
 		injector.worker->updateDatasFromMemory();
 
-		for (long long i = 0; i < sa::MAX_PARTY; ++i)
+		for (long long i = 0; i < sa::MAX_TEAM; ++i)
 		{
-			party = injector.worker->getParty(i);
+			t = injector.worker->getTeam(i);
 			index = i + 1;
 
-			team[index]["valid"] = party.valid;
+			team[index]["valid"] = t.valid;
 
 			team[index]["index"] = index;
 
-			team[index]["id"] = party.id;
+			team[index]["id"] = t.id;
 
-			team[index]["name"] = util::toConstData(party.name);
+			team[index]["name"] = util::toConstData(t.name);
 
-			if (injector.worker->mapUnitHash.contains(party.id))
-				team[index]["fname"] = util::toConstData(injector.worker->mapUnitHash.value(party.id).freeName);
+			if (injector.worker->mapUnitHash.contains(t.id))
+				team[index]["fname"] = util::toConstData(injector.worker->mapUnitHash.value(t.id).freeName);
 			else
 				team[index]["fname"] = "";
 
-			team[index]["lv"] = party.level;
+			team[index]["lv"] = t.level;
 
-			team[index]["hp"] = party.hp;
+			team[index]["hp"] = t.hp;
 
-			team[index]["maxhp"] = party.maxHp;
+			team[index]["maxhp"] = t.maxHp;
 
-			team[index]["hpp"] = party.hpPercent;
+			team[index]["hpp"] = t.hpPercent;
 
-			team[index]["mp"] = party.mp;
+			team[index]["mp"] = t.mp;
 		}
 	}
 
@@ -4650,7 +4666,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		for (long long i = 0; i < sa::MAX_ADDRESS_BOOK; ++i)
 		{
-			sa::ADDRESS_BOOK addressBook = injector.worker->getAddressBook(i);
+			sa::address_bool_t addressBook = injector.worker->getAddressBook(i);
 			long long index = i + 1;
 
 			card[index]["valid"] = addressBook.valid;
@@ -4713,7 +4729,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	//unit\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("unit") || expr.contains("unit["))
 	{
-		QList<sa::mapunit_t> units = injector.worker->mapUnitHash.values();
+		QList<sa::map_unit_t> units = injector.worker->mapUnitHash.values();
 
 		long long size = units.size();
 
@@ -4723,7 +4739,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		for (long long i = 0; i < size; ++i)
 		{
-			sa::mapunit_t u = units.value(i);
+			sa::map_unit_t u = units.value(i);
 			if (!u.isVisible)
 				continue;
 
@@ -4775,10 +4791,10 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				if (name.isEmpty() && modelid == 0 && freeName.isEmpty())
 					return sol::lua_nil;
 
-				sa::mapunit_t _unit = {};
-				if (!injector.worker->findUnit(name, sa::OBJ_NPC, &_unit, freeName, modelid))
+				sa::map_unit_t _unit = {};
+				if (!injector.worker->findUnit(name, sa::kObjectNPC, &_unit, freeName, modelid))
 				{
-					if (!injector.worker->findUnit(name, sa::OBJ_HUMAN, &_unit, freeName, modelid))
+					if (!injector.worker->findUnit(name, sa::kObjectHuman, &_unit, freeName, modelid))
 						return sol::lua_nil;
 				}
 
@@ -4851,7 +4867,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		if (injector.worker->getBattleFlag())
 		{
-			sa::battledata_t bt = injector.worker->getBattleData();
+			sa::battle_data_t bt = injector.worker->getBattleData();
 
 			battle["petpos"] = static_cast<long long>(bt.objects.value(injector.worker->battleCharCurrentPos.get() + 5).pos + 1);
 
@@ -4862,7 +4878,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			for (long long i = 0; i < size; ++i)
 			{
-				sa::battleobject_t obj = bt.objects.value(i);
+				sa::battle_object_t obj = bt.objects.value(i);
 				long long index = i + 1;
 
 				battle[index]["valid"] = obj.maxHp > 0 && obj.level > 0 && obj.modelid > 0;
@@ -4973,7 +4989,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		for (long long i = 0; i < sa::MAX_MAGIC; ++i)
 		{
 			long long index = i + 1;
-			sa::MAGIC magic = injector.worker->getMagic(i);
+			sa::magic_t magic = injector.worker->getMagic(i);
 
 			mg[index]["valid"] = magic.valid;
 			mg[index]["index"] = index;
@@ -5003,7 +5019,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				if (index == -1)
 					return sol::lua_nil;
 
-				sa::MAGIC _magic = injector.worker->getMagic(index);
+				sa::magic_t _magic = injector.worker->getMagic(index);
 
 				sol::table t = lua.create_table();
 
@@ -5027,7 +5043,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		for (long long i = 0; i < sa::MAX_PROFESSION_SKILL; ++i)
 		{
 			long long index = i + 1;
-			sa::PROFESSION_SKILL skill = injector.worker->getSkill(i);
+			sa::profession_skill_t skill = injector.worker->getSkill(i);
 
 			sk[index]["valid"] = skill.valid;
 			sk[index]["index"] = index;
@@ -5059,7 +5075,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				if (index == -1)
 					return sol::lua_nil;
 
-				sa::PROFESSION_SKILL _skill = injector.worker->getSkill(index);
+				sa::profession_skill_t _skill = injector.worker->getSkill(index);
 
 				sol::table t = lua.create_table();
 
@@ -5090,10 +5106,10 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		{
 			petIndex = i + 1;
 
-			for (j = 0; j < sa::MAX_SKILL; ++j)
+			for (j = 0; j < sa::MAX_PET_SKILL; ++j)
 			{
 				index = j + 1;
-				sa::PET_SKILL skill = injector.worker->getPetSkill(i, j);
+				sa::pet_skill_t skill = injector.worker->getPetSkill(i, j);
 
 				psk[petIndex][index]["valid"] = skill.valid;
 				psk[petIndex][index]["index"] = index;
@@ -5123,7 +5139,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				if (index == -1)
 					return sol::lua_nil;
 
-				sa::PET_SKILL _skill = injector.worker->getPetSkill(petIndex, index);
+				sa::pet_skill_t _skill = injector.worker->getPetSkill(petIndex, index);
 
 				sol::table t = lua.create_table();
 
@@ -5155,7 +5171,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			{
 				index = j + 1;
 
-				sa::ITEM item = injector.worker->getPetEquip(i, j);
+				sa::item_t item = injector.worker->getPetEquip(i, j);
 
 				peq[petIndex][index]["valid"] = item.valid;
 				peq[petIndex][index]["index"] = index;
@@ -5174,7 +5190,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 	if (expr.contains("point"))
 	{
-		sa::currencydata_t point = injector.worker->currencyData.get();
+		sa::currency_data_t point = injector.worker->currencyData.get();
 
 		sol::meta::unqualified_t<sol::table> pt = lua_["point"];
 
@@ -5194,7 +5210,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		for (long long i = 0; i < sa::MAX_ADDRESS_BOOK; ++i)
 		{
 			long long card = i + 1;
-			sa::MAIL_HISTORY mail = injector.worker->getMailHistory(i);
+			sa::mail_history_t mail = injector.worker->getMailHistory(i);
 			for (j = 0; j < sa::MAIL_MAX_HISTORY; ++j)
 			{
 				long long index = j + 1;

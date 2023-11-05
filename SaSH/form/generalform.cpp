@@ -419,7 +419,7 @@ void GeneralForm::onButtonClicked()
 	{
 		QString fileName;
 		if (!injector.worker.isNull())
-			fileName = injector.worker->getPC().name;
+			fileName = injector.worker->getCharacter().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.saveHashSettings(fileName);
 		return;
@@ -429,7 +429,7 @@ void GeneralForm::onButtonClicked()
 	{
 		QString fileName;
 		if (!injector.worker.isNull())
-			fileName = injector.worker->getPC().name;
+			fileName = injector.worker->getCharacter().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.loadHashSettings(fileName);
 		return;

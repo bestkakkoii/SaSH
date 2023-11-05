@@ -70,6 +70,7 @@ public:
 		setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsFocusable);
 
 		QGraphicsDropShadowEffect* shadowEffect = q_check_ptr(new QGraphicsDropShadowEffect(this));
+		sash_assume(shadowEffect != nullptr);
 		if (shadowEffect == nullptr)
 			return;
 
@@ -151,16 +152,24 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	ui.label_icons->setText(R"(<img alt="LOGO" src=":image/ico.png" width="50" height="50" style="border-radius: 50%;" />)");
 
 	QGraphicsScene* scene = q_check_ptr(new QGraphicsScene(this));
+	sash_assume(scene != nullptr);
 	if (nullptr != scene)
 		ui.graphicsView_webicon->setScene(scene);
 
 	ClickableSvgItem* item1 = q_check_ptr(new ClickableSvgItem(":/image/icon_cplusplus.svg", ""));
+	sash_assume(item1 != nullptr);
 	ClickableSvgItem* item2 = q_check_ptr(new ClickableSvgItem(":/image/icon_qt.svg", ""));
+	sash_assume(item2 != nullptr);
 	ClickableSvgItem* item3 = q_check_ptr(new ClickableSvgItem(":/image/icon_vs-2022.svg", ""));
+	sash_assume(item3 != nullptr);
 	ClickableSvgItem* item4 = q_check_ptr(new ClickableSvgItem(":/image/icon_platform-Windows-blueviolet.svg", ""));
+	sash_assume(item4 != nullptr);
 	ClickableSvgItem* item5 = q_check_ptr(new ClickableSvgItem(":/image/icon_windows_10_11.svg", ""));
+	sash_assume(item5 != nullptr);
 	ClickableSvgItem* item6 = q_check_ptr(new ClickableSvgItem(":/image/icon_license.svg", ""));
+	sash_assume(item6 != nullptr);
 	ClickableSvgItem* item7 = q_check_ptr(new ClickableSvgItem(":/image/icon_github.svg", "https://github.com/bestkakkoii/SaSH"));
+	sash_assume(item7 != nullptr);
 
 	item1->setPos(70, 0);
 	item2->setPos(8, 25);

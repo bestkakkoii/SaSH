@@ -85,7 +85,7 @@ ChatInfoForm::ChatInfoForm(long long index, QWidget* parent)
 	ui.listView_log->setModel(&injector.chatLogModel);
 
 	delegate_ = q_check_ptr(new ColorDelegate(this));
-	Q_ASSERT(delegate_ != nullptr);
+	sash_assume(delegate_ != nullptr);
 	if (delegate_ == nullptr)
 		return;
 

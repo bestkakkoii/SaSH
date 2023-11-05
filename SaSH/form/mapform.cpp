@@ -140,11 +140,12 @@ void MapForm::onButtonClicked()
 
 		QPoint point(x, y);
 		missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+		sash_assume(missionThread_ != nullptr);
 		if (missionThread_ == nullptr)
 			return;
 
 		missionThread_->appendArg(point);
-		missionThread_->start();
+		emit missionThread_->started();
 
 		ui.pushButton_findpath_stop->setEnabled(true);
 		ui.pushButton_findpath_start->setEnabled(false);
@@ -255,11 +256,12 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 
 	QPoint point = npc_hash_.value(row);
 	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+	sash_assume(missionThread_ != nullptr);
 	if (missionThread_ == nullptr)
 		return;
 
 	missionThread_->appendArg(point);
-	missionThread_->start();
+	emit missionThread_->started();
 
 	ui.pushButton_findpath_stop->setEnabled(true);
 	ui.pushButton_findpath_start->setEnabled(false);

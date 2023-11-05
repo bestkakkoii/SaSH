@@ -34,6 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "model/treewidget.h"
 #include "model/treewidgetitem.h"
 #include "model/safe.h"
+#include "globalmicro.h"
 
 constexpr long long SASH_VERSION_MAJOR = 1;
 constexpr long long SASH_VERSION_MINOR = 0;
@@ -1077,7 +1078,8 @@ namespace util
 		{
 			qDebug() << "toQString: unknown type" << typeid(T).name();
 			MessageBoxA(NULL, typeid(T).name(), "toQString: unknown type", MB_OK | MB_ICONERROR);
-			__assume(false);
+			sash_assume(false);
+			return "";
 		}
 	}
 
@@ -1345,7 +1347,11 @@ QScrollBar::handle:pressed:vertical {
 
 		pCombo->setStyleSheet(styleSheet);
 		pCombo->setAttribute(Qt::WA_StyledBackground);
-		pCombo->setView(q_check_ptr(q_check_ptr(new QListView())));
+		QListView* view = new QListView(pCombo);
+		sash_assume(view != nullptr);
+		if (view == nullptr)
+			return;
+		pCombo->setView(view);
 		pCombo->view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
 	}
@@ -1813,12 +1819,24 @@ QGroupBox {
 				selectRowLine.append(p->item(selectRow, i)->text());
 				targetRowLine.append(p->item(targetRow, i)->text());
 				if (!p->item(selectRow, i))
-					p->setItem(selectRow, i, q_check_ptr(new QTableWidgetItem(targetRowLine.value(i))));
+				{
+					QTableWidgetItem* item = q_check_ptr(new QTableWidgetItem(targetRowLine.value(i)));
+					sash_assume(item != nullptr);
+					if (item == nullptr)
+						continue;
+					p->setItem(selectRow, i, item);
+				}
 				else
 					p->item(selectRow, i)->setText(targetRowLine.value(i));
 
 				if (!p->item(targetRow, i))
-					p->setItem(targetRow, i, q_check_ptr(new QTableWidgetItem(selectRowLine.value(i))));
+				{
+					QTableWidgetItem* item = q_check_ptr(new QTableWidgetItem(selectRowLine.value(i)));
+					sash_assume(item != nullptr);
+					if (item == nullptr)
+						continue;
+					p->setItem(targetRow, i, item);
+				}
 				else
 					p->item(targetRow, i)->setText(selectRowLine.value(i));
 			}

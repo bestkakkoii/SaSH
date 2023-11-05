@@ -1,5 +1,6 @@
 ﻿#include "stdafx.h"
 #include "rpc.h"
+#include "util.h"
 
 RPC* RPC::instance = nullptr;
 
@@ -34,121 +35,142 @@ void createConsole()
 	setlocale(LC_ALL, "en_US.UTF-8");
 }
 
-RPC::RPC(ProtocolType protocolType, QObject* parent)
-	: QObject(parent)
-	, protocolType(protocolType)
-	, server(q_check_ptr(new QTcpServer(parent)))
+RPCSocket::RPCSocket(qintptr socketDescriptor, QObject* parent)
+	: QTcpSocket(nullptr)
+	, Indexer(-1)
 {
+	std::ignore = parent;
+	setSocketDescriptor(socketDescriptor);
+	setReadBufferSize(65500);
+
+	setSocketOption(QAbstractSocket::LowDelayOption, 1);
+	setSocketOption(QAbstractSocket::KeepAliveOption, 1);
+	setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 0);
+	setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 0);
+	setSocketOption(QAbstractSocket::TypeOfServiceOption, 64);
+	connect(this, &RPCSocket::closed, this, &RPCSocket::onClose, Qt::QueuedConnection);
+	connect(this, &RPCSocket::writed, this, &RPCSocket::onWrite, Qt::QueuedConnection);
+
+	moveToThread(&thread);
+	thread.start();
 }
 
-bool RPC::listen(quint16 port)
+void RPCSocket::onClose()
 {
-	if (protocolType == IPV6)
-		server->listen(QHostAddress::AnyIPv6, port);
-	else
-		server->listen(QHostAddress::AnyIPv4, port);
-
-	connect(server, &QTcpServer::newConnection, this, &RPC::onNewConnection);
-	return server->isListening();
+	disconnectFromHost();
 }
 
-void RPC::close()
+bool RPCSocket::isFunctionExist(const QString& functionName)
 {
-	server->close();
+	if (device_.isNull())
+		return false;
+
+	if (functionName.isEmpty())
+		return false;
+
+	std::string funcName = util::toConstData(functionName);
+
+	QSharedPointer<sol::state> device = device_.toStrongRef();
+
+	sol::object obj = device->get<sol::object>(funcName);
+	if (!obj.valid())
+		return false;
+
+	sol::type type = obj.get_type();
+	if (type != sol::type::function)
+		return false;
+
+	return true;
 }
 
-void RPC::setProtocol(ProtocolType type)
+void RPCSocket::call(const QString& functionName, const QStringList& args)
 {
-	if (!server->isListening())
+	if (device_.isNull())
+		return;
+
+	if (functionName.isEmpty())
+		return;
+
+	std::string funcName = util::toConstData(functionName);
+
+	QSharedPointer<sol::state> device = device_.toStrongRef();
+
+	sol::object obj = device->get<sol::object>(funcName);
+	if (!obj.valid())
+		return;
+
+	sol::type type = obj.get_type();
+	if (type != sol::type::function)
+		return;
+
+	sol::state_view lua(device->lua_state());
+	std::vector <sol::object> va;
+	bool ok = false;
+	long long tmpInt = 0;
+	std::string tmpStr;
+
+	for (const QString& arg : args)
 	{
-		protocolType = type;
+		tmpInt = arg.toLongLong(&ok, 16);
+		if (ok)
+		{
+			va.emplace_back(sol::make_object(lua, tmpInt));
+		}
+		else
+		{
+			tmpStr = util::toConstData(arg);
+			va.emplace_back(sol::make_object(lua, tmpStr));
+		}
 	}
-}
 
-void RPC::onNewConnection()
-{
-	static bool first = true;
-	if (first)
+	sol::protected_function func = obj.as<sol::protected_function>();
+
+	sol::protected_function_result result = func(sol::as_args(std::vector <sol::object>(va.begin(), va.end())));
+
+	QByteArray responseArray;
+	if (!result.valid())
 	{
-		first = false;
-#ifndef _DEBUG
-		createConsole();
-#endif
+		sol::error err = result;
+		QString errWhat = util::toQString(err.what());
+		QString errStr = QString("%1|%2|%3").arg(getIndex()).arg(functionName).arg(errWhat);
+		responseArray = errStr.toUtf8();
+		emit writed(std::move(responseArray));
+		return;
 	}
 
-	QTcpSocket* client = server->nextPendingConnection();
-	connect(client, &QTcpSocket::readyRead, this, &RPC::onReadyRead);
-	connect(client, &QTcpSocket::disconnected, this, &RPC::onDisconnected);
-}
+	sol::object ret = result;
+	if (!ret.valid())
+		return;
 
-void RPC::onReadyRead()
-{
-	QTcpSocket* client = qobject_cast<QTcpSocket*>(sender());
-	QByteArray data = client->readAll();
-	std::cout << std::string(data.constData()) << std::endl;
-	processMessage(client, data);
-}
-
-void RPC::onDisconnected()
-{
-	QTcpSocket* client = qobject_cast<QTcpSocket*>(sender());
-	long long clientId = clients.key(client, -1);
-	if (-1 != clientId)
+	QString resultStr;
+	QString resultValue;
+	if (ret.is<bool>())
 	{
-		clients.remove(clientId);
-
-		// Remove all methods registered for this client.
-		methods.remove(clientId);
-
-		// Handle the client disconnecting.
-		qDebug() << "Client disconnected.";
-		//delete
-		client->deleteLater();
+		resultValue = ret.as<bool>() ? "true" : "false";
 	}
+	else if (ret.is<long long>())
+	{
+		resultValue = util::toQString(ret.as<long long>());
+	}
+	else if (ret.is<double>())
+	{
+		resultValue = util::toQString(ret.as<double>());
+	}
+	else if (ret.is<std::string>())
+	{
+		resultValue = util::toQString(ret.as<std::string>());
+	}
+	resultStr = QString("%1|%2|%3").arg(getIndex()).arg(functionName).arg(resultValue);
+	responseArray = resultStr.toUtf8();
+	emit writed(std::move(responseArray));
 }
 
-void RPC::processMessage(QTcpSocket* client, const QByteArray& data)
+void RPCSocket::onReadyRead()
 {
+	QByteArray data = readAll();
+
 	// Convert the data to a QString, assuming it is UTF-8 encoded.
 	QString message = QString::fromUtf8(data);
-
-	// If the client has not been assigned an identifier yet, this must be the handshake message.
-	long long clientId = clients.key(client, -1);
-	if (-1 == clientId)
-	{
-		QStringList parts = message.split('|');
-		// HANDSHAKE|identifier
-		if (parts.count() != 2 || parts.value(0) != "HANDSHAKE")
-		{
-			std::cout << "Malformed handshake message, disconnect." << std::endl;
-			qDebug() << "Malformed handshake message, disconnect.";
-			client->disconnectFromHost(); // Malformed handshake message, disconnect.
-			return;
-		}
-
-		bool ok;
-		qlonglong identifier = parts.value(1).toLongLong(&ok);
-		if (!ok || identifier < 0 || identifier >= SASH_MAX_THREAD || clients.contains(identifier))
-		{
-			std::cout << "Invalid or duplicate identifier, disconnect." << std::endl;
-			qDebug() << "Invalid or duplicate identifier, disconnect.";
-			client->disconnectFromHost(); // Invalid or duplicate identifier, disconnect.
-			return;
-		}
-
-		// Save the client with its identifier.
-		clients.insert(identifier, client);
-		std::cout << "Client connected with identifier " << identifier << std::endl;
-		qDebug() << "Client connected with identifier" << identifier;
-
-		QString response = QString("%1|HANDSHAKE|OK\n").arg(identifier);
-		QByteArray responseArray = response.toUtf8();
-		std::cout << std::string(responseArray.constData()) << std::endl;
-		client->write(responseArray);
-		client->flush();
-		client->waitForBytesWritten();
-		return; // Handshake complete, wait for next message.
-	}
 
 	// For subsequent messages, proceed with normal processing.
 	QStringList parts = message.split(util::rexOR);
@@ -160,7 +182,7 @@ void RPC::processMessage(QTcpSocket* client, const QByteArray& data)
 	}
 
 	long long cmpClientId = parts.takeFirst().toLongLong();
-	if (cmpClientId != clientId)
+	if (cmpClientId != getIndex())
 	{
 		std::cout << "client id is not equal" << std::endl;
 		qDebug() << "Malformed message, disconnect.";
@@ -176,148 +198,212 @@ void RPC::processMessage(QTcpSocket* client, const QByteArray& data)
 
 	// The first part should be the method name.
 	QString methodName = parts.takeFirst();
-	if (!methods.value(clientId).contains(methodName))
+	if (methodName.isEmpty())
 	{
-		std::cout << "Method not registered for this client" << std::endl;
-		qDebug() << "Method not registered for this client, disconnect.";
-		// Method not registered for this client, disconnect.
+		std::cout << "method name is empty" << std::endl;
+		qDebug() << "Malformed message, disconnect.";
 		return;
 	}
 
-	// Retrieve the method and the object instance for this client.
-	MethodInfo methodInfo = methods[clientId].value(methodName);
-	QMetaMethod method = methodInfo.method;
-	QObject* receiver = methodInfo.receiver;
-	ReturnType returnType = methodInfo.returnType;
+	call(methodName, parts);
+}
 
-	// Prepare the return value container based on the returnType.
-	QVariant returnValue;
+void RPCSocket::onWrite(QByteArray data)
+{
+	if (!data.endsWith("\n"))
+		data.append("\n");
 
-	// Prepare the parameters for the method call.
-	QVector<QGenericArgument> arguments;
-	for (const QString& part : parts)
+	write(data);
+	flush();
+	waitForBytesWritten();
+}
+
+RPCServer::RPCServer(QObject* parent)
+	: QTcpServer(parent)
+{
+
+}
+
+RPCServer::~RPCServer()
+{
+	qDebug() << "RPCServer is distroyed!!";
+}
+
+bool RPCServer::start(unsigned short port)
+{
+	QOperatingSystemVersion version = QOperatingSystemVersion::current();
+
+	if (version > QOperatingSystemVersion::Windows7)
 	{
-		bool ok;
-		qlonglong number = part.toLongLong(&ok);
-		if (ok) {
-			QGenericArgument argument("qlonglong", &number);
-			arguments.append(argument);
+		if (!this->listen(QHostAddress::AnyIPv6, port))
+		{
+			qDebug() << "ipv6 Failed to listen on socket";
+			QString msg = tr("Failed to listen on IPV6 socket");
+			std::wstring wstr = msg.toStdWString();
+			MessageBoxW(NULL, wstr.c_str(), L"Error", MB_OK | MB_ICONERROR);
+			return false;
 		}
-		else {
-			QGenericArgument argument("QString", part.toUtf8().constData());
-			arguments.append(argument);
+	}
+	else
+	{
+		if (!this->listen(QHostAddress::AnyIPv6, port))
+		{
+			qDebug() << "ipv4 Failed to listen on socket";
+			QString msg = tr("Failed to listen on IPV4 socket");
+			std::wstring wstr = msg.toStdWString();
+			MessageBoxW(NULL, wstr.c_str(), L"Error", MB_OK | MB_ICONERROR);
+			return false;
 		}
 	}
 
-	// Call the method with the arguments.
-	bool success = false;
-	QString response;
-	switch (returnType)
+	return true;
+}
+
+void RPCServer::clear()
+{
+	for (RPCSocket* clientSocket : clientSockets_)
 	{
-	case ReturnQString:
+		if (clientSocket == nullptr)
+			continue;
+
+		clientSocket->close();
+
+		if (clientSocket->state() == QAbstractSocket::ConnectedState)
+			clientSocket->waitForDisconnected();
+		clientSocket->deleteLater();
+	}
+
+	clientSockets_.clear();
+	clientSocketHash.clear();
+}
+
+void RPCServer::incomingConnection(qintptr socketDescriptor)
+{
+	RPCSocket* clientSocket = q_check_ptr(new RPCSocket(socketDescriptor, nullptr));
+	sash_assume(clientSocket != nullptr);
+	if (clientSocket == nullptr)
+		return;
+
+	addPendingConnection(clientSocket);
+	clientSockets_.append(clientSocket);
+	connect(clientSocket, &RPCSocket::disconnected, this, [this, clientSocket]()
+		{
+			clientSocketHash.remove(clientSocket->getIndex());
+			clientSockets_.removeOne(clientSocket);
+			clientSocket->thread.quit();
+			clientSocket->thread.wait();
+			clientSocket->deleteLater();
+		});
+
+	connect(clientSocket, &RPCSocket::readyRead, this, &RPCServer::onClientFirstReadyRead, Qt::QueuedConnection);
+
+	static bool first = true;
+	if (first)
 	{
-		QString returnString;
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		success = method.invoke(receiver, Qt::DirectConnection
-			, Q_RETURN_ARG(QString, returnString)
-			, arguments.value(0)
-			, arguments.value(1)
-			, arguments.value(2)
-			, arguments.value(3)
-			, arguments.value(4)
-			, arguments.value(5)
-			, arguments.value(6)
-			, arguments.value(7)
-			, arguments.value(8)
-			, arguments.value(9));
-#else
-		success = method.invoke(receiver,
-			Qt::DirectConnection,
-			QGenericReturnArgument("QString", returnString.data())
-			, arguments.value(0)
-			, arguments.value(1)
-			, arguments.value(2)
-			, arguments.value(3)
-			, arguments.value(4)
-			, arguments.value(5)
-			, arguments.value(6)
-			, arguments.value(7)
-			, arguments.value(8)
-			, arguments.value(9));
+		first = false;
+#ifndef _DEBUG
+		createConsole();
 #endif
-
-		returnValue = returnString;
-		break;
 	}
-	case ReturnLongLong:
+}
+
+QSharedPointer<sol::state> RPCServer::getDevice(long long id)
+{
+	if (!devices_.contains(id))
 	{
-		qlonglong returnLongLong = 0;
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		success = method.invoke(receiver, Qt::DirectConnection
-			, Q_RETURN_ARG(qlonglong, returnLongLong)
-			, arguments.value(0)
-			, arguments.value(1)
-			, arguments.value(2)
-			, arguments.value(3)
-			, arguments.value(4)
-			, arguments.value(5)
-			, arguments.value(6)
-			, arguments.value(7)
-			, arguments.value(8)
-			, arguments.value(9));
-#else
-		success = method.invoke(receiver,
-			Qt::DirectConnection,
-			QGenericReturnArgument("qlonglong", &returnLongLong)
-			, arguments.value(0)
-			, arguments.value(1)
-			, arguments.value(2)
-			, arguments.value(3)
-			, arguments.value(4)
-			, arguments.value(5)
-			, arguments.value(6)
-			, arguments.value(7)
-			, arguments.value(8)
-			, arguments.value(9));
-#endif
+		QSharedPointer<sol::state> device(QSharedPointer<sol::state>::create());
+		//open all libs
+		device->open_libraries(
+			sol::lib::base,
+			sol::lib::package,
+			sol::lib::os,
+			sol::lib::string,
+			sol::lib::math,
+			sol::lib::table,
+			sol::lib::debug,
+			sol::lib::utf8,
+			sol::lib::coroutine,
+			sol::lib::io
+		);
 
-		returnValue = returnLongLong;
+		device->set("_INDEX", id);
 
-		break;
+		devices_.insert(id, device);
+		return device;
 	}
-	case NoReturn:
+
+	return devices_.value(id);
+}
+
+//client very first custom handshake
+void RPCServer::onClientFirstReadyRead()
+{
+	RPCSocket* clientSocket = qobject_cast<RPCSocket*>(sender());
+	if (clientSocket == nullptr)
+		return;
+
+	QByteArray data = clientSocket->readAll();
+
+	// Convert the data to a QString, assuming it is UTF-8 encoded.
+	QString message = QString::fromUtf8(data);
+
+	// If the client has not been assigned an identifier yet, this must be the handshake message.
+	long long clientId = clientSocketHash.key(clientSocket, -1);
+	if (-1 != clientId)
+		return;
+
+	QStringList parts = message.split('|');
+	// HANDSHAKE|identifier
+	if (parts.count() != 2 || parts.value(0).toLower() != "shake")
 	{
-		success = method.invoke(receiver, Qt::DirectConnection
-			, arguments.value(0)
-			, arguments.value(1)
-			, arguments.value(2)
-			, arguments.value(3)
-			, arguments.value(4)
-			, arguments.value(5)
-			, arguments.value(6)
-			, arguments.value(7)
-			, arguments.value(8)
-			, arguments.value(9));
-
-		break;
-	}
-	default:
-		// Handle unknown or unsupported return types.
-		break;
-	}
-
-	if (!success) {
-		// Handle the error, the method invocation failed.
+		std::cout << "Malformed handshake message, disconnect." << std::endl;
+		qDebug() << "Malformed handshake message, disconnect.";
+		emit clientSocket->closed(); // Malformed handshake message, disconnect.
 		return;
 	}
 
-	// Prepare the response message.   index|functionName|returnValue
-	response = QString("%1|%2|%3\n").arg(clientId).arg(methodName).arg(returnValue.toString());
+	bool ok;
+	long long identifier = parts.value(1).toLongLong(&ok);
+	if (!ok || identifier < 0 || identifier >= SASH_MAX_THREAD || clientSocketHash.contains(identifier))
+	{
+		std::cout << "Invalid or duplicate identifier, disconnect." << std::endl;
+		qDebug() << "Invalid or duplicate identifier, disconnect.";
+		emit clientSocket->closed(); // Invalid or duplicate identifier, disconnect.
+		return;
+	}
 
-	// Send the response to the client.
+	// Save the client with its identifier.
+	clientSocket->setIndex(identifier);
+	clientSocket->setDevice(getDevice(identifier));
+
+	clientSocketHash.insert(identifier, clientSocket);
+
+	disconnect(clientSocket, &RPCSocket::readyRead, this, &RPCServer::onClientFirstReadyRead);
+	connect(clientSocket, &RPCSocket::readyRead, clientSocket, &RPCSocket::onReadyRead, Qt::QueuedConnection);
+
+	std::cout << "Client connected with identifier " << identifier << std::endl;
+	qDebug() << "Client connected with identifier" << identifier;
+
+	QString response = QString("%1|shake|ok").arg(identifier);
 	QByteArray responseArray = response.toUtf8();
 	std::cout << std::string(responseArray.constData()) << std::endl;
-	client->write(responseArray);
-	client->flush();
-	client->waitForBytesWritten();
+	emit clientSocket->writed(std::move(responseArray));
+}
+
+RPC::RPC(QObject* parent)
+	: QObject(nullptr)
+	, rpcServer(parent)
+{
+
+}
+
+bool RPC::listen(unsigned short port)
+{
+	return rpcServer.start(port);
+}
+
+void RPC::close()
+{
+	rpcServer.close();
+	rpcServer.clear();
 }

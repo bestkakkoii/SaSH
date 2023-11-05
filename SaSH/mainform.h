@@ -77,7 +77,7 @@ protected:
 	void moveEvent(QMoveEvent* e) override;
 
 private:
-	Q_INVOKABLE QString print(QString str);
+	std::string print(std::string str);
 
 	void updateStatusText(const QString text = "");
 

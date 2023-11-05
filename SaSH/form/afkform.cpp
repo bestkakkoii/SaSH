@@ -1257,16 +1257,16 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_magicheal_normal, false);
 
 	//battle
-	appendNumbers(ui.comboBox_roundaction_pet_action, sa::MAX_SKILL);
-	appendNumbers(ui.comboBox_crossaction_pet_action, sa::MAX_SKILL);
-	appendNumbers(ui.comboBox_normalaction_pet_action, sa::MAX_SKILL);
+	appendNumbers(ui.comboBox_roundaction_pet_action, sa::MAX_PET_SKILL);
+	appendNumbers(ui.comboBox_crossaction_pet_action, sa::MAX_PET_SKILL);
+	appendNumbers(ui.comboBox_normalaction_pet_action, sa::MAX_PET_SKILL);
 
-	appendNumbers(ui.comboBox_healaction_pet_action, sa::MAX_SKILL);
-	appendNumbers(ui.comboBox_purgaction_pet_action, sa::MAX_SKILL);
+	appendNumbers(ui.comboBox_healaction_pet_action, sa::MAX_PET_SKILL);
+	appendNumbers(ui.comboBox_purgaction_pet_action, sa::MAX_PET_SKILL);
 	//catch
 	appendCharAction(ui.comboBox_autocatchpet_magic);
 
-	appendNumbers(ui.comboBox_autocatchpet_petskill, sa::MAX_SKILL);
+	appendNumbers(ui.comboBox_autocatchpet_petskill, sa::MAX_PET_SKILL);
 
 	ui.comboBox_autocatchpet_mode->clear();
 	ui.comboBox_autocatchpet_mode->addItems(QStringList{ tr("escape from encounter") , tr("engage in encounter") });
@@ -1290,7 +1290,7 @@ void AfkForm::onApplyHashSettingsToUI()
 	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
 	{
 		QString title = tr("AfkForm");
-		QString newTitle = QString("[%1] %2").arg(injector.worker->getPC().name).arg(title);
+		QString newTitle = QString("[%1] %2").arg(injector.worker->getCharacter().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 
@@ -1580,14 +1580,14 @@ void AfkForm::onUpdateComboBoxItemText(long long type, const QStringList& textLi
 			};
 
 		//battle
-		appendText(ui.comboBox_normalaction_pet_action, sa::MAX_SKILL, false);
-		appendText(ui.comboBox_crossaction_pet_action, sa::MAX_SKILL, false);
-		appendText(ui.comboBox_roundaction_pet_action, sa::MAX_SKILL, false);
+		appendText(ui.comboBox_normalaction_pet_action, sa::MAX_PET_SKILL, false);
+		appendText(ui.comboBox_crossaction_pet_action, sa::MAX_PET_SKILL, false);
+		appendText(ui.comboBox_roundaction_pet_action, sa::MAX_PET_SKILL, false);
 
-		appendText(ui.comboBox_healaction_pet_action, sa::MAX_SKILL, false);
-		appendText(ui.comboBox_purgaction_pet_action, sa::MAX_SKILL, false);
+		appendText(ui.comboBox_healaction_pet_action, sa::MAX_PET_SKILL, false);
+		appendText(ui.comboBox_purgaction_pet_action, sa::MAX_PET_SKILL, false);
 		//catch
-		appendText(ui.comboBox_autocatchpet_petskill, sa::MAX_SKILL, false);
+		appendText(ui.comboBox_autocatchpet_petskill, sa::MAX_PET_SKILL, false);
 		break;
 	}
 	case util::kComboBoxItem:

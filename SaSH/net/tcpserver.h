@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <util.h>
 #include "lssproto.h"
 #include "autil.h"
-#include "map/mapanalyzer.h"
+#include "map/mapdevice.h"
 
 class Socket : public QTcpSocket
 {
@@ -90,7 +90,7 @@ private:
 	void __fastcall handleData(const QByteArray& data);
 
 public://actions
-	QString __fastcall battleStringFormat(const sa::battleobject_t& obj, QString formatStr);
+	QString __fastcall battleStringFormat(const sa::battle_object_t& obj, QString formatStr);
 
 	[[nodiscard]] long long __fastcall getWorldStatus();
 
@@ -169,14 +169,14 @@ public://actions
 
 	void __fastcall setSwitcher(long long flg);
 
-	void __fastcall press(sa::BUTTON_TYPE select, long long dialogid = -1, long long unitid = -1);
+	void __fastcall press(sa::ButtonType select, long long dialogid = -1, long long unitid = -1);
 	void __fastcall press(long long row, long long dialogid = -1, long long unitid = -1);
 
 	void __fastcall buy(long long index, long long amt, long long dialogid = -1, long long unitid = -1);
 	void __fastcall sell(const QVector<long long>& indexs, long long dialogid = -1, long long unitid = -1);
 	void __fastcall sell(long long index, long long dialogid = -1, long long unitid = -1);
 	void __fastcall sell(const QString& name, const QString& memo = "", long long dialogid = -1, long long unitid = -1);
-	void __fastcall learn(long long skillIndex, long long petIndex, long long spot, long long dialogid = -1, long long unitid = -1);
+	void __fastcall learn(long long petIndex, long long shopSkillIndex, long long petSkillSpot, long long dialogid = -1, long long unitid = -1);
 
 	void __fastcall craft(sa::CraftType type, const QStringList& ingres);
 
@@ -236,7 +236,7 @@ public://actions
 	void __fastcall cleanChatHistory();
 	[[nodiscard]] QString __fastcall getChatHistory(long long index);
 
-	bool __fastcall findUnit(const QString& name, long long type, sa::mapunit_t* unit, const QString& freeName = "", long long modelid = -1);
+	bool __fastcall findUnit(const QString& name, long long type, sa::map_unit_t* unit, const QString& freeName = "", long long modelid = -1);
 
 	[[nodiscard]] QString __fastcall getGround();
 
@@ -247,7 +247,7 @@ public://actions
 	void __fastcall setCharFaceDirection(long long dir, bool noWindow = false);
 	void __fastcall setCharFaceDirection(const QString& dirStr);
 
-	[[nodiscard]] long long __fastcall getPartySize();
+	[[nodiscard]] long long __fastcall getTeamSize();
 	[[nodiscard]] QStringList __fastcall getJoinableUnitList() const;
 	[[nodiscard]] bool __fastcall getItemIndexsByName(const QString& name, const QString& memo, QVector<long long>* pv,
 		long long from = 0, long long to = sa::MAX_ITEM, QVector<long long>* pindexs = nullptr);
@@ -264,7 +264,7 @@ public://actions
 	[[nodiscard]] bool __fastcall checkCharHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
 	[[nodiscard]] bool __fastcall checkRideHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
 	[[nodiscard]] bool __fastcall checkPetHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
-	[[nodiscard]] bool __fastcall checkPartyHp(long long cmpvalue, long long* target);
+	[[nodiscard]] bool __fastcall checkTeammateHp(long long cmpvalue, long long* target);
 
 	[[nodiscard]] bool __fastcall isPetSpotEmpty() const;
 	[[nodiscard]] long long __fastcall checkJobDailyState(const QString& missionName, long long timeout);
@@ -303,22 +303,22 @@ public://actions
 
 	void updateBattleTimeInfo();
 
-	inline [[nodiscard]] sa::PC __fastcall getPC() const { return pc_.get(); }
-	inline void __fastcall setPC(sa::PC pc) { pc_.set(pc); }
+	inline [[nodiscard]] sa::character_t __fastcall getCharacter() const { return character_.get(); }
+	inline void __fastcall setCharacter(sa::character_t pc) { character_.set(pc); }
 
-	inline [[nodiscard]] sa::MAGIC __fastcall getMagic(long long magicIndex) const { return magic_.value(magicIndex); }
+	inline [[nodiscard]] sa::magic_t __fastcall getMagic(long long magicIndex) const { return magic_.value(magicIndex); }
 
-	inline [[nodiscard]] sa::PROFESSION_SKILL __fastcall getSkill(long long skillIndex) const { return profession_skill_.value(skillIndex); }
-	inline [[nodiscard]] QHash<long long, sa::PROFESSION_SKILL> __fastcall getSkills() const { return profession_skill_.toHash(); }
+	inline [[nodiscard]] sa::profession_skill_t __fastcall getSkill(long long skillIndex) const { return professionSkill_.value(skillIndex); }
+	inline [[nodiscard]] QHash<long long, sa::profession_skill_t> __fastcall getSkills() const { return professionSkill_.toHash(); }
 
-	inline [[nodiscard]] sa::PET __fastcall getPet(long long petIndex) const { QReadLocker locker(&petInfoLock_);  return pet_.value(petIndex); }
-	inline [[nodiscard]] QHash<long long, sa::PET> __fastcall getPets() const { QReadLocker locker(&petInfoLock_);  return pet_.toHash(); }
+	inline [[nodiscard]] sa::pet_t __fastcall getPet(long long petIndex) const { QReadLocker locker(&petInfoLock_);  return pet_.value(petIndex); }
+	inline [[nodiscard]] QHash<long long, sa::pet_t> __fastcall getPets() const { QReadLocker locker(&petInfoLock_);  return pet_.toHash(); }
 	inline [[nodiscard]] long long __fastcall getPetSize() const
 	{
 		QReadLocker locker(&petInfoLock_);
 		long long n = 0;
-		QHash<long long, sa::PET> pets = pet_.toHash();
-		for (const sa::PET& it : pets)
+		QHash<long long, sa::pet_t> pets = pet_.toHash();
+		for (const sa::pet_t& it : pets)
 		{
 			if (it.level > 0 && it.valid && it.maxHp > 0)
 				++n;
@@ -326,33 +326,33 @@ public://actions
 		return n;
 	}
 
-	inline [[nodiscard]] sa::ITEM __fastcall getItem(long long index) const { QReadLocker locker(&itemInfoLock_);  return item_.value(index); }
-	inline [[nodiscard]] QHash<long long, sa::ITEM> __fastcall getItems() const { QReadLocker locker(&itemInfoLock_);  return item_.toHash(); }
+	inline [[nodiscard]] sa::item_t __fastcall getItem(long long index) const { QReadLocker locker(&itemInfoLock_);  return item_.value(index); }
+	inline [[nodiscard]] QHash<long long, sa::item_t> __fastcall getItems() const { QReadLocker locker(&itemInfoLock_);  return item_.toHash(); }
 
-	inline [[nodiscard]] sa::PET_SKILL __fastcall getPetSkill(long long petIndex, long long skillIndex) const { return petSkill_.value(petIndex).value(skillIndex); }
-	inline [[nodiscard]] QHash<long long, sa::PET_SKILL> __fastcall getPetSkills(long long petIndex) const { return petSkill_.value(petIndex); }
-	inline void __fastcall setPetSkills(long long petIndex, const QHash<long long, sa::PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
-	inline void __fastcall setPetSkill(long long petIndex, long long skillIndex, const sa::PET_SKILL& skill)
+	inline [[nodiscard]] sa::pet_skill_t __fastcall getPetSkill(long long petIndex, long long skillIndex) const { return petSkill_.value(petIndex).value(skillIndex); }
+	inline [[nodiscard]] QHash<long long, sa::pet_skill_t> __fastcall getPetSkills(long long petIndex) const { return petSkill_.value(petIndex); }
+	inline void __fastcall setPetSkills(long long petIndex, const QHash<long long, sa::pet_skill_t>& skills) { petSkill_.insert(petIndex, skills); }
+	inline void __fastcall setPetSkill(long long petIndex, long long skillIndex, const sa::pet_skill_t& skill)
 	{
-		QHash<long long, sa::PET_SKILL> skills = petSkill_.value(petIndex);
+		QHash<long long, sa::pet_skill_t> skills = petSkill_.value(petIndex);
 		skills.insert(skillIndex, skill);
 		petSkill_.insert(petIndex, skills);
 	}
 
-	inline [[nodiscard]] sa::PARTY __fastcall getParty(long long partyIndex) const { return party_.value(partyIndex); }
-	inline [[nodiscard]] QHash<long long, sa::PARTY> __fastcall getParties() const { return party_.toHash(); }
+	inline [[nodiscard]] sa::team_t __fastcall getTeam(long long teamIndex) const { return team_.value(teamIndex); }
+	inline [[nodiscard]] QHash<long long, sa::team_t> __fastcall getTeams() const { return team_.toHash(); }
 
-	inline [[nodiscard]] sa::ITEM __fastcall getPetEquip(long long petIndex, long long equipIndex) const { return petItem_.value(petIndex).value(equipIndex); }
-	inline [[nodiscard]] QHash<long long, sa::ITEM> __fastcall getPetEquips(long long petIndex) const { return petItem_.value(petIndex); }
+	inline [[nodiscard]] sa::item_t __fastcall getPetEquip(long long petIndex, long long equipIndex) const { return petItem_.value(petIndex).value(equipIndex); }
+	inline [[nodiscard]] QHash<long long, sa::item_t> __fastcall getPetEquips(long long petIndex) const { return petItem_.value(petIndex); }
 
-	inline [[nodiscard]] sa::ADDRESS_BOOK __fastcall getAddressBook(long long index) const { return addressBook_.value(index); }
-	inline [[nodiscard]] QHash<long long, sa::ADDRESS_BOOK> __fastcall getAddressBooks() const { return addressBook_.toHash(); }
+	inline [[nodiscard]] sa::address_bool_t __fastcall getAddressBook(long long index) const { return addressBook_.value(index); }
+	inline [[nodiscard]] QHash<long long, sa::address_bool_t> __fastcall getAddressBooks() const { return addressBook_.toHash(); }
 
-	inline [[nodiscard]] sa::battledata_t __fastcall getBattleData() const { return battleData.get(); }
-	inline [[nodiscard]] sa::JOBDAILY __fastcall getJobDaily(long long index) const { return jobdaily_.value(index); }
-	inline [[nodiscard]] QHash<long long, sa::JOBDAILY> __fastcall getJobDailys() const { return jobdaily_.toHash(); }
-	inline [[nodiscard]] sa::CHARLISTTABLE __fastcall getCharListTable(long long index) const { return chartable_.value(index); }
-	inline [[nodiscard]] sa::MAIL_HISTORY __fastcall getMailHistory(long long index) const { return mailHistory_.value(index); }
+	inline [[nodiscard]] sa::battle_data_t __fastcall getBattleData() const { return battleData.get(); }
+	inline [[nodiscard]] sa::mission_data_t __fastcall getMissionInfo(long long index) const { return missionInfo_.value(index); }
+	inline [[nodiscard]] QHash<long long, sa::mission_data_t> __fastcall getMissionInfos() const { return missionInfo_.toHash(); }
+	inline [[nodiscard]] sa::char_list_data_t __fastcall getCharListTable(long long index) const { return charListData_.value(index); }
+	inline [[nodiscard]] sa::mail_history_t __fastcall getMailHistory(long long index) const { return mailHistory_.value(index); }
 
 	[[nodiscard]] long long __fastcall findInjuriedAllie();
 
@@ -376,16 +376,16 @@ private:
 	[[nodiscard]] long long __fastcall getProfessionSkillIndexByName(const QString& names) const;
 
 #pragma region BattleFunctions
-	long long __fastcall playerDoBattleWork(const sa::battledata_t& bt);
-	void __fastcall handleCharBattleLogics(const sa::battledata_t& bt);
-	long long __fastcall petDoBattleWork(const sa::battledata_t& bt);
-	void __fastcall handlePetBattleLogics(const sa::battledata_t& bt);
+	long long __fastcall playerDoBattleWork(const sa::battle_data_t& bt);
+	void __fastcall handleCharBattleLogics(const sa::battle_data_t& bt);
+	long long __fastcall petDoBattleWork(const sa::battle_data_t& bt);
+	void __fastcall handlePetBattleLogics(const sa::battle_data_t& bt);
 
 	bool __fastcall isCharMpEnoughForMagic(long long magicIndex) const;
 	bool __fastcall isCharMpEnoughForSkill(long long magicIndex) const;
 	bool __fastcall isCharHpEnoughForSkill(long long magicIndex) const;
 
-	void __fastcall sortBattleUnit(QVector<sa::battleobject_t>& v) const;
+	void __fastcall sortBattleUnit(QVector<sa::battle_object_t>& v) const;
 
 	enum BattleMatchType
 	{
@@ -399,18 +399,18 @@ private:
 		MatchName,
 		MatchStatus
 	};
-	bool __fastcall matchBattleTarget(const QVector<sa::battleobject_t>& btobjs, BattleMatchType matchtype, long long firstMatchPos, QString op, QVariant cmpvar, long long* ppos);
-	bool __fastcall conditionMatchTarget(QVector<sa::battleobject_t> btobjs, const QString& conditionStr, long long* ppos);
+	bool __fastcall matchBattleTarget(const QVector<sa::battle_object_t>& btobjs, BattleMatchType matchtype, long long firstMatchPos, QString op, QVariant cmpvar, long long* ppos);
+	bool __fastcall conditionMatchTarget(QVector<sa::battle_object_t> btobjs, const QString& conditionStr, long long* ppos);
 
-	[[nodiscard]] long long __fastcall getBattleSelectableEnemyTarget(const sa::battledata_t& bt) const;
+	[[nodiscard]] long long __fastcall getBattleSelectableEnemyTarget(const sa::battle_data_t& bt) const;
 
-	[[nodiscard]] long long __fastcall getBattleSelectableEnemyOneRowTarget(const sa::battledata_t& bt, bool front) const;
+	[[nodiscard]] long long __fastcall getBattleSelectableEnemyOneRowTarget(const sa::battle_data_t& bt, bool front) const;
 
-	[[nodiscard]] long long __fastcall getBattleSelectableAllieTarget(const sa::battledata_t& bt) const;
+	[[nodiscard]] long long __fastcall getBattleSelectableAllieTarget(const sa::battle_data_t& bt) const;
 
-	[[nodiscard]] bool __fastcall matchBattleEnemyByName(const QString& name, bool isExact, const QVector<sa::battleobject_t>& src, QVector<sa::battleobject_t>* v) const;
-	[[nodiscard]] bool __fastcall matchBattleEnemyByLevel(long long level, const QVector<sa::battleobject_t>& src, QVector<sa::battleobject_t>* v) const;
-	[[nodiscard]] bool __fastcall matchBattleEnemyByMaxHp(long long  maxHp, const QVector<sa::battleobject_t>& src, QVector<sa::battleobject_t>* v) const;
+	[[nodiscard]] bool __fastcall matchBattleEnemyByName(const QString& name, bool isExact, const QVector<sa::battle_object_t>& src, QVector<sa::battle_object_t>* v) const;
+	[[nodiscard]] bool __fastcall matchBattleEnemyByLevel(long long level, const QVector<sa::battle_object_t>& src, QVector<sa::battle_object_t>* v) const;
+	[[nodiscard]] bool __fastcall matchBattleEnemyByMaxHp(long long  maxHp, const QVector<sa::battle_object_t>& src, QVector<sa::battle_object_t>* v) const;
 
 	[[nodiscard]] long long __fastcall getGetPetSkillIndexByName(long long etIndex, const QString& name) const;
 
@@ -418,10 +418,10 @@ private:
 	bool __fastcall fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget, long long* target) const;
 	bool __fastcall fixCharTargetByItemIndex(long long itemIndex, long long oldtarget, long long* target) const;
 	bool __fastcall fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget, long long* target) const;
-	void __fastcall updateCurrentSideRange(sa::battledata_t* bt);
+	void __fastcall updateCurrentSideRange(sa::battle_data_t* bt);
 	bool __fastcall checkFlagState(long long pos);
 
-	inline void __fastcall setBattleData(const sa::battledata_t& data) { battleData.set(data); }
+	inline void __fastcall setBattleData(const sa::battle_data_t& data) { battleData.set(data); }
 
 	//自動鎖寵
 	void checkAutoLockPet(); //Async concurrent, DO NOT change calling convention
@@ -450,7 +450,7 @@ private:
 
 	void __fastcall swapItemLocal(long long from, long long to);
 
-	void __fastcall realTimeToSATime(sa::LSTIME* lstime);
+	void __fastcall realTimeToSATime(sa::ls_time_t* lstime);
 
 #pragma endregion
 
@@ -474,7 +474,7 @@ private:
 	safe::Flag petEnableEscapeForTemp = false;//寵物臨時設置逃跑模式(觸發調用DoNothing)
 	safe::Integer tempCatchPetTargetIndex = -1;//臨時捕捉寵物目標索引
 
-	safe::Data<sa::battledata_t> battleData; //戰鬥數據
+	safe::Data<sa::battle_data_t> battleData; //戰鬥數據
 
 	safe::Flag IS_WAITFOT_SKUP_RECV = false; //等待接收SKUP封包
 	QFuture<void> skupFuture; //自動加點線程管理器
@@ -483,19 +483,19 @@ private:
 
 	safe::Flag battleBackupThreadFlag = false;//戰鬥動作備用線程標誌
 
-	safe::Data<sa::PC> pc_ = {};
+	safe::Data<sa::character_t> character_ = {};
 
-	safe::Hash<long long, sa::PARTY> party_ = {};
-	safe::Hash<long long, sa::ITEM> item_ = {};
-	safe::Hash<long long, QHash<long long, sa::ITEM>> petItem_ = {};
-	safe::Hash<long long, sa::PET> pet_ = {};
-	safe::Hash<long long, sa::MAGIC> magic_ = {};
-	safe::Hash<long long, sa::ADDRESS_BOOK> addressBook_ = {};
-	safe::Hash<long long, sa::JOBDAILY> jobdaily_ = {};
-	safe::Hash<long long, sa::CHARLISTTABLE> chartable_ = {};
-	safe::Hash<long long, sa::MAIL_HISTORY> mailHistory_ = {};
-	safe::Hash<long long, sa::PROFESSION_SKILL> profession_skill_ = {};
-	safe::Hash<long long, QHash<long long, sa::PET_SKILL>> petSkill_ = {};
+	safe::Hash<long long, sa::team_t> team_ = {};
+	safe::Hash<long long, sa::item_t> item_ = {};
+	safe::Hash<long long, QHash<long long, sa::item_t>> petItem_ = {};
+	safe::Hash<long long, sa::pet_t> pet_ = {};
+	safe::Hash<long long, sa::magic_t> magic_ = {};
+	safe::Hash<long long, sa::address_bool_t> addressBook_ = {};
+	safe::Hash<long long, sa::mission_data_t> missionInfo_ = {};
+	safe::Hash<long long, sa::char_list_data_t> charListData_ = {};
+	safe::Hash<long long, sa::mail_history_t> mailHistory_ = {};
+	safe::Hash<long long, sa::profession_skill_t> professionSkill_ = {};
+	safe::Hash<long long, QHash<long long, sa::pet_skill_t>> petSkill_ = {};
 
 	QHash<QString, bool> itemStackFlagHash = {};
 
@@ -513,7 +513,7 @@ private:
 	safe::Data<QString> lastSecretChatName_;//最後一次收到密語的發送方名稱
 
 	//遊戲內當前時間相關
-	sa::LSTIME saTimeStruct_ = {};
+	sa::ls_time_t saTimeStruct_ = {};
 	safe::Integer serverTime_ = 0LL;
 	safe::Integer firstServerTime_ = 0LL;
 
@@ -533,9 +533,9 @@ private:
 	QString trade_command;
 	long long tradeStatus = 0;
 	long long tradePetIndex = -1;
-	sa::PET tradePet[2] = {};
-	sa::showitem opp_item[sa::MAX_MAXHAVEITEM];	//交易道具阵列增为15个
-	sa::showpet opp_pet[sa::MAX_PET];
+	sa::pet_t tradePet[2] = {};
+	sa::show_item_t opp_item[sa::MAX_MAXHAVEITEM];	//交易道具阵列增为15个
+	sa::show_pet_t opp_pet[sa::MAX_PET];
 	QStringList myitem_tradeList;
 	QStringList mypet_tradeList = { "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 	long long mygoldtrade = 0;
@@ -562,7 +562,7 @@ public:
 	safe::Flag IS_TRADING = false;
 	safe::Flag IS_DISCONNECTED = false;
 
-	safe::Flag IS_WAITFOR_JOBDAILY_FLAG = false;
+	safe::Flag IS_WAITFOR_missionInfo_FLAG = false;
 	safe::Flag IS_WAITFOR_BANK_FLAG = false;
 	safe::Flag IS_WAITFOR_DIALOG_FLAG = false;
 	safe::Flag IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
@@ -582,22 +582,20 @@ public:
 	safe::Integer battle_total = 0;
 	safe::Integer battle_one_round_time = 0;
 
-	safe::Integer saCurrentGameTime = 0;//遊戲時間 LSTIME_SECTION
+	safe::Integer saCurrentGameTime = 0;//遊戲時間 LSTimeSection
 
-	MapAnalyzer mapAnalyzer;
+	safe::Data<sa::currency_data_t> currencyData = {};
+	safe::Data<sa::custom_dialog_t> customDialog = {};
 
-	safe::Data<sa::currencydata_t> currencyData = {};
-	safe::Data<sa::customdialog_t> customDialog = {};
-
-	safe::Hash<long long, sa::mapunit_t> mapUnitHash;
-	safe::Hash<QPoint, sa::mapunit_t> npcUnitPointHash;
+	safe::Hash<long long, sa::map_unit_t> mapUnitHash;
+	safe::Hash<QPoint, sa::map_unit_t> npcUnitPointHash;
 	safe::Queue<QPair<long long, QString>> chatQueue;
 
-	QPair<long long, QVector<sa::bankpet_t>> currentBankPetList;
-	safe::Vector<sa::ITEM> currentBankItemList;
+	QPair<long long, QVector<sa::bank_pet_t>> currentBankPetList;
+	safe::Vector<sa::item_t> currentBankItemList;
 
 	util::Timer repTimer;
-	sa::AfkRecorder recorder[1 + sa::MAX_PET] = {};
+	sa::afk_record_data_t afkRecords[1 + sa::MAX_PET] = {};
 
 	safe::Data<sa::dialog_t> currentDialog = {};
 
@@ -610,14 +608,16 @@ public:
 	safe::Data<QString> labelCharAction;
 	safe::Data<QString> labelPetAction;
 
+	MapDevice mapDevice;
+
 private:
-	enum BufferControl
+	enum NextBufferAction
 	{
-		BUFF_NONE,
-		BUFF_NEED_TO_CLEAN,
-		BUFF_HAS_NEXT,
-		BUFF_ABOUT_TO_END,
-		BUFF_INVALID,
+		kBufferNone,
+		kBufferNeedToClean,
+		kContinueAppendBuffer,
+		kBufferAboutToEnd,
+		kInvalidBuffer,
 	};
 
 	char netDataBuffer_[NETDATASIZE] = {};
@@ -662,9 +662,9 @@ private://lssproto_recv
 	virtual void __fastcall lssproto_HL_recv(long long flg) override;//戰鬥中是否要Help
 	virtual void __fastcall lssproto_PR_recv(long long request, long long result) override;
 	virtual void __fastcall lssproto_KS_recv(long long petarray, long long result) override;//指定那一只寵物出場戰鬥
-#ifdef _STANDBYPET
+
 	virtual void __fastcall lssproto_SPET_recv(long long standbypet, long long result) override;
-#endif
+
 	virtual void __fastcall lssproto_PS_recv(long long result, long long havepetindex, long long havepetskill, long long toindex) override;	//寵物合成
 	virtual void __fastcall lssproto_SKUP_recv(long long point) override;//取得可加的屬性點數
 	virtual void __fastcall lssproto_WN_recv(long long windowtype, long long buttontype, long long dialogid, long long unitid, char* data) override;
@@ -683,82 +683,54 @@ private://lssproto_recv
 	virtual void __fastcall lssproto_WO_recv(long long effect) override;//取得轉生的特效
 	virtual void __fastcall lssproto_TD_recv(char* data) override;
 	virtual void __fastcall lssproto_FM_recv(char* data) override;
-#ifdef _ITEM_CRACKER
-	virtual void __fastcall lssproto_IC_recv(const QPoint& pos) override;
-#endif
-#ifdef _MAGIC_NOCAST//沈默
-	virtual void __fastcall lssproto_NC_recv(long long flg) override;
-#endif
-#ifdef _CHECK_GAMESPEED
-	virtual void __fastcall lssproto_CS_recv(long long deltimes) override;
-#endif
-#ifdef _PETS_SELECTCON
-	virtual void __fastcall lssproto_PETST_recv(long long petarray, long long result) override;
-#endif
-#ifdef _CHATROOMPROTOCOL			// (不可開) 聊天室頻道
-	virtual void __fastcall lssproto_CHATROOM_recv(char* data) override;
-#endif
-#ifdef _NEWREQUESTPROTOCOL			// (不可開) 新增Protocol要求細項
-	virtual void __fastcall lssproto_RESIST_recv(char* data) override;
-#endif
-#ifdef _ALCHEPLUS
-	virtual void __fastcall lssproto_ALCHEPLUS_recv(char* data) override;
-#endif
 
-#ifdef _OUTOFBATTLESKILL			// (不可開) Syu ADD 非戰鬥時技能Protocol
-	virtual void __fastcall lssproto_BATTLESKILL_recv(char* data) override;
-#endif
+	virtual void __fastcall lssproto_IC_recv(const QPoint& pos) override {};
+
+	virtual void __fastcall lssproto_NC_recv(long long flg) override;
+
+	virtual void __fastcall lssproto_CS_recv(long long deltimes) override;
+
+	virtual void __fastcall lssproto_PETST_recv(long long petarray, long long result) override;
+	//  聊天室頻道
+	virtual void __fastcall lssproto_CHATROOM_recv(char* data) override {};
+
+	//新增Protocol要求細項
+	virtual void __fastcall lssproto_RESIST_recv(char* data) override {};
+
+	virtual void __fastcall lssproto_ALCHEPLUS_recv(char* data) override {};
+	//非戰鬥時技能Protocol
+	virtual void __fastcall lssproto_BATTLESKILL_recv(char* data) override {};
+
 	virtual void __fastcall lssproto_CHAREFFECT_recv(char* data) override;
 
-#ifdef _STREET_VENDOR
-	virtual void __fastcall lssproto_STREET_VENDOR_recv(char* data) override;	// 擺攤功能
-#endif
+	virtual void __fastcall lssproto_STREET_VENDOR_recv(char* data) override {};	// 擺攤功能
 
-#ifdef _JOBDAILY
-	virtual void __fastcall lssproto_JOBDAILY_recv(char* data) override;
-#endif
+	virtual void __fastcall lssproto_missionInfo_recv(char* data) override;
 
-#ifdef _FAMILYBADGE_
-	virtual void __fastcall lssproto_FamilyBadge_recv(char* data) override;
-#endif
+	virtual void __fastcall lssproto_FamilyBadge_recv(char* data) override {};
 
-#ifdef _TEACHER_SYSTEM
 	virtual void __fastcall lssproto_TEACHER_SYSTEM_recv(char* data) override;
-#endif
 
 	virtual void __fastcall lssproto_S2_recv(char* data) override;
 
-#ifdef _ITEM_FIREWORK
 	virtual void __fastcall lssproto_Firework_recv(long long nCharaindex, long long nType, long long nActionNum) override;	// 煙火功能
-#endif
-#ifdef _THEATER
-	virtual void __fastcall lssproto_TheaterData_recv(char* pData) override;
-#endif
-#ifdef _MOVE_SCREEN
-	virtual void __fastcall lssproto_MoveScreen_recv(BOOL bMoveScreenMode, long long iXY) override;	// client 移動熒幕
-#endif
-#ifdef _NPC_MAGICCARD
-	virtual void __fastcall lssproto_MagiccardAction_recv(char* data) override;	//魔法牌功能
-	virtual void __fastcall lssproto_MagiccardDamage_recv(long long position, long long damage, long long offsetx, long long offsety) override;
-#endif
-#ifdef  _NPC_DANCE
-	virtual void __fastcall lssproto_DancemanOption_recv(long long option) override;	//動一動狀態
-#endif
-#ifdef _ANNOUNCEMENT_
+
+	virtual void __fastcall lssproto_TheaterData_recv(char* pData) override {};
+
+	virtual void __fastcall lssproto_MoveScreen_recv(BOOL bMoveScreenMode, long long iXY) override {};	// client 移動熒幕
+
+	virtual void __fastcall lssproto_MagiccardAction_recv(char* data) override {};	//魔法牌功能
+	virtual void __fastcall lssproto_MagiccardDamage_recv(long long position, long long damage, long long offsetx, long long offsety) override {};
+
+	virtual void __fastcall lssproto_DancemanOption_recv(long long option) override {};	//動一動狀態
+
 	virtual void __fastcall lssproto_DENGON_recv(char* data, long long colors, long long nums) override;
-#endif
-#ifdef _HUNDRED_KILL
-	virtual void __fastcall lssproto_hundredkill_recv(long long flag) override;
-#endif
-#ifdef _PK2007
-	virtual void __fastcall lssproto_pkList_recv(long long count, char* data) override;
-#endif
-#ifdef _PETBLESS_
-	virtual void __fastcall lssproto_petbless_send(long long petpos, long long type) override;
-#endif
-#ifdef _PET_SKINS
-	virtual void __fastcall lssproto_PetSkins_recv(char* data) override;
-#endif
+
+	virtual void __fastcall lssproto_hundredkill_recv(long long flag) override {};
+
+	virtual void __fastcall lssproto_pkList_recv(long long count, char* data) override {};
+
+	virtual void __fastcall lssproto_PetSkins_recv(char* data) override {};
 
 	//////////////////////////////////
 

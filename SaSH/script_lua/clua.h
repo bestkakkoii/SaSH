@@ -217,24 +217,39 @@ public:
 	CLuaItem(long long index) : index_(index) {}
 	~CLuaItem() = default;
 
-	sa::ITEM& operator[](long long index);
+	sa::item_t& operator[](long long index);
 
-	void insertItem(long long index, const sa::ITEM& item) { items_.insert(index, item); }
+	long long swapitem(long long fromIndex, long long toIndex, sol::this_state s);
+	long long cook(std::string singre, sol::this_state s);
+	long long make(std::string singre, sol::this_state s);
+	long long withdrawgold(long long gold, sol::object oispublic, sol::this_state s);
+	long long depositgold(long long gold, sol::object oispublic, sol::this_state s);
+	long long buy(long long productindex, long long count, sol::object ounit, sol::object odialogid, sol::this_state s);
+	long long sell(std::string sname, sol::object ounit, sol::object odialogid, sol::this_state s);
+
+
+	long long dropgold(long long goldamount, sol::this_state s);
+
+	long long pickitem(sol::object odir, sol::this_state s);
+	long long sellpet(sol::object range, sol::this_state s);
+	long long droppet(sol::object oname, sol::this_state s);
+
+	void insertItem(long long index, const sa::item_t& item) { items_.insert(index, item); }
 
 	long long getSpace();
 	bool getIsFull();
 
 public:
-	long long count(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s);
-	long long indexof(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s);
-	sol::object find(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s);
+	long long count(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s);
+	long long indexof(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s);
+	sol::object find(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s);
 
 public:
 	long long space = 0;
 	bool isfull = false;
 
 private:
-	QHash<long long, sa::ITEM> items_;
+	QHash<long long, sa::item_t> items_;
 	long long index_ = -1;
 };
 
@@ -259,19 +274,11 @@ public:
 	~CLuaChar() = default;
 
 	long long rename(std::string sfname, sol::this_state s);
-	long long useMagic(long long magicIndex, long long target, sol::this_state s);
-	long long depositGold(long long gold, sol::object oispublic, sol::this_state s);
-	long long withdrawGold(long long gold, sol::object oispublic, sol::this_state s);
-	long long dropGold(long long gold, sol::this_state s);
-	long long mail(long long cardIndex, std::string stext, long long petIndex, std::string sitemName, std::string sitemMemo, sol::this_state s);
-	long long mail(long long cardIndex, std::string stext, sol::this_state s);
-	long long skillUp(long long abilityIndex, long long amount, sol::this_state s);
+	long long skup(sol::object otype, long long count, sol::this_state s);
 
-	//action-group
 	long long join(sol::this_state s);
 	long long leave(sol::this_state s);
 	long long kick(long long teammateIndex, sol::this_state s);
-	long long doffstone(long long goldamount, sol::this_state s);
 };
 
 class CLuaPet
@@ -283,7 +290,7 @@ public:
 	long long setState(long long petIndex, long long state, sol::this_state s);
 	long long drop(long long petIndex, sol::this_state s);
 	long long rename(long long petIndex, std::string name, sol::this_state s);
-	long long learn(long long fromSkillIndex, long long petIndex, long long toSkillIndex, long long unitid, long long dialogid, sol::this_state s);
+	long long learn(long long petIndex, long long fromSkillIndex, long long toSkillIndex, sol::object ounitid, sol::object odialogid, sol::this_state s);
 	long long swap(long long petIndex, long long from, long long to, sol::this_state s);
 	long long deposit(long long petIndex, long long unitid, long long dialogid, sol::this_state s);
 	long long withdraw(long long petIndex, long long unitid, long long dialogid, sol::this_state s);
@@ -303,7 +310,7 @@ public:
 	long long teleport(sol::this_state s);
 	long long findPath(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object ofunction, sol::object jump, sol::this_state s);
 	long long downLoad(sol::object floor, sol::this_state s);
-	long long findNPC(sol::object, sol::object, long long x, long long y, long long otimeout, sol::this_state s);
+	long long findNPC(sol::object p1, sol::object nicknames, long long x, long long y, sol::object otimeout, sol::object ostepcost, sol::object enableCrossWall, sol::this_state s);
 };
 
 class CLuaBattle

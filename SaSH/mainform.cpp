@@ -77,6 +77,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 			}
 
 			QAction* pAction = q_check_ptr(new QAction(newText, parent));
+			sash_assume(pAction != nullptr);
 			if (pAction == nullptr)
 				return;
 
@@ -167,8 +168,11 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 	};
 
 	std::unique_ptr<QMenu> pMenuSystem(q_check_ptr(new QMenu(QObject::tr("system"))));
+	sash_assume(pMenuSystem != nullptr);
 	std::unique_ptr<QMenu> pMenuOther(q_check_ptr(new QMenu(QObject::tr("other"))));
+	sash_assume(pMenuOther != nullptr);
 	std::unique_ptr<QMenu> pMenuFile(q_check_ptr(new QMenu(QObject::tr("file"))));
+	sash_assume(pMenuFile != nullptr);
 
 	if (pMenuSystem == nullptr || pMenuOther == nullptr || pMenuFile == nullptr)
 		return;
@@ -188,25 +192,30 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 
 bool isValidChar(const char* charPtr)
 {
-	__try
+	try
 	{
 		if (charPtr != nullptr)
 		{
 			//test ptr
 			char c = *charPtr;
 			if (c == '\0')
+			{
+				qDebug() << __FUNCTION__ << "charPtr is empty";
 				return false;
+			}
 
 			return true;
 		}
 		else
 		{
+			qDebug() << __FUNCTION__ << "charPtr is nullptr";
 			return false;
 		}
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
+	catch (...)
 	{
 		// 捕获异常，处理不合法指针的情况
+		qDebug() << __FUNCTION__ << "invalid charPtr:" << util::toQString(reinterpret_cast<long long>(charPtr), 16).toUpper();
 		return false;
 	}
 }
@@ -252,6 +261,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		long long id = msg->wParam;
 		std::unique_ptr<Interpreter> interpreter(new Interpreter(id));
+		sash_assume(interpreter != nullptr);
 		if (nullptr == interpreter)
 		{
 			updateStatusText(tr("server is off"));
@@ -721,6 +731,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			if (pThumbnailForm_ == nullptr)
 			{
 				QThumbnailForm* pThumbnailForm = q_check_ptr(new QThumbnailForm(hwnds));
+				sash_assume(pThumbnailForm != nullptr);
 				if (pThumbnailForm == nullptr)
 				{
 					updateStatusText(tr("create thumbnail form failed"));
@@ -877,24 +888,28 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			if (pLoginInfo == nullptr)
 			{
 				*result = 0;
-				qDebug() << __FUNCTION__ << "pLoginInfo is nullptr";
-				updateStatusText(tr("invalid lparam"));
+				qDebug() << __FUNCTION__ << "pLoginInfo is nullptr" << util::toQString((int)(msg->lParam), 16);
+				updateStatusText(tr("invalid lparam") + " " + util::toQString((int)(msg->lParam), 16));
 				break;
 			}
+
+			qDebug() << __FUNCTION__ << "server:" << pLoginInfo->server << "subserver:" << pLoginInfo->subserver << "position:" << pLoginInfo->position;
+			qDebug() << "pusername:" << util::toQString(reinterpret_cast<long long>(pLoginInfo->username), 16).toUpper();
+			qDebug() << "ppassword:" << util::toQString(reinterpret_cast<long long>(pLoginInfo->password), 16).toUpper();
 
 			if (!isValidChar(pLoginInfo->username))
 			{
 				*result = 2;
-				qDebug() << __FUNCTION__ << "invalid user:" << reinterpret_cast<long long>(pLoginInfo->username);
-				updateStatusText(tr("invalid user/psw"));
+				qDebug() << __FUNCTION__ << "invalid user:" << util::toQString(reinterpret_cast<long long>(pLoginInfo->username), 16).toUpper();
+				updateStatusText(tr("invalid user:0x%1").arg(util::toQString(reinterpret_cast<long long>(pLoginInfo->username), 16).toUpper()));
 				break;
 			}
 
 			if (!isValidChar(pLoginInfo->password))
 			{
 				*result = 2;
-				qDebug() << __FUNCTION__ << "invalid psw:" << reinterpret_cast<long long>(pLoginInfo->password);
-				updateStatusText(tr("invalid user/psw"));
+				qDebug() << __FUNCTION__ << "invalid psw:" << util::toQString(reinterpret_cast<long long>(pLoginInfo->password), 16).toUpper();
+				updateStatusText(tr("invalid psw:0x%1").arg(util::toQString(reinterpret_cast<long long>(pLoginInfo->password), 16).toUpper()));
 				break;
 			}
 
@@ -1040,6 +1055,7 @@ MainForm* MainForm::createNewWindow(long long idToAllocate, long long* pId)
 		}
 
 		MainForm* pMainForm = q_check_ptr(new MainForm(uniqueId, nullptr));
+		sash_assume(pMainForm != nullptr);
 		if (pMainForm == nullptr)
 			break;
 
@@ -1111,6 +1127,7 @@ MainForm::MainForm(long long index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::QueuedConnection);
 
 	QMenuBar* pMenuBar = q_check_ptr(new QMenuBar(this));
+	sash_assume(pMenuBar != nullptr);
 	if (pMenuBar != nullptr)
 	{
 		pMenuBar_ = pMenuBar;
@@ -1158,14 +1175,15 @@ MainForm::MainForm(long long index, QWidget* parent)
 	onResetControlTextLanguage();
 
 	RPC& rpc = RPC::getInstance();
-	rpc.reg(getIndex(), "print", "print(QString)", this);
+	QSharedPointer<sol::state> device = rpc.getDevice(getIndex());
+	device->set_function("print", &MainForm::print, this);
 }
 
-QString MainForm::print(QString str)
+std::string MainForm::print(std::string str)
 {
-	QByteArray ba = str.toUtf8();
-	std::cout << std::string(ba.constData()) << std::endl;
-	return QString("rt:%1").arg(str);
+	std::cout << str << std::endl;
+	QString returnStr = QString("rt:%1").arg(util::toQString(str));
+	return util::toConstData(returnStr);
 }
 
 MainForm::~MainForm()
@@ -1227,14 +1245,17 @@ void MainForm::createTrayIcon()
 		trayIcon_.setToolTip(windowTitle());
 
 		trayMenu = q_check_ptr(new QMenu(this));
+		sash_assume(trayMenu != nullptr);
 		if (trayMenu == nullptr)
 			break;
 
 		openAction = q_check_ptr(new QAction(tr("open"), this));
+		sash_assume(openAction != nullptr);
 		if (openAction == nullptr)
 			break;
 
 		closeAction = q_check_ptr(new QAction(tr("close"), this));
+		sash_assume(closeAction != nullptr);
 		if (closeAction == nullptr)
 			break;
 
@@ -1330,8 +1351,11 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionHideControl")
 	{
-		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
-		config.write("MainFormClass", "Menu", "HideControl", pAction->isChecked());
+		{
+			util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
+			config.write("MainFormClass", "Menu", "HideControl", pAction->isChecked());
+		}
+
 		if (pAction->isChecked())
 		{
 			ui.tabWidget_main->hide();
@@ -1352,6 +1376,7 @@ void MainForm::onMenuActionTriggered()
 	if (actionName == "actionWebsite")
 	{
 		CopyRightDialog* pCopyRightDialog = q_check_ptr(new CopyRightDialog(this));
+		sash_assume(pCopyRightDialog != nullptr);
 		if (pCopyRightDialog != nullptr)
 		{
 			pCopyRightDialog->exec();
@@ -1430,7 +1455,7 @@ void MainForm::onMenuActionTriggered()
 		QString fileName;
 		Injector& injector = Injector::getInstance(currentIndex);
 		if (!injector.worker.isNull())
-			fileName = injector.worker->getPC().name;
+			fileName = injector.worker->getCharacter().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.saveHashSettings(fileName);
 		return;
@@ -1441,7 +1466,7 @@ void MainForm::onMenuActionTriggered()
 		QString fileName;
 		Injector& injector = Injector::getInstance(currentIndex);
 		if (!injector.worker.isNull())
-			fileName = injector.worker->getPC().name;
+			fileName = injector.worker->getCharacter().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.loadHashSettings(fileName);
 		return;

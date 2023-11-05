@@ -245,9 +245,9 @@ void Lssproto::lssproto_TD_send(char* data)
 }
 
 //請求任務日誌封包  data = "dyedye"
-void Lssproto::lssproto_JOBDAILY_send(char* data)
+void Lssproto::lssproto_missionInfo_send(char* data)
 {
-	autil_->util_Send(sa::LSSPROTO_JOBDAILY_SEND, data);
+	autil_->util_Send(sa::LSSPROTO_missionInfo_SEND, data);
 }
 
 //老菜單封包
@@ -257,12 +257,10 @@ void Lssproto::lssproto_ShopOk_send(long long n)
 }
 
 //新菜單封包
-#ifdef _NEW_SYSTEM_MENU
 void Lssproto::lssproto_SaMenu_send(long long index)
 {
 	autil_->util_Send(sa::LSSPROTO_SAMENU_SEND, index);
 }
-#endif
 
 //求救
 void Lssproto::lssproto_HL_send(long long flg)

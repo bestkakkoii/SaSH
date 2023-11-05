@@ -17,13 +17,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #include "stdafx.h"
-#include "astar.h"
+#include "astardevice.h"
 #include <algorithm>
 
 #if _MSVC_LANG > 201703L
 #include <ranges>
 #endif
-#include <cassert>
 
 //#define USE_BSTAR
 //#define Octile_distance
@@ -33,7 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 constexpr long long kStepValue = 24;
 constexpr long long kObliqueValue = 32;
 
-CAStar::CAStar()
+AStarDevice::AStarDevice()
 	: step_val_(kStepValue)
 	, oblique_val_(kObliqueValue)
 
@@ -41,12 +40,12 @@ CAStar::CAStar()
 
 }
 
-CAStar::~CAStar()
+AStarDevice::~AStarDevice()
 {
 	clear();
 }
 
-void CAStar::init(long long width, long long height)
+void AStarDevice::init(long long width, long long height)
 {
 	std::lock_guard<std::mutex> lock(mutex_);
 	if (height_ == height && width_ == width)
@@ -55,48 +54,50 @@ void CAStar::init(long long width, long long height)
 	height_ = height;
 	width_ = width;
 	resource_.reset(q_check_ptr(new std::pmr::monotonic_buffer_resource(width_ * height_ * sizeof(Node) * 2)));
+	sash_assume(resource_ != nullptr);
 	allocator_.reset(q_check_ptr(new std::pmr::polymorphic_allocator<Node>(resource_.get())));
+	sash_assume(allocator_ != nullptr);
 	open_list_.clear();
 	mapping_.clear();
 	mapping_.resize(width_ * height_);
 }
 
-void CAStar::set_canpass(const AStarCallback& callback)
+void AStarDevice::set_canpass(const AStarCallback& callback)
 {
 	can_pass_ = callback;
 }
 
-void CAStar::set_corner(bool corner)
+void AStarDevice::set_corner(bool corner)
 {
 	corner_ = corner;
 }
 
 // 獲取直行估值
-constexpr long long CAStar::get_step_value() const
+constexpr long long AStarDevice::get_step_value() const
 {
 	return step_val_;
 }
 
 // 獲取拐角估值
-constexpr long long CAStar::get_oblique_value() const
+constexpr long long AStarDevice::get_oblique_value() const
 {
 	return oblique_val_;
 }
 
 // 設置直行估值
-constexpr void CAStar::set_step_value(long long value)
+constexpr void AStarDevice::set_step_value(long long value)
 {
 	step_val_ = value;
 }
 
 // 設置拐角估值
-constexpr void CAStar::set_oblique_value(long long value)
+constexpr void AStarDevice::set_oblique_value(long long value)
 {
 	oblique_val_ = value;
 }
 
 // 清理參數
-void CAStar::clear()
+void AStarDevice::clear()
 {
 	// 释放 mapping_ 中的节点内存
 	for (Node*& node : record_)
@@ -113,7 +114,7 @@ void CAStar::clear()
 }
 
 // 參數是否有效
-bool CAStar::is_vlid_params(const QPoint& start, const QPoint& end) const
+bool AStarDevice::is_vlid_params(const QPoint& start, const QPoint& end) const
 {
 	std::ignore = end;
 	return ((can_pass_ != nullptr)
@@ -123,7 +124,7 @@ bool CAStar::is_vlid_params(const QPoint& start, const QPoint& end) const
 }
 
 // 獲取節點索引
-bool CAStar::get_node_index(Node*& node, long long* index)
+bool AStarDevice::get_node_index(Node*& node, long long* index)
 {
 	*index = 0;
 	long long size = open_list_.size();
@@ -139,7 +140,7 @@ bool CAStar::get_node_index(Node*& node, long long* index)
 }
 
 // 二叉堆上濾
-void CAStar::percolate_up(long long& hole)
+void AStarDevice::percolate_up(long long& hole)
 {
 	long long parent = 0;
 	while (hole > 0)
@@ -153,12 +154,12 @@ void CAStar::percolate_up(long long& hole)
 			std::swap(open_list_[hole], open_list_[parent]);
 #endif
 			hole = parent;
-		}
+	}
 		else
 		{
 			return;
 		}
-	}
+}
 }
 
 #if defined(Chebyshev_distance)
@@ -189,7 +190,7 @@ __forceinline long long __fastcall Manhattan_Distance(const QPoint& current, con
 #endif
 // 計算G值
 
-__forceinline long long CAStar::calcul_g_value(Node*& parent, const QPoint& current)
+__forceinline long long AStarDevice::calcul_g_value(Node*& parent, const QPoint& current)
 {
 #if defined(Chebyshev_distance)
 	long long g_value = Chebyshev_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
@@ -208,7 +209,7 @@ __forceinline long long CAStar::calcul_g_value(Node*& parent, const QPoint& curr
 }
 
 // 計算F值
-__forceinline long long CAStar::calcul_h_value(const QPoint& current, const QPoint& end)
+__forceinline long long AStarDevice::calcul_h_value(const QPoint& current, const QPoint& end)
 {
 #if defined(Chebyshev_distance)
 	long long h_value = Chebyshev_Distance(current, end);
@@ -223,27 +224,27 @@ __forceinline long long CAStar::calcul_h_value(const QPoint& current, const QPoi
 }
 
 // 節點是否存在於開啟列表
-__forceinline bool CAStar::in_open_list(const QPoint& pos, Node*& out_node)
+__forceinline bool AStarDevice::in_open_list(const QPoint& pos, Node*& out_node)
 {
 	out_node = mapping_[pos.y() * width_ + pos.x()];
 	return out_node ? out_node->state == NodeState::IN_OPENLIST : false;
 }
 
 // 節點是否存在於關閉列表
-__forceinline bool CAStar::in_closed_list(const QPoint& pos)
+__forceinline bool AStarDevice::in_closed_list(const QPoint& pos)
 {
 	Node* node_ptr = mapping_[pos.y() * width_ + pos.x()];
 	return node_ptr ? node_ptr->state == NodeState::IN_CLOSEDLIST : false;
 }
 
 // 是否可到達
-bool CAStar::can_pass(const QPoint& pos)
+bool AStarDevice::can_pass(const QPoint& pos)
 {
 	return (pos.x() >= 0 && pos.x() < width_ && pos.y() >= 0 && pos.y() < height_) ? can_pass_(pos) : false;
 }
 
 // 當前點是否可到達目標點
-bool CAStar::can_pass(const QPoint& current, const QPoint& destination, const bool& allow_corner)
+bool AStarDevice::can_pass(const QPoint& current, const QPoint& destination, const bool& allow_corner)
 {
 	if (destination.x() >= 0 && destination.x() < width_ && destination.y() >= 0 && destination.y() < height_)
 	{
@@ -272,7 +273,7 @@ bool CAStar::can_pass(const QPoint& current, const QPoint& destination, const bo
 }
 
 // 查找附近可通過的節點
-void CAStar::find_can_pass_nodes(const QPoint& current, const bool& corner, std::vector<QPoint>* out_lists)
+void AStarDevice::find_can_pass_nodes(const QPoint& current, const bool& corner, std::vector<QPoint>* out_lists)
 {
 	QPoint destination;
 	long long row_index = static_cast<long long>(current.y()) - 1;
@@ -308,7 +309,7 @@ void CAStar::find_can_pass_nodes(const QPoint& current, const bool& corner, std:
 }
 
 // 處理找到節點的情況
-void CAStar::handle_found_node(Node*& current, Node*& destination)
+void AStarDevice::handle_found_node(Node*& current, Node*& destination)
 {
 	long long g_value = calcul_g_value(current, destination->pos);
 	if (g_value < destination->g)
@@ -323,13 +324,13 @@ void CAStar::handle_found_node(Node*& current, Node*& destination)
 		}
 		else
 		{
-			__assume(false);
+			sash_assume(false);
 		}
 	}
 }
 
 // 處理未找到節點的情況
-void CAStar::handle_not_found_node(Node*& current, Node*& destination, const QPoint& end)
+void AStarDevice::handle_not_found_node(Node*& current, Node*& destination, const QPoint& end)
 {
 	destination->parent = current;
 	destination->h = calcul_h_value(destination->pos, end);
@@ -349,7 +350,7 @@ void CAStar::handle_not_found_node(Node*& current, Node*& destination, const QPo
 }
 
 // 執行尋路操作
-bool CAStar::find(const QPoint& start, const QPoint& end, std::vector<QPoint>* pPaths)
+bool AStarDevice::find(const QPoint& start, const QPoint& end, std::vector<QPoint>* pPaths)
 {
 	std::lock_guard<std::mutex> lock(mutex_);
 	if (pPaths)

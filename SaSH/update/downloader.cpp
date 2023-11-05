@@ -505,6 +505,7 @@ Downloader::Downloader()
 	szTmpDot7zFile_ = rcPath_ + szDownloadedFileName_;// %Temp%/pid/SaSH.7z
 
 	networkManager_.reset(q_check_ptr(new QNetworkAccessManager(this)));
+	sash_assume(networkManager_ != nullptr);
 
 	emit progressReset(0);
 }
@@ -710,6 +711,7 @@ bool Downloader::start(Source sourceType, QVariant* pvar)
 		url = QUrl(SASH_UPDATE_URL);
 		callback_ = std::bind(&Downloader::overwriteCurrentExecutable, this);
 		progressDialog_ = q_check_ptr(new ProgressDialog);
+		sash_assume(progressDialog_ != nullptr);
 		connect(progressDialog_, &ProgressDialog::canceled, this, &Downloader::onCanceled);
 		break;
 	case GiteeWiki:

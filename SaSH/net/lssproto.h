@@ -58,9 +58,9 @@ public:
 	void __fastcall lssproto_HL_send(long long flg);
 	void __fastcall lssproto_PR_send(const QPoint& pos, long long request);
 	void __fastcall lssproto_KS_send(long long petarray);
-#ifdef _STANDBYPET
+
 	void __fastcall lssproto_SPET_send(long long standbypet);
-#endif
+
 	void __fastcall lssproto_AC_send(const QPoint& pos, long long actionno);
 	void __fastcall lssproto_MU_send(const QPoint& pos, long long array, long long toindex);
 	void __fastcall lssproto_PS_send(long long havepetindex, long long havepetskill, long long toindex, char* data);
@@ -86,68 +86,50 @@ public:
 	void __fastcall lssproto_FM_send(char* data);
 	void __fastcall lssproto_PETST_send(long long nPet, long long sPet);// sPet  0:休息 1:等待 4:郵件
 	void __fastcall lssproto_BM_send(long long iindex);             // _BLACK_MARKET
-#ifdef _FIX_DEL_MAP
+
 	void __fastcall lssproto_DM_send(long long fd);                         // WON ADD 玩家抽地圖送監獄
-#endif
+
 
 	void __fastcall lssproto_MA_send(const QPoint& pos, long long nMind);
 
-#ifdef _CHECK_GAMESPEED
 	void __fastcall lssproto_CS_send(long long fd);
 	long long lssproto_getdelaytimes();
 	void __fastcall lssproto_setdelaytimes(long long delays);
-#endif
-#ifdef _TEAM_KICKPARTY
+
 	void __fastcall lssproto_KTEAM_send(long long si);
-#endif
-#ifdef _CHATROOMPROTOCOL			// (不可開) Syu ADD 聊天室頻道
+
+	//聊天室頻道
 	void __fastcall lssproto_CHATROOM_send(char* data);
-#endif
-#ifdef _NEWREQUESTPROTOCOL			// (不可開) Syu ADD 新增Protocol要求細項
+	// 新增Protocol要求細項
 	void __fastcall lssproto_RESIST_send(char* data);
-#endif
-#ifdef _ALCHEPLUS
+
 	void __fastcall lssproto_ALCHEPLUS_send(char* data);
-#endif
-#ifdef _OUTOFBATTLESKILL			// (不可開) Syu ADD 非戰鬥時技能Protocol
+	//非戰鬥時技能Protocol
 	void __fastcall lssproto_BATTLESKILL_send(long long SkillNum);
-#endif
-#ifdef _STREET_VENDOR
+
 	void __fastcall lssproto_STREET_VENDOR_send(char* data);	// 擺攤功能
-#endif
-#ifdef _JOBDAILY
-	void __fastcall lssproto_JOBDAILY_send(char* data);
-#endif
-#ifdef _FAMILYBADGE_
+
+	void __fastcall lssproto_missionInfo_send(char* data);
+
 	void __fastcall lssproto_FamilyBadge_send(long long fd);
-#endif
-#ifdef _TEACHER_SYSTEM
+
 	void __fastcall lssproto_TEACHER_SYSTEM_send(char* data);	// 導師功能
-#endif
 
 	void __fastcall lssproto_S2_send(char* data);
 
-#ifdef _PET_ITEM
 	void __fastcall lssproto_PetItemEquip_send(const QPoint& pos, long long nPetNo, long long nItemNo, long long nDestNO);	// 寵物裝備功能
-#endif
-#ifdef _GET_HOSTNAME
+
 	void __fastcall lssproto_HostName_send(long long fd);
-#endif
-#ifdef _PK2007
+
 	void __fastcall lssproto_pkList_send(long long fd);
-#endif
-#ifdef _NEW_SYSTEM_MENU
+
 	void __fastcall lssproto_SaMenu_send(long long index);
-#endif
-#ifdef _PETBLESS_
+
 	void __fastcall lssproto_petbless_send(long long petpos, long long type);
-#endif
-#ifdef _RIDEQUERY_
+
 	void __fastcall lssproto_RideQuery_send(long long fd);
-#endif
-#ifdef _CHARSIGNDAY_
+
 	void __fastcall lssproto_SignDay_send(long long fd);
-#endif
 
 	void __fastcall lssproto_ShopOk_send(long long n);
 
@@ -179,9 +161,9 @@ public:
 	virtual void __fastcall lssproto_HL_recv(long long flg) = 0;//戰鬥中是否要Help
 	virtual void __fastcall lssproto_PR_recv(long long request, long long result) = 0;
 	virtual void __fastcall lssproto_KS_recv(long long petarray, long long result) = 0;//指定那一只寵物出場戰鬥
-#ifdef _STANDBYPET
+
 	virtual void __fastcall lssproto_SPET_recv(long long standbypet, long long result) = 0;
-#endif
+
 	virtual void __fastcall lssproto_PS_recv(long long result, long long havepetindex, long long havepetskill, long long toindex) = 0;	//寵物合成
 	virtual void __fastcall lssproto_SKUP_recv(long long point) = 0;//取得可加的屬性點數
 	virtual void __fastcall lssproto_WN_recv(long long windowtype, long long buttontype, long long dialogid, long long unitid, char* data) = 0;
@@ -200,82 +182,53 @@ public:
 	virtual void __fastcall lssproto_WO_recv(long long effect) = 0;//取得轉生的特效
 	virtual void __fastcall lssproto_TD_recv(char* data) = 0;
 	virtual void __fastcall lssproto_FM_recv(char* data) = 0;
-#ifdef _ITEM_CRACKER
-	virtual void __fastcall lssproto_IC_recv(const QPoint& pos) = 0;
-#endif
-#ifdef _MAGIC_NOCAST//沈默
-	virtual void __fastcall lssproto_NC_recv(long long flg) = 0;
-#endif
-#ifdef _CHECK_GAMESPEED
-	virtual void __fastcall lssproto_CS_recv(long long deltimes) = 0;
-#endif
-#ifdef _PETS_SELECTCON
-	virtual void __fastcall lssproto_PETST_recv(long long petarray, long long result) = 0;
-#endif
-#ifdef _CHATROOMPROTOCOL			// (不可開) 聊天室頻道
-	virtual void __fastcall lssproto_CHATROOM_recv(char* data) = 0;
-#endif
-#ifdef _NEWREQUESTPROTOCOL			// (不可開) 新增Protocol要求細項
-	virtual void __fastcall lssproto_RESIST_recv(char* data) = 0;
-#endif
-#ifdef _ALCHEPLUS
-	virtual void __fastcall lssproto_ALCHEPLUS_recv(char* data) = 0;
-#endif
 
-#ifdef _OUTOFBATTLESKILL			// (不可開) Syu ADD 非戰鬥時技能Protocol
+	virtual void __fastcall lssproto_IC_recv(const QPoint& pos) = 0;
+
+	virtual void __fastcall lssproto_NC_recv(long long flg) = 0;
+
+	virtual void __fastcall lssproto_CS_recv(long long deltimes) = 0;
+
+	virtual void __fastcall lssproto_PETST_recv(long long petarray, long long result) = 0;
+	//聊天室頻道
+	virtual void __fastcall lssproto_CHATROOM_recv(char* data) = 0;
+	// 新增Protocol要求細項
+	virtual void __fastcall lssproto_RESIST_recv(char* data) = 0;
+
+	virtual void __fastcall lssproto_ALCHEPLUS_recv(char* data) = 0;
+	//非戰鬥時技能Protocol
 	virtual void __fastcall lssproto_BATTLESKILL_recv(char* data) = 0;
-#endif
+
 	virtual void __fastcall lssproto_CHAREFFECT_recv(char* data) = 0;
 
-#ifdef _STREET_VENDOR
 	virtual void __fastcall lssproto_STREET_VENDOR_recv(char* data) = 0;	// 擺攤功能
-#endif
 
-#ifdef _JOBDAILY
-	virtual void __fastcall lssproto_JOBDAILY_recv(char* data) = 0;
-#endif
+	virtual void __fastcall lssproto_missionInfo_recv(char* data) = 0;
 
-#ifdef _FAMILYBADGE_
 	virtual void __fastcall lssproto_FamilyBadge_recv(char* data) = 0;
-#endif
 
-#ifdef _TEACHER_SYSTEM
 	virtual void __fastcall lssproto_TEACHER_SYSTEM_recv(char* data) = 0;
-#endif
 
 	virtual void __fastcall lssproto_S2_recv(char* data) = 0;
 
-#ifdef _ITEM_FIREWORK
 	virtual void __fastcall lssproto_Firework_recv(long long nCharaindex, long long nType, long long nActionNum) = 0;	// 煙火功能
-#endif
-#ifdef _THEATER
+
 	virtual void __fastcall lssproto_TheaterData_recv(char* pData) = 0;
-#endif
-#ifdef _MOVE_SCREEN
+
 	virtual void __fastcall lssproto_MoveScreen_recv(BOOL bMoveScreenMode, long long iXY) = 0;	// client 移動熒幕
-#endif
-#ifdef _NPC_MAGICCARD
+
 	virtual void __fastcall lssproto_MagiccardAction_recv(char* data) = 0;	//魔法牌功能
 	virtual void __fastcall lssproto_MagiccardDamage_recv(long long position, long long damage, long long offsetx, long long offsety) = 0;
-#endif
-#ifdef  _NPC_DANCE
+
 	virtual void __fastcall lssproto_DancemanOption_recv(long long option) = 0;	//動一動狀態
-#endif
-#ifdef _ANNOUNCEMENT_
+
 	virtual void __fastcall lssproto_DENGON_recv(char* data, long long colors, long long nums) = 0;
-#endif
-#ifdef _HUNDRED_KILL
+
 	virtual void __fastcall lssproto_hundredkill_recv(long long flag) = 0;
-#endif
-#ifdef _PK2007
+
 	virtual void __fastcall lssproto_pkList_recv(long long count, char* data) = 0;
-#endif
-#ifdef _PETBLESS_
-	virtual void __fastcall lssproto_petbless_send(long long petpos, long long type) = 0;
-#endif
-#ifdef _PET_SKINS
+
 	virtual void __fastcall lssproto_PetSkins_recv(char* data) = 0;
-#endif
 
 	//////////////////////////////////
 

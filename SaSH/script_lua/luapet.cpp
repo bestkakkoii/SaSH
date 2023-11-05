@@ -65,16 +65,39 @@ long long CLuaPet::rename(long long petIndex, std::string name, sol::this_state 
 	return TRUE;
 }
 
-long long CLuaPet::learn(long long fromSkillIndex, long long petIndex, long long toSkillIndex, long long unitid, long long dialogid, sol::this_state s)
+long long CLuaPet::learn(long long petIndex, long long fromSkillIndex, long long toSkillIndex, sol::object ounitid, sol::object odialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
 	if (injector.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->learn(--fromSkillIndex, --petIndex, --toSkillIndex, dialogid, unitid);
+	long long modelid = -1;
+	long long unitid = -1;
+	if (ounitid.is<long long>())
+		modelid = ounitid.as<long long>();
+
+	QString npcname = "";
+	if (ounitid.is<std::string>())
+		npcname = util::toQString(ounitid);
+
+	if (modelid != -1 || !npcname.isEmpty())
+	{
+		sa::map_unit_t unit = {};
+		if (injector.worker->findUnit(npcname, sa::kObjectNPC, &unit, "", modelid))
+		{
+			unitid = unit.id;
+		}
+	}
+
+	long long dialogid = 0;
+	if (odialogid.is<long long>())
+		dialogid = odialogid.as<long long>();
+
+	injector.worker->learn(--petIndex, --fromSkillIndex, --toSkillIndex, dialogid, unitid);
 
 	return TRUE;
 }

@@ -119,6 +119,8 @@ private:
 
 	long long counter_ = 10;
 
+	sa::map_t map_ = {};
+
 #if OPEN_GL_ON
 
 	QTimer gltimer_;

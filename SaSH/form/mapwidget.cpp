@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "util.h"
 #include "injector.h"
 #include "net/tcpserver.h"
-#include "map/mapanalyzer.h"
+#include "map/mapdevice.h"
 #include "model/customtitlebar.h"
 
 constexpr long long MAP_REFRESH_TIME = 144;
@@ -227,7 +227,7 @@ void MapWidget::onRefreshTimeOut()
 
 	if (!injector.worker->getOnlineFlag()) return;
 
-	sa::PC _ch = injector.worker->getPC();
+	sa::character_t _ch = injector.worker->getCharacter();
 	long long floor = injector.worker->getFloor();
 	const QPointF qp_current(injector.worker->getPoint());
 
@@ -243,18 +243,18 @@ void MapWidget::onRefreshTimeOut()
 		caption += " " + tr("downloading(%1%2)").arg(util::toQString(downloadMapProgress_)).arg("%");
 	setWindowTitle(caption);
 
-	bool map_ret = injector.worker->mapAnalyzer.readFromBinary(currentIndex, floor, injector.worker->getFloorName(), true);
+	bool map_ret = injector.worker->mapDevice.readFromBinary(currentIndex, floor, injector.worker->getFloorName(), true);
 	if (!map_ret)
 		return;
 
-	QPixmap ppix = injector.worker->mapAnalyzer.getPixmapByIndex(floor);
+	QPixmap ppix = injector.worker->mapDevice.getPixmapByIndex(floor);
 	if (ppix.isNull())  return;
 
-	map_t m_map = {};
-	injector.worker->mapAnalyzer.getMapDataByFloor(floor, &m_map);
 
-	QHash<long long, sa::mapunit_t> unitHash = injector.worker->mapUnitHash.toHash();
-	auto findMapUnitByPoint = [&unitHash](const QPoint& p, sa::mapunit_t* u)->bool
+	injector.worker->mapDevice.getMapDataByFloor(floor, &map_);
+
+	QHash<long long, sa::map_unit_t> unitHash = injector.worker->mapUnitHash.toHash();
+	auto findMapUnitByPoint = [&unitHash](const QPoint& p, sa::map_unit_t* u)->bool
 		{
 			for (auto it = unitHash.begin(); it != unitHash.end(); ++it)
 			{
@@ -279,25 +279,25 @@ void MapWidget::onRefreshTimeOut()
 	QStringList vSTAIR;
 	QSet<QPoint> stair_cache;
 
-	for (qmappoint_t it : m_map.stair)
+	for (sa::map_point_t it : map_.stair)
 	{
 		if (stair_cache.contains(it.p)) continue;
 		QString typeStr = "\0";
 
-		if (entrances_.contains(m_map.floor) && entrances_.value(m_map.floor).contains(it.p))
+		if (entrances_.contains(map_.floor) && entrances_.value(map_.floor).contains(it.p))
 		{
-			typeStr = entrances_.value(m_map.floor).value(it.p);
-			it.p = entrances_.value(m_map.floor).key(typeStr, it.p);
+			typeStr = entrances_.value(map_.floor).value(it.p);
+			it.p = entrances_.value(map_.floor).key(typeStr, it.p);
 		}
 
 		if (typeStr.isEmpty())
 		{
 			for (const auto& p : util::fix_point)
 			{
-				if (entrances_.contains(m_map.floor) && entrances_.value(m_map.floor).contains(it.p + p))
+				if (entrances_.contains(map_.floor) && entrances_.value(map_.floor).contains(it.p + p))
 				{
-					typeStr = entrances_.value(m_map.floor).value(it.p + p);
-					it.p = entrances_.value(m_map.floor).key(typeStr, it.p + p);
+					typeStr = entrances_.value(map_.floor).value(it.p + p);
+					it.p = entrances_.value(map_.floor).key(typeStr, it.p + p);
 				}
 			}
 		}
@@ -306,16 +306,16 @@ void MapWidget::onRefreshTimeOut()
 		{
 			switch (it.type)
 			{
-			case sa::OBJ_UP:
+			case sa::kObjectUp:
 				typeStr = tr("UP");
 				break;
-			case sa::OBJ_DOWN:
+			case sa::kObjectDown:
 				typeStr = tr("DWON");
 				break;
-			case sa::OBJ_JUMP:
+			case sa::kObjectJump:
 				typeStr = tr("JUMP");
 				break;
-			case sa::OBJ_WARP:
+			case sa::kObjectWarp:
 				typeStr = tr("WARP");
 				break;
 			default:
@@ -325,7 +325,7 @@ void MapWidget::onRefreshTimeOut()
 		}
 
 		stair_cache.insert(it.p);
-		sa::mapunit_t u = {};
+		sa::map_unit_t u = {};
 		if (findMapUnitByPoint(it.p, &u))
 		{
 			if (!u.name.isEmpty() && (u.name != _ch.name))
@@ -347,10 +347,10 @@ void MapWidget::onRefreshTimeOut()
 		vSTAIR.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 	}
 
-	QList<sa::mapunit_t> units = unitHash.values();
-	for (sa::mapunit_t it : units)
+	QList<sa::map_unit_t> units = unitHash.values();
+	for (sa::map_unit_t it : units)
 	{
-		if (it.objType == sa::OBJ_GM)
+		if (it.objType == sa::kObjectGameMaster)
 		{
 			vGM.append(QString("[GM]%1").arg(it.name));
 			vGM.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
@@ -362,19 +362,19 @@ void MapWidget::onRefreshTimeOut()
 
 			switch (it.objType)
 			{
-			case sa::OBJ_ITEM:
+			case sa::kObjectItem:
 			{
 				vITEM.append(QString(tr("[I]%1")).arg(it.item_name));
 				vITEM.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
-			case sa::OBJ_GOLD:
+			case sa::kObjectGold:
 			{
 				vGOLD.append(QString(tr("[G]%1")).arg(it.gold));
 				vGOLD.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
-			case sa::OBJ_PET:
+			case sa::kObjectPet:
 			{
 				if (it.isVisible)
 					vPET.append(it.freeName.isEmpty() ? QString(tr("[P]%2")).arg(it.name) : QString(tr("[P]%2")).arg(it.freeName));
@@ -383,7 +383,7 @@ void MapWidget::onRefreshTimeOut()
 				vPET.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
-			case sa::OBJ_HUMAN:
+			case sa::kObjectHuman:
 			{
 				if (it.isVisible)
 					vHUMAN.append(QString(tr("[H]%1")).arg(it.name));
@@ -392,7 +392,7 @@ void MapWidget::onRefreshTimeOut()
 				vHUMAN.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
-			case sa::OBJ_NPC:
+			case sa::kObjectNPC:
 			{
 				if (it.isVisible)
 					vNPC.append(QString("[NPC][%1]%2").arg(it.modelid).arg(it.name));
@@ -401,28 +401,28 @@ void MapWidget::onRefreshTimeOut()
 				vNPC.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
-			case sa::OBJ_JUMP:
-			case sa::OBJ_DOWN:
-			case sa::OBJ_UP:
+			case sa::kObjectJump:
+			case sa::kObjectDown:
+			case sa::kObjectUp:
 			{
 				if (stair_cache.contains(it.p)) continue;
 
 				QString typeStr = "\0";
 
-				if (entrances_.contains(m_map.floor) && entrances_.value(m_map.floor).contains(it.p))
+				if (entrances_.contains(map_.floor) && entrances_.value(map_.floor).contains(it.p))
 				{
-					typeStr = entrances_.value(m_map.floor).value(it.p);
-					it.p = entrances_.value(m_map.floor).key(typeStr, it.p);
+					typeStr = entrances_.value(map_.floor).value(it.p);
+					it.p = entrances_.value(map_.floor).key(typeStr, it.p);
 				}
 
 				if (typeStr.isEmpty())
 				{
 					for (const auto& p : util::fix_point)
 					{
-						if (entrances_.contains(m_map.floor) && entrances_.value(m_map.floor).contains(it.p + p))
+						if (entrances_.contains(map_.floor) && entrances_.value(map_.floor).contains(it.p + p))
 						{
-							typeStr = entrances_.value(m_map.floor).value(it.p + p);
-							it.p = entrances_.value(m_map.floor).key(typeStr, it.p + p);
+							typeStr = entrances_.value(map_.floor).value(it.p + p);
+							it.p = entrances_.value(map_.floor).key(typeStr, it.p + p);
 						}
 					}
 				}
@@ -431,16 +431,16 @@ void MapWidget::onRefreshTimeOut()
 				{
 					switch (it.objType)
 					{
-					case sa::OBJ_UP:
+					case sa::kObjectUp:
 						typeStr = tr("UP");
 						break;
-					case sa::OBJ_DOWN:
+					case sa::kObjectDown:
 						typeStr = tr("DWON");
 						break;
-					case sa::OBJ_JUMP:
+					case sa::kObjectJump:
 						typeStr = tr("JUMP");
 						break;
-					case sa::OBJ_WARP:
+					case sa::kObjectWarp:
 						typeStr = tr("WARP");
 						break;
 					default:
@@ -476,10 +476,10 @@ void MapWidget::onRefreshTimeOut()
 		QBrush brush;
 		if (it.name.contains("傳送石"))
 		{
-			brush = QBrush(MAP_COLOR_HASH.value(sa::OBJ_JUMP), Qt::SolidPattern);
+			brush = QBrush(sa::MAP_COLOR_HASH.value(sa::kObjectJump), Qt::SolidPattern);
 		}
 		else
-			brush = QBrush(MAP_COLOR_HASH.value(it.objType), Qt::SolidPattern);
+			brush = QBrush(sa::MAP_COLOR_HASH.value(it.objType), Qt::SolidPattern);
 		QPen pen(brush, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
 
 		QPainter painter(&ppix);
@@ -587,10 +587,11 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 
 	QPoint point(x, y);
 	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+	sash_assume(missionThread_ != nullptr);
 	if (missionThread_ == nullptr)
 		return;
 	missionThread_->appendArg(point);
-	missionThread_->start();
+	emit missionThread_->started();
 
 	ui.pushButton_findPath->setEnabled(false);
 }
@@ -659,7 +660,7 @@ void MapWidget::onDownloadMapTimeout()
 		const QPoint qp_current = injector.worker->getPoint();
 		QString caption(tr("[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8")
 			.arg(currentIndex)
-			.arg(injector.worker->getPC().name)
+			.arg(injector.worker->getCharacter().name)
 			.arg(injector.worker->getFloorName())
 			.arg(injector.worker->getFloor())
 			.arg(qp_current.x()).arg(qp_current.y())
@@ -667,8 +668,8 @@ void MapWidget::onDownloadMapTimeout()
 		caption += " " + tr("downloading(%1%2)").arg(util::toQString(100.00)).arg("%");
 		setWindowTitle(caption);
 
-		injector.worker->mapAnalyzer.clear(floor);
-		const QString fileName(injector.worker->mapAnalyzer.getCurrentPreHandleMapPath(currentIndex, floor));
+		injector.worker->mapDevice.clear(floor);
+		const QString fileName(injector.worker->mapDevice.getCurrentPreHandleMapPath(currentIndex, floor));
 		QFile file(fileName);
 		if (file.exists())
 		{
@@ -676,7 +677,7 @@ void MapWidget::onDownloadMapTimeout()
 		}
 		isDownloadingMap_ = false;
 		injector.worker->EO();
-		injector.worker->mapAnalyzer.readFromBinary(currentIndex, floor, name, true, true);
+		injector.worker->mapDevice.readFromBinary(currentIndex, floor, name, true, true);
 		if (!ui.pushButton_download->isEnabled())
 			ui.pushButton_download->setEnabled(true);
 	}
@@ -696,8 +697,8 @@ void MapWidget::on_pushButton_download_clicked()
 
 	ui.pushButton_download->setEnabled(false);
 
-	map_t map = {};
-	injector.worker->mapAnalyzer.getMapDataByFloor(injector.worker->getFloor(), &map);
+	sa::map_t map = {};
+	injector.worker->mapDevice.getMapDataByFloor(injector.worker->getFloor(), &map);
 
 	downloadCount_ = 0;
 	downloadMapXSize_ = map.width;
@@ -723,16 +724,16 @@ void MapWidget::on_pushButton_clear_clicked()
 		return;
 
 	long long floor = injector.worker->getFloor();
-	injector.worker->mapAnalyzer.clear(floor);
+	injector.worker->mapDevice.clear(floor);
 
-	const QString fileName(injector.worker->mapAnalyzer.getCurrentPreHandleMapPath(currentIndex, floor));
+	const QString fileName(injector.worker->mapDevice.getCurrentPreHandleMapPath(currentIndex, floor));
 	QFile file(fileName);
 	if (!file.exists())
 		return;
 
 	file.remove();
 
-	injector.worker->mapAnalyzer.readFromBinary(currentIndex, floor, injector.worker->getFloorName(), true, true);
+	injector.worker->mapDevice.readFromBinary(currentIndex, floor, injector.worker->getFloorName(), true, true);
 }
 
 void MapWidget::on_pushButton_returnBase_clicked()
@@ -790,11 +791,12 @@ void MapWidget::on_pushButton_findPath_clicked()
 
 	QPoint point(x, y);
 	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+	sash_assume(missionThread_ != nullptr);
 	if (missionThread_ == nullptr)
 		return;
 
 	missionThread_->appendArg(point);
-	missionThread_->start();
+	emit missionThread_->started();
 
 	ui.pushButton_findPath->setEnabled(false);
 }
@@ -891,36 +893,36 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (!okx || !oky)
 		return;
 
-	sa::mapunit_t unit;
+	sa::map_unit_t unit;
 	if (name.contains("NPC"))
 	{
 		static const QRegularExpression rex(R"(\[NPC\]\[\d+\])");
 		name = name.remove(rex);
-		if (!injector.worker->findUnit(name, sa::OBJ_NPC, &unit))
+		if (!injector.worker->findUnit(name, sa::kObjectNPC, &unit))
 			return;
 	}
 	else if (name.contains(tr("[P]")))
 	{
 		name = name.remove(tr("[P]"));
-		if (!injector.worker->findUnit(name, sa::OBJ_PET, &unit))
+		if (!injector.worker->findUnit(name, sa::kObjectPet, &unit))
 			return;
 	}
 	else if (name.contains(tr("[H]")))
 	{
 		name = name.remove(tr("[H]"));
-		if (!injector.worker->findUnit(name, sa::OBJ_HUMAN, &unit))
+		if (!injector.worker->findUnit(name, sa::kObjectHuman, &unit))
 			return;
 	}
 	else if (name.contains(tr("[I]")))
 	{
 		name = name.remove(tr("[I]"));
-		if (!injector.worker->findUnit(name, sa::OBJ_ITEM, &unit))
+		if (!injector.worker->findUnit(name, sa::kObjectItem, &unit))
 			return;
 	}
 	else if (name.contains(tr("[G]")))
 	{
 		name = name.remove(tr("[G]"));
-		if (!injector.worker->findUnit(name, sa::OBJ_GOLD, &unit))
+		if (!injector.worker->findUnit(name, sa::kObjectGold, &unit))
 			return;
 	}
 	else
@@ -939,24 +941,25 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 
 		QPoint point(x, y);
 		missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+		sash_assume(missionThread_ != nullptr);
 		if (missionThread_ == nullptr)
 			return;
 
 		missionThread_->appendArg(point);
-		missionThread_->start();
+		emit missionThread_->started();
 
 		ui.pushButton_findPath->setEnabled(false);
 		return;
 	}
 
-	CAStar astar;
+	AStarDevice astar;
 	long long floor = injector.worker->getFloor();
 	QPoint point = injector.worker->getPoint();
 	//npc前方一格
 	QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
 
 	//檢查是否可走
-	if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, floor, point, newPoint))
+	if (injector.worker->mapDevice.isPassable(currentIndex, &astar, floor, point, newPoint))
 	{
 		x = newPoint.x();
 		y = newPoint.y();
@@ -966,7 +969,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		//再往前一格
 		QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
 		//檢查是否可走
-		if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, floor, point, additionPoint))
+		if (injector.worker->mapDevice.isPassable(currentIndex, &astar, floor, point, additionPoint))
 		{
 			x = additionPoint.x();
 			y = additionPoint.y();
@@ -978,7 +981,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 			for (long long i = 0; i < 8; ++i)
 			{
 				newPoint = util::fix_point.value(i) + unit.p;
-				if (injector.worker->mapAnalyzer.isPassable(currentIndex, astar, floor, point, newPoint))
+				if (injector.worker->mapDevice.isPassable(currentIndex, &astar, floor, point, newPoint))
 				{
 					x = newPoint.x();
 					y = newPoint.y();
@@ -1007,11 +1010,12 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 
 	point = QPoint(x, y);
 	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+	sash_assume(missionThread_ != nullptr);
 	if (missionThread_ == nullptr)
 		return;
 
 	missionThread_->appendArg(point);
-	missionThread_->start();
+	emit missionThread_->started();
 
 	ui.pushButton_findPath->setEnabled(false);
 }

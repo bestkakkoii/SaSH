@@ -186,6 +186,7 @@ void SelectObjectForm::appendItem()
 	currentText.remove(" ");
 
 	std::unique_ptr<QListWidgetItem> newItem(q_check_ptr(new QListWidgetItem(currentText)));
+	sash_assume(newItem != nullptr);
 	if (newItem == nullptr)
 		return;
 
