@@ -346,9 +346,7 @@ void Interpreter::openLibs()
 	registerFunction("pequip", &Interpreter::petequip);
 
 	registerFunction("putpet", &Interpreter::depositpet);
-	registerFunction("putitem", &Interpreter::deposititem);
 	registerFunction("getpet", &Interpreter::withdrawpet);
-	registerFunction("getitem", &Interpreter::withdrawitem);
 }
 
 long long Interpreter::scriptCallBack(long long currentIndex, long long currentLine, const TokenMap& TK)

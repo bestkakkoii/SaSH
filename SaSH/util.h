@@ -379,26 +379,27 @@ namespace util
 		kSelectEnemyAll = 0x20,       // 敵全 (All enemies)
 		kSelectEnemyFront = 0x40,     // 敵前 (Front enemy)
 		kSelectEnemyBack = 0x80,      // 敵後 (Back enemy)
-		kSelectLeader = 0x100,        // 隊 (Leader)
-		kSelectLeaderPet = 0x200,     // 隊寵 (Leader's pet)
-		kSelectTeammate1 = 0x400,     // 隊1 (Teammate 1)
-		kSelectTeammate1Pet = 0x800,  // 隊1寵 (Teammate 1's pet)
-		kSelectTeammate2 = 0x1000,    // 隊2 (Teammate 2)
-		kSelectTeammate2Pet = 0x2000, // 隊2寵 (Teammate 2's pet)
-		kSelectTeammate3 = 0x4000,    // 隊3 (Teammate 3)
-		kSelectTeammate3Pet = 0x8000, // 隊3寵 (Teammate 3's pet)
-		kSelectTeammate4 = 0x10000,   // 隊4 (Teammate 4)
-		kSelectTeammate4Pet = 0x20000,// 隊4寵 (Teammate 4's pet)
-		kSelectEnemy1 = 0x40000,      // 敵1 (Enemy 1)
-		kSelectEnemy2 = 0x80000,      // 敵1寵 (Enemy2)
-		kSelectEnemy3 = 0x100000,     // 敵3 (Enemy 3)
-		kSelectEnemy4 = 0x200000,     // 敵4 (Enemy 4)
-		kSelectEnemy5 = 0x400000,     // 敵5 (Enemy 5)
-		kSelectEnemy6 = 0x800000,     // 敵6 (Enemy 6)
-		kSelectEnemy7 = 0x1000000,    // 敵7 (Enemy 7)
-		kSelectEnemy8 = 0x2000000,    // 敵8 (Enemy 8)
-		kSelectEnemy9 = 0x4000000,    // 敵9 (Enemy 9)
-		kSelectEnemy10 = 0x8000000,   // 敵10 (Enemy 10)
+
+		kSelectLeader = 1 << 10,        // 隊 (Leader) 1
+		kSelectTeammate1 = 1 << 11,     // 隊1 (Teammate 1) 2
+		kSelectTeammate2 = 1 << 12,    // 隊2 (Teammate 2) 3
+		kSelectLeaderPet = 1 << 13,     // 隊寵 (Leader's pet) 5
+		kSelectTeammate3 = 1 << 14,    // 隊3 (Teammate 3) 4
+		kSelectTeammate4 = 1 << 15,   // 隊4 (Teammate 4) 5
+		kSelectTeammate1Pet = 1 << 16,  // 隊1寵 (Teammate 1's pet)
+		kSelectTeammate2Pet = 1 << 17, // 隊2寵 (Teammate 2's pet)
+		kSelectTeammate3Pet = 1 << 18, // 隊3寵 (Teammate 3's pet)
+		kSelectTeammate4Pet = 1 << 19,// 隊4寵 (Teammate 4's pet)
+		kSelectEnemy1 = 1 << 20,      // 敵1 (Enemy 1)
+		kSelectEnemy2 = 1 << 21,      // 敵1寵 (Enemy2)
+		kSelectEnemy3 = 1 << 22,     // 敵3 (Enemy 3)
+		kSelectEnemy4 = 1 << 23,     // 敵4 (Enemy 4)
+		kSelectEnemy5 = 1 << 24,     // 敵5 (Enemy 5)
+		kSelectEnemy6 = 1 << 25,     // 敵6 (Enemy 6)
+		kSelectEnemy7 = 1 << 26,    // 敵7 (Enemy 7)
+		kSelectEnemy8 = 1 << 27,    // 敵8 (Enemy 8)
+		kSelectEnemy9 = 1 << 28,    // 敵9 (Enemy 9)
+		kSelectEnemy10 = 1 << 29,   // 敵10 (Enemy 10)
 	};
 
 	enum UnLoginStatus
@@ -2411,4 +2412,37 @@ QGroupBox {
 				*p = distribution(gen);
 		}
 	}
+
+	//打開控制台
+	inline void createConsole()
+	{
+		if (!AllocConsole())
+		{
+			return;
+		}
+		FILE* fDummy;
+		freopen_s(&fDummy, "CONOUT$", "w", stdout);
+		freopen_s(&fDummy, "CONOUT$", "w", stderr);
+		freopen_s(&fDummy, "CONIN$", "r", stdin);
+		std::cout.clear();
+		std::clog.clear();
+		std::cerr.clear();
+		std::cin.clear();
+
+		// std::wcout, std::wclog, std::wcerr, std::wcin
+		HANDLE hConOut = CreateFile(TEXT("CONOUT$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hConIn = CreateFile(TEXT("CONIN$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		SetStdHandle(STD_OUTPUT_HANDLE, hConOut);
+		SetStdHandle(STD_ERROR_HANDLE, hConOut);
+		SetStdHandle(STD_INPUT_HANDLE, hConIn);
+		std::wcout.clear();
+		std::wclog.clear();
+		std::wcerr.clear();
+		std::wcin.clear();
+
+		SetConsoleCP(CP_UTF8);
+		SetConsoleOutputCP(CP_UTF8);
+		setlocale(LC_ALL, "en_US.UTF-8");
+	}
+
 }

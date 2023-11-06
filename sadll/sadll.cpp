@@ -27,7 +27,7 @@ inline static T CONVERT_GAMEVAR(ULONG_PTR offset) { return (T)((reinterpret_cast
 
 #pragma region Debug
 #ifdef _DEBUG
-void CreateConsole()
+void createConsole()
 {
 	if (!AllocConsole())
 		return;
@@ -1453,7 +1453,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-		//CreateConsole();
+		//createConsole();
 #endif
 		DisableThreadLibraryCalls(hModule);
 	}

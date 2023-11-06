@@ -57,8 +57,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ "usemagic", TK_CMD },
 	{ "useitem", TK_CMD },
 	{ "doffitem", TK_CMD },
-	{ "putitem", TK_CMD },
-	{ "getitem", TK_CMD },
 	{ "putpet", TK_CMD },
 	{ "getpet", TK_CMD },
 	{ "uequip", TK_CMD },

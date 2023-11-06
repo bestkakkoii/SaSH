@@ -105,9 +105,7 @@ private: //註冊給Parser的函數
 	long long petunequip(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 	long long depositpet(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long deposititem(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long withdrawpet(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long withdrawitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 private:
 	enum

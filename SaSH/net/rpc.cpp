@@ -4,37 +4,6 @@
 
 RPC* RPC::instance = nullptr;
 
-void createConsole()
-{
-	if (!AllocConsole())
-	{
-		return;
-	}
-	FILE* fDummy;
-	freopen_s(&fDummy, "CONOUT$", "w", stdout);
-	freopen_s(&fDummy, "CONOUT$", "w", stderr);
-	freopen_s(&fDummy, "CONIN$", "r", stdin);
-	std::cout.clear();
-	std::clog.clear();
-	std::cerr.clear();
-	std::cin.clear();
-
-	// std::wcout, std::wclog, std::wcerr, std::wcin
-	HANDLE hConOut = CreateFile(TEXT("CONOUT$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	HANDLE hConIn = CreateFile(TEXT("CONIN$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	SetStdHandle(STD_OUTPUT_HANDLE, hConOut);
-	SetStdHandle(STD_ERROR_HANDLE, hConOut);
-	SetStdHandle(STD_INPUT_HANDLE, hConIn);
-	std::wcout.clear();
-	std::wclog.clear();
-	std::wcerr.clear();
-	std::wcin.clear();
-
-	SetConsoleCP(CP_UTF8);
-	SetConsoleOutputCP(CP_UTF8);
-	setlocale(LC_ALL, "en_US.UTF-8");
-}
-
 RPCSocket::RPCSocket(qintptr socketDescriptor, QObject* parent)
 	: QTcpSocket(nullptr)
 	, Indexer(-1)
@@ -302,7 +271,7 @@ void RPCServer::incomingConnection(qintptr socketDescriptor)
 	{
 		first = false;
 #ifndef _DEBUG
-		createConsole();
+		util::createConsole();
 #endif
 	}
 }

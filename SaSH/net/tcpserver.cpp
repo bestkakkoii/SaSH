@@ -5798,7 +5798,8 @@ void Worker::swapItem(long long from, long long to)
 //撿道具
 void Worker::pickItem(long long dir)
 {
-	lssproto_PI_send(getPoint(), (dir + 3) % sa::MAX_DIR);
+	setCharFaceDirection(dir);
+	lssproto_PI_send(getPoint(), dir);
 }
 
 //穿裝 to = -1 丟裝 to = -2 脫裝 to = itemspotindex
@@ -6866,7 +6867,7 @@ void Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 
 	auto checkDeadAllie = [this, &bt](long long* target)->bool
 		{
-			if (!target)
+			if (nullptr == target)
 				return false;
 
 			long long min = 0;
@@ -7612,13 +7613,27 @@ void Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 							ok = true;
 						}
 					}
+					else
+					{
+						for (long long i = sa::MAX_ENEMY - 1; i >= 10; --i)
+						{
+							sa::battle_object_t obj = bt.objects.value(i - 10);
+							if (util::checkAND(targetFlags, 1LL << i)
+								&& obj.maxHp > 0 && (obj.hp == 0 || util::checkAND(obj.status, sa::BC_FLG_DEAD)))
+							{
+								tempTarget = i - 10;
+								ok = true;
+								break;
+							}
+						}
+
+						if (!ok)
+							break;
+					}
 				}
 
-				if (!ok)
-					break;
-
 				long long magicIndex = injector.getValueHash(util::kBattleMagicReviveMagicValue) - 3;
-				if (magicIndex <0 || magicIndex > sa::MAX_MAGIC)
+				if (magicIndex < 0 || magicIndex > sa::MAX_MAGIC)
 					break;
 
 				bool isProfession = magicIndex > (3 + sa::MAX_MAGIC - 1);
@@ -8182,21 +8197,21 @@ void Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 #pragma endregion
 #pragma endregion
 
-	QVector<std::function<bool()>> actions;
-	actions.append(fallDownEscapeFun);
-	actions.append(lockEscapeFun);
-	actions.append(lockAttackFun);
-	actions.append(itemReviveFun);
-	actions.append(selectRoundFun);
-	actions.append(magicHealFun);
-	actions.append(itemHealFun);
-	actions.append(skillMpFun);
-	actions.append(itemMpFun);
-	actions.append(magicReviveFun);
-	actions.append(intervalRoundFun);
-	actions.append(magicPurifyFun);
-	actions.append(autoSwitchPetFun);
-	actions.append(catchPetFun);
+	QHash<long long, std::function<bool()>> actions;
+	actions.insert(0, fallDownEscapeFun);
+	actions.insert(1, lockEscapeFun);
+	actions.insert(2, lockAttackFun);
+	actions.insert(3, itemReviveFun);
+	actions.insert(4, selectRoundFun);
+	actions.insert(5, magicHealFun);
+	actions.insert(6, itemHealFun);
+	actions.insert(7, skillMpFun);
+	actions.insert(8, itemMpFun);
+	actions.insert(9, magicReviveFun);
+	actions.insert(10, intervalRoundFun);
+	actions.insert(11, magicPurifyFun);
+	actions.insert(12, autoSwitchPetFun);
+	actions.insert(13, catchPetFun);
 
 	QString orderStr = injector.getStringHash(util::kBattleActionOrderString);
 	if (orderStr.isEmpty())
@@ -8214,10 +8229,11 @@ void Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 		{
 			bool ok = false;
 			long long index = it.toLongLong(&ok) - 1;
-			if (!ok || index < 0 || index >= actions.size())
+			if (!ok || !actions.contains(index))
 				continue;
 
-			if (actions[index]())
+			std::function<bool()> fun = actions.value(index);
+			if (fun != nullptr && fun())
 				return;
 		}
 	}
@@ -11282,7 +11298,7 @@ void Worker::lssproto_PME_recv(long long unitid, long long graphicsno, const QPo
 		getStringToken(data, "|", ps++, smalltoken);
 		y = smalltoken.toLongLong();
 		getStringToken(data, "|", ps++, smalltoken);
-		ldir = (smalltoken.toLongLong() + 3) % sa::MAX_DIR;
+		ldir = smalltoken.toLongLong();
 		getStringToken(data, "|", ps++, smalltoken);
 		modelid = smalltoken.toLongLong();
 		getStringToken(data, "|", ps++, smalltoken);
@@ -12430,7 +12446,6 @@ void Worker::lssproto_PS_recv(long long result, long long havepetindex, long lon
 //戰後坐標更新
 void Worker::lssproto_XYD_recv(const QPoint& pos, long long dir)
 {
-	//dir = (dir + 3) % sa::MAX_DIR;
 	sa::character_t pc = getCharacter();
 	pc.dir = dir;
 	setCharacter(pc);
@@ -13039,7 +13054,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			getStringToken(bigtoken, "|", 5, smalltoken);
 			y = smalltoken.toLongLong();
 			getStringToken(bigtoken, "|", 6, smalltoken);
-			dir = (smalltoken.toLongLong() + 3) % sa::MAX_DIR;
+			dir = smalltoken.toLongLong();
 			getStringToken(bigtoken, "|", 7, smalltoken);
 			modelid = smalltoken.toLongLong();
 
@@ -13191,7 +13206,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			unit.x = x;
 			unit.y = y;
 			unit.p = QPoint(x, y);
-			unit.dir = dir;//(dir + 5) % sa::MAX_DIR;
+			unit.dir = dir;
 			unit.modelid = modelid;
 			unit.level = level;
 			unit.nameColor = nameColor;
@@ -13270,7 +13285,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			makeStringFromEscaped(name);
 
 			getStringToken(bigtoken, "|", 4, smalltoken);
-			dir = (smalltoken.toLongLong() + 3) % sa::MAX_DIR;
+			dir = smalltoken.toLongLong();
 			getStringToken(bigtoken, "|", 5, smalltoken);
 			modelid = smalltoken.toLongLong();
 			getStringToken(bigtoken, "|", 6, smalltoken);
@@ -13333,7 +13348,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			getStringToken(bigtoken, "|", 4, smalltoken);
 			y = smalltoken.toLongLong();
 			getStringToken(bigtoken, "|", 5, smalltoken);
-			dir = (smalltoken.toLongLong() + 3) % sa::MAX_DIR;
+			dir = smalltoken.toLongLong();
 			getStringToken(bigtoken, "|", 6, smalltoken);
 			modelid = smalltoken.toLongLong();
 			getStringToken(bigtoken, "|", 7, smalltoken);
@@ -13513,7 +13528,7 @@ void Worker::lssproto_CA_recv(char* cdata)
 		getStringToken(bigtoken, "|", 4, smalltoken);
 		act = smalltoken.toLongLong();
 		getStringToken(bigtoken, "|", 5, smalltoken);
-		dir = (smalltoken.toLongLong() + 3) % sa::MAX_DIR;
+		dir = smalltoken.toLongLong();
 		getStringToken(bigtoken, "|", 6, smalltoken);
 
 		sa::map_unit_t unit = mapUnitHash.value(charindex);

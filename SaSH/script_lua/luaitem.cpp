@@ -487,6 +487,177 @@ long long CLuaItem::droppet(sol::object oname, sol::this_state s)
 	return TRUE;
 }
 
+long long CLuaItem::deposititem(sol::object orange, std::string sname, long long currentLine, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT - 1);
+	luatool::checkRange(orange, min, max, nullptr);
+
+	min += sa::CHAR_EQUIPSLOT_COUNT;
+	max += sa::CHAR_EQUIPSLOT_COUNT;
+
+	QString itemName = util::toQString(sname);
+
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+
+	if (!itemName.isEmpty())
+	{
+		QStringList itemNames = itemName.split(util::rexOR, Qt::SkipEmptyParts);
+		if (itemNames.isEmpty())
+			return FALSE;
+
+		QVector<long long> allv;
+		for (const QString& name : itemNames)
+		{
+			QVector<long long> v;
+			if (injector.worker->getItemIndexsByName(name, "", &v, sa::CHAR_EQUIPSLOT_COUNT))
+				allv.append(v);
+		}
+
+		std::sort(allv.begin(), allv.end());
+		auto iter = std::unique(allv.begin(), allv.end());
+		allv.erase(iter, allv.end());
+
+		QVector<long long> v;
+		for (const long long i : allv)
+		{
+			if (i < min || i > max)
+				continue;
+
+			injector.worker->depositItem(i);
+		}
+	}
+	else
+	{
+		injector.worker->updateItemByMemory();
+		QHash<long long, sa::item_t> items = injector.worker->getItems();
+		for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
+		{
+			sa::item_t item = items.value(i);
+			if (item.name.isEmpty() || !item.valid)
+				continue;
+
+			if (i < min || i > max)
+				continue;
+
+			injector.worker->depositItem(i);
+			injector.worker->press(1);
+		}
+	}
+
+	bool bret = luadebug::waitfor(s, 500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return bret;
+}
+
+long long CLuaItem::withdrawitem(std::string sname, sol::object omemo, sol::object oisall, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["_INDEX"].get<long long>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString itemNames = util::toQString(sname);
+
+	QStringList itemList = itemNames.split(util::rexOR, Qt::SkipEmptyParts);
+	long long itemListSize = itemList.size();
+
+	QString memos;
+	if (omemo.is<std::string>())
+		memos = util::toQString(omemo);
+
+	QStringList memoList = memos.split(util::rexOR, Qt::SkipEmptyParts);
+	long long memoListSize = memoList.size();
+
+	bool isAll = false;
+	if (oisall.is<bool>())
+		isAll = oisall.as<bool>();
+
+	if (itemListSize == 0 && memoListSize == 0)
+		return FALSE;
+
+	long long max = 0;
+	// max 以大於0且最小的為主 否則以不為0的為主
+	if (itemListSize > 0)
+		max = itemListSize;
+	if (memoListSize > 0 && (max == 0 || memoListSize < max))
+		max = memoListSize;
+
+	QVector<sa::item_t> bankItemList = injector.worker->currentBankItemList.toVector();
+
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+
+	for (long long i = 0; i < max; ++i)
+	{
+		QString name = "";
+		QString memo = "";
+		if (!itemList.isEmpty())
+			name = itemList.value(i);
+		if (!memoList.isEmpty())
+			memo = memoList.value(i);
+
+		long long itemIndex = 0;
+		bool bret = false;
+		for (const sa::item_t& it : bankItemList)
+		{
+			if (!name.isEmpty())
+			{
+				if (name.startsWith("?"))
+				{
+					QString newName = name.mid(1);
+					if (it.name.contains(newName) && memo.isEmpty())
+						bret = true;
+					else if (it.name.contains(newName) && it.memo.contains(memo))
+						bret = true;
+				}
+				else
+				{
+					if (it.name == name && memo.isEmpty())
+						bret = true;
+					if (it.name == name && !memo.isEmpty() && it.memo.contains(memo))
+						bret = true;
+
+				}
+			}
+			else if (!memo.isEmpty() && it.memo.contains(memo))
+			{
+				bret = true;
+			}
+
+			if (bret)
+			{
+				bankItemList.remove(itemIndex);
+				if (!isAll)
+					break;
+			}
+
+			++itemIndex;
+		}
+
+		if (bret)
+		{
+			injector.worker->withdrawItem(itemIndex);
+		}
+	}
+
+	bool bret = luadebug::waitfor(s, 500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return bret;
+}
+
+
 long long CLuaItem::getSpace()
 {
 	Injector& injector = Injector::getInstance(index_);
@@ -550,7 +721,6 @@ QVector<long long> itemGetIndexs(long long currentIndex, sol::object oitemnames,
 	}
 	return itemIndexs;
 }
-
 
 long long CLuaItem::count(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s)
 {

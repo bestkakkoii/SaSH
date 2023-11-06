@@ -27,37 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <DbgHelp.h>
 #pragma comment(lib, "dbghelp.lib")
 
-void CreateConsole()
-{
-	if (!AllocConsole())
-	{
-		return;
-	}
-	FILE* fDummy;
-	freopen_s(&fDummy, "CONOUT$", "w", stdout);
-	freopen_s(&fDummy, "CONOUT$", "w", stderr);
-	freopen_s(&fDummy, "CONIN$", "r", stdin);
-	std::cout.clear();
-	std::clog.clear();
-	std::cerr.clear();
-	std::cin.clear();
 
-	// std::wcout, std::wclog, std::wcerr, std::wcin
-	HANDLE hConOut = CreateFile(TEXT("CONOUT$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	HANDLE hConIn = CreateFile(TEXT("CONIN$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	SetStdHandle(STD_OUTPUT_HANDLE, hConOut);
-	SetStdHandle(STD_ERROR_HANDLE, hConOut);
-	SetStdHandle(STD_INPUT_HANDLE, hConIn);
-	std::wcout.clear();
-	std::wclog.clear();
-	std::wcerr.clear();
-	std::wcin.clear();
-
-	SetConsoleCP(CP_UTF8);
-	SetConsoleOutputCP(CP_UTF8);
-	setlocale(LC_ALL, "en_US.UTF-8");
-}
-
+//堆棧追蹤
 void printStackTrace()
 {
 	util::TextStream out(stderr);
@@ -109,7 +80,7 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 				pinstance->log.close();
 		}
 
-		CreateConsole();
+		util::createConsole();
 		util::TextStream out(stderr);
 		out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
 		out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;

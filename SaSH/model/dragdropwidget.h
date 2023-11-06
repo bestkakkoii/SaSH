@@ -48,59 +48,39 @@ public:
 
 	void reorderRows(const QString& inputString)
 	{
-		QStringList numbers = inputString.split(util::rexOR);
+		QStringList numbers = inputString.split("|");
+
 		if (numbers.size() != rowCount())
 		{
 			qDebug() << "Error: Number of numbers does not match the number of rows in the table.";
 			return;
 		}
 
-		QList<long long > newnumbers;
+		QList<long long> newOrder;
 		for (const QString& numberStr : numbers)
 		{
 			bool ok;
-			long long  number = numberStr.toLongLong(&ok) - 1;
-			if (!ok || number < 0)
+			long long number = numberStr.toLongLong(&ok) - 1;
+			if (!ok || number < 0 || number >= rowCount())
 			{
 				qDebug() << "Error: Invalid number found in input string.";
 				return;
 			}
-			newnumbers.append(number);
+			newOrder.append(number);
 		}
 
-		QMap<long long, long long> numberToRow;
-		long long  count = rowCount();
-		for (long long i = 0; i < count; ++i)
-		{
-			bool ok;
-			long long  number = numbers[i].toInt(&ok);
-			if (!ok) {
-				qDebug() << "Error: Invalid number found in input string.";
-				return;
-			}
-			numberToRow[number] = i;
-		}
-
-		QList<long long > current;
-		count = rowCount();
-		for (long long row = 0; row < count; ++row)
+		// Sort the table rows based on the new order
+		for (int row = 0; row < rowCount(); ++row)
 		{
 			QTableWidgetItem* item = this->item(row, 0);
 			if (item != nullptr)
 			{
-				current.append(item->data(Qt::UserRole).toInt());
+				long long userRole = item->data(Qt::UserRole).toLongLong();
+				if (newOrder.value(row) != userRole)
+				{
+					swapRow(row, newOrder.indexOf(userRole));
+				}
 			}
-		}
-
-		long long  row = 0;
-		for (long long number : newnumbers)
-		{
-			long long  targetRow = numberToRow[number];
-			if (targetRow != row)
-			{
-				swapRow(row, targetRow);
-			}
-			++row;
 		}
 	}
 

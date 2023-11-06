@@ -152,6 +152,9 @@ void AfkForm::showEvent(QShowEvent* e)
 	Injector& injector = Injector::getInstance(getIndex());
 	if (!injector.worker.isNull())
 		injector.worker->updateComboBoxList();
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	signalDispatcher.applyHashSettingsToUI();
 }
 
 void AfkForm::closeEvent(QCloseEvent* event)
@@ -1290,7 +1293,7 @@ void AfkForm::onApplyHashSettingsToUI()
 	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
 	{
 		QString title = tr("AfkForm");
-		QString newTitle = QString("[%1] %2").arg(injector.worker->getCharacter().name).arg(title);
+		QString newTitle = QString("[%1]%2-%3").arg(getIndex()).arg(injector.worker->getCharacter().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 
@@ -1415,6 +1418,7 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.spinBox_resend_delay->setValue(valueHash.value(util::kBattleResendDelayValue));
 
 	QString orderString = stringHash.value(util::kBattleActionOrderString);
+	qDebug() << "read order:" << orderString;
 	if (!orderString.isEmpty())
 	{
 		ui.tableWidget->reorderRows(orderString);

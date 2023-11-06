@@ -1803,7 +1803,7 @@ long long MapDevice::calcBestFollowPointByDstPoint(long long currentIndex, AStar
 	QPoint firstFixPoint;
 	if (npcdir != -1)
 	{
-		newnpcdir = (npcdir + 5) % sa::MAX_DIR;
+		newnpcdir = npcdir;
 		firstFixPoint = util::fix_point.value(newnpcdir);
 	}
 
@@ -1817,7 +1817,7 @@ long long MapDevice::calcBestFollowPointByDstPoint(long long currentIndex, AStar
 		{
 			if (ret)
 				*ret = ud.p;
-			finalFaceDir = (ud.dir + 4) % sa::MAX_DIR;
+			finalFaceDir = (ud.dir + 5) % sa::MAX_DIR;
 			return  finalFaceDir;
 		}
 
@@ -1877,7 +1877,7 @@ long long MapDevice::calcBestFollowPointByDstPoint(long long currentIndex, AStar
 			{
 				if (ret)
 					*ret = newPoint;
-				finalFaceDir = (npcdir + 4) % sa::MAX_DIR;
+				finalFaceDir = (npcdir + 5) % sa::MAX_DIR;
 				return finalFaceDir;
 			}
 		}
@@ -1893,7 +1893,7 @@ long long MapDevice::calcBestFollowPointByDstPoint(long long currentIndex, AStar
 				//要面相npc的方向  (當前人物要面向newP的方向)
 				if (ret)
 					*ret = newPoint;
-				finalFaceDir = (npcdir + 4) % sa::MAX_DIR;
+				finalFaceDir = (npcdir + 5) % sa::MAX_DIR;
 				return finalFaceDir;
 			}
 		}
@@ -1918,7 +1918,7 @@ long long MapDevice::calcBestFollowPointByDstPoint(long long currentIndex, AStar
 		*ret = unitDistanceVec.front().p;
 
 	//計算方向
-	finalFaceDir = (unitDistanceVec.front().dir + 4) % sa::MAX_DIR;
+	finalFaceDir = (unitDistanceVec.front().dir + 5) % sa::MAX_DIR;
 
 	//返回方向
 	return finalFaceDir;
