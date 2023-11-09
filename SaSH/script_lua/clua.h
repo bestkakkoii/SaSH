@@ -238,7 +238,7 @@ public:
 	long long sellpet(sol::object range, sol::this_state s);
 	long long droppet(sol::object oname, sol::this_state s);
 
-	long long deposititem(sol::object orange, std::string sname, long long currentLine, sol::this_state s);
+	long long deposititem(sol::object orange, std::string sname, sol::this_state s);
 	long long withdrawitem(std::string sname, sol::object omemo, sol::object oisall, sol::this_state s);
 	long long recordequip(sol::this_state s);
 	long long wearrecordedequip(sol::this_state s);

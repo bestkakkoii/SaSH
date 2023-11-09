@@ -491,7 +491,7 @@ long long CLuaItem::droppet(sol::object oname, sol::this_state s)
 	return FALSE;
 }
 
-long long CLuaItem::deposititem(sol::object orange, std::string sname, long long currentLine, sol::this_state s)
+long long CLuaItem::deposititem(sol::object orange, std::string sname, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["__INDEX"].get<long long>();
