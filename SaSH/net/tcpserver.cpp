@@ -6335,8 +6335,9 @@ void Worker::doBattleWork(bool canDelay)
 		long long recordedRound = battleCurrentRound.get();
 
 		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+		long long delay = gamedevice.getValueHash(util::kBattleActionDelayValue);
 		long long resendDelay = gamedevice.getValueHash(util::kBattleResendDelayValue);
-		if (resendDelay >= 1000 && battleCurrentRound.get() > 0 && !battleBackupFuture_.isRunning() && gamedevice.worker->getBattleFlag())
+		if ((delay + resendDelay) >= 1000 && battleCurrentRound.get() > 0 && !battleBackupFuture_.isRunning() && gamedevice.worker->getBattleFlag())
 		{
 			battleBackupFuture_ = QtConcurrent::run([this, canDelay](long long round)
 				{
@@ -6412,13 +6413,17 @@ void Worker::doBattleWork(bool canDelay)
 //異步戰鬥動作處理
 bool Worker::asyncBattleAction(bool canDelay)
 {
-	if (!getOnlineFlag())
-		return false;
-
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	if (gamedevice.isGameInterruptionRequested())
 		return false;
+
+	if (!getOnlineFlag())
+		return false;
+
+	if (!getBattleFlag())
+		return false;
+
 
 	//自動戰鬥打開 或 快速戰鬥打開且處於戰鬥場景
 	bool fastChecked = gamedevice.getEnableHash(util::kFastBattleEnable);
@@ -10680,8 +10685,8 @@ void Worker::lssproto_AB_recv(char* cdata)
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
 				}
+			}
 	}
-}
 #endif
 }
 }
@@ -10741,7 +10746,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
 			}
-}
+		}
 }
 #endif
 }
@@ -11945,10 +11950,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		setBattleData(bt);
 
-		//切換標誌為可動作狀態
-		//battleCharAlreadyActed.off();
-		//battlePetAlreadyActed.off();
-
 		if (!isAllieAllDead && bt.allies.isEmpty())
 			isAllieAllDead = true;
 		if (!isEnemyAllDead && bt.enemies.isEmpty())
@@ -11959,6 +11960,9 @@ void Worker::lssproto_B_recv(char* ccommand)
 			return;
 		}
 
+		//切換標誌為可動作狀態
+		battleCharAlreadyActed.off();
+		battlePetAlreadyActed.off();
 		doBattleWork(true);
 		break;
 	}
@@ -12364,7 +12368,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 				++i;
 				break;
 			}
-	}
+			}
 	}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
@@ -12977,13 +12981,13 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-		}
+}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
@@ -13246,7 +13250,7 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-		}
+			}
 #endif
 		}
 
@@ -13279,7 +13283,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-	}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13386,7 +13390,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13543,7 +13547,7 @@ void Worker::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-}
+			}
 }
 #endif
 #pragma endregion
