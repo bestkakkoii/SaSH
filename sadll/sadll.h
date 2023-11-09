@@ -40,31 +40,31 @@ private:
 public:
 	virtual ~GameService() = default;
 	BOOL __fastcall initialize(long long index, HWND parentHwnd, unsigned short type, unsigned short port);
-	void __fastcall uninitialize();
+	BOOL __fastcall uninitialize();
 
 public:
-	void __fastcall WM_EnableEffect(BOOL enable);
-	void __fastcall WM_EnableCharShow(BOOL enable);
-	void __fastcall WM_SetTimeLock(BOOL enable, unsigned int time);
-	void __fastcall WM_EnableSound(BOOL enable);
-	void __fastcall WM_EnableImageLock(BOOL enable);
-	void __fastcall WM_EnablePassWall(BOOL enable);
-	void __fastcall WM_EnableFastWalk(BOOL enable);
-	void __fastcall WM_SetBoostSpeed(BOOL enable, int speed);
-	void __fastcall WM_EnableMoveLock(BOOL enable);
-	void __fastcall WM_MuteSound(BOOL enable);
-	void __fastcall WM_BattleTimeExtend(BOOL enable);
-	void __fastcall WM_EnableBattleDialog(BOOL enable);
-	void __fastcall WM_SetGameStatus(int status);
-	void __fastcall WM_SetOptimize(BOOL enable);
-	void __fastcall WM_SetWindowHide(BOOL enable);
-	void __fastcall WM_Announce(char* str, int color);
-	void __fastcall WM_Move(int x, int y);
-	void __fastcall WM_DistoryDialog();
-	void __fastcall WM_CleanChatHistory();
-	void __fastcall WM_CreateDialog(int type, int button, const char* data);
+	BOOL __fastcall WM_EnableEffect(BOOL enable);
+	BOOL __fastcall WM_EnableCharShow(BOOL enable);
+	BOOL __fastcall WM_SetTimeLock(BOOL enable, unsigned int time);
+	BOOL __fastcall WM_EnableSound(BOOL enable);
+	BOOL __fastcall WM_EnableImageLock(BOOL enable);
+	BOOL __fastcall WM_EnablePassWall(BOOL enable);
+	BOOL __fastcall WM_EnableFastWalk(BOOL enable);
+	BOOL __fastcall WM_SetBoostSpeed(BOOL enable, int speed);
+	BOOL __fastcall WM_EnableMoveLock(BOOL enable);
+	BOOL __fastcall WM_MuteSound(BOOL enable);
+	BOOL __fastcall WM_BattleTimeExtend(BOOL enable);
+	BOOL __fastcall WM_EnableBattleDialog(BOOL enable);
+	BOOL __fastcall WM_SetGameStatus(int status);
+	BOOL __fastcall WM_SetOptimize(BOOL enable);
+	BOOL __fastcall WM_SetWindowHide(BOOL enable);
+	BOOL __fastcall WM_Announce(char* str, int color);
+	BOOL __fastcall WM_Move(int x, int y);
+	BOOL __fastcall WM_DistoryDialog();
+	BOOL __fastcall WM_CleanChatHistory();
+	BOOL __fastcall WM_CreateDialog(int type, int button, const char* data);
 
-	void __fastcall WM_SetBlockPacket(BOOL enable);
+	BOOL __fastcall WM_SetBlockPacket(BOOL enable);
 
 public://hook
 	SOCKET __fastcall New_socket(int af, int type, int protocol);
@@ -166,9 +166,9 @@ public://g-var
 	int* g_game_status = nullptr;
 
 private:
-	void __fastcall sendToServer(const std::string& text);
-	void __fastcall sendToServer(const char* buf, size_t len);
-	void __fastcall recvFromServer(char* buf, size_t len);
+	BOOL __fastcall sendToServer(const std::string& text);
+	BOOL __fastcall sendToServer(const char* buf, size_t len);
+	BOOL __fastcall recvFromServer(char* buf, size_t len);
 #if 0
 	void __fastcall hideModule(HMODULE hLibrary);
 	int __fastcall connectServer(SOCKET& rsocket, const char* ip, unsigned short port);

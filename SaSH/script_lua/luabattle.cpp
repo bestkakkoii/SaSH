@@ -28,9 +28,7 @@ long long CLuaBattle::charUseAttack(long long objIndex, sol::this_state s)//atk
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattleCharAttackAct(--objIndex);
-
-	return TRUE;
+	return gamedevice.worker->sendBattleCharAttackAct(--objIndex);
 }
 
 long long CLuaBattle::charUseMagic(long long magicIndex, long long objIndex, sol::this_state s)//magic
@@ -40,9 +38,7 @@ long long CLuaBattle::charUseMagic(long long magicIndex, long long objIndex, sol
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattleCharMagicAct(--magicIndex, --objIndex);
-
-	return TRUE;
+	return gamedevice.worker->sendBattleCharMagicAct(--magicIndex, --objIndex);
 }
 
 long long CLuaBattle::charUseSkill(long long skillIndex, long long objIndex, sol::this_state s)//skill
@@ -52,9 +48,7 @@ long long CLuaBattle::charUseSkill(long long skillIndex, long long objIndex, sol
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattleCharJobSkillAct(--skillIndex, --objIndex);
-
-	return TRUE;
+	return gamedevice.worker->sendBattleCharJobSkillAct(--skillIndex, --objIndex);
 }
 
 long long CLuaBattle::switchPet(long long petIndex, sol::this_state s)//switch
@@ -64,9 +58,7 @@ long long CLuaBattle::switchPet(long long petIndex, sol::this_state s)//switch
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattleCharSwitchPetAct(--petIndex);
-
-	return TRUE;
+	return gamedevice.worker->sendBattleCharSwitchPetAct(--petIndex);
 }
 
 long long CLuaBattle::escape(sol::this_state s)//escape
@@ -76,9 +68,7 @@ long long CLuaBattle::escape(sol::this_state s)//escape
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattleCharEscapeAct();
-
-	return TRUE;
+	return gamedevice.worker->sendBattleCharEscapeAct();
 }
 
 long long CLuaBattle::defense(sol::this_state s)//defense
@@ -88,9 +78,7 @@ long long CLuaBattle::defense(sol::this_state s)//defense
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattleCharDefenseAct();
-
-	return TRUE;
+	return gamedevice.worker->sendBattleCharDefenseAct();
 }
 
 long long CLuaBattle::useItem(long long itemIndex, long long objIndex, sol::this_state s)//item
@@ -100,9 +88,7 @@ long long CLuaBattle::useItem(long long itemIndex, long long objIndex, sol::this
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattleCharItemAct(--itemIndex, --objIndex);
-
-	return TRUE;
+	return gamedevice.worker->sendBattleCharItemAct(--itemIndex, --objIndex);
 }
 
 long long CLuaBattle::catchPet(long long objIndex, sol::this_state s)//catch
@@ -112,9 +98,7 @@ long long CLuaBattle::catchPet(long long objIndex, sol::this_state s)//catch
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattleCharCatchPetAct(--objIndex);
-
-	return TRUE;
+	return gamedevice.worker->sendBattleCharCatchPetAct(--objIndex);
 }
 
 long long CLuaBattle::nothing(sol::this_state s)//nothing
@@ -124,9 +108,7 @@ long long CLuaBattle::nothing(sol::this_state s)//nothing
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattleCharDoNothing();
-
-	return TRUE;
+	return gamedevice.worker->sendBattleCharDoNothing();
 }
 
 long long CLuaBattle::petUseSkill(long long petSkillIndex, long long objIndex, sol::this_state s)//petskill
@@ -136,9 +118,7 @@ long long CLuaBattle::petUseSkill(long long petSkillIndex, long long objIndex, s
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattlePetSkillAct(--petSkillIndex, --objIndex);
-
-	return TRUE;
+	return gamedevice.worker->sendBattlePetSkillAct(--petSkillIndex, --objIndex);
 }
 
 long long CLuaBattle::petNothing(sol::this_state s)//pet nothing
@@ -148,9 +128,7 @@ long long CLuaBattle::petNothing(sol::this_state s)//pet nothing
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->sendBattlePetDoNothing();
-
-	return TRUE;
+	return gamedevice.worker->sendBattlePetDoNothing();
 }
 
 long long CLuaBattle::bwait(sol::object otimeout, sol::object jump, sol::this_state s)
@@ -161,12 +139,13 @@ long long CLuaBattle::bwait(sol::object otimeout, sol::object jump, sol::this_st
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-
 	long long timeout = 5000;
 	if (otimeout.is<long long>())
 		timeout = otimeout.as<long long>();
 
-	gamedevice.sendMessage(kEnableBattleDialog, false, NULL);
+	if (gamedevice.sendMessage(kEnableBattleDialog, false, NULL) <= 0)
+		return FALSE;
+
 	bool bret = luadebug::waitfor(s, timeout, [&gamedevice]()
 		{
 			if (!gamedevice.worker->getBattleFlag())
@@ -179,7 +158,8 @@ long long CLuaBattle::bwait(sol::object otimeout, sol::object jump, sol::this_st
 
 	if (gamedevice.worker->getBattleFlag())
 	{
-		gamedevice.sendMessage(kEnableBattleDialog, true, NULL);
+		if (gamedevice.sendMessage(kEnableBattleDialog, true, NULL) <= 0)
+			return FALSE;
 	}
 	else
 		bret = false;
@@ -197,7 +177,9 @@ long long CLuaBattle::bend(sol::this_state s)
 	long long G = gamedevice.worker->getGameStatus();
 	if (G == 4)
 	{
-		mem::write<short>(gamedevice.getProcess(), gamedevice.getProcessModule() + 0xE21E8, 1);
+		if (!mem::write<short>(gamedevice.getProcess(), gamedevice.getProcessModule() + 0xE21E8, 1))
+			return FALSE;
+
 		gamedevice.worker->setGameStatus(5);
 		gamedevice.worker->isBattleDialogReady.off();
 		return TRUE;

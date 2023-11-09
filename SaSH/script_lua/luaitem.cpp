@@ -76,7 +76,8 @@ long long CLuaItem::swapitem(long long fromIndex, long long toIndex, sol::this_s
 		return FALSE;
 
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-	gamedevice.worker->swapItem(fromIndex, toIndex);
+	if (!gamedevice.worker->swapItem(fromIndex, toIndex))
+		return FALSE;
 
 	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
@@ -102,7 +103,8 @@ long long CLuaItem::make(std::string singre, sol::this_state s)
 
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
-	gamedevice.worker->craft(sa::kCraftItem, ingreNameList);
+	if (!gamedevice.worker->craft(sa::kCraftItem, ingreNameList))
+		return FALSE;
 
 	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
@@ -128,7 +130,8 @@ long long CLuaItem::cook(std::string singre, sol::this_state s)
 
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
-	gamedevice.worker->craft(sa::kCraftFood, ingreNameList);
+	if (!gamedevice.worker->craft(sa::kCraftFood, ingreNameList))
+		return FALSE;
 
 	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
@@ -162,9 +165,7 @@ long long CLuaItem::depositgold(long long gold, sol::object oispublic, sol::this
 	if (oispublic.is<bool>())
 		isPublic = oispublic.as<bool>();
 
-	gamedevice.worker->depositGold(gold, isPublic);
-
-	return TRUE;
+	return gamedevice.worker->depositGold(gold, isPublic);
 }
 
 long long CLuaItem::withdrawgold(long long gold, sol::object oispublic, sol::this_state s)
@@ -182,9 +183,7 @@ long long CLuaItem::withdrawgold(long long gold, sol::object oispublic, sol::thi
 	if (oispublic.is<bool>())
 		isPublic = oispublic.as<bool>();
 
-	gamedevice.worker->withdrawGold(gold, isPublic);
-
-	return TRUE;
+	return gamedevice.worker->withdrawGold(gold, isPublic);
 }
 
 long long CLuaItem::dropgold(long long goldamount, sol::this_state s)
@@ -206,9 +205,7 @@ long long CLuaItem::dropgold(long long goldamount, sol::this_state s)
 	if (goldamount <= 0)
 		return FALSE;
 
-	gamedevice.worker->dropGold(goldamount);
-
-	return TRUE;
+	return gamedevice.worker->dropGold(goldamount);
 }
 
 long long CLuaItem::buy(long long productindex, long long count, sol::object ounit, sol::object odialogid, sol::this_state s)
@@ -244,14 +241,18 @@ long long CLuaItem::buy(long long productindex, long long count, sol::object oun
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
 	if (npcName.isEmpty() && -1 == modelid)
-		gamedevice.worker->buy(productindex, count, dialogid);
+	{
+		if (!gamedevice.worker->buy(productindex, count, dialogid))
+			return false;
+	}
 	else
 	{
 		sa::map_unit_t unit;
-		if (gamedevice.worker->findUnit(npcName, sa::kObjectNPC, &unit, "", modelid))
-		{
-			gamedevice.worker->buy(productindex, count, dialogid, unit.id);
-		}
+		if (!gamedevice.worker->findUnit(npcName, sa::kObjectNPC, &unit, "", modelid))
+			return false;
+
+		if (!gamedevice.worker->buy(productindex, count, dialogid, unit.id))
+			return false;
 	}
 
 	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
@@ -292,6 +293,7 @@ long long CLuaItem::sell(std::string sname, sol::object ounit, sol::object odial
 		QVector<long long> indexs;
 		if (!gamedevice.worker->getItemIndexsByName(it, "", &indexs, sa::CHAR_EQUIPSLOT_COUNT))
 			continue;
+
 		itemIndexs.append(indexs);
 	}
 
@@ -302,14 +304,18 @@ long long CLuaItem::sell(std::string sname, sol::object ounit, sol::object odial
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
 	if (npcName.isEmpty() && -1 == modelid)
-		gamedevice.worker->sell(itemIndexs, dialogid);
+	{
+		if (!gamedevice.worker->sell(itemIndexs, dialogid))
+			return false;
+	}
 	else
 	{
 		sa::map_unit_t unit;
-		if (gamedevice.worker->findUnit(npcName, sa::kObjectNPC, &unit, "", modelid))
-		{
-			gamedevice.worker->sell(itemIndexs, dialogid, unit.id);
-		}
+		if (!gamedevice.worker->findUnit(npcName, sa::kObjectNPC, &unit, "", modelid))
+			return false;
+
+		if (!gamedevice.worker->sell(itemIndexs, dialogid, unit.id))
+			return false;
 	}
 
 	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
@@ -340,28 +346,24 @@ long long CLuaItem::pickitem(sol::object odir, sol::this_state s)
 
 	if (dirStr.startsWith("全") || dir == -1)
 	{
+		bool bret = false;
 		for (long long i = 0; i < 7; ++i)
 		{
-			gamedevice.worker->setCharFaceDirection(i);
-			gamedevice.worker->pickItem(i);
+			bret = bret && gamedevice.worker->pickItem(i);
 		}
+
+		return bret;
 	}
 	else if (dir >= 0)
 	{
-		gamedevice.worker->setCharFaceDirection(dir);
-		gamedevice.worker->pickItem(dir);
-	}
-	else
-	{
-		sa::DirType type = sa::dirMap.value(dirStr, sa::kDirNone);
-		if (type == sa::kDirNone)
-			return FALSE;
-
-		gamedevice.worker->setCharFaceDirection(type);
-		gamedevice.worker->pickItem(type);
+		return gamedevice.worker->pickItem(dir);
 	}
 
-	return TRUE;
+	sa::DirType type = sa::dirMap.value(dirStr, sa::kDirNone);
+	if (type == sa::kDirNone)
+		return FALSE;
+
+	return gamedevice.worker->pickItem(type);
 }
 
 long long CLuaItem::sellpet(sol::object range, sol::this_state s)
@@ -444,7 +446,6 @@ long long CLuaItem::sellpet(sol::object range, sol::this_state s)
 		}
 	}
 
-
 	return TRUE;
 }
 
@@ -473,18 +474,21 @@ long long CLuaItem::droppet(sol::object oname, sol::this_state s)
 		return FALSE;
 
 	if (petIndex >= 0)
-		gamedevice.worker->dropPet(petIndex);
+		return gamedevice.worker->dropPet(petIndex);
 	else if (!petName.isEmpty())
 	{
 		QVector<long long> v;
 		if (gamedevice.worker->getPetIndexsByName(petName, &v))
 		{
+			bool bret = false;
 			for (const long long it : v)
-				gamedevice.worker->dropPet(it);
+				bret = bret && gamedevice.worker->dropPet(it);
+
+			return bret;
 		}
 	}
 
-	return TRUE;
+	return FALSE;
 }
 
 long long CLuaItem::deposititem(sol::object orange, std::string sname, long long currentLine, sol::this_state s)
@@ -527,18 +531,26 @@ long long CLuaItem::deposititem(sol::object orange, std::string sname, long long
 		allv.erase(iter, allv.end());
 
 		QVector<long long> v;
+		long long nret = 0;
 		for (const long long i : allv)
 		{
 			if (i < min || i > max)
 				continue;
 
-			gamedevice.worker->depositItem(i);
+			if (!gamedevice.worker->depositItem(i))
+				continue;
+
+			++nret;
 		}
+
+		if (0 == nret)
+			return FALSE;
 	}
 	else
 	{
 		gamedevice.worker->updateItemByMemory();
 		QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
+		long long nret = 0;
 		for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
 		{
 			sa::item_t item = items.value(i);
@@ -548,9 +560,17 @@ long long CLuaItem::deposititem(sol::object orange, std::string sname, long long
 			if (i < min || i > max)
 				continue;
 
-			gamedevice.worker->depositItem(i);
-			gamedevice.worker->press(1);
+			if (!gamedevice.worker->depositItem(i))
+				continue;
+
+			if (!gamedevice.worker->press(1))
+				continue;
+
+			++nret;
 		}
+
+		if (0 == nret)
+			return FALSE;
 	}
 
 	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
@@ -598,6 +618,7 @@ long long CLuaItem::withdrawitem(std::string sname, sol::object omemo, sol::obje
 	QVector<sa::item_t> bankItemList = gamedevice.worker->currentBankItemList.toVector();
 
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	long long nret = 0;
 
 	for (long long i = 0; i < max; ++i)
 	{
@@ -646,11 +667,17 @@ long long CLuaItem::withdrawitem(std::string sname, sol::object omemo, sol::obje
 			++itemIndex;
 		}
 
-		if (bret)
-		{
-			gamedevice.worker->withdrawItem(itemIndex);
-		}
+		if (!bret)
+			continue;
+
+		if (!gamedevice.worker->withdrawItem(itemIndex))
+			continue;
+
+		++nret;
 	}
+
+	if (0 == nret)
+		return FALSE;
 
 	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
@@ -696,6 +723,7 @@ long long CLuaItem::wearrecordedequip(sol::this_state s)
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
 	QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
+	long long nret = 0;
 	for (long long i = 0; i < sa::CHAR_EQUIPSLOT_COUNT; ++i)
 	{
 		sa::item_t item = items.value(i);
@@ -710,8 +738,14 @@ long long CLuaItem::wearrecordedequip(sol::this_state s)
 		if (itemIndex == -1)
 			continue;
 
-		gamedevice.worker->useItem(itemIndex, 0);
+		if (!gamedevice.worker->useItem(itemIndex, 0))
+			continue;
+
+		++nret;
 	}
+
+	if (0 == nret)
+		return FALSE;
 
 	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
@@ -763,7 +797,8 @@ long long CLuaItem::unwearequip(sol::object opart, sol::this_state s)
 		if (spotIndex == -1)
 			return FALSE;
 
-		gamedevice.worker->swapItem(part, spotIndex);
+		if (!gamedevice.worker->swapItem(part, spotIndex))
+			return FALSE;
 	}
 	else
 	{
@@ -771,6 +806,7 @@ long long CLuaItem::unwearequip(sol::object opart, sol::this_state s)
 		if (!gamedevice.worker->getItemEmptySpotIndexs(&v))
 			return FALSE;
 
+		long long nret = 0;
 		for (long long i = 0; i < sa::CHAR_EQUIPSLOT_COUNT; ++i)
 		{
 			if (v.isEmpty())
@@ -778,8 +814,14 @@ long long CLuaItem::unwearequip(sol::object opart, sol::this_state s)
 
 			long long itemIndex = v.takeFirst();
 
-			gamedevice.worker->swapItem(i, itemIndex);
+			if (!gamedevice.worker->swapItem(i, itemIndex))
+				continue;
+
+			++nret;
 		}
+
+		if (0 == nret)
+			return FALSE;
 	}
 
 	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
@@ -821,6 +863,7 @@ long long CLuaItem::petequip(long long petIndex, sol::object oname, sol::object 
 
 	QStringList itemMemos2 = itemMemos;
 
+	long long nret = 0;
 	if (itemNames.size() >= itemMemos.size())
 	{
 		for (const QString& name : itemNames)
@@ -830,26 +873,36 @@ long long CLuaItem::petequip(long long petIndex, sol::object oname, sol::object 
 				memo = itemMemos2.takeFirst();
 
 			long long itemIndex = gamedevice.worker->getItemIndexByName(name, true, memo, sa::CHAR_EQUIPSLOT_COUNT);
-			if (itemIndex != -1)
-				gamedevice.worker->petitemswap(petIndex, itemIndex, -1);
+			if (itemIndex == -1)
+				continue;
+
+			if (!gamedevice.worker->petitemswap(petIndex, itemIndex, -1))
+				continue;
+
+			++nret;
 		}
+
+		return nret;
 	}
-	else
+
+	QStringList itemNames2 = itemNames;
+	for (const QString& memo : itemMemos)
 	{
-		QStringList itemNames2 = itemNames;
-		for (const QString& memo : itemMemos)
-		{
-			QString name;
-			if (!itemNames2.isEmpty())
-				name = itemNames2.takeFirst();
+		QString name;
+		if (!itemNames2.isEmpty())
+			name = itemNames2.takeFirst();
 
-			long long itemIndex = gamedevice.worker->getItemIndexByName(name, true, memo, sa::CHAR_EQUIPSLOT_COUNT);
-			if (itemIndex != -1)
-				gamedevice.worker->petitemswap(petIndex, itemIndex, -1);
-		}
+		long long itemIndex = gamedevice.worker->getItemIndexByName(name, true, memo, sa::CHAR_EQUIPSLOT_COUNT);
+		if (itemIndex == -1)
+			continue;
+
+		if (!gamedevice.worker->petitemswap(petIndex, itemIndex, -1))
+			continue;
+
+		++nret;
 	}
 
-	return TRUE;
+	return nret;
 }
 
 long long CLuaItem::petunequip(long long petIndex, sol::object opart, sol::this_state s)
@@ -909,13 +962,20 @@ long long CLuaItem::petunequip(long long petIndex, sol::object opart, sol::this_
 		if (!gamedevice.worker->getItemEmptySpotIndexs(&spots))
 			return FALSE;
 
+		long long nret = 0;
 		for (const long long& index : partIndexs)
 		{
 			if (spots.isEmpty())
 				break;
 
-			gamedevice.worker->petitemswap(petIndex, index, spots.takeFirst());
+			if (!gamedevice.worker->petitemswap(petIndex, index, spots.takeFirst()))
+				continue;
+
+			++nret;
 		}
+
+		if (0 == nret)
+			return FALSE;
 	}
 	else if (part == 100)
 	{
@@ -923,13 +983,20 @@ long long CLuaItem::petunequip(long long petIndex, sol::object opart, sol::this_
 		if (!gamedevice.worker->getItemEmptySpotIndexs(&spots))
 			return FALSE;
 
+		long long nret = 0;
 		for (long long index = 0; index < sa::MAX_PET_ITEM; ++index)
 		{
 			if (spots.isEmpty())
 				break;
 
-			gamedevice.worker->petitemswap(petIndex, index, spots.takeFirst());
+			if (!gamedevice.worker->petitemswap(petIndex, index, spots.takeFirst()))
+				continue;
+
+			++nret;
 		}
+
+		if (0 == nret)
+			return FALSE;
 	}
 
 	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
@@ -975,15 +1042,31 @@ long long CLuaItem::depositpet(sol::object oslots, sol::this_state s)
 		return FALSE;
 
 	gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.on();
-	gamedevice.worker->depositPet(petIndex);
+
+	if (!gamedevice.worker->depositPet(petIndex))
+	{
+		gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.off();
+		return FALSE;
+	}
+
 	bool bret = luadebug::waitfor(s, 1000, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 	gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.on();
-	gamedevice.worker->press(sa::kButtonYes);
+	if (!gamedevice.worker->press(sa::kButtonYes))
+	{
+		gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.off();
+		return FALSE;
+	}
+
 	bret = bret && luadebug::waitfor(s, 1000, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 	gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.on();
-	gamedevice.worker->press(sa::kButtonOk);
+	if (!gamedevice.worker->press(sa::kButtonOk))
+	{
+		gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.off();
+		return FALSE;
+	}
+
 	bret = bret && luadebug::waitfor(s, 1000, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 	gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.off();
@@ -1087,7 +1170,6 @@ long long CLuaItem::withdrawpet(std::string sname, sol::object olevel, sol::obje
 		else
 			break;
 	}
-
 
 	return TRUE;
 }

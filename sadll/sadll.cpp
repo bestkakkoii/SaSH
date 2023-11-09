@@ -552,22 +552,33 @@ void GameService::New_CreateDialog(int unk, int type, int button, int unitid, in
 
 #pragma region WM
 //設置遊戲畫面狀態值
-void GameService::WM_SetGameStatus(int status)
+BOOL GameService::WM_SetGameStatus(int status)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_game_status)
-		return;
+		return FALSE;
 
 	int G = *g_game_status;
 
 	if (G != status)
+	{
 		*g_game_status = status;
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 //資源優化
-void GameService::WM_SetOptimize(BOOL enable)
+BOOL GameService::WM_SetOptimize(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	//DWORD optimizeAddr = CONVERT_GAMEVAR<DWORD>(0x129E7);
 	if (FALSE == enable)
@@ -595,13 +606,18 @@ void GameService::WM_SetOptimize(BOOL enable)
 
 		*CONVERT_GAMEVAR<int*>(0xAB7C8ul) = 0;
 	}
+
+	return TRUE;
 }
 
 //隱藏窗口
-void GameService::WM_SetWindowHide(BOOL enable)
+BOOL GameService::WM_SetWindowHide(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	//聊天紀錄顯示行數數量設為0
 	nowChatRowCount_ = *CONVERT_GAMEVAR<int*>(0xA2674ul);
@@ -636,19 +652,29 @@ void GameService::WM_SetWindowHide(BOOL enable)
 	}
 
 	enableSleepAdjust.store(enable, std::memory_order_release);
+
+	return TRUE;
 }
 
 //靜音
-void GameService::WM_MuteSound(BOOL enable)
+BOOL GameService::WM_MuteSound(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	IS_SOUND_MUTE_FLAG = enable;
+
+	return TRUE;
 }
 
 //戰鬥時間延長(99秒)
-void GameService::WM_BattleTimeExtend(BOOL enable)
+BOOL GameService::WM_BattleTimeExtend(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	DWORD* timerAddr = CONVERT_GAMEVAR<DWORD*>(0x9854ul);
 
@@ -661,13 +687,18 @@ void GameService::WM_BattleTimeExtend(BOOL enable)
 	{
 		*timerAddr = 100UL * 1000UL;
 	}
+
+	return TRUE;
 }
 
 //允許戰鬥面板
-void GameService::WM_EnableBattleDialog(BOOL enable)
+BOOL GameService::WM_EnableBattleDialog(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	//DWORD addr = CONVERT_GAMEVAR<DWORD>(0x98C9ul);
 	//DWORD addr2 = CONVERT_GAMEVAR<DWORD>(0x9D07ul);
@@ -722,13 +753,18 @@ void GameService::WM_EnableBattleDialog(BOOL enable)
 	}
 
 	IS_BATTLE_PROC_FLAG = enable;
+
+	return TRUE;
 }
 
 //顯示特效
-void GameService::WM_EnableEffect(BOOL enable)
+BOOL GameService::WM_EnableEffect(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	DWORD effectAddr = CONVERT_GAMEVAR<DWORD>(0x434DDul);
 	//DWORD effectAddr2 = CONVERT_GAMEVAR<DWORD>(0x482F0ul);
@@ -784,13 +820,18 @@ void GameService::WM_EnableEffect(BOOL enable)
 		*/
 		util::MemoryMove(effectAddr5, "\x90\xE9\x20\x01\x00\x00", 6u);
 	}
+
+	return TRUE;
 }
 
 //顯示人物
-void GameService::WM_EnableCharShow(BOOL enable)
+BOOL GameService::WM_EnableCharShow(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	DWORD playerShowAddr = CONVERT_GAMEVAR<DWORD>(0xEA30ul);
 	DWORD playerShowAddr2 = CONVERT_GAMEVAR<DWORD>(0xEFD0ul);
@@ -814,13 +855,18 @@ void GameService::WM_EnableCharShow(BOOL enable)
 		//sa_8001sf.exe+F180 - C3                    - ret
 		util::MemoryMove(playerShowAddr3, "\xC3\x90\x90\x90", 4u);
 	}
+
+	return TRUE;
 }
 
 //鎖定時間
-void GameService::WM_SetTimeLock(BOOL enable, unsigned int time)
+BOOL GameService::WM_SetTimeLock(BOOL enable, unsigned int time)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	//DWORD timerefreshAddr = CONVERT_GAMEVAR<DWORD>(0x1E6D0);
 	//sa_8001sf.exe+1E6D0 - 56                    - push esi
@@ -857,13 +903,18 @@ void GameService::WM_SetTimeLock(BOOL enable, unsigned int time)
 	}
 
 	IS_TIME_LOCK_FLAG = enable;
+
+	return TRUE;
 }
 
 //打開聲音
-void GameService::WM_EnableSound(BOOL enable)
+BOOL GameService::WM_EnableSound(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	int* pBackgroundMusic = CONVERT_GAMEVAR<int*>(0xD36E0ul);
 	int* pSoundEffect = CONVERT_GAMEVAR<int*>(0xD36DCul);
@@ -883,13 +934,18 @@ void GameService::WM_EnableSound(BOOL enable)
 		*pSoundEffect = 0;
 		pSetSound();
 	}
+
+	return TRUE;
 }
 
 //鎖定畫面
-void GameService::WM_EnableImageLock(BOOL enable)
+BOOL GameService::WM_EnableImageLock(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	DWORD pImageLock = CONVERT_GAMEVAR<DWORD>(0x42A7Bul);
 
@@ -909,13 +965,18 @@ void GameService::WM_EnableImageLock(BOOL enable)
 		//27 nop
 		util::MemoryMove(pImageLock, "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 27u);
 	}
+
+	return TRUE;
 }
 
 //橫衝直撞
-void GameService::WM_EnablePassWall(BOOL enable)
+BOOL GameService::WM_EnablePassWall(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	DWORD pPassWall = CONVERT_GAMEVAR<DWORD>(0x42051ul);
 
@@ -929,13 +990,18 @@ void GameService::WM_EnablePassWall(BOOL enable)
 		//sa_8001sf.exe+42051 - ret nop...
 		util::MemoryMove(pPassWall, "\xC3\x90\x90\x90\x90\x90\x90\x90\x90", 9u);
 	}
+
+	return TRUE;
 }
 
 //快速走路
-void GameService::WM_EnableFastWalk(BOOL enable)
+BOOL GameService::WM_EnableFastWalk(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	DWORD pFastWalk = CONVERT_GAMEVAR<DWORD>(0x42EB8ul);
 
@@ -948,13 +1014,18 @@ void GameService::WM_EnableFastWalk(BOOL enable)
 	{
 		util::MemoryMove(pFastWalk, "\x90\x90", 2u);
 	}
+
+	return TRUE;
 }
 
 //加速
-void GameService::WM_SetBoostSpeed(BOOL enable, int speed)
+BOOL GameService::WM_SetBoostSpeed(BOOL enable, int speed)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	DWORD pBoostSpeed = CONVERT_GAMEVAR<DWORD>(0x1DEE4ul);
 	int* pSpeed = CONVERT_GAMEVAR<int*>(0xAB7CCul);
@@ -992,13 +1063,18 @@ void GameService::WM_SetBoostSpeed(BOOL enable, int speed)
 			speedBoostValue = static_cast<DWORD>(speed) - 13UL;
 		}
 	}
+
+	return TRUE;
 }
 
 //鎖定原地
-void GameService::WM_EnableMoveLock(BOOL enable)
+BOOL GameService::WM_EnableMoveLock(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	//DWORD pMoveLock = CONVERT_GAMEVAR<DWORD>(0x42773ul);
 
@@ -1034,27 +1110,37 @@ void GameService::WM_EnableMoveLock(BOOL enable)
 	//	//fill \x90  取代的是把切換成1會觸發移動的值移除掉
 	//	//util::MemoryMove(pMoveLock, "\x00", 1u);
 	//}
+
+	return TRUE;
 }
 
 //公告
-void GameService::WM_Announce(char* str, int color)
+BOOL GameService::WM_Announce(char* str, int color)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	if (nullptr == str)
-		return;
+		return FALSE;
 
 	auto pAnnounce = CONVERT_GAMEVAR<void(_cdecl*)(char*, int)>(0x115C0ul);
 	if (nullptr == pAnnounce)
-		return;
+		return FALSE;
 
 	pAnnounce(str, color);
+
+	return TRUE;
 }
 
 //移動
-void GameService::WM_Move(int x, int y)
+BOOL GameService::WM_Move(int x, int y)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	/*
 	sa_8001sf.exe+4277A - 8B 15 38A65604        - mov edx,[sa_8001sf.exe+416A638] { (98) }
 	sa_8001sf.exe+42780 - A3 54B74B00           - mov [sa_8001sf.exe+BB754],eax { (580410503) }
@@ -1065,7 +1151,7 @@ void GameService::WM_Move(int x, int y)
 
 	*/
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	int* goalX = CONVERT_GAMEVAR<int*>(0x416024Cul);
 	int* goalY = CONVERT_GAMEVAR<int*>(0x4160250ul);
@@ -1074,13 +1160,18 @@ void GameService::WM_Move(int x, int y)
 	*goalX = x;
 	*goalY = y;
 	*walking = 1;
+
+	return TRUE;
 }
 
 //銷毀NPC對話框
-void GameService::WM_DistoryDialog()
+BOOL GameService::WM_DistoryDialog()
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	auto a = CONVERT_GAMEVAR<int*>(0xB83ECul);
 	if (a != nullptr)
@@ -1088,24 +1179,29 @@ void GameService::WM_DistoryDialog()
 
 	auto distory = CONVERT_GAMEVAR<void(_cdecl*)(int)>(0x11C0ul);
 	if (nullptr == distory)
-		return;
+		return FALSE;
 
 	int* pDialog = CONVERT_GAMEVAR<int*>(0x415EF98ul);
 	if (nullptr == pDialog)
-		return;
+		return FALSE;
 
 	if (0 == *pDialog)
-		return;
+		return FALSE;
 
 	distory(*pDialog);
 	*pDialog = 0;
+
+	return TRUE;
 }
 
 //清空聊天緩存
-void GameService::WM_CleanChatHistory()
+BOOL GameService::WM_CleanChatHistory()
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	//sa_8001.exe + 117C0 - B8 884D5400 - mov eax, sa_8001.exe + 144D88 { (0) }
 	//sa_8001.exe + 117C5 - C6 00 00 - mov byte ptr[eax], 00 { 0 }
@@ -1121,7 +1217,7 @@ void GameService::WM_CleanChatHistory()
 	char* pmaxchatbuffer = CONVERT_GAMEVAR<char*>(0x146278ul);
 	int* pchatsize = CONVERT_GAMEVAR<int*>(0x14A4F8ul);
 	if ((nullptr == chatbuffer) || (nullptr == pmaxchatbuffer) || (nullptr == pchatsize))
-		return;
+		return FALSE;
 
 	const size_t count = static_cast<size_t>(pmaxchatbuffer - chatbuffer);
 
@@ -1132,13 +1228,18 @@ void GameService::WM_CleanChatHistory()
 	}
 
 	*pchatsize = 0;
+
+	return TRUE;
 }
 
 //創建對話框
-void GameService::WM_CreateDialog(int type, int button, const char* data)
+BOOL GameService::WM_CreateDialog(int type, int button, const char* data)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	if (nullptr == g_hGameModule)
-		return;
+		return FALSE;
 
 	//push 45ADF50
 	//push 4D2  //自訂對話框編號
@@ -1154,11 +1255,18 @@ void GameService::WM_CreateDialog(int type, int button, const char* data)
 
 	std::cout << std::to_string(type) << " " << std::to_string(button) << std::endl;
 	pCreateDialog(0, type, button, 0x10E1, 0x4D2, data);
+
+	return TRUE;
 }
 
-void GameService::WM_SetBlockPacket(BOOL enable)
+BOOL GameService::WM_SetBlockPacket(BOOL enable)
 {
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
 	IS_ENCOUNT_BLOCK_FLAG = enable;
+
+	return TRUE;
 }
 #pragma endregion
 
@@ -1215,16 +1323,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								_snprintf_s(CONVERT_GAMEVAR<char*>(0x415AA58ul), inputBoxBufSize, _TRUNCATE, "%s", pszText);
 							}
 						}
+
 						GlobalUnlock(hClipboardData);
 					}
 				}
 
-				CloseClipboard();
-				return 1L;
+				return CloseClipboard();
 			}
 
-			SendMessageW(hWnd, WM_PASTE, NULL, NULL);
-			return 1L;
+			return SendMessageW(hWnd, WM_PASTE, NULL, NULL);
 		}
 		break;
 	}
@@ -1267,16 +1374,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		std::cout << std::hex << "parentHWnd:0x" << pData->parentHWnd << " port:" << std::to_string(pData->port) << " type:" << std::to_string(pData->type) << std::endl;
 #endif
 
-		g_GameService.initialize(pData->index, reinterpret_cast<HWND>(pData->parentHWnd), static_cast<unsigned short>(pData->type), static_cast<unsigned short>(pData->port));
-		return 1L;
+		return g_GameService.initialize(pData->index,
+			reinterpret_cast<HWND>(pData->parentHWnd),
+			static_cast<unsigned short>(pData->type),
+			static_cast<unsigned short>(pData->port));
 	}
 	case kUninitialize:
 	{
 #ifdef _DEBUG
 		std::cout << "kUninitialize" << std::endl;
 #endif
-		g_GameService.uninitialize();
-		break;
+
+		return 	g_GameService.uninitialize();
 		//SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		//FreeLibraryAndExitThread(g_hDllModule, 0UL);
 	}
@@ -1305,111 +1414,90 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	///////////////////////////////////////////////////////////
 	case kEnableEffect://關閉特效
 	{
-		g_GameService.WM_EnableEffect(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_EnableEffect(wParam > 0 ? TRUE : FALSE);
 	}
 	case kEnableCharShow://隱藏人物
 	{
-		g_GameService.WM_EnableCharShow(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_EnableCharShow(wParam > 0 ? TRUE : FALSE);
 	}
 	case kSetTimeLock://鎖定時間
 	{
-		g_GameService.WM_SetTimeLock(wParam > 0 ? TRUE : FALSE, static_cast<unsigned int>(lParam));
-		return 1L;
+		return g_GameService.WM_SetTimeLock(wParam > 0 ? TRUE : FALSE, static_cast<unsigned int>(lParam));
 	}
 	case kEnableSound://關閉音效
 	{
-		g_GameService.WM_EnableSound(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_EnableSound(wParam > 0 ? TRUE : FALSE);
 	}
 	case kEnableImageLock://鎖定畫面
 	{
-		g_GameService.WM_EnableImageLock(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_EnableImageLock(wParam > 0 ? TRUE : FALSE);
 	}
 	case kEnablePassWall://橫衝直撞
 	{
-		g_GameService.WM_EnablePassWall(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_EnablePassWall(wParam > 0 ? TRUE : FALSE);
 	}
 	case kEnableFastWalk://快速走路
 	{
-		g_GameService.WM_EnableFastWalk(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_EnableFastWalk(wParam > 0 ? TRUE : FALSE);
 	}
 	case kSetBoostSpeed://加速
 	{
-		g_GameService.WM_SetBoostSpeed(wParam > 0 ? TRUE : FALSE, static_cast<int>(lParam));
-		return 1L;
+		return g_GameService.WM_SetBoostSpeed(wParam > 0 ? TRUE : FALSE, static_cast<int>(lParam));
 	}
 	case kEnableMoveLock://鎖定原地
 	{
-		g_GameService.WM_EnableMoveLock(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_EnableMoveLock(wParam > 0 ? TRUE : FALSE);
 	}
 	case kMuteSound://靜音
 	{
-		g_GameService.WM_MuteSound(wParam > 0 ? TRUE : FALSE);
-		return 1;
+		return g_GameService.WM_MuteSound(wParam > 0 ? TRUE : FALSE);
 	}
 	case kEnableBattleDialog://關閉戰鬥對話框
 	{
-		g_GameService.WM_EnableBattleDialog(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_EnableBattleDialog(wParam > 0 ? TRUE : FALSE);
 	}
 	case kSetGameStatus://設置遊戲動畫狀態
 	{
-		g_GameService.WM_SetGameStatus(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_SetGameStatus(wParam > 0 ? TRUE : FALSE);
 	}
 	case kSetBlockPacket://戰鬥封包阻擋
 	{
-		g_GameService.WM_SetBlockPacket(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_SetBlockPacket(wParam > 0 ? TRUE : FALSE);
 	}
 	case kBattleTimeExtend://戰鬥時間延長
 	{
-		g_GameService.WM_BattleTimeExtend(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_BattleTimeExtend(wParam > 0 ? TRUE : FALSE);
 	}
 	case kEnableOptimize:
 	{
-		g_GameService.WM_SetOptimize(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_SetOptimize(wParam > 0 ? TRUE : FALSE);
 	}
 	case kEnableWindowHide:
 	{
-		g_GameService.WM_SetWindowHide(wParam > 0 ? TRUE : FALSE);
-		return 1L;
+		return g_GameService.WM_SetWindowHide(wParam > 0 ? TRUE : FALSE);
 	}
 	//action
 	case kSendAnnounce://公告
 	{
-		g_GameService.WM_Announce(reinterpret_cast<char*>(wParam), static_cast<int>(lParam));
-		return 1L;
+		return g_GameService.WM_Announce(reinterpret_cast<char*>(wParam), static_cast<int>(lParam));
 	}
 	case kSetMove://移動
 	{
-		g_GameService.WM_Move(static_cast<int>(wParam), static_cast<int>(lParam));
-		return 1L;
+		return g_GameService.WM_Move(static_cast<int>(wParam), static_cast<int>(lParam));
 	}
 	case kDistoryDialog://銷毀對話框
 	{
-		g_GameService.WM_DistoryDialog();
-		return 1L;
+		return g_GameService.WM_DistoryDialog();
 	}
 	case kCleanChatHistory://清空聊天緩存
 	{
-		g_GameService.WM_CleanChatHistory();
-		return 1L;
+		return g_GameService.WM_CleanChatHistory();
 	}
 	case kCreateDialog:
 	{
 		int type = LOWORD(wParam);
 		int button = HIWORD(wParam);
-		g_GameService.WM_CreateDialog(type, button, reinterpret_cast<const char*>(lParam));
-		return 1L;
+		return g_GameService.WM_CreateDialog(type, button, reinterpret_cast<const char*>(lParam));
 	}
 	default:
 		break;
@@ -1460,8 +1548,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 	else if (DLL_PROCESS_DETACH == ul_reason_for_call)
 	{
 		GameService& g_GameService = GameService::getInstance();
-		g_GameService.uninitialize();
-		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG>(g_OldWndProc));
+		if (g_GameService.uninitialize() == TRUE)
+			SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG>(g_OldWndProc));
 	}
 
 	return TRUE;
@@ -1657,14 +1745,14 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 }
 
 //這裡的東西其實沒有太大必要，一般外掛斷開就直接關遊戲了，如果需要設計能重連才需要
-void GameService::uninitialize()
+BOOL GameService::uninitialize()
 {
 	if (isInitialized_.load(std::memory_order_acquire) == FALSE)
-		return;
-
-	isInitialized_.store(FALSE, std::memory_order_release);
+		return FALSE;
 
 	WM_Announce(const_cast<char*>(u8"<SASH> disconnected from SASH local host."), 6);
+	isInitialized_.store(FALSE, std::memory_order_release);
+
 #ifdef USE_ASYNC_TCP
 	asyncClient_.reset();
 #else
@@ -1733,39 +1821,47 @@ void GameService::uninitialize()
 
 	util::undetour(pBattleCommandReady, oldBattleCommandReadyByte, sizeof(oldBattleCommandReadyByte));
 #endif
+
+	return TRUE;
 }
 
-void GameService::sendToServer(const std::string& str)
+BOOL GameService::sendToServer(const std::string& str)
 {
 #ifdef USE_ASYNC_TCP
 	if (asyncClient_ != nullptr)
-		asyncClient_->queueSendData(str.c_str(), str.size());
+		return asyncClient_->queueSendData(str.c_str(), str.size());
 #else
 	if (syncClient_ != nullptr)
-		syncClient_->Send(str);
+		return syncClient_->Send(str);
 #endif
+
+	return FALSE;
 }
 
-void GameService::sendToServer(const char* buf, size_t len)
+BOOL GameService::sendToServer(const char* buf, size_t len)
 {
 #ifdef USE_ASYNC_TCP
 	if (asyncClient_ != nullptr)
-		asyncClient_->queueSendData(buf, len);
+		return asyncClient_->queueSendData(buf, len);
 #else
 	if (syncClient_ != nullptr)
-		syncClient_->Send(buf, len);
+		return syncClient_->Send(buf, len);
 #endif
+
+	return FALSE;
 }
 
-void GameService::recvFromServer(char* buf, size_t len)
+BOOL GameService::recvFromServer(char* buf, size_t len)
 {
 #ifdef USE_ASYNC_TCP
 	if (asyncClient_ != nullptr)
-		asyncClient_->queueRecvData(buf, len);
+		return asyncClient_->queueRecvData(buf, len);
 #else
 	if (syncClient_ != nullptr)
-		syncClient_->Recv(buf, len);
+		return syncClient_->Recv(buf, len);
 #endif
+
+	return FALSE;
 }
 
 ////////////////////////////////////////////////////

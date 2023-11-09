@@ -161,7 +161,7 @@ public:
 	//global
 	long long CLuaSystem::setglobal(std::string sname, sol::object od, sol::this_state s);
 	sol::object CLuaSystem::getglobal(std::string sname, sol::this_state s);
-	void clearglobal();
+	long long clearglobal();
 
 	long long send(long long funId, sol::variadic_args args, sol::this_state s);
 	long long sleep(long long value, sol::this_state s);//ok

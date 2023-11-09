@@ -1025,7 +1025,7 @@ void MainObject::checkEtcFlag()
 	}
 
 	if (hasChange)
-		gamedevice.worker->setSwitcher(flg);
+		gamedevice.worker->setSwitchers(flg);
 }
 
 MissionThread::MissionThread(long long index, long long type, QObject* parent)

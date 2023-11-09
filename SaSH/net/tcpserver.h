@@ -89,6 +89,8 @@ private:
 	void __fastcall handleData(const QByteArray& data);
 
 public://actions
+	void __fastcall clearNetBuffer();
+
 	QString __fastcall battleStringFormat(const sa::battle_object_t& obj, QString formatStr);
 
 	[[nodiscard]] long long __fastcall getWorldStatus();
@@ -103,28 +105,26 @@ public://actions
 
 	bool __fastcall login(long long s);
 
-	void __fastcall clientLogin(const QString& userName, const QString& password);
-	void __fastcall playerLogin(long long index);
+	bool __fastcall clientLogin(const QString& userName, const QString& password);
+	bool __fastcall playerLogin(long long index);
 
 	QString __fastcall getBadStatusString(long long status);
 
 	QString __fastcall getFieldString(long long field);
 
-	void __fastcall unlockSecurityCode(const QString& code);
+	bool __fastcall unlockSecurityCode(const QString& code);
 
-	void __fastcall clearNetBuffer();
+	bool __fastcall logOut();
 
-	void __fastcall logOut();
+	bool __fastcall logBack();
 
-	void __fastcall logBack();
+	bool __fastcall move(const QPoint& p, const QString& dir);
 
-	void __fastcall move(const QPoint& p, const QString& dir);
+	bool __fastcall move(const QPoint& p);
 
-	void __fastcall move(const QPoint& p);
+	bool __fastcall announce(const QString& msg, long long color = 4);
 
-	void __fastcall announce(const QString& msg, long long color = 4);
-
-	void __fastcall createCharacter(long long dataplacenum
+	bool __fastcall createCharacter(long long dataplacenum
 		, const QString& charname
 		, long long imgno
 		, long long faceimgno
@@ -139,80 +139,81 @@ public://actions
 		, long long hometown
 		, bool forcecover);
 
-	void __fastcall deleteCharacter(long long index, const QString securityCode, bool backtofirst = false);
+	bool __fastcall deleteCharacter(long long index, const QString securityCode, bool backtofirst = false);
 
-	void __fastcall talk(const QString& text, long long color = 0, sa::TalkMode mode = sa::kTalkNormal);
-	void __fastcall inputtext(const QString& text, long long dialogid = -1, long long npcid = -1);
+	bool __fastcall talk(const QString& text, long long color = 0, sa::TalkMode mode = sa::kTalkNormal);
+	bool __fastcall inputtext(const QString& text, long long dialogid = -1, long long npcid = -1);
 
-	void __fastcall windowPacket(const QString& command, long long dialogid, long long npcid);
+	bool __fastcall windowPacket(const QString& command, long long dialogid, long long npcid);
 
-	void __fastcall EO();
+	bool __fastcall EO();
 
-	void __fastcall echo();
+	bool __fastcall echo();
 
-	void __fastcall dropItem(long long index);
-	void __fastcall dropItem(QVector<long long> index);
+	bool __fastcall dropItem(long long index);
+	bool __fastcall dropItem(QVector<long long> index);
 
-	void __fastcall useItem(long long itemIndex, long long target);
+	bool __fastcall useItem(long long itemIndex, long long target);
 
+	bool __fastcall swapItem(long long from, long long to);
 
-	void __fastcall swapItem(long long from, long long to);
+	bool __fastcall petitemswap(long long petIndex, long long from, long long to);
 
-	void __fastcall petitemswap(long long petIndex, long long from, long long to);
+	bool __fastcall useMagic(long long magicIndex, long long target);
 
-	void __fastcall useMagic(long long magicIndex, long long target);
+	bool __fastcall dropPet(long long petIndex);
 
-	void __fastcall dropPet(long long petIndex);
+	bool __fastcall setSwitcher(long long flg, bool enable);
 
-	void __fastcall setSwitcher(long long flg, bool enable);
+	bool __fastcall setSwitchers(long long flg);
 
-	void __fastcall setSwitcher(long long flg);
+	bool __fastcall press(sa::ButtonType select, long long dialogid = -1, long long unitid = -1);
+	bool __fastcall press(long long row, long long dialogid = -1, long long unitid = -1);
 
-	void __fastcall press(sa::ButtonType select, long long dialogid = -1, long long unitid = -1);
-	void __fastcall press(long long row, long long dialogid = -1, long long unitid = -1);
+	bool __fastcall buy(long long index, long long amt, long long dialogid = -1, long long unitid = -1);
+	bool __fastcall sell(const QVector<long long>& indexs, long long dialogid = -1, long long unitid = -1);
+	bool __fastcall sell(long long index, long long dialogid = -1, long long unitid = -1);
+	bool __fastcall sell(const QString& name, const QString& memo = "", long long dialogid = -1, long long unitid = -1);
+	bool __fastcall learn(long long petIndex, long long shopSkillIndex, long long petSkillSpot, long long dialogid = -1, long long unitid = -1);
 
-	void __fastcall buy(long long index, long long amt, long long dialogid = -1, long long unitid = -1);
-	void __fastcall sell(const QVector<long long>& indexs, long long dialogid = -1, long long unitid = -1);
-	void __fastcall sell(long long index, long long dialogid = -1, long long unitid = -1);
-	void __fastcall sell(const QString& name, const QString& memo = "", long long dialogid = -1, long long unitid = -1);
-	void __fastcall learn(long long petIndex, long long shopSkillIndex, long long petSkillSpot, long long dialogid = -1, long long unitid = -1);
+	bool __fastcall craft(sa::CraftType type, const QStringList& ingres);
 
-	void __fastcall craft(sa::CraftType type, const QStringList& ingres);
+	bool __fastcall createRemoteDialog(unsigned long long type, unsigned long long button, const QString& text);
 
-	void __fastcall createRemoteDialog(unsigned long long type, unsigned long long button, const QString& text);
+	bool __fastcall mail(const QVariant& card, const QString& text, long long petIndex, const QString& itemName, const QString& itemMemo);
 
-	void __fastcall mail(const QVariant& card, const QString& text, long long petIndex, const QString& itemName, const QString& itemMemo);
+	bool __fastcall warp();
 
-	void __fastcall warp();
-
-	void __fastcall shopOk(long long n);
-	void __fastcall saMenu(long long n);
+	bool __fastcall shopOk(long long n);
+	bool __fastcall saMenu(long long n);
 
 	bool __fastcall addPoint(long long skillid, long long amt);
 
-	void __fastcall pickItem(long long dir);
+	bool __fastcall pickItem(long long dir);
 
-	void __fastcall dropGold(long long gold);
+	bool __fastcall dropGold(long long gold);
 
-	void __fastcall depositGold(long long gold, bool isPublic);
-	void __fastcall withdrawGold(long long gold, bool isPublic);
+	bool __fastcall depositGold(long long gold, bool isPublic);
+	bool __fastcall withdrawGold(long long gold, bool isPublic);
 
-	void __fastcall depositPet(long long petIndex, long long dialogid = -1, long long unitid = -1);
-	void __fastcall withdrawPet(long long petIndex, long long dialogid = -1, long long unitid = -1);
+	bool __fastcall depositPet(long long petIndex, long long dialogid = -1, long long unitid = -1);
+	bool __fastcall withdrawPet(long long petIndex, long long dialogid = -1, long long unitid = -1);
 
-	void __fastcall depositItem(long long index, long long dialogid = -1, long long unitid = -1);
-	void __fastcall withdrawItem(long long itemIndex, long long dialogid = -1, long long unitid = -1);
+	bool __fastcall depositItem(long long index, long long dialogid = -1, long long unitid = -1);
+	bool __fastcall withdrawItem(long long itemIndex, long long dialogid = -1, long long unitid = -1);
 
+#ifdef OCR_ENABLE
 	bool __fastcall captchaOCR(QString* pmsg);
+#endif
 
 	void findPathAsync(const QPoint& pos);
 
-	void __fastcall setAllPetState();
-	void __fastcall setPetState(long long petIndex, sa::PetState state);
-	void __fastcall setFightPet(long long petIndex);
-	void __fastcall setRidePet(long long petIndex);
-	void __fastcall setPetStateSub(long long petIndex, long long state);
-	void __fastcall setPetStandby(long long petIndex, long long state);
+	bool __fastcall setAllPetState();
+	bool __fastcall setPetState(long long petIndex, sa::PetState state);
+	bool __fastcall setFightPet(long long petIndex);
+	bool __fastcall setRidePet(long long petIndex);
+	bool __fastcall setPetStateSub(long long petIndex, long long state);
+	bool __fastcall setPetStandby(long long petIndex, long long state);
 
 	void __fastcall updateItemByMemory();
 	void __fastcall updateDatasFromMemory();
@@ -221,30 +222,30 @@ public://actions
 	void __fastcall doBattleWork(bool canDelay);
 	bool asyncBattleAction(bool canDelay);
 
-	void __fastcall downloadMap(long long floor = -1);
-	void __fastcall downloadMap(long long x, long long y, long long floor = -1);
+	bool __fastcall downloadMap(long long floor = -1);
+	bool __fastcall downloadMap(long long x, long long y, long long floor = -1);
 
 	bool __fastcall tradeStart(const QString& name, long long timeout);
-	void __fastcall tradeComfirm(const QString& name);
-	void __fastcall tradeCancel();
-	void __fastcall tradeAppendItems(const QString& name, const QVector<long long>& itemIndexs);
-	void __fastcall tradeAppendGold(const QString& name, long long gold);
-	void __fastcall tradeAppendPets(const QString& name, const QVector<long long>& petIndex);
-	void __fastcall tradeComplete(const QString& name);
+	bool __fastcall tradeComfirm(const QString& name);
+	bool __fastcall tradeCancel();
+	bool __fastcall tradeAppendItems(const QString& name, const QVector<long long>& itemIndexs);
+	bool __fastcall tradeAppendGold(const QString& name, long long gold);
+	bool __fastcall tradeAppendPets(const QString& name, const QVector<long long>& petIndex);
+	bool __fastcall tradeComplete(const QString& name);
 
-	void __fastcall cleanChatHistory();
+	bool __fastcall cleanChatHistory();
 	[[nodiscard]] QString __fastcall getChatHistory(long long index);
 
 	bool __fastcall findUnit(const QString& name, long long type, sa::map_unit_t* unit, const QString& freeName = "", long long modelid = -1);
 
 	[[nodiscard]] QString __fastcall getGround();
 
-	void __fastcall setTeamState(bool join);
-	void __fastcall kickteam(long long n);
+	bool __fastcall setTeamState(bool join);
+	bool __fastcall kickteam(long long n);
 
 	long long __fastcall setCharFaceToPoint(const QPoint& pos);
-	void __fastcall setCharFaceDirection(long long dir, bool noWindow = false);
-	void __fastcall setCharFaceDirection(const QString& dirStr);
+	bool __fastcall setCharFaceDirection(long long dir, bool noWindow = false);
+	bool __fastcall setCharFaceDirection(const QString& dirStr);
 
 	[[nodiscard]] long long __fastcall getTeamSize();
 	[[nodiscard]] QStringList __fastcall getJoinableUnitList() const;
@@ -270,8 +271,8 @@ public://actions
 
 	[[nodiscard]] bool __fastcall isDialogVisible();
 
-	void __fastcall setCharFreeName(const QString& name);
-	void __fastcall setPetFreeName(long long petIndex, const QString& name);
+	bool __fastcall setCharFreeName(const QString& name);
+	bool __fastcall setPetFreeName(long long petIndex, const QString& name);
 
 	[[nodiscard]] bool __fastcall getBattleFlag();
 	[[nodiscard]] bool __fastcall getOnlineFlag() const;
@@ -359,11 +360,11 @@ public://actions
 
 	void __fastcall updateComboBoxList();
 
-	void __fastcall setWindowTitle(QString formatStr);
+	bool __fastcall setWindowTitle(QString formatStr);
 
 	void addNetQueue(const QByteArray& data) { readQueue_.enqueue(data); }
 private:
-	void __fastcall setCharModelDirection(long long dir);
+	bool __fastcall setCharModelDirection(long long dir);
 
 	void __fastcall refreshItemInfo(long long index);
 
@@ -728,8 +729,8 @@ private://lssproto_recv
 
 	//////////////////////////////////
 
-	virtual void __fastcall lssproto_CustomWN_recv(const QString& data) override;
-	virtual void __fastcall lssproto_CustomTK_recv(const QString& data) override;
+	virtual bool __fastcall lssproto_CustomWN_recv(const QString& data) override;
+	virtual bool __fastcall lssproto_CustomTK_recv(const QString& data) override;
 #pragma endregion
 };
 

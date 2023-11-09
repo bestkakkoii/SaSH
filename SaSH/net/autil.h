@@ -50,7 +50,7 @@ public:
 	void __fastcall util_DecodeMessage(QByteArray& dst, QByteArray src);
 	long long __fastcall util_GetFunctionFromSlice(long long* func, long long* fieldcount, long long offest = 23);
 	void __fastcall util_DiscardMessage(void);
-	void __fastcall util_SendMesg(long long func, char* buffer);
+	bool __fastcall util_SendMesg(long long func, char* buffer);
 
 	// -------------------------------------------------------------------
 	// Encoding function units.  Use in Encrypting functions.
@@ -102,17 +102,17 @@ public:
 
 	// 主發送函數
 	template<typename... Args>
-	inline void util_Send(long long func, Args... args)
+	inline bool util_Send(long long func, Args... args)
 	{
 		long long iChecksum = 0;
 		char buffer[NETDATASIZE] = {};
 
 		util_SendProcessArgs(iChecksum, buffer, args...);
 		util_mkint(buffer, iChecksum);
-		util_SendMesg(func, buffer);
+		return util_SendMesg(func, buffer);
 	}
 
-	inline void util_SendArgs(long long func, std::vector<std::variant<long long, std::string>>& args)
+	inline bool util_SendArgs(long long func, std::vector<std::variant<long long, std::string>>& args)
 	{
 		long long iChecksum = 0;
 		char buffer[NETDATASIZE] = {};
@@ -130,7 +130,7 @@ public:
 		}
 
 		util_mkint(buffer, iChecksum);
-		util_SendMesg(func, buffer);
+		return util_SendMesg(func, buffer);
 	}
 
 	template<typename... Args>
@@ -159,14 +159,15 @@ public:
 		return (iChecksum == iChecksumrecv);
 	}
 
-	inline void setKey(const std::string& key)
+	inline bool setKey(const std::string& key)
 	{
 		std::unique_lock<std::shared_mutex> lock(keyMutex_);
 		if (strncmp(personalKey_, key.c_str(), key.size()) == 0)
-			return;
+			return false;
 
 		memset(personalKey_, 0, sizeof(personalKey_));
 		_snprintf_s(personalKey_, sizeof(personalKey_), _TRUNCATE, "%s", key.c_str());
+		return true;
 	}
 
 private:

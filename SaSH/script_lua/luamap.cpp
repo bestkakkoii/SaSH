@@ -50,24 +50,21 @@ long long CLuaMap::setdir(sol::object p1, sol::object p2, sol::this_state s)
 
 	if (x != -1 && y != -1)
 	{
-		gamedevice.worker->setCharFaceToPoint(QPoint(x, y));
-		return TRUE;
+		return gamedevice.worker->setCharFaceToPoint(QPoint(x, y));
 	}
 
 	dirStr = dirStr.toUpper().simplified();
 
 	if (dir != -1 && dirStr.isEmpty() && dir >= 0 && dir < sa::MAX_DIR)
 	{
-		gamedevice.worker->setCharFaceDirection(dir);
+		return gamedevice.worker->setCharFaceDirection(dir);
 	}
 	else if (dir == -1 && !dirStr.isEmpty())
 	{
-		gamedevice.worker->setCharFaceDirection(dirStr);
+		return gamedevice.worker->setCharFaceDirection(dirStr);
 	}
-	else
-		return FALSE;
 
-	return TRUE;
+	return FALSE;
 }
 
 long long CLuaMap::walkpos(long long x, long long y, sol::object otimeout, sol::this_state s)
@@ -92,7 +89,9 @@ long long CLuaMap::walkpos(long long x, long long y, sol::object otimeout, sol::
 	if (p.y() < 0 || p.y() >= 1500)
 		return FALSE;
 
-	gamedevice.worker->move(p);
+	if (!gamedevice.worker->move(p))
+		return FALSE;
+
 	QThread::msleep(1);
 
 	bool bret = luadebug::waitfor(s, timeout, [&s, this, &gamedevice, &p]()->bool
@@ -116,6 +115,7 @@ long long CLuaMap::move(sol::object obj, long long y, sol::this_state s)
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	long long x = 0;
@@ -139,7 +139,9 @@ long long CLuaMap::move(sol::object obj, long long y, sol::this_state s)
 		p = gamedevice.worker->getPoint() + util::fix_point.value(dir) * 10;
 	}
 
-	gamedevice.worker->move(p);
+	if (!gamedevice.worker->move(p))
+		return FALSE;
+
 	QThread::msleep(100);
 	return TRUE;
 }
@@ -151,15 +153,14 @@ long long CLuaMap::packetMove(long long x, long long y, std::string sdir, sol::t
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	QPoint pos(static_cast<int>(x), static_cast<int>(y));
 
 	QString qdir = util::toQString(sdir);
 
-	gamedevice.worker->move(pos, qdir);
-
-	return TRUE;
+	return gamedevice.worker->move(pos, qdir);
 }
 
 long long CLuaMap::teleport(sol::this_state s)
@@ -169,11 +170,10 @@ long long CLuaMap::teleport(sol::this_state s)
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	gamedevice.worker->warp();
-
-	return TRUE;
+	return gamedevice.worker->warp();
 }
 
 long long CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
@@ -183,6 +183,7 @@ long long CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	long long floor = -1;
@@ -193,7 +194,7 @@ long long CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 
 	if (floor >= 0 || floor == -1)
 	{
-		gamedevice.worker->downloadMap(floor);
+		return gamedevice.worker->downloadMap(floor);
 	}
 	else if (floor == -2)
 	{
@@ -358,7 +359,10 @@ bool __fastcall findPathProcess(
 			}
 
 			point = path.at(steplen_cache);
-			gamedevice.worker->move(point);
+
+			if (!gamedevice.worker->move(point))
+				continue;
+
 			lastTryPoint = point;
 			if (step_cost > 0)
 				QThread::msleep(step_cost);
@@ -400,6 +404,7 @@ bool __fastcall findPathProcess(
 
 					if (luadebug::checkStopAndPause(s))
 						return false;
+
 					if (gamedevice.worker.isNull())
 					{
 						if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
@@ -454,6 +459,7 @@ bool __fastcall findPathProcess(
 			blockDetectTimer.restart();
 			if (luadebug::checkStopAndPause(s))
 				return false;
+
 			if (gamedevice.worker.isNull())
 			{
 				if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
@@ -469,6 +475,7 @@ bool __fastcall findPathProcess(
 				output = QObject::tr("[warn] <findpath>detedted player ware blocked");
 				luadebug::logExport(s, output, 10);
 			}
+
 			gamedevice.worker->EO();
 			QThread::msleep(500);
 			if (luadebug::checkStopAndPause(s))
@@ -509,6 +516,7 @@ bool __fastcall findPathProcess(
 
 			if (luadebug::checkStopAndPause(s))
 				return false;
+
 			if (gamedevice.worker.isNull())
 			{
 				if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
@@ -531,11 +539,13 @@ bool __fastcall findPathProcess(
 				recordedStep = steplen_cache;
 			else
 				--recordedStep;
+
 			continue;
 		}
 
 		if (luadebug::checkStopAndPause(s))
 			return false;
+
 		if (gamedevice.worker.isNull())
 		{
 			if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
@@ -590,6 +600,7 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 
 	if (luadebug::checkStopAndPause(s))
 		return FALSE;
+
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 

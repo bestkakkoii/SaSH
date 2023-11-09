@@ -2208,7 +2208,13 @@ long long Worker::checkJobDailyState(const QString& missionName, long long timeo
 		timeout = 5000;
 
 	IS_WAITFOR_missionInfo_FLAG.on();
-	lssproto_missionInfo_send(const_cast<char*>("dyedye"));
+
+	if (!lssproto_missionInfo_send(const_cast<char*>("dyedye")))
+	{
+		IS_WAITFOR_missionInfo_FLAG.off();
+		return -1;
+	}
+
 	util::timer timer;
 
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
@@ -2902,10 +2908,12 @@ void Worker::setOnlineFlag(bool enable)
 	isOnline_.set(enable);
 }
 
-void Worker::setWindowTitle(QString formatStr)
+bool Worker::setWindowTitle(QString formatStr)
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.isValid())
+		return false;
 
 	long long subServer = static_cast<long long>(mem::read<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetSubServerIndex));
 	long long position = static_cast<long long>(mem::read<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetPositionIndex));
@@ -2966,7 +2974,7 @@ void Worker::setWindowTitle(QString formatStr)
 	}
 
 	std::wstring wtitle = formatStr.toStdWString();
-	SetWindowTextW(gamedevice.getProcessWindow(), wtitle.c_str());
+	return SetWindowTextW(gamedevice.getProcessWindow(), wtitle.c_str()) == TRUE;
 }
 
 void Worker::setPoint(const QPoint& point)
@@ -2992,13 +3000,17 @@ void Worker::setPoint(const QPoint& point)
 }
 
 //清屏 (實際上就是 char數組置0)
-void Worker::cleanChatHistory()
+bool Worker::cleanChatHistory()
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	gamedevice.sendMessage(kCleanChatHistory, NULL, NULL);
+	if (gamedevice.sendMessage(kCleanChatHistory, NULL, NULL) <= 0)
+		return false;
+
 	chatQueue.clear();
 	gamedevice.chatLogModel.clear();
+
+	return true;
 }
 
 void Worker::updateComboBoxList()
@@ -3079,8 +3091,11 @@ void Worker::updateComboBoxList()
 
 #pragma region System
 //公告
-void Worker::announce(const QString& msg, long long color)
+bool Worker::announce(const QString& msg, long long color)
 {
+	if (!getOnlineFlag())
+		return false;
+
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
@@ -3089,31 +3104,36 @@ void Worker::announce(const QString& msg, long long color)
 	{
 		std::string str = util::fromUnicode(msg);
 		mem::VirtualMemory ptr(hProcess, str.size(), true);
-		mem::write(hProcess, ptr, const_cast<char*>(str.c_str()), str.size());
-		gamedevice.sendMessage(kSendAnnounce, ptr, color);
+		if (!mem::write(hProcess, ptr, const_cast<char*>(str.c_str()), str.size()))
+			return false;
+
+		if (gamedevice.sendMessage(kSendAnnounce, ptr, color) <= 0)
+			return false;
 	}
 	else
 	{
 		mem::VirtualMemory ptr(hProcess, "", mem::VirtualMemory::kAnsi, true);
-		gamedevice.sendMessage(kSendAnnounce, ptr, color);
+		if (gamedevice.sendMessage(kSendAnnounce, ptr, color) <= 0)
+			return false;
 	}
+
 	chatQueue.enqueue(qMakePair(color, msg.simplified()));
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.appendChatLog(msg, color);
+
+	return true;
 }
 
 //喊話
-void Worker::talk(const QString& text, long long color, sa::TalkMode mode)
+bool Worker::talk(const QString& text, long long color, sa::TalkMode mode)
 {
 	if (!getOnlineFlag())
-		return;
+		return false;
 
 	if (text.startsWith("//skup"))
 	{
-		lssproto_CustomTK_recv(text);
-		return;
+		return lssproto_CustomTK_recv(text);
 	}
-
 
 	if (color < 0 || color > 10)
 		color = 0;
@@ -3132,18 +3152,18 @@ void Worker::talk(const QString& text, long long color, sa::TalkMode mode)
 		if (!util::checkAND(newflg, sa::PC_ETCFLAG_TEAM_CHAT))
 		{
 			newflg |= sa::PC_ETCFLAG_TEAM_CHAT;
-			setSwitcher(newflg);
+			setSwitchers(newflg);
 			QThread::msleep(500);
 		}
 	}
 
 	msg += text;
 	std::string str = util::fromUnicode(msg);
-	lssproto_TK_send(getPoint(), const_cast<char*>(str.c_str()), color, 3);
+	return lssproto_TK_send(getPoint(), const_cast<char*>(str.c_str()), color, 3);
 }
 
 //創建人物
-void Worker::createCharacter(long long dataplacenum
+bool Worker::createCharacter(long long dataplacenum
 	, const QString& charname
 	, long long imgno
 	, long long faceimgno
@@ -3163,14 +3183,15 @@ void Worker::createCharacter(long long dataplacenum
 	{
 		//防複寫保護
 		if (getCharListTable(dataplacenum).valid)
-			return;
+			return false;
 	}
 
 	std::string sname = util::fromUnicode(charname);
-	lssproto_CreateNewChar_send(dataplacenum, const_cast<char*>(sname.c_str()), imgno, faceimgno, vit, str, tgh, dex, earth, water, fire, wind, hometown);
+	if (!lssproto_CreateNewChar_send(dataplacenum, const_cast<char*>(sname.c_str()), imgno, faceimgno, vit, str, tgh, dex, earth, water, fire, wind, hometown))
+		return false;
 
 	if (!checkWG(3, 11))
-		return;
+		return false;
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -3183,21 +3204,24 @@ void Worker::createCharacter(long long dataplacenum
 
 	setWorldStatus(2);
 	setGameStatus(2);
+
+	return true;
 }
 
 //刪除人物
-void Worker::deleteCharacter(long long index, const QString password, bool backtofirst)
+bool Worker::deleteCharacter(long long index, const QString password, bool backtofirst)
 {
 	if (index < 0 || index > sa::MAX_CHARACTER)
-		return;
+		return false;
 
 	if (!checkWG(3, 11))
-		return;
+		return false;
 
 	sa::char_list_data_t table = getCharListTable(index);
 
 	if (!table.valid)
-		return;
+		return false;
+
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	HANDLE hProcess = gamedevice.getProcess();
@@ -3208,7 +3232,8 @@ void Worker::deleteCharacter(long long index, const QString password, bool backt
 
 	std::string sname = util::fromUnicode(table.name);
 	std::string spassword = util::fromUnicode(password);
-	lssproto_CharDelete_send(const_cast<char*>(sname.c_str()), const_cast<char*>(spassword.c_str()));
+	if (!lssproto_CharDelete_send(const_cast<char*>(sname.c_str()), const_cast<char*>(spassword.c_str())))
+		return false;
 
 	mem::write<int>(hProcess, hModule + 0x421C000, 1);
 	mem::write<int>(hProcess, hModule + 0x415EF6C, 2);
@@ -3223,23 +3248,25 @@ void Worker::deleteCharacter(long long index, const QString password, bool backt
 		setWorldStatus(1);
 		setGameStatus(2);
 	}
+
+	return true;
 }
 
 //老菜單
-void Worker::shopOk(long long n)
+bool Worker::shopOk(long long n)
 {
 	//SE 1隨身倉庫 2查看聲望氣勢
-	lssproto_ShopOk_send(n);
+	return lssproto_ShopOk_send(n);
 }
 
 //新菜單
-void Worker::saMenu(long long n)
+bool Worker::saMenu(long long n)
 {
-	lssproto_SaMenu_send(n);
+	return lssproto_SaMenu_send(n);
 }
 
 //切換單一開關
-void Worker::setSwitcher(long long flg, bool enable)
+bool Worker::setSwitcher(long long flg, bool enable)
 {
 	sa::character_t pc = getCharacter();
 	if (enable)
@@ -3247,13 +3274,13 @@ void Worker::setSwitcher(long long flg, bool enable)
 	else
 		pc.etcFlag &= ~flg;
 
-	setSwitcher(pc.etcFlag);
+	return setSwitchers(pc.etcFlag);
 }
 
 //切換全部開關
-void Worker::setSwitcher(long long flg)
+bool Worker::setSwitchers(long long flg)
 {
-	lssproto_FS_send(flg);
+	return lssproto_FS_send(flg);
 }
 
 //對話框是否存在
@@ -3271,15 +3298,15 @@ bool Worker::isDialogVisible()
 #pragma endregion
 
 #pragma region Connection
-void Worker::echo()
+bool Worker::echo()
 {
 	lssproto_EO_send(0);
 	eoTTLTimer_.restart();
-	lssproto_Echo_send(const_cast<char*>("hoge"));
+	return lssproto_Echo_send(const_cast<char*>("hoge"));
 }
 
 //元神歸位
-void Worker::EO()
+bool Worker::EO()
 {
 #ifdef _DEBUG
 	//測試用區塊
@@ -3297,33 +3324,38 @@ void Worker::EO()
 		isEOTTLSend.on();
 	}
 
-	echo();
+	return echo();
 }
 //登出
-void Worker::logOut()
+bool Worker::logOut()
 {
 	if (!getOnlineFlag())
-		return;
+		return false;
 
-	lssproto_CharLogout_send(0);
+	if (!lssproto_CharLogout_send(0))
+		return false;
+
 	setWorldStatus(7);
 	setGameStatus(0);
+
+	return true;
 }
 
 //回點
-void Worker::logBack()
+bool Worker::logBack()
 {
 	if (!getOnlineFlag())
-		return;
+		return false;
 
 	if (getBattleFlag())
 		lssproto_BU_send(0);//退出觀戰
-	lssproto_CharLogout_send(1);
+
+	return lssproto_CharLogout_send(1);
 }
 
 #include "macchanger.h"
 #include "descrypt.h"
-void Worker::clientLogin(const QString& userName, const QString& password)
+bool Worker::clientLogin(const QString& userName, const QString& password)
 {
 	std::string sname = util::fromUnicode(userName);
 	std::string spassword = util::fromUnicode(password);
@@ -3338,7 +3370,7 @@ void Worker::clientLogin(const QString& userName, const QString& password)
 	_snprintf_s(userId, sizeof(userId), _TRUNCATE, "%s", sname.c_str());
 	_snprintf_s(userPassword, sizeof(userPassword), _TRUNCATE, "%s", spassword.c_str());
 
-	lssproto_ClientLogin_send(userId
+	return lssproto_ClientLogin_send(userId
 		, userPassword
 		, const_cast<char*>(mac.c_str())
 		, serverIndex
@@ -3346,17 +3378,17 @@ void Worker::clientLogin(const QString& userName, const QString& password)
 		, sa::WITH_CDKEY | sa::WITH_PASSWORD | sa::WITH_MACADDRESS);
 }
 
-void Worker::playerLogin(long long index)
+bool Worker::playerLogin(long long index)
 {
 	if (index < 0 || index >= sa::MAX_CHARACTER)
-		return;
+		return false;
 	sa::char_list_data_t chartable = getCharListTable(index);
 	if (!chartable.valid)
-		return;
+		return false;
 
 	std::string name = util::fromUnicode(chartable.name);
 
-	lssproto_CharLogin_send(const_cast<char*>(name.c_str()));
+	return lssproto_CharLogin_send(const_cast<char*>(name.c_str()));
 }
 
 //登入
@@ -3554,7 +3586,8 @@ bool Worker::login(long long s)
 		sa_8001.exe+206F5 - 90                    - nop
 		sa_8001.exe+206F6 - 90                    - nop
 		*/
-		mem::write(hProcess, hModule + 0x206F1, const_cast<char*>("\xEB\x04\x90\x90\x90\x90"), 6);//進入OK點擊事件
+		if (!mem::write(hProcess, hModule + 0x206F1, const_cast<char*>("\xEB\x04\x90\x90\x90\x90"), 6))//進入OK點擊事件
+			break;
 
 		timer.restart();
 		//bool ok = true;
@@ -3594,7 +3627,8 @@ bool Worker::login(long long s)
 		sa_8001.exe+2153D - 90                    - nop
 		*/
 		BYTE code[8] = { 0xB8, static_cast<BYTE>(server), 0x00, 0x00, 0x00, 0xEB, 0x07, 0x90 };
-		mem::write(hProcess, hModule + 0x21536, code, sizeof(code));//進入伺服器點擊事件
+		if (!mem::write(hProcess, hModule + 0x21536, code, sizeof(code)))//進入伺服器點擊事件
+			break;
 
 		timer.restart();
 		for (;;)
@@ -3703,7 +3737,8 @@ bool Worker::login(long long s)
 		long long cxValue = mem::read<short>(hProcess, ecxValue + hModule + 0x4ABED2C);
 		cxValue += subserver;
 
-		mem::write<short>(hProcess, hModule + 0xC4288, cxValue);//選擇伺服器+分流
+		if (!mem::write<short>(hProcess, hModule + 0xC4288, cxValue))//選擇伺服器+分流
+			break;
 
 		/*
 		sa_8001.exe+2189B - 90                    - nop
@@ -3714,7 +3749,8 @@ bool Worker::login(long long s)
 		sa_8001.exe+218A0 - 90                    - nop
 		sa_8001.exe+218A1 - 90                    - nop
 		*/
-		mem::write(hProcess, hModule + 0x2189B, const_cast<char*>("\x90\x90\x90\x90\x90\x90\x90"), 7);//防止被複寫
+		if (!mem::write(hProcess, hModule + 0x2189B, const_cast<char*>("\x90\x90\x90\x90\x90\x90\x90"), 7))//防止被複寫
+			break;
 
 		//sa_8001.exe+21A53 - 0FBF 05 88424C00      - movsx eax,word ptr [sa_8001.exe+C4288] { (0) } << 這裡決定最後登入的伺服器
 
@@ -3726,7 +3762,8 @@ bool Worker::login(long long s)
 		*/
 		BYTE bser = static_cast<BYTE>(serverIndex) + 1ui8;
 		BYTE code[8] = { 0xBA, bser, 0x00, 0x00, 0x00, 0x90, 0x90, 0x90 };
-		mem::write(hProcess, hModule + 0x21864, code, sizeof(code));//進入分流點擊事件
+		if (!mem::write(hProcess, hModule + 0x21864, code, sizeof(code)))//進入分流點擊事件
+			break;
 
 		timer.restart();
 		connectingTimer_.restart();
@@ -3888,25 +3925,24 @@ bool Worker::login(long long s)
 
 #pragma region WindowPacket
 //創建對話框
-void Worker::createRemoteDialog(unsigned long long type, unsigned long long button, const QString& text)
+bool Worker::createRemoteDialog(unsigned long long type, unsigned long long button, const QString& text)
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	mem::VirtualMemory ptr(gamedevice.getProcess(), text, mem::VirtualMemory::kAnsi, true);
 
-	gamedevice.sendMessage(kCreateDialog, MAKEWPARAM(type, button), ptr);
+	return gamedevice.sendMessage(kCreateDialog, MAKEWPARAM(type, button), ptr) > 0;
 }
 
 //按下按鈕
-void Worker::press(sa::ButtonType select, long long dialogid, long long unitid)
+bool Worker::press(sa::ButtonType select, long long dialogid, long long unitid)
 {
 	if (select == sa::kButtonClose)
 	{
 		long long currentIndex = getIndex();
 		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-		gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
-		return;
+		return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
 	}
 
 	sa::dialog_t dialog = currentDialog.get();
@@ -3952,14 +3988,16 @@ void Worker::press(sa::ButtonType select, long long dialogid, long long unitid)
 			select = sa::kButtonCancel;
 	}
 
-	lssproto_WN_send(getPoint(), dialogid, unitid, select, const_cast<char*>(data));
+	if (!lssproto_WN_send(getPoint(), dialogid, unitid, select, const_cast<char*>(data)))
+		return false;
+
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
 }
 
 //按下行按鈕
-void Worker::press(long long row, long long dialogid, long long unitid)
+bool Worker::press(long long row, long long dialogid, long long unitid)
 {
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -3969,20 +4007,23 @@ void Worker::press(long long row, long long dialogid, long long unitid)
 		unitid = dialog.unitid;
 	QString qrow = util::toQString(row);
 	std::string srow = util::fromUnicode(qrow);
-	lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str()));
+
+	if (!lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str())))
+		return false;
+
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
 }
 
 //買東西
-void Worker::buy(long long index, long long amt, long long dialogid, long long unitid)
+bool Worker::buy(long long index, long long amt, long long dialogid, long long unitid)
 {
 	if (index < 0)
-		return;
+		return false;
 
 	if (amt <= 0)
-		return;
+		return false;
 
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -3993,17 +4034,20 @@ void Worker::buy(long long index, long long amt, long long dialogid, long long u
 
 	QString qrow = QString("%1\\z%2").arg(index + 1).arg(amt);
 	std::string srow = util::fromUnicode(qrow);
-	lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str()));
+
+	if (!lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str())))
+		return false;
+
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
 }
 
 //賣東西
-void Worker::sell(const QString& name, const QString& memo, long long dialogid, long long unitid)
+bool Worker::sell(const QString& name, const QString& memo, long long dialogid, long long unitid)
 {
 	if (name.isEmpty())
-		return;
+		return false;
 
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -4014,20 +4058,20 @@ void Worker::sell(const QString& name, const QString& memo, long long dialogid, 
 
 	QVector<long long> indexs;
 	if (!getItemIndexsByName(name, memo, &indexs, sa::CHAR_EQUIPSLOT_COUNT))
-		return;
+		return false;
 
-	sell(indexs, dialogid, unitid);
+	return sell(indexs, dialogid, unitid);
 }
 
 //賣東西
-void Worker::sell(long long index, long long dialogid, long long unitid)
+bool Worker::sell(long long index, long long dialogid, long long unitid)
 {
 	if (index < 0 || index >= sa::MAX_ITEM)
-		return;
+		return false;
 
 	sa::item_t item = getItem(index);
 	if (item.name.isEmpty() || !item.valid)
-		return;
+		return false;
 
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -4038,17 +4082,20 @@ void Worker::sell(long long index, long long dialogid, long long unitid)
 
 	QString qrow = QString("%1\\z%2").arg(index).arg(item.stack);
 	std::string srow = util::fromUnicode(qrow);
-	lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str()));
+
+	if (!lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str())))
+		return false;
+
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
 }
 
 //賣東西
-void Worker::sell(const QVector<long long>& indexs, long long dialogid, long long unitid)
+bool Worker::sell(const QVector<long long>& indexs, long long dialogid, long long unitid)
 {
 	if (indexs.isEmpty())
-		return;
+		return false;
 
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -4058,26 +4105,29 @@ void Worker::sell(const QVector<long long>& indexs, long long dialogid, long lon
 		unitid = dialog.unitid;
 
 	QStringList list;
+	bool bret = false;
 	for (const long long it : indexs)
 	{
 		if (it < 0 || it >= sa::MAX_ITEM)
 			continue;
 
-		sell(it, dialogid, unitid);
+		bret = bret && sell(it, dialogid, unitid);
 	}
+
+	return bret;
 }
 
 //寵物學技能
-void Worker::learn(long long petIndex, long long shopSkillIndex, long long petSkillSpot, long long dialogid, long long unitid)
+bool Worker::learn(long long petIndex, long long shopSkillIndex, long long petSkillSpot, long long dialogid, long long unitid)
 {
 	if (shopSkillIndex < 0)
-		return;
+		return false;
 
 	if (petIndex < 0 || petIndex >= sa::MAX_PET)
-		return;
+		return false;
 
 	if (petSkillSpot < 0 || petSkillSpot >= sa::MAX_PET_SKILL)
-		return;
+		return false;
 
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -4089,16 +4139,19 @@ void Worker::learn(long long petIndex, long long shopSkillIndex, long long petSk
 	QString qrow = QString("%1|%2|%3|0").arg(++shopSkillIndex).arg(++petIndex).arg(++petSkillSpot);
 	qrow.replace("|", "\\z");
 	std::string srow = util::fromUnicode(qrow);
-	lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str()));
+
+	if (!lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str())))
+		return false;
+
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
 }
 
-void Worker::depositItem(long long itemIndex, long long dialogid, long long unitid)
+bool Worker::depositItem(long long itemIndex, long long dialogid, long long unitid)
 {
 	if (itemIndex < 0 || itemIndex >= sa::MAX_ITEM)
-		return;
+		return false;
 
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -4109,12 +4162,15 @@ void Worker::depositItem(long long itemIndex, long long dialogid, long long unit
 
 	QString qstr = util::toQString(itemIndex + 1);
 	std::string srow = util::fromUnicode(qstr);
-	lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str()));
+	if (!lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str())))
+		return false;
 
 	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+
+	return true;
 }
 
-void Worker::withdrawItem(long long itemIndex, long long dialogid, long long unitid)
+bool Worker::withdrawItem(long long itemIndex, long long dialogid, long long unitid)
 {
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -4125,16 +4181,21 @@ void Worker::withdrawItem(long long itemIndex, long long dialogid, long long uni
 
 	QString qstr = util::toQString(itemIndex + 1);
 	std::string srow = util::fromUnicode(qstr);
-	lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str()));
+
+	if (!lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str())))
+		return false;
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
+	if (gamedevice.sendMessage(kDistoryDialog, NULL, NULL) <= 0)
+		return false;
 
 	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+
+	return true;
 }
 
-void Worker::depositPet(long long petIndex, long long dialogid, long long unitid)
+bool Worker::depositPet(long long petIndex, long long dialogid, long long unitid)
 {
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -4145,10 +4206,10 @@ void Worker::depositPet(long long petIndex, long long dialogid, long long unitid
 
 	QString qstr = util::toQString(petIndex + 1);
 	std::string srow = util::fromUnicode(qstr);
-	lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str()));
+	return lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str()));
 }
 
-void Worker::withdrawPet(long long petIndex, long long dialogid, long long unitid)
+bool Worker::withdrawPet(long long petIndex, long long dialogid, long long unitid)
 {
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -4159,11 +4220,11 @@ void Worker::withdrawPet(long long petIndex, long long dialogid, long long uniti
 
 	QString qstr = util::toQString(petIndex + 1);
 	std::string srow = util::fromUnicode(qstr);
-	lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str()));
+	return lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str()));
 }
 
 //遊戲對話框輸入文字送出
-void Worker::inputtext(const QString& text, long long dialogid, long long unitid)
+bool Worker::inputtext(const QString& text, long long dialogid, long long unitid)
 {
 	sa::dialog_t dialog = currentDialog.get();
 	if (dialogid == -1)
@@ -4172,26 +4233,29 @@ void Worker::inputtext(const QString& text, long long dialogid, long long unitid
 		unitid = dialog.unitid;
 	std::string s = util::fromUnicode(text);
 
-	lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonOk, const_cast<char*>(s.c_str()));
+	if (!lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonOk, const_cast<char*>(s.c_str())))
+		return false;
+
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
 }
 
 //解除安全瑪
-void Worker::unlockSecurityCode(const QString& code)
+bool Worker::unlockSecurityCode(const QString& code)
 {
 	if (code.isEmpty())
-		return;
+		return false;
 
 	std::string scode = util::fromUnicode(code);
-	lssproto_WN_send(getPoint(), sa::kDialogSecurityCode, -1, NULL, const_cast<char*>(scode.c_str()));
+	if (!lssproto_WN_send(getPoint(), sa::kDialogSecurityCode, -1, NULL, const_cast<char*>(scode.c_str())))
+		return false;
 
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
 }
 
-void Worker::windowPacket(const QString& command, long long dialogid, long long unitid)
+bool Worker::windowPacket(const QString& command, long long dialogid, long long unitid)
 {
 	//SI|itemIndex(0-15)|Stack(-1)
 	//TI|itemIndex(0-59)|Stack(-1)
@@ -4200,53 +4264,54 @@ void Worker::windowPacket(const QString& command, long long dialogid, long long 
 	//SG|gold|
 	//TG|gold|
 	std::string s = util::fromUnicode(command);
-	lssproto_WN_send(getPoint(), dialogid, unitid, NULL, const_cast<char*>(s.c_str()));
+	return lssproto_WN_send(getPoint(), dialogid, unitid, NULL, const_cast<char*>(s.c_str()));
 }
 #pragma endregion
 
 #pragma region CHAR
 //使用精靈
-void Worker::useMagic(long long magicIndex, long long target)
+bool Worker::useMagic(long long magicIndex, long long target)
 {
 	if (target < 0 || target >= (sa::MAX_PET + sa::MAX_TEAM))
-		return;
+		return false;
 
 	if (magicIndex < 0 || magicIndex >= sa::MAX_ITEM)
-		return;
+		return false;
 
 	if (magicIndex < sa::MAX_MAGIC && !isCharMpEnoughForMagic(magicIndex))
-		return;
+		return false;
 
 	if (magicIndex >= 0 && magicIndex < sa::MAX_MAGIC && !getMagic(magicIndex).valid)
-		return;
+		return false;
 
-	lssproto_MU_send(getPoint(), magicIndex, target);
+	return lssproto_MU_send(getPoint(), magicIndex, target);
 }
 
 //組隊或離隊 true 組隊 false 離隊
-void Worker::setTeamState(bool join)
+bool Worker::setTeamState(bool join)
 {
-	lssproto_PR_send(getPoint(), join ? 1 : 0);
+	return lssproto_PR_send(getPoint(), join ? 1 : 0);
 }
 
 //踢走隊員或隊長解散
-void Worker::kickteam(long long n)
+bool Worker::kickteam(long long n)
 {
 	if (n >= sa::MAX_TEAM)
-		return;
+		return false;
 
 	if (n <= 0)
 	{
-		setTeamState(false);
-		return;
+		return setTeamState(false);
 	}
 
-	if (getTeam(n).valid)
-		lssproto_KTEAM_send(n);
+	if (!getTeam(n).valid)
+		return false;
+
+	return lssproto_KTEAM_send(n);
 }
 
 //郵件或寵郵
-void Worker::mail(const QVariant& card, const QString& text, long long petIndex, const QString& itemName, const QString& itemMemo)
+bool Worker::mail(const QVariant& card, const QString& text, long long petIndex, const QString& itemName, const QString& itemMemo)
 {
 	long long index = -1;
 	if (card.type() == QVariant::Type::Int || card.type() == QVariant::Type::LongLong)
@@ -4293,37 +4358,42 @@ void Worker::mail(const QVariant& card, const QString& text, long long petIndex,
 	}
 
 	if (index < 0 || index > sa::MAX_ADDRESS_BOOK)
-		return;
+		return false;
 
 	sa::address_bool_t addressBook = getAddressBook(index);
 	if (!addressBook.valid)
-		return;
+		return false;
 
 	std::string sstr = util::fromUnicode(text);
 	if (itemName.isEmpty() && itemMemo.isEmpty() && (petIndex < 0 || petIndex > sa::MAX_PET))
 	{
-		lssproto_MSG_send(index, const_cast<char*>(sstr.c_str()), NULL);
+		return lssproto_MSG_send(index, const_cast<char*>(sstr.c_str()), NULL);
 	}
-	else
+
+	if (!addressBook.onlineFlag)
+		return false;
+
+	long long itemIndex = getItemIndexByName(itemName, true, itemMemo, sa::CHAR_EQUIPSLOT_COUNT);
+
+	sa::pet_t pet = getPet(petIndex);
+	if (!pet.valid)
+		return false;
+
+	if (pet.state != sa::kMail)
 	{
-		if (!addressBook.onlineFlag)
-			return;
-
-		long long itemIndex = getItemIndexByName(itemName, true, itemMemo, sa::CHAR_EQUIPSLOT_COUNT);
-
-		sa::pet_t pet = getPet(petIndex);
-		if (!pet.valid)
-			return;
-
-		if (pet.state != sa::kMail)
-			setPetState(petIndex, sa::kMail);
-
-		lssproto_PMSG_send(index, petIndex, itemIndex, const_cast<char*>(sstr.c_str()), NULL);
-		if (itemIndex >= 0 && itemIndex < sa::MAX_ITEM)
-		{
-			IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
-		}
+		if (!setPetState(petIndex, sa::kMail))
+			return false;
 	}
+
+	if (!lssproto_PMSG_send(index, petIndex, itemIndex, const_cast<char*>(sstr.c_str()), NULL))
+		return false;
+
+	if (itemIndex < 0 || itemIndex >= sa::MAX_ITEM)
+		return false;
+
+	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+
+	return true;
 }
 
 //加點
@@ -4344,7 +4414,13 @@ bool Worker::addPoint(long long skillid, long long amt)
 	for (long long i = 0; i < amt; ++i)
 	{
 		IS_WAITFOT_SKUP_RECV_.on();
-		lssproto_SKUP_send(skillid);
+
+		if (!lssproto_SKUP_send(skillid))
+		{
+			IS_WAITFOT_SKUP_RECV_.off();
+			continue;
+		}
+
 		for (;;)
 		{
 			if (timer.hasExpired(1500))
@@ -4361,39 +4437,40 @@ bool Worker::addPoint(long long skillid, long long amt)
 		}
 		timer.restart();
 	}
+
 	return true;
 }
 
 //人物改名
-void Worker::setCharFreeName(const QString& name)
+bool Worker::setCharFreeName(const QString& name)
 {
 	std::string sname = util::fromUnicode(name);
-	lssproto_FT_send(const_cast<char*> (sname.c_str()));
+	return lssproto_FT_send(const_cast<char*> (sname.c_str()));
 }
 
 //寵物改名
-void Worker::setPetFreeName(long long petIndex, const QString& name)
+bool Worker::setPetFreeName(long long petIndex, const QString& name)
 {
 	if (petIndex < 0 || petIndex >= sa::MAX_PET)
-		return;
+		return false;
 
 	std::string sname = util::fromUnicode(name);
-	lssproto_KN_send(petIndex, const_cast<char*> (sname.c_str()));
+	return lssproto_KN_send(petIndex, const_cast<char*> (sname.c_str()));
 }
 #pragma endregion
 
 #pragma region PET
 //設置寵物狀態 (戰鬥 | 等待 | 休息 | 郵件 | 騎乘)
-void Worker::setPetState(long long petIndex, sa::PetState state)
+bool Worker::setPetState(long long petIndex, sa::PetState state)
 {
 	if (petIndex < 0 || petIndex >= sa::MAX_PET)
-		return;
+		return false;
 
 	if (getBattleFlag())
-		return;
+		return false;
 
 	if (!getOnlineFlag())
-		return;
+		return false;
 
 	updateDatasFromMemory();
 
@@ -4409,7 +4486,7 @@ void Worker::setPetState(long long petIndex, sa::PetState state)
 
 		sa::pet_t pet = pet_.value(petIndex);
 		if (!pet.valid)
-			return;
+			return false;
 
 		sa::character_t pc = getCharacter();
 
@@ -4600,15 +4677,17 @@ void Worker::setPetState(long long petIndex, sa::PetState state)
 			break;
 		}
 		default:
-			break;
+			return false;
 		}
 	}
 
 	updateDatasFromMemory();
+
+	return true;
 }
 
 //根據當前數據重設所有寵物狀態
-void Worker::setAllPetState()
+bool Worker::setAllPetState()
 {
 	QHash <long long, sa::pet_t> pet = getPets();
 	for (long long i = 0; i < sa::MAX_PET; ++i)
@@ -4628,36 +4707,37 @@ void Worker::setAllPetState()
 		case sa::kRest:
 			break;
 		case sa::kRide:
-			setRidePet(i);
-			return;
+			return setRidePet(i);
 		}
 
 		setPetState(i, pet[i].state);
 	}
+
+	return true;
 }
 
 //設置戰鬥寵物
-void Worker::setFightPet(long long petIndex)
+bool Worker::setFightPet(long long petIndex)
 {
-	lssproto_KS_send(petIndex);
+	return lssproto_KS_send(petIndex);
 }
 
 //設置騎乘寵物
-void Worker::setRidePet(long long petIndex)
+bool Worker::setRidePet(long long petIndex)
 {
 	QString str = QString("R|P|%1").arg(petIndex);
 	std::string sstr = util::fromUnicode(str);
-	lssproto_FM_send(const_cast<char*>(sstr.c_str()));
+	return lssproto_FM_send(const_cast<char*>(sstr.c_str()));
 }
 
 //設置寵物狀態封包  0:休息 1:戰鬥或等待 4:郵件
-void Worker::setPetStateSub(long long petIndex, long long state)
+bool Worker::setPetStateSub(long long petIndex, long long state)
 {
-	lssproto_PETST_send(petIndex, state);
+	return lssproto_PETST_send(petIndex, state);
 }
 
 //設置寵物等待狀態
-void Worker::setPetStandby(long long petIndex, long long state)
+bool Worker::setPetStandby(long long petIndex, long long state)
 {
 	unsigned long long standby = 0;
 	long long count = 0;
@@ -4674,26 +4754,31 @@ void Worker::setPetStandby(long long petIndex, long long state)
 		}
 	}
 
-	lssproto_SPET_send(standby);
+	if (!lssproto_SPET_send(standby))
+		return false;
+
 	pc.standbyPet = count;
 	setCharacter(pc);
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	mem::write<short>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetStandbyPetCount, count);
+	return mem::write<short>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetStandbyPetCount, count);
 }
 
 //丟棄寵物
-void Worker::dropPet(long long petIndex)
+bool Worker::dropPet(long long petIndex)
 {
 	if (petIndex < 0 || petIndex >= sa::MAX_PET)
-		return;
+		return false;
 
 	sa::pet_t pet = getPet(petIndex);
 	if (!pet.valid)
-		return;
+		return false;
 
-	lssproto_DP_send(getPoint(), petIndex);
+	if (!lssproto_DP_send(getPoint(), petIndex))
+		return false;
 
 	updateDatasFromMemory();
+
+	return true;
 }
 
 //自動鎖寵
@@ -5379,13 +5464,13 @@ void Worker::checkAutoDropPet()
 
 #pragma region MAP
 //下載指定坐標 24 * 24 大小的地圖塊
-void Worker::downloadMap(long long x, long long y, long long floor)
+bool Worker::downloadMap(long long x, long long y, long long floor)
 {
-	lssproto_M_send(floor == -1 ? nowFloor_.get() : floor, x, y, x + 24, y + 24);
+	return lssproto_M_send(floor == -1 ? nowFloor_.get() : floor, x, y, x + 24, y + 24);
 }
 
 //下載全部地圖塊
-void Worker::downloadMap(long long floor)
+bool Worker::downloadMap(long long floor)
 {
 	bool IsDownloadingMap = true;
 
@@ -5436,7 +5521,7 @@ void Worker::downloadMap(long long floor)
 	do
 	{
 		if (original != getFloor())
-			return;
+			return false;
 
 		downloadMap(downloadMapX_, downloadMapY_, floor);
 
@@ -5474,10 +5559,12 @@ void Worker::downloadMap(long long floor)
 	timer.restart();
 	mapDevice.readFromBinary(currentIndex, floor, getFloorName(), false, true);
 	announce(QString("floor %1 reload complete cost: %2 ms").arg(floor).arg(timer.cost()));
+
+	return true;
 }
 
 //轉移
-void Worker::warp()
+bool Worker::warp()
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -5487,31 +5574,36 @@ void Worker::warp()
 		short dialogid = 0;
 	}ev;
 
-	if (mem::read(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetEV, sizeof(ev), &ev))
-		lssproto_EV_send(ev.ev, ev.dialogid, getPoint(), -1);
+	if (!mem::read(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetEV, sizeof(ev), &ev))
+		return false;
+
+	return lssproto_EV_send(ev.ev, ev.dialogid, getPoint(), -1);
 }
 
 //移動(封包) [a-h]
-void Worker::move(const QPoint& p, const QString& dir)
+bool Worker::move(const QPoint& p, const QString& dir)
 {
 	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
-		return;
+		return false;
 
 	std::string sdir = util::fromUnicode(dir);
-	lssproto_W2_send(p, const_cast<char*>(sdir.c_str()));
+	if (!lssproto_W2_send(p, const_cast<char*>(sdir.c_str())))
+		return false;
+
 	std::ignore = getPoint();
+	return true;
 }
 
 //移動(記憶體)
-void Worker::move(const QPoint& p)
+bool Worker::move(const QPoint& p)
 {
 	QMutexLocker locker(&moveLock_);
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	if (!gamedevice.isValid())
-		return;
+		return false;
 
-	gamedevice.sendMessage(kSetMove, p.x(), p.y());
+	return gamedevice.sendMessage(kSetMove, p.x(), p.y()) > 0;
 }
 
 //轉向指定坐標
@@ -5553,12 +5645,14 @@ long long Worker::setCharFaceToPoint(const QPoint& pos)
 		dir = 0;
 	}
 
-	setCharFaceDirection(dir);
+	if (!setCharFaceDirection(dir))
+		return -1;
+
 	return dir;
 }
 
 //人物模型轉向(本地)
-void Worker::setCharModelDirection(long long dir)
+bool Worker::setCharModelDirection(long long dir)
 {
 	//這裡是用來使遊戲動畫跟著轉向
 	long long currentIndex = getIndex();
@@ -5567,36 +5661,45 @@ void Worker::setCharModelDirection(long long dir)
 	long long hModule = gamedevice.getProcessModule();
 	long long newdir = (dir + 3) % sa::MAX_DIR;
 	long long p = static_cast<long long>(mem::read<int>(hProcess, hModule + 0x422E3AC));
-	if (p > 0)
-	{
-		mem::write<int>(hProcess, hModule + 0x422BE94, newdir);
-		mem::write<int>(hProcess, p + 0x150, newdir);
-	}
+	if (p <= 0)
+		return false;
+
+	if (!mem::write<int>(hProcess, hModule + 0x422BE94, newdir))
+		return false;
+
+	return mem::write<int>(hProcess, p + 0x150, newdir);
 }
 
 //轉向 (根據方向索引自動轉換成A-H)
-void Worker::setCharFaceDirection(long long dir, bool noWindow)
+bool Worker::setCharFaceDirection(long long dir, bool noWindow)
 {
 	if (dir < 0 || dir >= sa::MAX_DIR)
-		return;
+		return false;
 
 	const QString dirchr = "ABCDEFGH";
 	if (dir >= dirchr.size())
-		return;
+		return false;
 
 	QString dirStr = dirchr.at(dir);
 	std::string sdirStr = util::fromUnicode(dirStr.toUpper());
-	lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str()));
-	if (!noWindow)
-		lssproto_L_send(dir);
-	if (getBattleFlag())
-		return;
 
-	setCharModelDirection(dir);
+	if (!lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str())))
+		return false;
+
+	if (!noWindow)
+	{
+		if (!lssproto_L_send(dir))
+			return false;
+	}
+
+	if (getBattleFlag())
+		return false;
+
+	return setCharModelDirection(dir);
 }
 
 //轉向 使用方位字符串
-void Worker::setCharFaceDirection(const QString& dirStr)
+bool Worker::setCharFaceDirection(const QString& dirStr)
 {
 	static const QHash<QString, QString> dirhash = {
 		{ "北", "A" }, { "東北", "B" }, { "東", "C" }, { "東南", "D" },
@@ -5613,7 +5716,8 @@ void Worker::setCharFaceDirection(const QString& dirStr)
 		QRegularExpression re("[A-H]");
 		QRegularExpressionMatch match = re.match(dirStr.toUpper());
 		if (!match.hasMatch())
-			return;
+			return false;
+
 		qdirStr = match.captured(0);
 		dir = dirchr.indexOf(qdirStr, 0, Qt::CaseInsensitive);
 	}
@@ -5624,12 +5728,16 @@ void Worker::setCharFaceDirection(const QString& dirStr)
 	}
 
 	std::string sdirStr = util::fromUnicode(qdirStr.toUpper());
-	lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str()));
-	lssproto_L_send(dir);
-	if (getBattleFlag())
-		return;
+	if (!lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str())))
+		return false;
 
-	setCharModelDirection(dir);
+	if (!lssproto_L_send(dir))
+		return false;
+
+	if (getBattleFlag())
+		return false;
+
+	return setCharModelDirection(dir);
 }
 #pragma endregion
 
@@ -5702,7 +5810,7 @@ void Worker::sortItem()
 }
 
 //丟棄道具
-void Worker::dropItem(long long index)
+bool Worker::dropItem(long long index)
 {
 	QPoint pos = getPoint();
 	QHash<long long, sa::item_t> items = getItems();
@@ -5715,91 +5823,117 @@ void Worker::dropItem(long long index)
 
 			long long stack = items.value(i).stack;
 			for (long long j = 0; j < stack; ++j)
-				lssproto_DI_send(pos, i);
+			{
+				if (!lssproto_DI_send(pos, i))
+					return false;
+			}
+
 			IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
 		}
 	}
 
 	if (index < 0 || index >= sa::MAX_ITEM)
-		return;
+		return false;
 
 	if (items.value(index).name.isEmpty() || !items.value(index).valid)
-		return;
+		return false;
 
 	for (long long j = 0; j < items.value(index).stack; ++j)
-		lssproto_DI_send(pos, index);
+	{
+		if (!lssproto_DI_send(pos, index))
+			return false;
+	}
+
 	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+
+	return true;
 }
 
 //批量丟棄道具
-void Worker::dropItem(QVector<long long> indexs)
+bool Worker::dropItem(QVector<long long> indexs)
 {
+	bool bret = true;
 	for (const long long it : indexs)
-		dropItem(it);
+		bret = bret && dropItem(it);
+
+	return bret;
 }
 
 //丟棄石幣
-void Worker::dropGold(long long gold)
+bool Worker::dropGold(long long gold)
 {
 	sa::character_t pc = getCharacter();
 	if (gold > pc.gold)
 		gold = pc.gold;
 
-	lssproto_DG_send(getPoint(), gold);
+	return lssproto_DG_send(getPoint(), gold);
 }
 
 //使用道具
-void Worker::useItem(long long itemIndex, long long target)
+bool Worker::useItem(long long itemIndex, long long target)
 {
 	if (itemIndex < 0 || itemIndex >= sa::MAX_ITEM)
-		return;
+		return false;
 
 	if (target < 0 || target > 9)
-		return;
+		return false;
 
 	if (!getItem(itemIndex).valid)
-		return;
+		return false;
 
-	lssproto_ID_send(getPoint(), itemIndex, target);
+	if (!lssproto_ID_send(getPoint(), itemIndex, target))
+		return false;
+
 	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+
+	return true;
 }
 
 //交換道具
-void Worker::swapItem(long long from, long long to)
+bool Worker::swapItem(long long from, long long to)
 {
 	if (from < 0 || from >= sa::MAX_ITEM)
-		return;
+		return false;
 
 	if (to < 0 || to >= sa::MAX_ITEM)
-		return;
+		return false;
 
-	lssproto_MI_send(from, to);
+	if (!lssproto_MI_send(from, to))
+		return false;
 
 	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+
+	return true;
 }
 
 //撿道具
-void Worker::pickItem(long long dir)
+bool Worker::pickItem(long long dir)
 {
-	setCharFaceDirection(dir);
-	lssproto_PI_send(getPoint(), dir);
+	if (!setCharFaceDirection(dir))
+		return false;
+
+	return lssproto_PI_send(getPoint(), dir);
 }
 
 //穿裝 to = -1 丟裝 to = -2 脫裝 to = itemspotindex
-void Worker::petitemswap(long long petIndex, long long from, long long to)
+bool Worker::petitemswap(long long petIndex, long long from, long long to)
 {
 	if (petIndex < 0 || petIndex >= sa::MAX_PET)
-		return;
+		return false;
 
-	lssproto_PetItemEquip_send(getPoint(), petIndex, from, to);
+	if (!lssproto_PetItemEquip_send(getPoint(), petIndex, from, to))
+		return false;
+
 	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+
+	return true;
 }
 
 //料理/加工
-void Worker::craft(sa::CraftType type, const QStringList& ingres)
+bool Worker::craft(sa::CraftType type, const QStringList& ingres)
 {
 	if (ingres.size() < 2 || ingres.size() > 5)
-		return;
+		return false;
 
 	QStringList itemIndexs;
 	long long petIndex = -1;
@@ -5812,74 +5946,83 @@ void Worker::craft(sa::CraftType type, const QStringList& ingres)
 
 	long long skillIndex = getPetSkillIndexByName(petIndex, skillName);
 	if (petIndex == -1 || skillIndex == -1)
-		return;
+		return false;
 
 	for (const QString& it : ingres)
 	{
 		long long index = getItemIndexByName(it, true, "", sa::CHAR_EQUIPSLOT_COUNT);
 		if (index == -1)
-			return;
+			return false;
 
 		itemIndexs.append(util::toQString(index));
 	}
 
 	QString qstr = itemIndexs.join("|");
 	std::string str = util::fromUnicode(qstr);
-	lssproto_PS_send(petIndex, skillIndex, NULL, const_cast<char*>(str.c_str()));
+
+	if (!lssproto_PS_send(petIndex, skillIndex, NULL, const_cast<char*>(str.c_str())))
+		return false;
+
 	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+
+	return true;
 }
 
-void Worker::depositGold(long long gold, bool isPublic)
+bool Worker::depositGold(long long gold, bool isPublic)
 {
 	if (gold <= 0)
-		return;
+		return false;
 
 	QString qstr = QString("B|%1|%2").arg(!isPublic ? "G" : "T").arg(gold);
 	std::string str = util::fromUnicode(qstr);
-	lssproto_FM_send(const_cast<char*>(str.c_str()));
+	return lssproto_FM_send(const_cast<char*>(str.c_str()));
 }
 
-void Worker::withdrawGold(long long gold, bool isPublic)
+bool Worker::withdrawGold(long long gold, bool isPublic)
 {
 	if (gold <= 0)
-		return;
+		return false;
 
 	QString qstr = QString("B|%1|%2").arg(!isPublic ? "G" : "T").arg(-gold);
 	std::string str = util::fromUnicode(qstr);
-	lssproto_FM_send(const_cast<char*>(str.c_str()));
+	return lssproto_FM_send(const_cast<char*>(str.c_str()));
 }
 
 //交易確認
-void Worker::tradeComfirm(const QString& name)
+bool Worker::tradeComfirm(const QString& name)
 {
 	if (!IS_TRADING.get())
-		return;
+		return false;
 
 	if (name != opp_name)
 	{
-		tradeCancel();
-		return;
+		std::ignore = tradeCancel();
+		return false;
 	}
 
 	QString cmd = QString("T|%1|%2|C|confirm").arg(opp_sockfd).arg(opp_name);
 	std::string scmd = util::fromUnicode(cmd);
-	lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+	return lssproto_TD_send(const_cast<char*>(scmd.c_str()));
 }
 
 //交易取消
-void Worker::tradeCancel()
+bool Worker::tradeCancel()
 {
 	if (!IS_TRADING.get())
-		return;
+		return false;
 
 	QString cmd = QString("W|%1|%2").arg(opp_sockfd).arg(opp_name);
 	std::string scmd = util::fromUnicode(cmd);
-	lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+
+	if (!lssproto_TD_send(const_cast<char*>(scmd.c_str())))
+		return false;
 
 	sa::character_t pc = getCharacter();
 	pc.trade_confirm = 1;
 	setCharacter(pc);
 	tradeStatus = 0;
+
+	return true;
 }
 
 //交易開始
@@ -5888,7 +6031,8 @@ bool Worker::tradeStart(const QString& name, long long timeout)
 	if (IS_TRADING.get())
 		return false;
 
-	lssproto_TD_send(const_cast<char*>("D|D"));
+	if (!lssproto_TD_send(const_cast<char*>("D|D")))
+		return false;
 
 	util::timer timer;
 	for (;;)
@@ -5912,18 +6056,18 @@ bool Worker::tradeStart(const QString& name, long long timeout)
 }
 
 //批量添加交易物品
-void Worker::tradeAppendItems(const QString& name, const QVector<long long>& itemIndexs)
+bool Worker::tradeAppendItems(const QString& name, const QVector<long long>& itemIndexs)
 {
 	if (!IS_TRADING.get())
-		return;
+		return false;
 
 	if (itemIndexs.isEmpty())
-		return;
+		return false;
 
 	if (name != opp_name)
 	{
 		tradeCancel();
-		return;
+		return false;
 	}
 
 	QHash< long long, sa::item_t> items = getItems();
@@ -5935,7 +6079,10 @@ void Worker::tradeAppendItems(const QString& name, const QVector<long long>& ite
 		{
 			QString cmd = QString("T|%1|%2|I|1|%3").arg(opp_sockfd).arg(opp_name).arg(i);
 			std::string scmd = util::fromUnicode(cmd);
-			lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+
+			if (!lssproto_TD_send(const_cast<char*>(scmd.c_str())))
+				return false;
+
 			bret = true;
 		}
 
@@ -5948,46 +6095,53 @@ void Worker::tradeAppendItems(const QString& name, const QVector<long long>& ite
 			myitem_tradeList.append("I|-1");
 		}
 	}
+
+	return !myitem_tradeList.isEmpty();
 }
 
 //添加交易石幣
-void Worker::tradeAppendGold(const QString& name, long long gold)
+bool Worker::tradeAppendGold(const QString& name, long long gold)
 {
 	if (!IS_TRADING.get())
-		return;
+		return false;
 
 	sa::character_t pc = getCharacter();
 	if (gold < 0 || gold > pc.gold)
-		return;
+		return false;
 
 	if (name != opp_name)
 	{
 		tradeCancel();
-		return;
+		return false;
 	}
 
 	if (mygoldtrade != 0)
-		return;
+		return false;
 
 	QString cmd = QString("T|%1|%2|G|%3|%4").arg(opp_sockfd).arg(opp_name).arg(3).arg(gold);
 	std::string scmd = util::fromUnicode(cmd);
-	lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+
+	if (!lssproto_TD_send(const_cast<char*>(scmd.c_str())))
+		return false;
+
 	mygoldtrade = gold;
+
+	return true;
 }
 
 //批量添加交易寵物
-void Worker::tradeAppendPets(const QString& name, const QVector<long long>& petIndexs)
+bool Worker::tradeAppendPets(const QString& name, const QVector<long long>& petIndexs)
 {
 	if (!IS_TRADING.get())
-		return;
+		return false;
 
 	if (petIndexs.isEmpty())
-		return;
+		return false;
 
 	if (name != opp_name)
 	{
 		tradeCancel();
-		return;
+		return false;
 	}
 
 	//T|87| 02020202|P|3| 3 |  攻击|忠犬|料理|||||乌力斯坦|嘿嘿嘿嘿
@@ -6016,22 +6170,27 @@ void Worker::tradeAppendPets(const QString& name, const QVector<long long>& petI
 
 		QString cmd = QString("T|%1|%2|P|3|%3|%4").arg(opp_sockfd).arg(opp_name).arg(index).arg(list.join("|"));
 		std::string scmd = util::fromUnicode(cmd);
-		lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+
+		if (!lssproto_TD_send(const_cast<char*>(scmd.c_str())))
+			return false;
+
 		tradelist[index] = QString("P|%1").arg(index);
 	}
 	mypet_tradeList = tradelist;
+
+	return !mypet_tradeList.isEmpty();
 }
 
 //完成交易
-void Worker::tradeComplete(const QString& name)
+bool Worker::tradeComplete(const QString& name)
 {
 	if (!IS_TRADING.get())
-		return;
+		return false;
 
 	if (name != opp_name)
 	{
 		tradeCancel();
-		return;
+		return false;
 	}
 
 	QStringList mytradeList;
@@ -6060,7 +6219,7 @@ void Worker::tradeComplete(const QString& name)
 
 	QString cmd = QString("T|%1|%2|K|%3|%4").arg(opp_sockfd).arg(opp_name).arg(mytradeList.join("|")).arg(opptradelist.join("|"));
 	std::string scmd = util::fromUnicode(cmd);
-	lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+	return lssproto_TD_send(const_cast<char*>(scmd.c_str()));
 
 	//T|87|02020202|K|
 	//I|-1|I|-1|I|-1|I|-1|I|9|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|
@@ -9878,390 +10037,492 @@ bool Worker::fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget,
 //戰鬥人物普通攻擊
 bool Worker::sendBattleCharAttackAct(long long target)
 {
-	if (!getBattleFlag())
-		return false;
-
-	sa::battle_data_t bt = getBattleData();
-	if (target < 0 || target >= sa::MAX_ENEMY)
-		target = getBattleSelectableEnemyTarget(bt);
-
-	sa::battle_object_t obj = bt.objects.value(target);
-
-	const QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
-	const QString text(QObject::tr("use attack [%1]%2").arg(target + 1).arg(name));
-
-	labelCharAction.set(text);
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateLabelCharAction(text);
-	emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
 
-	const QString qcmd = QString("H|%1").arg(util::toQString(target, 16)).toUpper();
-	lssproto_B_send(qcmd);
-	return true;
+	do
+	{
+		if (!getBattleFlag())
+			break;
+
+		sa::battle_data_t bt = getBattleData();
+		if (target < 0 || target >= sa::MAX_ENEMY)
+			target = getBattleSelectableEnemyTarget(bt);
+
+		sa::battle_object_t obj = bt.objects.value(target);
+
+		const QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
+		const QString text(QObject::tr("use attack [%1]%2").arg(target + 1).arg(name));
+
+		const QString qcmd = QString("H|%1").arg(util::toQString(target, 16)).toUpper();
+
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		labelCharAction.set(text);
+
+		emit signalDispatcher.updateLabelCharAction(text);
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+
+		return true;
+	} while (false);
+
+	labelCharAction.set("");
+	emit signalDispatcher.updateLabelCharAction("");
+	return false;
 }
 
 //戰鬥人物使用精靈
 bool Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 {
-	if (!getBattleFlag())
-		return false;
-
-	sa::battle_data_t bt = getBattleData();
-	if (target < 0 || (target > (sa::TARGET_ALL)))
-		return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	if (magicIndex < 0 || magicIndex >= sa::MAX_MAGIC)
-		return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	sa::magic_t magic = getMagic(magicIndex);
-	if (!magic.valid)
-		return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	const QString magicName = magic.name;
-	QString text("");
-
-	if (target < sa::MAX_ENEMY)
-	{
-		sa::battle_object_t obj = bt.objects.value(target);
-		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
-		text = QObject::tr("use magic %1 to [%2]%3").arg(magicName).arg(target + 1).arg(name);
-	}
-	else
-	{
-		text = QObject::tr("use %1 to %2").arg(magicName).arg(getAreaString(target));
-	}
-
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	if (magic.memo.contains("力回"))//補血
+	do
 	{
-		//不可補敵方
-		if (target >= bt.enemymin && target <= bt.enemymax
-			|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
-			|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
-			return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		if (!getBattleFlag())
+			break;
 
-		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
-	}
-	else
-		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+		sa::battle_data_t bt = getBattleData();
+		if (target < 0 || (target > (sa::TARGET_ALL)))
+			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
-	labelCharAction.set(text);
-	emit signalDispatcher.updateLabelCharAction(text);
+		if (magicIndex < 0 || magicIndex >= sa::MAX_MAGIC)
+			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
-	const QString qcmd = QString("J|%1|%2").arg(util::toQString(magicIndex, 16)).arg(util::toQString(target, 16)).toUpper();
-	lssproto_B_send(qcmd);
-	return true;
+		sa::magic_t magic = getMagic(magicIndex);
+		if (!magic.valid)
+			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+
+		const QString magicName = magic.name;
+		QString text("");
+
+		if (target < sa::MAX_ENEMY)
+		{
+			sa::battle_object_t obj = bt.objects.value(target);
+			QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
+			text = QObject::tr("use magic %1 to [%2]%3").arg(magicName).arg(target + 1).arg(name);
+		}
+		else
+		{
+			text = QObject::tr("use %1 to %2").arg(magicName).arg(getAreaString(target));
+		}
+
+		QColor color("#FF5050");
+
+		if (magic.memo.contains("力回"))//補血
+		{
+			//不可補敵方
+			if (target >= bt.enemymin && target <= bt.enemymax
+				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
+				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
+				return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+
+			color = QColor("#49BF45");
+		}
+
+		const QString qcmd = QString("J|%1|%2").arg(util::toQString(magicIndex, 16)).arg(util::toQString(target, 16)).toUpper();
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		labelCharAction.set(text);
+		emit signalDispatcher.updateLabelCharAction(text);
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, color);
+		return true;
+	} while (false);
+
+	labelCharAction.set("");
+	emit signalDispatcher.updateLabelCharAction("");
+	return false;
 }
 
 //戰鬥人物使用職業技能
 bool Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 {
-	if (!getBattleFlag())
-		return false;
-
-	sa::battle_data_t bt = getBattleData();
-	if (target < 0 || (target > (sa::TARGET_ALL)))
-		return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	if (skillIndex < 0 || skillIndex >= sa::MAX_PROFESSION_SKILL)
-		return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	sa::profession_skill_t skill = getSkill(skillIndex);
-	if (!skill.valid)
-		return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	const QString skillName = skill.name.simplified();
-	QString text("");
-	if (target < sa::MAX_ENEMY)
-	{
-		sa::battle_object_t obj = bt.objects.value(target);
-		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
-		text = QObject::tr("use skill %1 to [%2]%3").arg(skillName).arg(target + 1).arg(name);
-	}
-	else
-	{
-		text = QObject::tr("use %1 to %2").arg(skillName).arg(getAreaString(target));
-	}
-
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	if (skill.memo.contains("力回"))//補血
+
+	do
 	{
-		//不可補敵方
-		if (target >= bt.enemymin && target <= bt.enemymax
-			|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
-			|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
-			return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		if (!getBattleFlag())
+			break;
 
-		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
-	}
-	else
-		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+		sa::battle_data_t bt = getBattleData();
+		if (target < 0 || (target > (sa::TARGET_ALL)))
+			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
-	labelCharAction.set(text);
-	emit signalDispatcher.updateLabelCharAction(text);
+		if (skillIndex < 0 || skillIndex >= sa::MAX_PROFESSION_SKILL)
+			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
-	const QString qcmd = QString("P|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16)).toUpper();
-	lssproto_B_send(qcmd);
-	return true;
+		sa::profession_skill_t skill = getSkill(skillIndex);
+		if (!skill.valid)
+			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+
+		const QString skillName = skill.name.simplified();
+		QString text("");
+		if (target < sa::MAX_ENEMY)
+		{
+			sa::battle_object_t obj = bt.objects.value(target);
+			QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
+			text = QObject::tr("use skill %1 to [%2]%3").arg(skillName).arg(target + 1).arg(name);
+		}
+		else
+		{
+			text = QObject::tr("use %1 to %2").arg(skillName).arg(getAreaString(target));
+		}
+
+		QColor color("#FF5050");
+		if (skill.memo.contains("力回"))//補血
+		{
+			//不可補敵方
+			if (target >= bt.enemymin && target <= bt.enemymax
+				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
+				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
+				return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+
+			color = QColor("#49BF45");
+		}
+
+		const QString qcmd = QString("P|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16)).toUpper();
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		labelCharAction.set(text);
+		emit signalDispatcher.updateLabelCharAction(text);
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, color);
+
+		return true;
+	} while (false);
+
+	labelCharAction.set("");
+	emit signalDispatcher.updateLabelCharAction("");
+	return false;
 }
 
 //戰鬥人物使用道具
 bool Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 {
-	if (!getBattleFlag())
-		return false;
-
-	sa::battle_data_t bt = getBattleData();
-	if (target < 0 || (target > (sa::TARGET_ALL)))
-		return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	if (itemIndex < 0 || itemIndex >= sa::MAX_ITEM)
-		return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	sa::item_t item = getItem(itemIndex);
-	if (!item.valid)
-		return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	const QString itemName = item.name.simplified();
-
-	QString text("");
-	if (target < sa::MAX_ENEMY)
-	{
-		sa::battle_object_t obj = bt.objects.value(target);
-		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
-		text = QObject::tr("use item %1 to [%2]%3").arg(itemName).arg(target + 1).arg(name);
-	}
-	else
-	{
-		text = QObject::tr("use %1 to %2").arg(itemName).arg(getAreaString(target));
-	}
-
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	if (item.memo.contains("力回"))//補血
+	do
 	{
-		//不可補敵方
-		if (target >= bt.enemymin && target <= bt.enemymax
-			|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
-			|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
+		if (!getBattleFlag())
+			break;
+
+		sa::battle_data_t bt = getBattleData();
+		if (target < 0 || (target > (sa::TARGET_ALL)))
 			return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
-		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
-	}
-	else
-		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+		if (itemIndex < 0 || itemIndex >= sa::MAX_ITEM)
+			return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
-	labelCharAction.set(text);
-	emit signalDispatcher.updateLabelCharAction(text);
+		sa::item_t item = getItem(itemIndex);
+		if (!item.valid)
+			return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
-	const QString qcmd = QString("I|%1|%2").arg(util::toQString(itemIndex, 16)).arg(util::toQString(target, 16)).toUpper();
-	lssproto_B_send(qcmd);
-	return true;
+		const QString itemName = item.name.simplified();
+
+		QString text("");
+		if (target < sa::MAX_ENEMY)
+		{
+			sa::battle_object_t obj = bt.objects.value(target);
+			QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
+			text = QObject::tr("use item %1 to [%2]%3").arg(itemName).arg(target + 1).arg(name);
+		}
+		else
+		{
+			text = QObject::tr("use %1 to %2").arg(itemName).arg(getAreaString(target));
+		}
+
+		QColor color("#FF5050");
+		if (item.memo.contains("力回"))//補血
+		{
+			//不可補敵方
+			if (target >= bt.enemymin && target <= bt.enemymax
+				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
+				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
+				return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+
+			color = QColor("#49BF45");
+		}
+
+		const QString qcmd = QString("I|%1|%2").arg(util::toQString(itemIndex, 16)).arg(util::toQString(target, 16)).toUpper();
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		labelCharAction.set(text);
+		emit signalDispatcher.updateLabelCharAction(text);
+
+		return true;
+	} while (false);
+
+	labelCharAction.set("");
+	emit signalDispatcher.updateLabelCharAction("");
+	return false;
 }
 
 //戰鬥人物防禦
 bool Worker::sendBattleCharDefenseAct()
 {
-	if (!getBattleFlag())
-		return false;
-
-	const QString text = QObject::tr("defense");
-
-	labelCharAction.set(text);
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateLabelCharAction(text);
-	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.get(), QColor("#CCB157"));
 
-	const QString qcmd("G");
-	lssproto_B_send(qcmd);
-	return true;
+	do
+	{
+		if (!getBattleFlag())
+			break;
+
+		const QString qcmd("G");
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		const QString text = QObject::tr("defense");
+
+		labelCharAction.set(text);
+		emit signalDispatcher.updateLabelCharAction(text);
+		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.get(), QColor("#CCB157"));
+		return true;
+	} while (false);
+
+	labelCharAction.set("");
+	emit signalDispatcher.updateLabelCharAction("");
+	return false;
 }
 
 //戰鬥人物逃跑
 bool Worker::sendBattleCharEscapeAct()
 {
-	if (!getBattleFlag())
-		return false;
-
-	const QString text(QObject::tr("escape"));
-
-	labelCharAction.set(text);
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateLabelCharAction(text);
 
-	const QString qcmd("E");
-	lssproto_B_send(qcmd);
-	return true;
+	do
+	{
+		if (!getBattleFlag())
+			return false;
+
+		const QString qcmd("E");
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		const QString text(QObject::tr("escape"));
+
+		labelCharAction.set(text);
+		emit signalDispatcher.updateLabelCharAction(text);
+
+		return true;
+	} while (false);
+
+	labelCharAction.set("");
+	emit signalDispatcher.updateLabelCharAction("");
+	return false;
 }
 
 //戰鬥人物捉寵
 bool Worker::sendBattleCharCatchPetAct(long long target)
 {
-	if (!getBattleFlag())
-		return false;
-
-	sa::battle_data_t bt = getBattleData();
-	if (target < 0 || target >= sa::MAX_ENEMY)
-		return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	sa::battle_object_t obj = bt.objects.value(target);
-	QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
-	const QString text(QObject::tr("catch [%1]%2").arg(target).arg(name));
-
-	labelCharAction.set(text);
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateLabelCharAction(text);
-	emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
 
-	const QString qcmd = QString("T|%1").arg(util::toQString(target, 16)).toUpper();
-	lssproto_B_send(qcmd);
-	return true;
+	do
+	{
+		if (!getBattleFlag())
+			break;
+
+		sa::battle_data_t bt = getBattleData();
+		if (target < 0 || target >= sa::MAX_ENEMY)
+			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+
+		const QString qcmd = QString("T|%1").arg(util::toQString(target, 16)).toUpper();
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		sa::battle_object_t obj = bt.objects.value(target);
+		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
+		const QString text(QObject::tr("catch [%1]%2").arg(target).arg(name));
+
+		labelCharAction.set(text);
+		emit signalDispatcher.updateLabelCharAction(text);
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
+		return true;
+	} while (false);
+
+	labelCharAction.set("");
+	emit signalDispatcher.updateLabelCharAction("");
+	return false;
 }
 
 //戰鬥人物切換戰寵
 bool Worker::sendBattleCharSwitchPetAct(long long petIndex)
 {
-	if (!getBattleFlag())
-		return false;
-
-	sa::battle_data_t bt = getBattleData();
-	if (petIndex < 0 || petIndex >= sa::MAX_PET)
-		return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	sa::pet_t pet = getPet(petIndex);
-	if (!pet.valid)
-		return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	if (pet.hp <= 0)
-		return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
-
-	QString text(QObject::tr("switch pet to %1") \
-		.arg(!pet.freeName.isEmpty() ? pet.freeName : pet.name));
-
-	labelCharAction.set(text);
-
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	emit signalDispatcher.updateLabelCharAction(text);
+	do
+	{
+		if (!getBattleFlag())
+			break;
 
-	const QString qcmd = QString("S|%1").arg(util::toQString(petIndex, 16));
-	lssproto_B_send(qcmd);
-	return true;
+		sa::battle_data_t bt = getBattleData();
+		if (petIndex < 0 || petIndex >= sa::MAX_PET)
+			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+
+		sa::pet_t pet = getPet(petIndex);
+		if (!pet.valid)
+			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+
+		if (pet.hp <= 0)
+			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+
+		const QString qcmd = QString("S|%1").arg(util::toQString(petIndex, 16));
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		QString text(QObject::tr("switch pet to %1") \
+			.arg(!pet.freeName.isEmpty() ? pet.freeName : pet.name));
+
+		labelCharAction.set(text);
+		emit signalDispatcher.updateLabelCharAction(text);
+
+		return true;
+	} while (false);
+
+	labelCharAction.set("");
+	emit signalDispatcher.updateLabelCharAction("");
+	return false;
 }
 
 //戰鬥人物什麼都不做
 bool Worker::sendBattleCharDoNothing()
 {
-	if (!getBattleFlag())
-		return false;
-
-	QString text(QObject::tr("do nothing"));
-
-	labelCharAction.set(text);
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	emit signalDispatcher.updateLabelCharAction(text);
-	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.get(), QColor("#696969"));
+	do
+	{
+		if (!getBattleFlag())
+			break;
 
-	const QString qcmd("N");
-	lssproto_B_send(qcmd);
-	return true;
+		const QString qcmd("N");
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		QString text(QObject::tr("do nothing"));
+
+		labelCharAction.set(text);
+		emit signalDispatcher.updateLabelCharAction(text);
+		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.get(), QColor("#696969"));
+
+		return true;
+	} while (false);
+
+	labelCharAction.set("");
+	emit signalDispatcher.updateLabelCharAction("");
+	return false;
 }
 
 //戰鬥戰寵技能
 bool Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 {
-	if (!getBattleFlag())
-		return false;
-
-	sa::character_t pc = getCharacter();
-	if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET)
-		return false;
-
-	if (target < 0 || (target > (sa::TARGET_ALL)))
-		return sendBattlePetDoNothing();
-
-	if (skillIndex < 0 || skillIndex >= sa::MAX_PET_SKILL)
-		return sendBattlePetDoNothing();
-
-	QString text("");
-	sa::pet_skill_t petSkill = getPetSkill(pc.battlePetNo, skillIndex);
-	sa::battle_data_t bt = getBattleData();
-	if (target < sa::MAX_ENEMY)
-	{
-		QString name;
-		if (petSkill.name != "防禦" && petSkill.name != "防御")
-		{
-			sa::battle_object_t obj = bt.objects.value(target);
-			name = !obj.name.isEmpty() ? obj.name : obj.freeName;
-		}
-		else
-			name = QObject::tr("self");
-
-		text = QObject::tr("use %1 to [%2]%3").arg(petSkill.name).arg(target + 1).arg(name);
-	}
-	else
-	{
-		text = QObject::tr("use %1 to %2").arg(petSkill.name).arg(getAreaString(target));
-	}
-
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	if (petSkill.name.contains("防"))//防禦
-		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.get(), QColor("#CCB157"));
-	else if (petSkill.memo.contains("力回"))//補血
+	do
 	{
-		//不可補敵方
-		if (target >= bt.enemymin && target <= bt.enemymax
-			|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
-			|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
+		if (!getBattleFlag())
+			break;
+
+		sa::character_t pc = getCharacter();
+		if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET)
+			break;
+
+		if (target < 0 || (target > (sa::TARGET_ALL)))
 			return sendBattlePetDoNothing();
 
-		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#49BF45"));
-	}
-	else
-		emit signalDispatcher.battleTableItemForegroundColorChanged(target, QColor("#FF5050"));
+		if (skillIndex < 0 || skillIndex >= sa::MAX_PET_SKILL)
+			return sendBattlePetDoNothing();
 
-	labelPetAction.set(text);
-	emit signalDispatcher.updateLabelPetAction(text);
+		QString text("");
+		sa::pet_skill_t petSkill = getPetSkill(pc.battlePetNo, skillIndex);
+		sa::battle_data_t bt = getBattleData();
+		if (target < sa::MAX_ENEMY)
+		{
+			QString name;
+			if (petSkill.name != "防禦" && petSkill.name != "防御")
+			{
+				sa::battle_object_t obj = bt.objects.value(target);
+				name = !obj.name.isEmpty() ? obj.name : obj.freeName;
+			}
+			else
+				name = QObject::tr("self");
 
-	const QString qcmd = QString("W|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16)).toUpper();
-	lssproto_B_send(qcmd);
-	return true;
+			text = QObject::tr("use %1 to [%2]%3").arg(petSkill.name).arg(target + 1).arg(name);
+		}
+		else
+		{
+			text = QObject::tr("use %1 to %2").arg(petSkill.name).arg(getAreaString(target));
+		}
+
+		QColor color("#FF5050");
+		if (petSkill.name.contains("防"))//防禦
+			color = QColor("#CCB157");
+		else if (petSkill.memo.contains("力回"))//補血
+		{
+			//不可補敵方
+			if (target >= bt.enemymin && target <= bt.enemymax
+				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
+				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
+				return sendBattlePetDoNothing();
+
+			color = QColor("#49BF45");
+		}
+
+		const QString qcmd = QString("W|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16)).toUpper();
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		labelPetAction.set(text);
+		emit signalDispatcher.updateLabelPetAction(text);
+		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.get(), color);
+
+		return true;
+	} while (false);
+
+	labelPetAction.set("");
+	emit signalDispatcher.updateLabelPetAction("");
+	return false;
 }
 
 //戰鬥戰寵什麼都不做
 bool Worker::sendBattlePetDoNothing()
 {
-	if (!getBattleFlag())
-		return false;
-
-	sa::character_t pc = getCharacter();
-	if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET)
-		return false;
-
-	QString text(QObject::tr("do nothing"));
-
-	labelPetAction.set(text);
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateLabelPetAction(text);
-	emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.get() + 5, QColor("#696969"));
 
-	const QString qcmd("W|FF|FF");
-	lssproto_B_send(qcmd);
-	return true;
+	do
+	{
+		if (!getBattleFlag())
+			break;
+
+		sa::character_t pc = getCharacter();
+		if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET)
+			break;
+
+		const QString qcmd("W|FF|FF");
+		if (!lssproto_B_send(qcmd))
+			break;
+
+		QString text(QObject::tr("do nothing"));
+
+		labelPetAction.set(text);
+		emit signalDispatcher.updateLabelPetAction(text);
+		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.get() + 5, QColor("#696969"));
+		return true;
+	} while (false);
+
+	labelPetAction.set("");
+	emit signalDispatcher.updateLabelPetAction("");
+	return false;
 }
 
 #pragma endregion
@@ -10419,8 +10680,8 @@ void Worker::lssproto_AB_recv(char* cdata)
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
 				}
-			}
 	}
+}
 #endif
 }
 }
@@ -10480,7 +10741,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
 			}
-		}
+}
 }
 #endif
 }
@@ -12103,7 +12364,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 				++i;
 				break;
 			}
-			}
+	}
 	}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
@@ -12716,13 +12977,13 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-}
+		}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
@@ -12985,7 +13246,7 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+		}
 #endif
 		}
 
@@ -13018,7 +13279,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+	}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13125,7 +13386,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13282,7 +13543,7 @@ void Worker::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-			}
+}
 }
 #endif
 #pragma endregion
@@ -15136,18 +15397,20 @@ void Worker::lssproto_CHAREFFECT_recv(char*)
 }
 
 //SASH自訂對話框收到按鈕消息
-void Worker::lssproto_CustomWN_recv(const QString& data)
+bool Worker::lssproto_CustomWN_recv(const QString& data)
 {
 	QStringList dataList = data.split(util::rexOR, Qt::SkipEmptyParts);
 	if (dataList.size() != 4 && dataList.size() != 3)
-		return;
+		return false;
 
 	long long x = dataList.value(0).toLongLong();
 	long long y = dataList.value(1).toLongLong();
 	sa::ButtonType button = static_cast<sa::ButtonType>(dataList.value(2).toLongLong());
 	QString dataStr = "";
+
 	if (dataList.size() == 4)
 		dataStr = dataList.value(3);
+
 	long long row = -1;
 	bool ok = false;
 	long long tmp = dataStr.toLongLong(&ok);
@@ -15165,14 +15428,16 @@ void Worker::lssproto_CustomWN_recv(const QString& data)
 	_customDialog.rawdata = dataStr;
 	customDialog.set(_customDialog);
 	IS_WAITFOR_CUSTOM_DIALOG_FLAG.off();
+
+	return true;
 }
 
 //SASH自訂對話
-void Worker::lssproto_CustomTK_recv(const QString& data)
+bool Worker::lssproto_CustomTK_recv(const QString& data)
 {
 	QStringList dataList = data.split(util::rexOR, Qt::SkipEmptyParts);
 	if (dataList.size() != 5)
-		return;
+		return false;
 
 	//long long x = dataList.value(0).toLongLong();
 	//long long y = dataList.value(1).toLongLong();
@@ -15181,42 +15446,48 @@ void Worker::lssproto_CustomTK_recv(const QString& data)
 	QString dataStr = dataList.value(4).simplified();
 	QStringList args = dataStr.split(" ", Qt::SkipEmptyParts);
 	if (args.isEmpty())
-		return;
+		return false;
+
 	long long size = args.size();
-	if (args.value(0).startsWith("//skup") && size == 5)
-	{
-		bool ok;
-		long long vit = args.value(1).toLongLong(&ok);
-		if (!ok)
-			return;
-		long long str = args.value(2).toLongLong(&ok);
-		if (!ok)
-			return;
-		long long tgh = args.value(3).toLongLong(&ok);
-		if (!ok)
-			return;
-		long long dex = args.value(4).toLongLong(&ok);
-		if (!ok)
-			return;
+	if (!args.value(0).startsWith("//skup") || size != 5)
+		return false;
 
-		if (skupFuture_.isRunning())
-			return;
+	bool ok;
+	long long vit = args.value(1).toLongLong(&ok);
+	if (!ok)
+		return false;
 
-		skupFuture_ = QtConcurrent::run([this, vit, str, tgh, dex]()
+	long long str = args.value(2).toLongLong(&ok);
+	if (!ok)
+		return false;
+
+	long long tgh = args.value(3).toLongLong(&ok);
+	if (!ok)
+		return false;
+
+	long long dex = args.value(4).toLongLong(&ok);
+	if (!ok)
+		return false;
+
+	if (skupFuture_.isRunning())
+		return false;
+
+	skupFuture_ = QtConcurrent::run([this, vit, str, tgh, dex]()
+		{
+			const QVector<long long> vec = { vit, str, tgh, dex };
+			long long j = 0;
+			for (long long i = 0; i < 4; ++i)
 			{
-				const QVector<long long> vec = { vit, str, tgh, dex };
-				long long j = 0;
-				for (long long i = 0; i < 4; ++i)
-				{
-					j = vec.value(i);
-					if (j <= 0)
-						continue;
+				j = vec.value(i);
+				if (j <= 0)
+					continue;
 
-					if (!addPoint(i, j))
-						return;
-				}
-			});
-	}
+				if (!addPoint(i, j))
+					return;
+			}
+		});
+
+	return skupFuture_.isRunning();
 }
 
 void Worker::lssproto_SE_recv(const QPoint&, long long, long long)

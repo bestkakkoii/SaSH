@@ -32,10 +32,7 @@ long long CLuaChar::rename(std::string sfname, sol::this_state s)
 	luadebug::checkBattleThenWait(s);
 
 	QString name = util::toQString(sfname);
-
-	gamedevice.worker->setCharFreeName(name);
-
-	return TRUE;
+	return gamedevice.worker->setCharFreeName(name);
 }
 
 long long CLuaChar::skup(sol::object otype, long long count, sol::this_state s)
@@ -91,9 +88,7 @@ long long CLuaChar::skup(sol::object otype, long long count, sol::this_state s)
 	if (count <= 0)
 		return FALSE;
 
-	gamedevice.worker->addPoint(point, count);
-
-	return TRUE;
+	return gamedevice.worker->addPoint(point, count);
 }
 
 //action-group
@@ -107,9 +102,7 @@ long long CLuaChar::join(sol::this_state s)
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	gamedevice.worker->setTeamState(true);
-
-	return TRUE;
+	return gamedevice.worker->setTeamState(true);
 }
 
 long long CLuaChar::leave(sol::this_state s)
@@ -122,9 +115,7 @@ long long CLuaChar::leave(sol::this_state s)
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	gamedevice.worker->setTeamState(false);
-
-	return TRUE;
+	return gamedevice.worker->setTeamState(false);
 }
 
 long long CLuaChar::kick(long long teammateIndex, sol::this_state s)
@@ -137,7 +128,5 @@ long long CLuaChar::kick(long long teammateIndex, sol::this_state s)
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	gamedevice.worker->kickteam(--teammateIndex);
-
-	return TRUE;
+	return gamedevice.worker->kickteam(--teammateIndex);
 }

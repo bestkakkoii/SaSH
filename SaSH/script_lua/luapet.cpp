@@ -28,11 +28,10 @@ long long CLuaPet::setState(long long petIndex, long long state, sol::this_state
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	gamedevice.worker->setPetState(--petIndex, static_cast<sa::PetState>(state));
-
-	return TRUE;
+	return gamedevice.worker->setPetState(--petIndex, static_cast<sa::PetState>(state));
 }
 
 long long CLuaPet::drop(long long petIndex, sol::this_state s)
@@ -42,11 +41,10 @@ long long CLuaPet::drop(long long petIndex, sol::this_state s)
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	gamedevice.worker->dropPet(--petIndex);
-
-	return TRUE;
+	return gamedevice.worker->dropPet(--petIndex);
 }
 
 long long CLuaPet::rename(long long petIndex, std::string name, sol::this_state s)
@@ -56,13 +54,12 @@ long long CLuaPet::rename(long long petIndex, std::string name, sol::this_state 
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	QString qname = util::toQString(name);
 
-	gamedevice.worker->setPetFreeName(--petIndex, qname);
-
-	return TRUE;
+	return gamedevice.worker->setPetFreeName(--petIndex, qname);
 }
 
 long long CLuaPet::learn(long long petIndex, long long fromSkillIndex, long long toSkillIndex, sol::object ounitid, sol::object odialogid, sol::this_state s)
@@ -97,9 +94,7 @@ long long CLuaPet::learn(long long petIndex, long long fromSkillIndex, long long
 	if (odialogid.is<long long>())
 		dialogid = odialogid.as<long long>();
 
-	gamedevice.worker->learn(--petIndex, --fromSkillIndex, --toSkillIndex, dialogid, unitid);
-
-	return TRUE;
+	return gamedevice.worker->learn(--petIndex, --fromSkillIndex, --toSkillIndex, dialogid, unitid);
 }
 
 long long CLuaPet::swap(long long petIndex, long long from, long long to, sol::this_state s)
@@ -109,11 +104,10 @@ long long CLuaPet::swap(long long petIndex, long long from, long long to, sol::t
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	gamedevice.worker->petitemswap(--petIndex, --from, --to);
-
-	return TRUE;
+	return gamedevice.worker->petitemswap(--petIndex, --from, --to);
 }
 
 long long CLuaPet::deposit(long long petIndex, long long unitid, long long dialogid, sol::this_state s)
@@ -123,11 +117,10 @@ long long CLuaPet::deposit(long long petIndex, long long unitid, long long dialo
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	gamedevice.worker->depositPet(--petIndex, dialogid, unitid);
-
-	return TRUE;
+	return gamedevice.worker->depositPet(--petIndex, dialogid, unitid);
 }
 
 long long CLuaPet::withdraw(long long petIndex, long long unitid, long long dialogid, sol::this_state s)
@@ -137,9 +130,8 @@ long long CLuaPet::withdraw(long long petIndex, long long unitid, long long dial
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	gamedevice.worker->withdrawPet(--petIndex, dialogid, unitid);
-
-	return TRUE;
+	return gamedevice.worker->withdrawPet(--petIndex, dialogid, unitid);
 }

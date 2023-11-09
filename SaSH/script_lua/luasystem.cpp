@@ -46,7 +46,7 @@ bool initializeSharedMemory()
 	return true;
 }
 
-void setRemoteGlobal(const std::string& varname, const QVariant& value)
+bool setRemoteGlobal(const std::string& varname, const QVariant& value)
 {
 	QSystemSemaphore semaphore(kRemoteGlobalSemaphoreKey, 1, QSystemSemaphore::Open);
 	semaphore.acquire();
@@ -100,9 +100,15 @@ void setRemoteGlobal(const std::string& varname, const QVariant& value)
 		memset(g_remoteGlobalSharedMemory.data(), 0, kRemoteGlobalSharedMemorySize);
 		_snprintf_s(reinterpret_cast<char*>(g_remoteGlobalSharedMemory.data()), kRemoteGlobalSharedMemorySize, _TRUNCATE, "%s", from);
 		g_remoteGlobalSharedMemory.unlock();
+
+
+		semaphore.release();
+		return true;
 	} while (false);
 
 	semaphore.release();
+
+	return false;
 }
 
 QVariant getRemoteGlobal(const std::string& varname)
@@ -150,13 +156,16 @@ QVariant getRemoteGlobal(const std::string& varname)
 	return returnValue;
 }
 
-void clearRemoteGlobal()
+bool clearRemoteGlobal()
 {
 	QSystemSemaphore semaphore(kRemoteGlobalSemaphoreKey, 1, QSystemSemaphore::Open);
 	semaphore.acquire();
 
 	if (!initializeSharedMemory())
-		return;
+	{
+		semaphore.release();
+		return false;
+	}
 
 	// Lock the shared memory for exclusive access
 	g_remoteGlobalSharedMemory.lock();
@@ -166,12 +175,16 @@ void clearRemoteGlobal()
 
 	// Unlock the shared memory
 	g_remoteGlobalSharedMemory.unlock();
+
+	semaphore.release();
+
+	return true;
 }
 
-void CLuaSystem::clearglobal()
+long long CLuaSystem::clearglobal()
 {
 	//g_global_custom_variabls.clear();
-	clearRemoteGlobal();
+	return clearRemoteGlobal();
 }
 
 long long CLuaSystem::setglobal(std::string sname, sol::object od, sol::this_state s)
@@ -182,8 +195,6 @@ long long CLuaSystem::setglobal(std::string sname, sol::object od, sol::this_sta
 		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("global variable name cannot be empty"));
 		return FALSE;
 	}
-
-	//const QString newName = util::utf8toSha512String(sname);
 
 	if (od == sol::lua_nil)
 	{
@@ -212,11 +223,7 @@ long long CLuaSystem::setglobal(std::string sname, sol::object od, sol::this_sta
 		return FALSE;
 	}
 
-	//g_global_custom_variabls.insert(newName, value);
-
-	setRemoteGlobal(sname, value);
-
-	return TRUE;
+	return setRemoteGlobal(sname, value);
 }
 
 sol::object CLuaSystem::getglobal(std::string sname, sol::this_state s)
@@ -226,16 +233,8 @@ sol::object CLuaSystem::getglobal(std::string sname, sol::this_state s)
 	if (sname.empty())
 	{
 		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("global variable name cannot be empty"));
-		return FALSE;
+		return sol::lua_nil;
 	}
-
-	//const QString newName = util::utf8toSha512String(sname);
-
-	//if (!g_global_custom_variabls.contains(newName))
-	//{
-	//	luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("global variable '%1' does not exist").arg(util::toQString(sname)));
-	//	return sol::lua_nil;
-	//}
 
 	QVariant value = getRemoteGlobal(sname);
 
@@ -319,8 +318,7 @@ long long CLuaSystem::logout(sol::this_state s)
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 	if (!gamedevice.worker.isNull())
 	{
-		gamedevice.worker->logOut();
-		return TRUE;
+		return gamedevice.worker->logOut();
 	}
 
 	return FALSE;
@@ -332,8 +330,7 @@ long long CLuaSystem::logback(sol::this_state s)
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 	if (!gamedevice.worker.isNull())
 	{
-		gamedevice.worker->logBack();
-		return TRUE;
+		return gamedevice.worker->logBack();
 	}
 
 	return FALSE;
@@ -351,7 +348,8 @@ long long CLuaSystem::eo(sol::this_state s)
 	luadebug::checkBattleThenWait(s);
 
 	util::timer timer;
-	gamedevice.worker->EO();
+	if (!gamedevice.worker->EO())
+		return FALSE;
 
 	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !GameDevice::getInstance(currentIndex).worker->isEOTTLSend.get(); });
 
@@ -381,8 +379,7 @@ long long CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::o
 	if (obuffersize.is<long long>())
 		buffersize = obuffersize.as<long long>();
 
-	bool bret = gamedevice.log.initialize(filename, buffersize, format);
-	return bret;
+	return gamedevice.log.initialize(filename, buffersize, format);
 }
 
 //這裡還沒想好format格式怎麼設計，暫時先放著
@@ -516,6 +513,7 @@ long long CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_
 	{
 		return nret;
 	}
+
 	return 0;
 }
 
@@ -525,6 +523,9 @@ long long CLuaSystem::talk(sol::object ostr, sol::object ocolor, sol::object omo
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 	if (gamedevice.worker.isNull())
 		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
 
 	QString text;
 	if (ostr.is<long long>())
@@ -549,9 +550,7 @@ long long CLuaSystem::talk(sol::object ostr, sol::object ocolor, sol::object omo
 	if (omode.is<long long>() && omode.as<long long>() < sa::kTalkModeMax)
 		mode = static_cast<sa::TalkMode>(omode.as<long long>());
 
-	gamedevice.worker->talk(text, color, mode);
-
-	return TRUE;
+	return gamedevice.worker->talk(text, color, mode);
 }
 
 long long CLuaSystem::cleanchat(sol::this_state s)
@@ -561,9 +560,7 @@ long long CLuaSystem::cleanchat(sol::this_state s)
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	gamedevice.worker->cleanChatHistory();
-
-	return TRUE;
+	return gamedevice.worker->cleanChatHistory();
 }
 
 long long CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
@@ -625,6 +622,7 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	long long ext = 0;
@@ -666,8 +664,7 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 
 	if (sbuttonStr.empty() && row > 0)
 	{
-		gamedevice.worker->press(row, dialogid, unitid);
-		return TRUE;
+		return gamedevice.worker->press(row, dialogid, unitid);
 	}
 
 	if (button == sa::kButtonNone)
@@ -703,18 +700,16 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 	unitid += ext;
 
 	if (button != sa::kButtonNone)
-		gamedevice.worker->press(button, dialogid, unitid);
+		return gamedevice.worker->press(button, dialogid, unitid);
 	else if (row != -1)
-		gamedevice.worker->press(row, dialogid, unitid);
+		return gamedevice.worker->press(row, dialogid, unitid);
 	else if (!text.isEmpty() && text.startsWith("#"))
 	{
 		text = text.mid(1);
-		gamedevice.worker->inputtext(text, dialogid, unitid);
+		return gamedevice.worker->inputtext(text, dialogid, unitid);
 	}
-	else
-		return FALSE;
 
-	return TRUE;
+	return FALSE;
 }
 
 long long CLuaSystem::input(const std::string& str, long long unitid, long long dialogid, sol::this_state s)
@@ -724,13 +719,12 @@ long long CLuaSystem::input(const std::string& str, long long unitid, long long 
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
 	QString text = util::toQString(str);
 
-	gamedevice.worker->inputtext(text, dialogid, unitid);
-
-	return TRUE;
+	return gamedevice.worker->inputtext(text, dialogid, unitid);
 }
 
 long long CLuaSystem::leftclick(long long x, long long y, sol::this_state s)
@@ -809,14 +803,10 @@ long long CLuaSystem::menu(long long index, sol::object otype, sol::this_state s
 
 	if (type == 0)
 	{
-		gamedevice.worker->saMenu(index);
-	}
-	else
-	{
-		gamedevice.worker->shopOk(index);
+		return gamedevice.worker->saMenu(index);
 	}
 
-	return TRUE;
+	return gamedevice.worker->shopOk(index);
 }
 
 long long CLuaSystem::createch(sol::object odataplacenum
@@ -974,7 +964,7 @@ long long CLuaSystem::createch(sol::object odataplacenum
 	else if (oforcecover.is<long long>())
 		forcecover = oforcecover.as<long long>() > 0;
 
-	gamedevice.worker->createCharacter(static_cast<long long>(dataplacenum)
+	return gamedevice.worker->createCharacter(static_cast<long long>(dataplacenum)
 		, charname
 		, static_cast<long long>(imgno)
 		, static_cast<long long>(faceimgno)
@@ -988,8 +978,6 @@ long long CLuaSystem::createch(sol::object odataplacenum
 		, static_cast<long long>(wind)
 		, static_cast<long long>(hometown)
 		, forcecover);
-
-	return TRUE;
 }
 
 long long CLuaSystem::delch(long long index, std::string spsw, sol::object option, sol::this_state s)
@@ -1020,9 +1008,7 @@ long long CLuaSystem::delch(long long index, std::string spsw, sol::object optio
 	else if (option.is<long long>())
 		backtofirst = option.as<long long>() > 0;
 
-	gamedevice.worker->deleteCharacter(index, password, backtofirst);
-
-	return TRUE;
+	return gamedevice.worker->deleteCharacter(index, password, backtofirst);
 }
 
 long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_state s)
@@ -1050,9 +1036,7 @@ long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_s
 		}
 	}
 
-	gamedevice.autil.util_SendArgs(funId, vargs);
-
-	return TRUE;
+	return gamedevice.autil.util_SendArgs(funId, vargs);
 }
 
 long long CLuaSystem::chname(sol::object oname, sol::this_state s)
@@ -1083,9 +1067,7 @@ long long CLuaSystem::chname(sol::object oname, sol::this_state s)
 		return FALSE;
 	}
 
-	gamedevice.worker->setCharFreeName(name);
-
-	return TRUE;
+	return gamedevice.worker->setCharFreeName(name);
 }
 
 long long CLuaSystem::chpetname(long long index, sol::object oname, sol::this_state s)
@@ -1123,9 +1105,7 @@ long long CLuaSystem::chpetname(long long index, sol::object oname, sol::this_st
 		return FALSE;
 	}
 
-	gamedevice.worker->setPetFreeName(index, name);
-
-	return TRUE;
+	return gamedevice.worker->setPetFreeName(index, name);
 }
 
 long long CLuaSystem::chpet(long long petindex, sol::object ostate, sol::this_state s)
@@ -1158,9 +1138,7 @@ long long CLuaSystem::chpet(long long petindex, sol::object ostate, sol::this_st
 	if (pet.state == state)
 		return TRUE;
 
-	gamedevice.worker->setPetState(petindex, state);
-
-	return TRUE;
+	return gamedevice.worker->setPetState(petindex, state);
 }
 
 bool CLuaSystem::waitpos(sol::object p1, sol::object p2, sol::object p3, sol::this_state s)

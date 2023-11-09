@@ -194,12 +194,12 @@ long long Autil::util_GetFunctionFromSlice(long long* func, long long* fieldcoun
 // Send a message
 //
 // arg: fd=socket fd   func=function ID   buffer=data to send
-void Autil::util_SendMesg(long long func, char* buffer)
+bool Autil::util_SendMesg(long long func, char* buffer)
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	if (!gamedevice.isValid())
-		return;
+		return false;
 
 	char t1[NETDATASIZE] = {};
 	char t2[NETDATASIZE] = {};
@@ -218,7 +218,7 @@ void Autil::util_SendMesg(long long func, char* buffer)
 	mem::VirtualMemory ptr(hProcess, size, true);
 
 	mem::write(hProcess, ptr, t2, size);
-	gamedevice.sendMessage(kSendPacket, ptr, size);
+	return gamedevice.sendMessage(kSendPacket, ptr, size) > 0;
 }
 
 // -------------------------------------------------------------------
