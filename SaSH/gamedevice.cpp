@@ -17,28 +17,29 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #include "stdafx.h"
-#include <injector.h>
+#include <gamedevice.h>
 #include "model/listview.h"
 
-Server Injector::server;
-safe::Hash<long long, Injector*> Injector::instances;
+Server GameDevice::server;
+safe::hash<long long, GameDevice*> GameDevice::instances;
 
 constexpr long long MessageTimeout = 3000;
 
-Injector::Injector(long long index)
+GameDevice::GameDevice(long long index)
 	: Indexer(index)
 	, log(index, nullptr)
 	, autil(index)
 {
-
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &GameDevice::gameRequestInterruption);
 }
 
-Injector::~Injector()
+GameDevice::~GameDevice()
 {
-	qDebug() << "Injector is destroyed!!";
+	qDebug() << "GameDevice is destroyed!!";
 }
 
-void Injector::reset()
+void GameDevice::reset()
 {
 	QList<long long> keys = instances.keys();
 	for (long long key : keys)
@@ -47,12 +48,12 @@ void Injector::reset()
 	}
 }
 
-void Injector::reset(long long index)//static
+void GameDevice::reset(long long index)//static
 {
 	if (!instances.contains(index))
 		return;
 
-	Injector* instance = instances.value(index);
+	GameDevice* instance = instances.value(index);
 	if (instance == nullptr)
 		return;
 
@@ -75,9 +76,10 @@ void Injector::reset(long long index)//static
 	instance->setEnableHash(util::kLogOutEnable, false);
 	instance->setEnableHash(util::kEchoEnable, false);
 	instance->setEnableHash(util::kLogBackEnable, false);
+	instance->resetGameInterruptionFlag();
 }
 
-Injector::CreateProcessResult Injector::createProcess(Injector::process_information_t& pi)
+GameDevice::CreateProcessResult GameDevice::createProcess(GameDevice::process_information_t& pi)
 {
 	QString path = currentGameExePath;
 	if (path.isEmpty() || !QFile::exists(path))
@@ -229,7 +231,7 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 	return CreateProcessResult::CreateAboveWindow8Failed;
 }
 
-long long Injector::sendMessage(long long msg, long long wParam, long long lParam) const
+long long GameDevice::sendMessage(long long msg, long long wParam, long long lParam) const
 {
 	if (WM_NULL == msg)
 		return 0;
@@ -240,7 +242,7 @@ long long Injector::sendMessage(long long msg, long long wParam, long long lPara
 	return static_cast<long long>(dwResult);
 }
 
-bool Injector::postMessage(long long msg, long long wParam, long long lParam) const
+bool GameDevice::postMessage(long long msg, long long wParam, long long lParam) const
 {
 	if (WM_NULL == msg)
 		return false;
@@ -249,7 +251,7 @@ bool Injector::postMessage(long long msg, long long wParam, long long lParam) co
 	return  ret == TRUE;
 }
 
-bool Injector::isHandleValid(long long pid)
+bool GameDevice::isHandleValid(long long pid)
 {
 	if (NULL == pid)
 		pid = pi_.dwProcessId;
@@ -266,7 +268,7 @@ bool Injector::isHandleValid(long long pid)
 }
 
 #if 0
-DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
+DWORD WINAPI GameDevice::getFunAddr(const DWORD* DllBase, const char* FunName)
 {
 	// 遍歷導出表
 	PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)DllBase;
@@ -288,7 +290,7 @@ DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 }
 #endif
 
-bool Injector::remoteInitialize(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
+bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
 	//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
 	struct InitialData
@@ -343,7 +345,7 @@ bool Injector::remoteInitialize(Injector::process_information_t& pi, unsigned sh
 		return false;
 	}
 
-	util::Timer timer;
+	util::timer timer;
 	DWORD_PTR dwResult = 0L;
 	for (;;)
 	{
@@ -386,7 +388,7 @@ bool Injector::remoteInitialize(Injector::process_information_t& pi, unsigned sh
 	return dwResult != 0;
 }
 
-bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason, bool bConnectOnly)
+bool GameDevice::injectLibrary(GameDevice::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason, bool bConnectOnly)
 {
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -404,7 +406,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	}
 
 	bool bret = 0;
-	util::Timer timer;
+	util::timer timer;
 	QString dllPath = "\0";
 	pi.hWnd = nullptr;
 
@@ -581,7 +583,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	return bret;
 }
 
-bool Injector::isWindowAlive() const
+bool GameDevice::isWindowAlive() const
 {
 	if (!isValid())
 		return false;
@@ -626,7 +628,7 @@ bool Injector::isWindowAlive() const
 	return false;
 }
 
-void Injector::mouseMove(long long x, long long y) const
+void GameDevice::mouseMove(long long x, long long y) const
 {
 	//LPARAM data = MAKELPARAM(x, y);
 	//sendMessage(WM_MOUSEMOVE, NULL, data);
@@ -635,7 +637,7 @@ void Injector::mouseMove(long long x, long long y) const
 }
 
 //滑鼠移動 + 左鍵
-void Injector::leftClick(long long x, long long y) const
+void GameDevice::leftClick(long long x, long long y) const
 {
 	//LPARAM data = MAKELPARAM(x, y);
 	//sendMessage(WM_MOUSEMOVE, NULL, data);
@@ -648,7 +650,7 @@ void Injector::leftClick(long long x, long long y) const
 	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseClick, 1);
 }
 
-void Injector::leftDoubleClick(long long x, long long y) const
+void GameDevice::leftDoubleClick(long long x, long long y) const
 {
 	//LPARAM data = MAKELPARAM(x, y);
 	//sendMessage(WM_MOUSEMOVE, NULL, data);
@@ -660,7 +662,7 @@ void Injector::leftDoubleClick(long long x, long long y) const
 	sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
 }
 
-void Injector::rightClick(long long x, long long y) const
+void GameDevice::rightClick(long long x, long long y) const
 {
 	//LPARAM data = MAKELPARAM(x, y);
 	//sendMessage(WM_MOUSEMOVE, NULL, data);
@@ -673,7 +675,7 @@ void Injector::rightClick(long long x, long long y) const
 	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseClick, 2);
 }
 
-void Injector::dragto(long long x1, long long y1, long long x2, long long y2) const
+void GameDevice::dragto(long long x1, long long y1, long long x2, long long y2) const
 {
 	LPARAM datafrom = MAKELPARAM(x1, y1);
 	LPARAM datato = MAKELPARAM(x2, y2);
@@ -687,7 +689,7 @@ void Injector::dragto(long long x1, long long y1, long long x2, long long y2) co
 	QThread::msleep(50);
 }
 
-void Injector::hide(long long mode)
+void GameDevice::hide(long long mode)
 {
 	HWND hWnd = getProcessWindow();
 	if (hWnd == nullptr)
@@ -739,7 +741,7 @@ void Injector::hide(long long mode)
 	mem::freeUnuseMemory(getProcess());
 }
 
-void Injector::show()
+void GameDevice::show()
 {
 	HWND hWnd = getProcessWindow();
 	if (hWnd == nullptr)
@@ -781,9 +783,9 @@ void Injector::show()
 	SetForegroundWindow(hWnd);
 }
 
-QString Injector::getPointFileName()
+QString GameDevice::getPointFileName()
 {
-	const QString dirPath(QString("%1/lib/map/%2").arg(util::applicationDirPath()).arg(currentServerListIndex));
+	const QString dirPath(QString("%1/lib/map/%2").arg(util::applicationDirPath()).arg(currentServerListIndex.get()));
 	QDir dir(dirPath);
 	if (!dir.exists())
 		dir.mkdir(dirPath);

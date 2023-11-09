@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "lssproto.h"
 #include "autil.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 Lssproto::Lssproto(Autil* autil)

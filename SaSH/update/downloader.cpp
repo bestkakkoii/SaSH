@@ -829,7 +829,7 @@ void Downloader::overwriteCurrentExecutable()
 
 		//move to current
 		{
-			util::Timer timer;
+			util::timer timer;
 			if (QFile::exists(szBackup7zFilePath))
 			{
 				while (!QFile::rename(szBackup7zFilePath, szBackup7zNewFilePath))

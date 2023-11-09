@@ -98,15 +98,6 @@ private: //註冊給Parser的函數
 
 	long long trade(long long currentIndex, long long currentLine, const TokenMap& TK);
 
-	long long recordequip(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long wearequip(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long unwearequip(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long petequip(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long petunequip(long long currentIndex, long long currentLine, const TokenMap& TK);
-
-	long long depositpet(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long withdrawpet(long long currentIndex, long long currentLine, const TokenMap& TK);
-
 private:
 	enum
 	{
@@ -121,7 +112,7 @@ private:
 	Parser parser_;
 	long long beginLine_ = 0;
 
-	safe::Flag isRunning_ = false;
+	safe::flag isRunning_ = false;
 	ParserCallBack pCallback = nullptr;
 	QList<std::shared_ptr<Interpreter>> subInterpreterList_;
 	QFutureSynchronizer<bool> subThreadFutureSync_;

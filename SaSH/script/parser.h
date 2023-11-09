@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 static const QStringList g_sysConstVarName = {
 	"char", "pet", "item", "map", "magic", "skill", "petskill", "petequip", "dialog", "chat", "battle", "point", "team", "card", "unit", "mails",
-	"INDEX", "_VERSION", "_LINE_", "isbattle", "isonline", "isnormal"
+	"INDEX", "_VERSION", "isbattle", "isonline", "isnormal"
 };
 
 using CommandRegistry = std::function<long long(long long currentIndex, long long currentLine, const TokenMap& token)>;
@@ -35,7 +35,7 @@ using CommandRegistry = std::function<long long(long long currentIndex, long lon
 //callbak
 using ParserCallBack = std::function<long long(long long currentIndex, long long currentLine, const TokenMap& token)>;
 
-using VariantSafeHash = safe::Hash<QString, QVariant>;
+using VariantSafeHash = safe::hash<QString, QVariant>;
 
 struct Counter
 {
@@ -591,7 +591,7 @@ private:
 	Interpreter* pinterpreter_ = nullptr;
 	Lexer lexer_;
 
-	QHash<unsigned long long, std::shared_ptr<util::Timer>> timerMap_;
+	QHash<unsigned long long, std::shared_ptr<util::timer>> timerMap_;
 
 	QString scriptFileName_;
 	bool isPrivate_ = false;
@@ -631,4 +631,21 @@ private:
 	bool isSubScript_ = false;								//是否是子腳本		
 
 	bool luaBegin_ = false;									//lua代碼塊開始標記
+
+	//不輸出到列表也不做更動的全局變量名稱
+	QStringList g_lua_exception_var_list = {
+		"__THIS_CLUA", "__THIS_PARENT", "__HOOKFORSTOP", "__INDEX", "__HOOKFORSTOP",
+		"__THIS_PARSER", "__THIS", "_G",
+		"__print", "__require",
+		"TARGET",
+		"BattleClass", "CharClass", "InfoClass", "ItemClass", "MapClass", "PetClass", "SystemClass", "TARGET", "Timer", "_G", "ROWCOUNT",
+		"assert", "base",  "collectgarbage",
+		"contains", "copy", "coroutine", "dbclick", "debug", "dofile", "dragto", "error", "find", "format", "full", "getmetatable",
+		"half", "input", "io", "ipairs", "lclick", "load", "loadfile", "loadset", "lower", "math", "mkpath", "mktable", "dlg", "ocr", "findfiles",
+		"msg", "next", "os", "package", "pairs", "pcall",  "print", "printf", "rawequal",
+		"rawget", "rawlen", "rawset", "rclick", "regex", "replace", "require", "rex", "rexg", "rnd", "saveset", "select", "set", "setmetatable",
+		"skill", "sleep", "split", "string", "table", "tadd", "tback", "tfront", "timer", "tjoin", "tmerge", "todb", "toint", "tonumber", "tostr",
+		"tostring", "tpadd", "tpopback", "tpopfront", "trim", "trotate", "trsort", "tshuffle", "tsleft", "tsort", "tsright", "tswap", "tunique", "type",
+		"unit", "upper", "utf8", "warn", "xpcall"
+	};
 };

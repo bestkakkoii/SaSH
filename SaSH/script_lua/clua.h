@@ -18,7 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma once
 
-#include <threadplugin.h>
+#include <indexer.h>
 #include <util.h>
 
 namespace luadebug
@@ -159,6 +159,10 @@ public:
 	~CLuaSystem() = default;
 
 	//global
+	long long CLuaSystem::setglobal(std::string sname, sol::object od, sol::this_state s);
+	sol::object CLuaSystem::getglobal(std::string sname, sol::this_state s);
+	void clearglobal();
+
 	long long send(long long funId, sol::variadic_args args, sol::this_state s);
 	long long sleep(long long value, sol::this_state s);//ok
 	long long openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s);
@@ -236,6 +240,13 @@ public:
 
 	long long deposititem(sol::object orange, std::string sname, long long currentLine, sol::this_state s);
 	long long withdrawitem(std::string sname, sol::object omemo, sol::object oisall, sol::this_state s);
+	long long recordequip(sol::this_state s);
+	long long wearrecordedequip(sol::this_state s);
+	long long unwearequip(sol::object opart, sol::this_state s);
+	long long petequip(long long petIndex, sol::object oname, sol::object omemo, sol::this_state s);
+	long long petunequip(long long petIndex, sol::object opart, sol::this_state s);
+	long long depositpet(sol::object oslots, sol::this_state s);
+	long long withdrawpet(std::string sname, sol::object olevel, sol::object omaxhp, sol::this_state s);
 
 	void insertItem(long long index, const sa::item_t& item) { items_.insert(index, item); }
 
@@ -337,7 +348,7 @@ public:
 	long long bwait(sol::object otimeout, sol::object jump, sol::this_state s);
 };
 
-class CLua : public ThreadPlugin
+class CLua : public QObject, public Indexer
 {
 	Q_OBJECT
 public:
@@ -347,7 +358,7 @@ public:
 
 	void __fastcall start();
 	void __fastcall wait();
-	inline bool __fastcall isRunning() const { return isRunning_.get() && !isInterruptionRequested(); }
+	inline bool __fastcall isRunning() const { return isRunning_.get() && !QThread::currentThread()->isInterruptionRequested(); }
 
 signals:
 	void finished();
@@ -360,7 +371,7 @@ public:
 	sol::state& getLua() { return lua_; }
 	void __fastcall setMax(long long max) { max_ = max; }
 	void __fastcall setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
-	void __fastcall setHookForStop(bool isHookForStop) { lua_["_HOOKFORSTOP"] = isHookForStop; }
+	void __fastcall setHookForStop(bool isHookForStop) { lua_["__HOOKFORSTOP"] = isHookForStop; }
 	void __fastcall setHookEnabled(bool isHookEnabled) { isHookEnabled_ = isHookEnabled; }
 private:
 	void __fastcall open_enumlibs();
@@ -385,7 +396,7 @@ private:
 	bool isSubScript_ = false;
 	bool isDebug_ = false;
 	bool isHookEnabled_ = true;
-	safe::Flag isRunning_ = false;
+	safe::flag isRunning_ = false;
 
 public:
 	CLuaSystem luaSystem_;

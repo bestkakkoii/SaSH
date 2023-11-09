@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "otherform.h"
 #include <util.h>
-#include <injector.h>
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 OtherForm::OtherForm(long long index, QWidget* parent)
@@ -138,16 +138,16 @@ void OtherForm::groupBoxClicked(bool checked)
 	QString name = pGroupBox->objectName();
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	if (name == "groupBox_lockpets")
 	{
-		injector.setEnableHash(util::kLockPetScheduleEnable, checked);
+		gamedevice.setEnableHash(util::kLockPetScheduleEnable, checked);
 		if (checked)
 		{
-			injector.setEnableHash(util::kLockPetEnable, !checked);
+			gamedevice.setEnableHash(util::kLockPetEnable, !checked);
 			ui.checkBox_lockpet->setChecked(!checked);
-			injector.setEnableHash(util::kLockRideEnable, !checked);
+			gamedevice.setEnableHash(util::kLockRideEnable, !checked);
 			ui.checkBox_lockride->setChecked(!checked);
 		}
 	}
@@ -164,7 +164,7 @@ void OtherForm::onListWidgetDoubleClicked(QListWidgetItem* item)
 		return;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	if (name == "listWidget_prelockpets")
 	{
@@ -189,7 +189,7 @@ void OtherForm::onListWidgetDoubleClicked(QListWidgetItem* item)
 				list.append(str);
 			}
 		}
-		injector.setStringHash(util::kLockPetScheduleString, list.join("|"));
+		gamedevice.setStringHash(util::kLockPetScheduleString, list.join("|"));
 	}
 
 }
@@ -205,7 +205,7 @@ void OtherForm::onButtonClicked()
 		return;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	if (name == "pushButton_lockpetsadd")
 	{
@@ -256,18 +256,18 @@ void OtherForm::onButtonClicked()
 			}
 		}
 
-		injector.setStringHash(util::kLockPetScheduleString, list.join("|"));
+		gamedevice.setStringHash(util::kLockPetScheduleString, list.join("|"));
 		ui.listWidget_prelockpets->clear();
 		return;
 	}
 	else if (name == "pushButton_clearlockpets")
 	{
 		ui.listWidget_lockpets->clear();
-		injector.setStringHash(util::kLockPetScheduleString, "");
+		gamedevice.setStringHash(util::kLockPetScheduleString, "");
 	}
 	else if (name == "pushButton_lockpetsall")
 	{
-		if (injector.worker.isNull() || !injector.worker->getOnlineFlag())
+		if (gamedevice.worker.isNull() || !gamedevice.worker->getOnlineFlag())
 			return;
 
 		QString typeStr = ui.comboBox_locktype->currentText().simplified();
@@ -276,7 +276,7 @@ void OtherForm::onButtonClicked()
 		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
 			QString text;
-			sa::pet_t pet = injector.worker->getPet(i);
+			sa::pet_t pet = gamedevice.worker->getPet(i);
 			if (pet.valid && !pet.name.isEmpty())
 				text = QString("%1:%2").arg(i + 1).arg(pet.name.simplified());
 			else
@@ -301,20 +301,20 @@ void OtherForm::onButtonClicked()
 
 	else if (name == "pushButton_leaderleave")
 	{
-		if (injector.worker.isNull() || !injector.worker->getOnlineFlag())
+		if (gamedevice.worker.isNull() || !gamedevice.worker->getOnlineFlag())
 			return;
 
-		injector.worker->setTeamState(false);
+		gamedevice.worker->setTeamState(false);
 	}
 
 	for (long long i = 1; i < sa::MAX_TEAM; ++i)
 	{
 		if (name == QString("pushButton_teammate%1kick").arg(i))
 		{
-			if (injector.worker.isNull() || !injector.worker->getOnlineFlag())
+			if (gamedevice.worker.isNull() || !gamedevice.worker->getOnlineFlag())
 				return;
 
-			injector.worker->kickteam(i);
+			gamedevice.worker->kickteam(i);
 			break;
 		}
 	}
@@ -333,24 +333,24 @@ void OtherForm::onCheckBoxStateChanged(int state)
 		return;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	//lockpet
 	if (name == "checkBox_lockpet")
 	{
-		injector.setEnableHash(util::kLockPetEnable, isChecked);
+		gamedevice.setEnableHash(util::kLockPetEnable, isChecked);
 		if (isChecked)
 		{
-			injector.setEnableHash(util::kLockPetScheduleEnable, !isChecked);
+			gamedevice.setEnableHash(util::kLockPetScheduleEnable, !isChecked);
 			ui.groupBox_lockpets->setChecked(!isChecked);
 		}
 	}
 	else if (name == "checkBox_lockride")
 	{
-		injector.setEnableHash(util::kLockRideEnable, isChecked);
+		gamedevice.setEnableHash(util::kLockRideEnable, isChecked);
 		if (isChecked)
 		{
-			injector.setEnableHash(util::kLockPetScheduleEnable, !isChecked);
+			gamedevice.setEnableHash(util::kLockPetScheduleEnable, !isChecked);
 			ui.groupBox_lockpets->setChecked(!isChecked);
 		}
 	}
@@ -366,11 +366,11 @@ void OtherForm::onSpinBoxValueChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	Injector& injector = Injector::getInstance(getIndex());
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
 	if (name == "spinBox_tcpdelay")
 	{
-		injector.setValueHash(util::UserSetting::kTcpDelayValue, value);
+		gamedevice.setValueHash(util::UserSetting::kTcpDelayValue, value);
 		return;
 	}
 
@@ -387,22 +387,22 @@ void OtherForm::onComboBoxCurrentIndexChanged(int value)
 		return;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	//group
 	if (name == "comboBox_autofuntype")
 	{
-		injector.setValueHash(util::kAutoFunTypeValue, value != -1 ? value : 0);
+		gamedevice.setValueHash(util::kAutoFunTypeValue, value != -1 ? value : 0);
 	}
 
 	//lockpet
 	else if (name == "comboBox_lockpet")
 	{
-		injector.setValueHash(util::kLockPetValue, value != -1 ? value : 0);
+		gamedevice.setValueHash(util::kLockPetValue, value != -1 ? value : 0);
 	}
 	else if (name == "comboBox_lockride")
 	{
-		injector.setValueHash(util::kLockRideValue, value != -1 ? value : 0);
+		gamedevice.setValueHash(util::kLockRideValue, value != -1 ? value : 0);
 	}
 
 }
@@ -420,11 +420,11 @@ void OtherForm::onComboBoxTextChanged(const QString& text)
 	QString newText = text.simplified();
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	if (name == "comboBox_autofunname")
 	{
-		injector.setStringHash(util::kAutoFunNameString, newText);
+		gamedevice.setStringHash(util::kAutoFunNameString, newText);
 	}
 }
 
@@ -445,17 +445,17 @@ void OtherForm::onComboBoxClicked()
 	}
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	if (name == "comboBox_autofunname")
 	{
-		if (injector.worker.isNull())
+		if (gamedevice.worker.isNull())
 		{
 			pComboBox->setDisableFocusCheck(false);
 			return;
 		}
 
-		QStringList unitList = injector.worker->getJoinableUnitList();
+		QStringList unitList = gamedevice.worker->getJoinableUnitList();
 		updateComboboxAutoFunNameList(unitList);
 	}
 
@@ -463,11 +463,11 @@ void OtherForm::onComboBoxClicked()
 	{
 		long long oldIndex = pComboBox->currentIndex();
 		QStringList list;
-		if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
+		if (!gamedevice.worker.isNull() && gamedevice.worker->getOnlineFlag())
 		{
 			for (long long i = 0; i < sa::MAX_PET; ++i)
 			{
-				sa::pet_t pet = injector.worker->getPet(i);
+				sa::pet_t pet = gamedevice.worker->getPet(i);
 				if (pet.name.isEmpty() || !pet.valid)
 				{
 					list.append(QString("%1:").arg(i + 1));
@@ -497,72 +497,72 @@ void OtherForm::onLineEditTextChanged(const QString& text)
 		return;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	//other2
 	if (name == "lineEdit_gameaccount")
 	{
-		injector.setStringHash(util::UserSetting::kGameAccountString, text);
+		gamedevice.setStringHash(util::UserSetting::kGameAccountString, text);
 		return;
 	}
 
 	if (name == "lineEdit_gamepassword")
 	{
-		injector.setStringHash(util::UserSetting::kGamePasswordString, text);
+		gamedevice.setStringHash(util::UserSetting::kGamePasswordString, text);
 		return;
 	}
 
 	if (name == "lineEdit_gamesecuritycode")
 	{
-		injector.setStringHash(util::UserSetting::kGameSecurityCodeString, text);
+		gamedevice.setStringHash(util::UserSetting::kGameSecurityCodeString, text);
 		return;
 	}
 
 	if (name == "lineEdit_remotewhitelist")
 	{
-		injector.setStringHash(util::UserSetting::kMailWhiteListString, text);
+		gamedevice.setStringHash(util::UserSetting::kMailWhiteListString, text);
 		return;
 	}
 
 	if (name == "lineEdit_eocmd")
 	{
-		injector.setStringHash(util::UserSetting::kEOCommandString, text);
+		gamedevice.setStringHash(util::UserSetting::kEOCommandString, text);
 		return;
 	}
 
 	if (name == "lineEdit_title")
 	{
-		injector.setStringHash(util::UserSetting::kTitleFormatString, text);
+		gamedevice.setStringHash(util::UserSetting::kTitleFormatString, text);
 		return;
 	}
 
 	if (name == "lineEdit_battleinfo_allie")
 	{
-		injector.setStringHash(util::kBattleAllieFormatString, text);
+		gamedevice.setStringHash(util::kBattleAllieFormatString, text);
 		return;
 	}
 
 	if (name == "lineEdit_battleinfo_enemy")
 	{
-		injector.setStringHash(util::kBattleEnemyFormatString, text);
+		gamedevice.setStringHash(util::kBattleEnemyFormatString, text);
 		return;
 	}
 
 	if (name == "lineEdit_battleinfo_selfmark")
 	{
-		injector.setStringHash(util::kBattleSelfMarkString, text);
+		gamedevice.setStringHash(util::kBattleSelfMarkString, text);
 		return;
 	}
 
 	if (name == "lineEdit_battleinfo_actmark")
 	{
-		injector.setStringHash(util::kBattleActMarkString, text);
+		gamedevice.setStringHash(util::kBattleActMarkString, text);
 		return;
 	}
 
 	if (name == "lineEdit_battleinfo_space")
 	{
-		injector.setStringHash(util::kBattleSpaceMarkString, text);
+		gamedevice.setStringHash(util::kBattleSpaceMarkString, text);
 		return;
 	}
 }
@@ -588,10 +588,10 @@ void OtherForm::onResetControlTextLanguage()
 void OtherForm::onApplyHashSettingsToUI()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, long long> valueHash = injector.getValuesHash();
-	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	QHash<util::UserSetting, bool> enableHash = gamedevice.getEnablesHash();
+	QHash<util::UserSetting, long long> valueHash = gamedevice.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = gamedevice.getStringsHash();
 
 	if (ui.comboBox_lockride->count() == 0 || ui.comboBox_lockpet->count() == 0)
 	{
@@ -609,11 +609,11 @@ void OtherForm::onApplyHashSettingsToUI()
 	}
 
 	QStringList list;
-	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
+	if (!gamedevice.worker.isNull() && gamedevice.worker->getOnlineFlag())
 	{
 		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
-			sa::pet_t pet = injector.worker->getPet(i);
+			sa::pet_t pet = gamedevice.worker->getPet(i);
 			if (pet.name.isEmpty() || !pet.valid)
 			{
 				list.append(QString("%1:").arg(i + 1));

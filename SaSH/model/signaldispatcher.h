@@ -26,7 +26,7 @@ class SignalDispatcher : public QObject, public Indexer
 {
 	Q_OBJECT;
 private:
-	inline static safe::Hash<long long, SignalDispatcher*> instances;
+	inline static safe::hash<long long, SignalDispatcher*> instances;
 
 	explicit SignalDispatcher(long long index)
 		: Indexer(index)

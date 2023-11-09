@@ -433,7 +433,7 @@ ULONG64 __fastcall mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QStr
 bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd)
 {
 	HMODULE hModule = nullptr;
-	util::Timer timer;
+	util::timer timer;
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
 	HMODULE kernel32Module = GetModuleHandleW(L"kernel32.dll");
@@ -514,7 +514,7 @@ bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hPr
 
 bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd)
 {
-	util::Timer timer;
+	util::timer timer;
 	static unsigned char data[128] = {
 		0x55,										//push ebp
 		0x8B, 0xEC,									//mov ebp,esp
@@ -590,7 +590,7 @@ bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProc
 			return false;
 		}
 
-		util::Timer timer;
+		util::timer timer;
 		for (;;)
 		{
 			mem::read(hProcess, injectdata, sizeof(InjectData), &d);
@@ -1368,7 +1368,6 @@ QFileInfoList __fastcall util::loadAllFileLists(
 	const QStringList filters = {
 		QString("*%1").arg(util::SCRIPT_DEFAULT_SUFFIX),
 		QString("*%1").arg(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT),
-		QString("*%1").arg(util::SCRIPT_LUA_SUFFIX_DEFAULT)
 	};
 
 	dir_file.setNameFilters(filters);
@@ -1487,7 +1486,7 @@ QStringList __fastcall searchFilesWorker(const QString& dir, const QString& file
 	return result;
 }
 
-void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* presult, bool withcontent)
+void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* presult, bool withcontent, bool isExact)
 {
 	QDir d(dir);
 	if (!d.exists())
@@ -1500,7 +1499,8 @@ void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePar
 	{
 		if (fileInfo.isFile())
 		{
-			if (!fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive)
+			if ((!isExact && !fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive))
+				|| (isExact && fileInfo.fileName() != fileNamePart)
 				|| (!suffixWithDot.isEmpty() && suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.mid(1).toLower())
 				|| (!suffixWithDot.isEmpty() && !suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.toLower()))
 				continue;

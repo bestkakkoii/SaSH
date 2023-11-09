@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "net/tcpserver.h"
 #include "net/autil.h"
-#include <injector.h>
+#include <gamedevice.h>
 #include "map/mapdevice.h"
 #include "update/downloader.h"
 
@@ -297,7 +297,7 @@ bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* p
 				object->thread.wait();
 				object->deleteLater();
 				object = nullptr;
-				Injector::reset(index);
+				GameDevice::reset(index);
 
 			}, Qt::QueuedConnection);
 
@@ -317,19 +317,21 @@ void ThreadManager::close(long long index)
 	if (objects_.contains(index))
 	{
 		MainObject* object = objects_.take(index);
+		GameDevice& gamedevice = GameDevice::getInstance(index);
+		gamedevice.gameRequestInterruption();
 		object->thread.quit();
 		object->thread.wait();
-		object->requestInterruption();
 		object->deleteLater();
 		object = nullptr;
-		Injector::reset(index);
+		GameDevice::reset(index);
 	}
 }
 
 MainObject::MainObject(long long index, QObject* parent)
-	: ThreadPlugin(index, parent)
+	: Indexer(index)
 	, autoThreads_(MissionThread::kMaxAutoMission, nullptr)
 {
+	std::ignore = parent;
 	moveToThread(&thread);
 	connect(this, &MainObject::finished, &thread, &QThread::quit);
 	connect(&thread, &QThread::started, this, &MainObject::run);
@@ -345,24 +347,24 @@ MainObject::~MainObject()
 void MainObject::run()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	Injector::process_information_t process_info;
+	GameDevice::process_information_t process_info;
 	remove_thread_reason = util::REASON_NO_ERROR;
-	util::Timer timer;
+	util::timer timer;
 	do
 	{
 		//檢查服務端是否實例化
 		//檢查服務端是否正在運行並且正在監聽
-		if (!injector.server.isListening())
+		if (!gamedevice.server.isListening())
 			break;
 
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpening);
 
 		//創建遊戲進程
-		Injector::CreateProcessResult createResult = injector.createProcess(process_info);
-		if (createResult == Injector::CreateAboveWindow8Failed || createResult == Injector::CreateBelowWindow8Failed)
+		GameDevice::CreateProcessResult createResult = gamedevice.createProcess(process_info);
+		if (createResult == GameDevice::CreateAboveWindow8Failed || createResult == GameDevice::CreateBelowWindow8Failed)
 			break;
 
 		if (remove_thread_reason != util::REASON_NO_ERROR)
@@ -370,12 +372,12 @@ void MainObject::run()
 
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpened);
 
-		if (createResult == Injector::CreateAboveWindow8Success
-			|| createResult == Injector::CreateWithExistingProcess
-			|| createResult == Injector::CreateWithExistingProcessNoDll)
+		if (createResult == GameDevice::CreateAboveWindow8Success
+			|| createResult == GameDevice::CreateWithExistingProcess
+			|| createResult == GameDevice::CreateWithExistingProcessNoDll)
 		{
 			//注入dll 並通知客戶端要連入的port
-			if (!injector.injectLibrary(process_info, injector.server.serverPort(), &remove_thread_reason, createResult == Injector::CreateWithExistingProcess)
+			if (!gamedevice.injectLibrary(process_info, gamedevice.server.serverPort(), &remove_thread_reason, createResult == GameDevice::CreateWithExistingProcess)
 				|| (remove_thread_reason != util::REASON_NO_ERROR))
 			{
 				qDebug() << "injectLibrary failed. reason:" << remove_thread_reason;
@@ -387,16 +389,16 @@ void MainObject::run()
 		for (;;)
 		{
 			//檢查TCP是否握手成功
-			if (injector.IS_TCP_CONNECTION_OK_TO_USE.get())
+			if (gamedevice.IS_TCP_CONNECTION_OK_TO_USE.get())
 				break;
 
-			if (isInterruptionRequested())
+			if (gamedevice.isGameInterruptionRequested())
 			{
 				remove_thread_reason = util::REASON_REQUEST_STOP;
 				break;
 			}
 
-			if (!injector.isWindowAlive())
+			if (!gamedevice.isWindowAlive())
 			{
 				remove_thread_reason = util::REASON_TARGET_WINDOW_DISAPPEAR;
 				break;
@@ -413,7 +415,7 @@ void MainObject::run()
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
-		if (injector.IS_SCRIPT_FLAG.get())
+		if (gamedevice.IS_SCRIPT_FLAG.get())
 			emit signalDispatcher.scriptResumed();
 
 		//進入主循環
@@ -421,7 +423,7 @@ void MainObject::run()
 	} while (false);
 
 	//開始逐步停止所有功能
-	requestInterruption();
+	gamedevice.gameRequestInterruption();
 
 	if (SignalDispatcher::contains(getIndex()))
 	{
@@ -449,10 +451,10 @@ void MainObject::run()
 
 void MainObject::mainProc()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	util::Timer freeMemTimer;
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	util::timer freeMemTimer;
 
-	mem::freeUnuseMemory(injector.getProcess());
+	mem::freeUnuseMemory(gamedevice.getProcess());
 
 	bool nodelay = false;
 	bool bCheckedFastBattle = false;
@@ -470,21 +472,21 @@ void MainObject::mainProc()
 			nodelay = false;
 
 		//檢查是否接收到停止執行的訊號
-		if (isInterruptionRequested())
+		if (gamedevice.isGameInterruptionRequested())
 		{
 			remove_thread_reason = util::REASON_REQUEST_STOP;
 			break;
 		}
 
 		//檢查遊戲是否消失
-		if (!injector.isWindowAlive())
+		if (!gamedevice.isWindowAlive())
 		{
 			remove_thread_reason = util::REASON_TARGET_WINDOW_DISAPPEAR;
 			qDebug() << "window is disappear!";
 			break;
 		}
 
-		if (injector.worker.isNull())
+		if (gamedevice.worker.isNull())
 		{
 			QThread::yieldCurrentThread();
 			continue;
@@ -494,72 +496,72 @@ void MainObject::mainProc()
 		if (freeMemTimer.hasExpired(5ll * 60ll * 1000ll))
 		{
 			freeMemTimer.restart();
-			mem::freeUnuseMemory(injector.getProcess());
+			mem::freeUnuseMemory(gamedevice.getProcess());
 		}
 		else
 			freeMemTimer.restart();
 
 		//有些數據需要和客戶端內存同步
-		injector.worker->updateDatasFromMemory();
+		gamedevice.worker->updateDatasFromMemory();
 
-		injector.worker->setWindowTitle(injector.getStringHash(util::kTitleFormatString));
+		gamedevice.worker->setWindowTitle(gamedevice.getStringHash(util::kTitleFormatString));
 
 		//異步加速
-		value = injector.getValueHash(util::kSpeedBoostValue);
+		value = gamedevice.getValueHash(util::kSpeedBoostValue);
 		if (flagSetBoostValue_ != value)
 		{
 			flagSetBoostValue_ = value;
-			injector.postMessage(kSetBoostSpeed, true, flagSetBoostValue_);
+			gamedevice.postMessage(kSetBoostSpeed, true, flagSetBoostValue_);
 		}
 
 		checkControl();
 
 		//登出按下，異步登出
-		if (injector.getEnableHash(util::kLogOutEnable))
+		if (gamedevice.getEnableHash(util::kLogOutEnable))
 		{
-			injector.setEnableHash(util::kLogOutEnable, false);
-			if (!injector.worker.isNull())
-				injector.worker->logOut();
+			gamedevice.setEnableHash(util::kLogOutEnable, false);
+			if (!gamedevice.worker.isNull())
+				gamedevice.worker->logOut();
 		}
 
 		//EO按下，異步發送EO
-		if (injector.getEnableHash(util::kEchoEnable))
+		if (gamedevice.getEnableHash(util::kEchoEnable))
 		{
-			injector.setEnableHash(util::kEchoEnable, false);
-			if (!injector.worker.isNull())
-				injector.worker->EO();
+			gamedevice.setEnableHash(util::kEchoEnable, false);
+			if (!gamedevice.worker.isNull())
+				gamedevice.worker->EO();
 		}
 
 		//回點按下，異步回點
-		if (injector.getEnableHash(util::kLogBackEnable))
+		if (gamedevice.getEnableHash(util::kLogBackEnable))
 		{
-			injector.setEnableHash(util::kLogBackEnable, false);
-			if (!injector.worker.isNull())
-				injector.worker->logBack();
+			gamedevice.setEnableHash(util::kLogBackEnable, false);
+			if (!gamedevice.worker.isNull())
+				gamedevice.worker->logBack();
 		}
 
 		//異步快速走路
-		bChecked = injector.getEnableHash(util::kFastWalkEnable);
+		bChecked = gamedevice.getEnableHash(util::kFastWalkEnable);
 		if (flagFastWalkEnable_ != bChecked)
 		{
 			flagFastWalkEnable_ = bChecked;
-			injector.postMessage(kEnableFastWalk, bChecked, NULL);
+			gamedevice.postMessage(kEnableFastWalk, bChecked, NULL);
 		}
 
 		//異步橫衝直撞 (穿牆)
-		bChecked = injector.getEnableHash(util::kPassWallEnable);
+		bChecked = gamedevice.getEnableHash(util::kPassWallEnable);
 		if (flagPassWallEnable_ != bChecked)
 		{
 			flagPassWallEnable_ = bChecked;
-			injector.postMessage(kEnablePassWall, bChecked, NULL);
+			gamedevice.postMessage(kEnablePassWall, bChecked, NULL);
 		}
 
 		//異步鎖定畫面
-		bChecked = injector.getEnableHash(util::kLockImageEnable);
+		bChecked = gamedevice.getEnableHash(util::kLockImageEnable);
 		if (flagLockImageEnable_ != bChecked)
 		{
 			flagLockImageEnable_ = bChecked;
-			injector.postMessage(kEnableImageLock, bChecked, NULL);
+			gamedevice.postMessage(kEnableImageLock, bChecked, NULL);
 		}
 
 		//異步資源優化
@@ -567,41 +569,41 @@ void MainObject::mainProc()
 		if (flagOptimizeEnable_ != bChecked)
 		{
 			flagOptimizeEnable_ = bChecked;
-			injector.postMessage(kEnableOptimize, bChecked, NULL);
+			gamedevice.postMessage(kEnableOptimize, bChecked, NULL);
 		}
 
 		//異步關閉特效
-		bChecked = injector.getEnableHash(util::kCloseEffectEnable);
+		bChecked = gamedevice.getEnableHash(util::kCloseEffectEnable);
 		if (flagCloseEffectEnable_ != bChecked)
 		{
 			flagCloseEffectEnable_ = bChecked;
-			injector.postMessage(kEnableEffect, !bChecked, NULL);
+			gamedevice.postMessage(kEnableEffect, !bChecked, NULL);
 		}
 
 		//異步鎖定時間
-		bChecked = injector.getEnableHash(util::kLockTimeEnable);
-		value = injector.getValueHash(util::kLockTimeValue);
+		bChecked = gamedevice.getEnableHash(util::kLockTimeEnable);
+		value = gamedevice.getValueHash(util::kLockTimeValue);
 		if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
 		{
 			flagLockTimeEnable_ = bChecked;
 			flagLockTimeValue_ = value;
-			injector.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
+			gamedevice.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
 		}
 
 		//隱藏人物按下，異步隱藏
-		bChecked = injector.getEnableHash(util::kHideCharacterEnable);
+		bChecked = gamedevice.getEnableHash(util::kHideCharacterEnable);
 		if (flagHideCharacterEnable_ != bChecked)
 		{
 			flagHideCharacterEnable_ = bChecked;
-			injector.postMessage(kEnableCharShow, !bChecked, NULL);
+			gamedevice.postMessage(kEnableCharShow, !bChecked, NULL);
 		}
 
 		//異步戰鬥99秒
-		bChecked = injector.getEnableHash(util::kBattleTimeExtendEnable);
+		bChecked = gamedevice.getEnableHash(util::kBattleTimeExtendEnable);
 		if (flagBattleTimeExtendEnable_ != bChecked)
 		{
 			flagBattleTimeExtendEnable_ = bChecked;
-			injector.postMessage(kBattleTimeExtend, bChecked, NULL);
+			gamedevice.postMessage(kBattleTimeExtend, bChecked, NULL);
 		}
 
 		//其他所有功能
@@ -618,39 +620,39 @@ void MainObject::mainProc()
 			//檢查開關 (隊伍、交易、名片...等等)
 			checkEtcFlag();
 
-			bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-			bCheckedAutoBattle = injector.getEnableHash(util::kAutoBattleEnable);
-			W = injector.worker->getWorldStatus();
+			bCheckedFastBattle = gamedevice.getEnableHash(util::kFastBattleEnable);
+			bCheckedAutoBattle = gamedevice.getEnableHash(util::kAutoBattleEnable);
+			W = gamedevice.worker->getWorldStatus();
 			// 允許 自動戰鬥
 			if (bCheckedAutoBattle)
 			{
-				injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+				gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 			}
 			// 允許 快速戰鬥
 			else if (bCheckedFastBattle)
 			{
 				if (W == 10)// 強退戰鬥畫面
-					injector.worker->setGameStatus(7);
-				injector.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
+					gamedevice.worker->setGameStatus(7);
+				gamedevice.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
 			}
 			else // 不允許 快速戰鬥 和 自動戰鬥
-				injector.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+				gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 		}
 		else if (status == 3)//戰鬥中
 		{
-			bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-			bCheckedAutoBattle = injector.getEnableHash(util::kAutoBattleEnable);
-			W = injector.worker->getWorldStatus();
+			bCheckedFastBattle = gamedevice.getEnableHash(util::kFastBattleEnable);
+			bCheckedAutoBattle = gamedevice.getEnableHash(util::kAutoBattleEnable);
+			W = gamedevice.worker->getWorldStatus();
 			if (bCheckedFastBattle)
 			{
 				if (W == 10)// 強退戰鬥畫面
-					injector.worker->setGameStatus(7);
+					gamedevice.worker->setGameStatus(7);
 			}
 
 			if (bCheckedFastBattle || bCheckedAutoBattle)
-				injector.postMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
+				gamedevice.postMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
 			else
-				injector.postMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
+				gamedevice.postMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
 		}
 		else//錯誤
 		{
@@ -663,38 +665,35 @@ void MainObject::mainProc()
 
 bool MainObject::inGameInitialize()
 {
-	if (isInterruptionRequested())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.isGameInterruptionRequested())
 		return false;
 
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return false;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
 	//等待完全進入登入後的遊戲畫面
-	util::Timer timer;
+	util::timer timer;
 	for (;;)
 	{
-		if (isInterruptionRequested())
+		if (gamedevice.isGameInterruptionRequested())
 			return false;
 
-		if (injector.worker.isNull())
-			return false;
-
-		if (!injector.isWindowAlive())
+		if (!gamedevice.isWindowAlive())
 			return false;
 
 		if (timer.hasExpired(sa::MAX_TIMEOUT))
 			return false;
 
-		if (injector.worker->checkWG(9, 3))
+		if (gamedevice.worker->checkWG(9, 3))
 			break;
 
 		QThread::msleep(100);
 	}
 
-	if (!injector.worker->getBattleFlag())
+	if (!gamedevice.worker->getBattleFlag())
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
 
 	QDateTime current = QDateTime::currentDateTime();
@@ -715,26 +714,26 @@ bool MainObject::inGameInitialize()
 		.arg(SASH_VERSION_MAJOR) \
 		.arg(SASH_VERSION_MINOR) \
 		.arg(newestVerStr);
-	injector.worker->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
-	injector.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
-	injector.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
-	injector.sendMessage(kDistoryDialog, NULL, NULL);
-	injector.worker->echo();
-	injector.worker->updateDatasFromMemory();
-	injector.worker->updateItemByMemory();
+	gamedevice.worker->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
+	gamedevice.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
+	gamedevice.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
+	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
+	gamedevice.worker->echo();
+	gamedevice.worker->updateDatasFromMemory();
+	gamedevice.worker->updateItemByMemory();
 	return true;
 }
 
 long long MainObject::checkAndRunFunctions()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return 0;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	long long status = injector.worker->getUnloginStatus();
+	long long status = gamedevice.worker->getUnloginStatus();
 
 	if (status == util::kStatusDisappear)
 	{
@@ -750,7 +749,7 @@ long long MainObject::checkAndRunFunctions()
 		}
 		default:
 		{
-			if (injector.worker->getOnlineFlag())
+			if (gamedevice.worker->getOnlineFlag())
 				break;
 
 			Q_FALLTHROUGH();
@@ -769,20 +768,20 @@ long long MainObject::checkAndRunFunctions()
 			{
 				login_run_once_flag_ = true;
 
-				injector.worker->clear();
-				injector.chatLogModel.clear();
+				gamedevice.worker->clear();
+				gamedevice.chatLogModel.clear();
 			}
 
-			injector.worker->loginTimer.restart();
+			gamedevice.worker->loginTimer.restart();
 			//自動登入 或 斷線重連
-			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.worker->IS_DISCONNECTED.get())
-				injector.worker->login(status);
+			if (gamedevice.getEnableHash(util::kAutoLoginEnable) || gamedevice.worker->IS_DISCONNECTED.get())
+				gamedevice.worker->login(status);
 			return 1;
 		}
 		case util::kStatusDisconnect:
 		{
-			if (injector.getEnableHash(util::kAutoReconnectEnable))
-				injector.worker->login(status);
+			if (gamedevice.getEnableHash(util::kAutoReconnectEnable))
+				gamedevice.worker->login(status);
 			return 1;
 		}
 		}
@@ -797,7 +796,7 @@ long long MainObject::checkAndRunFunctions()
 		login_run_once_flag_ = false;
 	}
 
-	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.worker->loginTimer.cost(), true));
+	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(gamedevice.worker->loginTimer.cost(), true));
 
 	//更新掛機數據到UI
 	updateAfkInfos();
@@ -822,7 +821,7 @@ long long MainObject::checkAndRunFunctions()
 	}
 
 	//平時
-	if (!injector.worker->getBattleFlag())
+	if (!gamedevice.worker->getBattleFlag())
 	{
 		//每次進入平時只會執行一次
 		if (!battle_run_once_flag_)
@@ -846,14 +845,14 @@ long long MainObject::checkAndRunFunctions()
 void MainObject::updateAfkInfos()
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.worker.isNull())
 		return;
 
-	long long duration = injector.worker->loginTimer.cost();
+	long long duration = gamedevice.worker->loginTimer.cost();
 	emit signalDispatcher.updateAfkInfoTable(0, util::formatMilliseconds(duration));
 
-	sa::afk_record_data_t records = injector.worker->afkRecords[0];
+	sa::afk_record_data_t records = gamedevice.worker->afkRecords[0];
 
 	long long avgLevelPerHour = 0;
 	if (duration > 0 && records.leveldifference > 0)
@@ -878,7 +877,7 @@ void MainObject::updateAfkInfos()
 	long long j = 0;
 	for (long long i = 0; i < sa::MAX_PET; ++i)
 	{
-		records = injector.worker->afkRecords[i + 1];
+		records = gamedevice.worker->afkRecords[i + 1];
 
 		avgExpPerHour = 0;
 		if (duration > 0 && records.leveldifference > 0)
@@ -903,41 +902,41 @@ void MainObject::updateAfkInfos()
 //根據UI的選擇項變動做的一些操作
 void MainObject::checkControl()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.worker.isNull())
 		return;
 
-	if (!injector.worker->getOnlineFlag())
+	if (!gamedevice.worker->getOnlineFlag())
 		return;
 
 	//超過10秒才能執行否則會崩潰
-	if (!injector.worker->loginTimer.hasExpired(10000))
+	if (!gamedevice.worker->loginTimer.hasExpired(10000))
 		return;
 
 	//異步關閉聲音
-	bool bChecked = injector.getEnableHash(util::kMuteEnable);
+	bool bChecked = gamedevice.getEnableHash(util::kMuteEnable);
 	if (flagMuteEnable_ != bChecked)
 	{
 		flagMuteEnable_ = bChecked;
-		injector.sendMessage(kEnableSound, !bChecked, NULL);
+		gamedevice.sendMessage(kEnableSound, !bChecked, NULL);
 	}
 }
 
 //檢查開關 (隊伍、交易、名片...等等)
 void MainObject::checkEtcFlag()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.worker.isNull())
 		return;
 
-	long long flg = injector.worker->getCharacter().etcFlag;
+	long long flg = gamedevice.worker->getCharacter().etcFlag;
 	bool hasChange = false;
 	auto toBool = [flg](long long f)->bool
 		{
 			return ((flg & f) != 0);
 		};
 
-	bool bCurrent = injector.getEnableHash(util::kSwitcherTeamEnable);
+	bool bCurrent = gamedevice.getEnableHash(util::kSwitcherTeamEnable);
 	if (toBool(sa::PC_ETCFLAG_GROUP) != bCurrent)
 	{
 		if (bCurrent)
@@ -948,7 +947,7 @@ void MainObject::checkEtcFlag()
 		hasChange = true;
 	}
 
-	bCurrent = injector.getEnableHash(util::kSwitcherPKEnable);
+	bCurrent = gamedevice.getEnableHash(util::kSwitcherPKEnable);
 	if (toBool(sa::PC_ETCFLAG_PK) != bCurrent)
 	{
 		if (bCurrent)
@@ -959,7 +958,7 @@ void MainObject::checkEtcFlag()
 		hasChange = true;
 	}
 
-	bCurrent = injector.getEnableHash(util::kSwitcherCardEnable);
+	bCurrent = gamedevice.getEnableHash(util::kSwitcherCardEnable);
 	if (toBool(sa::PC_ETCFLAG_CARD) != bCurrent)
 	{
 		if (bCurrent)
@@ -970,7 +969,7 @@ void MainObject::checkEtcFlag()
 		hasChange = true;
 	}
 
-	bCurrent = injector.getEnableHash(util::kSwitcherTradeEnable);
+	bCurrent = gamedevice.getEnableHash(util::kSwitcherTradeEnable);
 	if (toBool(sa::PC_ETCFLAG_TRADE) != bCurrent)
 	{
 		if (bCurrent)
@@ -981,7 +980,7 @@ void MainObject::checkEtcFlag()
 		hasChange = true;
 	}
 
-	bCurrent = injector.getEnableHash(util::kSwitcherGroupEnable);
+	bCurrent = gamedevice.getEnableHash(util::kSwitcherGroupEnable);
 	if (toBool(sa::PC_ETCFLAG_TEAM_CHAT) != bCurrent)
 	{
 		if (bCurrent)
@@ -992,7 +991,7 @@ void MainObject::checkEtcFlag()
 		hasChange = true;
 	}
 
-	bCurrent = injector.getEnableHash(util::kSwitcherFamilyEnable);
+	bCurrent = gamedevice.getEnableHash(util::kSwitcherFamilyEnable);
 	if (toBool(sa::PC_ETCFLAG_FM) != bCurrent)
 	{
 		if (bCurrent)
@@ -1003,7 +1002,7 @@ void MainObject::checkEtcFlag()
 		hasChange = true;
 	}
 
-	bCurrent = injector.getEnableHash(util::kSwitcherJobEnable);
+	bCurrent = gamedevice.getEnableHash(util::kSwitcherJobEnable);
 	if (toBool(sa::PC_ETCFLAG_JOB) != bCurrent)
 	{
 		if (bCurrent)
@@ -1014,7 +1013,7 @@ void MainObject::checkEtcFlag()
 		hasChange = true;
 	}
 
-	bCurrent = injector.getEnableHash(util::kSwitcherWorldEnable);
+	bCurrent = gamedevice.getEnableHash(util::kSwitcherWorldEnable);
 	if (toBool(sa::PC_ETCFLAG_WORLD) != bCurrent)
 	{
 		if (bCurrent)
@@ -1026,12 +1025,14 @@ void MainObject::checkEtcFlag()
 	}
 
 	if (hasChange)
-		injector.worker->setSwitcher(flg);
+		gamedevice.worker->setSwitcher(flg);
 }
 
 MissionThread::MissionThread(long long index, long long type, QObject* parent)
-	: ThreadPlugin(index, parent)
+	: Indexer(index)
 {
+	std::ignore = parent;
+
 	switch (type)
 	{
 	case kAutoJoin:
@@ -1050,6 +1051,9 @@ MissionThread::MissionThread(long long index, long long type, QObject* parent)
 		connect(this, &MissionThread::started, this, &MissionThread::asyncFindPath, Qt::QueuedConnection);
 		break;
 	}
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &MissionThread::requestMissionInterruption);
 
 	connect(&thread_, &QThread::finished, this, &MissionThread::reset, Qt::QueuedConnection);
 	connect(&thread_, &QThread::finished, &thread_, &QThread::quit, Qt::QueuedConnection);
@@ -1073,7 +1077,7 @@ void MissionThread::wait()
 {
 	if (thread_.isRunning())
 	{
-		requestInterruption();
+		requestMissionInterruption();
 		thread_.quit();
 		thread_.wait();
 	}
@@ -1083,7 +1087,7 @@ void MissionThread::autoJoin()
 {
 	long long index = getIndex();
 	QSet<QPoint> blockList;
-	Injector& injector = Injector::getInstance(index);
+	GameDevice& gamedevice = GameDevice::getInstance(index);
 
 	constexpr long long MAX_SINGLE_STEP = 3;
 	sa::map_t map = {};
@@ -1092,7 +1096,7 @@ void MissionThread::autoJoin()
 	QPoint newpoint;
 	sa::map_unit_t unit = {};
 	long long dir = -1;
-	long long floor = injector.worker->getFloor();
+	long long floor = gamedevice.worker->getFloor();
 	long long len = MAX_SINGLE_STEP;
 	long long size = 0;
 	AStarDevice astar;
@@ -1102,30 +1106,33 @@ void MissionThread::autoJoin()
 
 	for (;;)
 	{
+		if (gamedevice.isGameInterruptionRequested())
+			return;
+
 		//如果主線程關閉則自動退出
-		if (isInterruptionRequested())
+		if (isMissionInterruptionRequested())
 			return;
 
-		if (injector.worker.isNull())
+		if (gamedevice.worker.isNull())
 			return;
 
-		if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
+		if (gamedevice.getEnableHash(util::kAutoWalkEnable) || gamedevice.getEnableHash(util::kFastAutoWalkEnable))
 			return;
 
-		if (!injector.getEnableHash(util::kAutoJoinEnable))
+		if (!gamedevice.getEnableHash(util::kAutoJoinEnable))
 			return;
 
-		leader = injector.getStringHash(util::kAutoFunNameString);
+		leader = gamedevice.getStringHash(util::kAutoFunNameString);
 		if (leader.isEmpty())
 			return;
 
-		if (!injector.worker->mapDevice.getMapDataByFloor(floor, &map))
+		if (!gamedevice.worker->mapDevice.getMapDataByFloor(floor, &map))
 		{
-			injector.worker->mapDevice.readFromBinary(index, floor, injector.worker->getFloorName(), false);
+			gamedevice.worker->mapDevice.readFromBinary(index, floor, gamedevice.worker->getFloorName(), false);
 		}
 
-		ch = injector.worker->getCharacter();
-		actionType = injector.getValueHash(util::kAutoFunTypeValue);
+		ch = gamedevice.worker->getCharacter();
+		actionType = gamedevice.getValueHash(util::kAutoFunTypeValue);
 		if (actionType == 0)
 		{
 			//檢查隊長是否正確
@@ -1134,39 +1141,45 @@ void MissionThread::autoJoin()
 
 			if (util::checkAND(ch.status, sa::kCharacterStatus_HasTeam))
 			{
-				QString name = injector.worker->getTeam(0).name;
+				QString name = gamedevice.worker->getTeam(0).name;
 				if ((!name.isEmpty() && leader == name)
 					|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
 					return;
 
-				injector.worker->setTeamState(false);
+				gamedevice.worker->setTeamState(false);
 				QThread::msleep(200);
 			}
 		}
 
-		leader = injector.getStringHash(util::kAutoFunNameString);
+		leader = gamedevice.getStringHash(util::kAutoFunNameString);
 		if (leader.isEmpty())
 			break;
 
-		if (isInterruptionRequested())
+		if (gamedevice.isGameInterruptionRequested())
+			return;
+
+		if (gamedevice.worker.isNull())
+			return;
+
+		if (isMissionInterruptionRequested())
 			return;
 
 		//如果人物不在線上則自動退出
-		if (!injector.worker->getOnlineFlag())
+		if (!gamedevice.worker->getOnlineFlag())
 		{
 			QThread::msleep(100);
 			continue;
 		}
 
-		if (injector.worker->getBattleFlag())
+		if (gamedevice.worker->getBattleFlag())
 		{
 			QThread::msleep(100);
 			continue;
 		}
 
-		ch = injector.worker->getCharacter();
+		ch = gamedevice.worker->getCharacter();
 
-		if (floor != injector.worker->getFloor())
+		if (floor != gamedevice.worker->getFloor())
 			break;
 
 		QString freeName = "";
@@ -1181,35 +1194,35 @@ void MissionThread::autoJoin()
 		}
 
 		//查找目標人物所在坐標
-		if (!injector.worker->findUnit(leader, sa::kObjectHuman, &unit, freeName))
+		if (!gamedevice.worker->findUnit(leader, sa::kObjectHuman, &unit, freeName))
 			break;
 
 		//如果和目標人物處於同一個坐標則向隨機方向移動一格
-		current_point = injector.worker->getPoint();
+		current_point = gamedevice.worker->getPoint();
 		if (current_point == unit.p)
 		{
-			injector.worker->move(current_point + util::fix_point.value(util::rnd::get(0, 7)));
+			gamedevice.worker->move(current_point + util::fix_point.value(util::rnd::get(0, 7)));
 			QThread::msleep(100);
 			continue;
 		}
 
 		//計算最短離靠近目標人物的坐標和面相的方向
-		dir = injector.worker->mapDevice.calcBestFollowPointByDstPoint(index, &astar, floor, current_point, unit.p, &newpoint, false, -1);
+		dir = gamedevice.worker->mapDevice.calcBestFollowPointByDstPoint(index, &astar, floor, current_point, unit.p, &newpoint, false, -1);
 		if (-1 == dir)
 			return;
 
 		if (current_point == newpoint)
 		{
-			actionType = injector.getValueHash(util::kAutoFunTypeValue);
+			actionType = gamedevice.getValueHash(util::kAutoFunTypeValue);
 			if (actionType == 0)
 			{
-				injector.worker->setCharFaceDirection(dir, true);
-				injector.worker->setTeamState(true);
+				gamedevice.worker->setCharFaceDirection(dir, true);
+				gamedevice.worker->setTeamState(true);
 				continue;
 			}
 		}
 
-		if (!injector.worker->mapDevice.calcNewRoute(index, &astar, floor, current_point, newpoint, blockList, &path))
+		if (!gamedevice.worker->mapDevice.calcNewRoute(index, &astar, floor, current_point, newpoint, blockList, &path))
 			return;
 
 		len = MAX_SINGLE_STEP;
@@ -1230,26 +1243,32 @@ void MissionThread::autoJoin()
 		if (len >= static_cast<long long>(path.size()))
 			break;
 
-		injector.worker->move(path.at(len));
+		gamedevice.worker->move(path.at(len));
 	}
 }
 
 void MissionThread::autoWalk()
 {
-	Injector& injector = Injector::getInstance(getIndex());
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	QPoint current_pos;
 	bool current_side = false;
 	QPoint posCache = current_pos;
 
 	for (;;)
 	{
+		if (gamedevice.isGameInterruptionRequested())
+			return;
+
+		if (gamedevice.worker.isNull())
+			return;
+
 		//如果主線程關閉則自動退出
-		if (isInterruptionRequested())
+		if (isMissionInterruptionRequested())
 			return;
 
 		//取設置
-		bool enableAutoWalk = injector.getEnableHash(util::kAutoWalkEnable);//走路遇敵開關
-		bool enableFastAutoWalk = injector.getEnableHash(util::kFastAutoWalkEnable);//快速遇敵開關
+		bool enableAutoWalk = gamedevice.getEnableHash(util::kAutoWalkEnable);//走路遇敵開關
+		bool enableFastAutoWalk = gamedevice.getEnableHash(util::kFastAutoWalkEnable);//快速遇敵開關
 		if (!enableAutoWalk && !enableFastAutoWalk)
 		{
 			current_pos = QPoint();
@@ -1257,29 +1276,35 @@ void MissionThread::autoWalk()
 		}
 		else if (current_pos.isNull())
 		{
-			current_pos = injector.worker->getPoint();
+			current_pos = gamedevice.worker->getPoint();
 		}
 
 		//如果人物不在線上則自動退出
-		if (!injector.worker->getOnlineFlag())
+		if (!gamedevice.worker->getOnlineFlag())
 		{
 			QThread::msleep(500);
 			continue;
 		}
 
 		//如果人物在戰鬥中則進入循環等待
-		if (injector.worker->getBattleFlag())
+		if (gamedevice.worker->getBattleFlag())
 		{
 			//先等一小段時間
 			QThread::msleep(500);
 
 			//如果已經退出戰鬥就等待1.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
-			if (!injector.worker->getBattleFlag())
+			if (!gamedevice.worker->getBattleFlag())
 			{
 				for (long long i = 0; i < 5; ++i)
 				{
+					if (gamedevice.isGameInterruptionRequested())
+						return;
+
+					if (gamedevice.worker.isNull())
+						return;
+
 					//如果主線程關閉則自動退出
-					if (isInterruptionRequested())
+					if (isMissionInterruptionRequested())
 						return;
 					QThread::msleep(100);
 				}
@@ -1288,13 +1313,13 @@ void MissionThread::autoWalk()
 				continue;
 		}
 
-		long long walk_speed = injector.getValueHash(util::kAutoWalkDelayValue);//走路速度
+		long long walk_speed = gamedevice.getValueHash(util::kAutoWalkDelayValue);//走路速度
 
 		//走路遇敵
 		if (enableAutoWalk)
 		{
-			long long walk_len = injector.getValueHash(util::kAutoWalkDistanceValue);//走路距離
-			long long walk_dir = injector.getValueHash(util::kAutoWalkDirectionValue);//走路方向
+			long long walk_len = gamedevice.getValueHash(util::kAutoWalkDistanceValue);//走路距離
+			long long walk_dir = gamedevice.getValueHash(util::kAutoWalkDirectionValue);//走路方向
 
 			//如果direction是0，則current_pos +- x，否則 +- y 如果是2 則隨機加減
 			//一次性移動walk_len格
@@ -1352,14 +1377,14 @@ void MissionThread::autoWalk()
 			}
 
 			if (walk_len <= 6 && walk_dir != 2)
-				injector.worker->move(current_pos, steps);
+				gamedevice.worker->move(current_pos, steps);
 			else
-				injector.worker->move(QPoint(x, y));
+				gamedevice.worker->move(QPoint(x, y));
 			steps.clear();
 		}
 		else if (enableFastAutoWalk) //快速遇敵 (封包)
 		{
-			injector.worker->move(QPoint(0, 0), "gcgc");
+			gamedevice.worker->move(QPoint(0, 0), "gcgc");
 		}
 		QThread::msleep(walk_speed + 1);//避免太快無論如何都+15ms (太快並不會遇比較快)
 	}
@@ -1369,87 +1394,108 @@ void MissionThread::autoSortItem()
 {
 	long long i = 0;
 	constexpr long long duration = 30;
-	Injector& injector = Injector::getInstance(getIndex());
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
 	for (;;)
 	{
 		for (i = 0; i < duration; ++i)
 		{
-			if (isInterruptionRequested())
+			if (gamedevice.isGameInterruptionRequested())
+				return;
+
+			if (gamedevice.worker.isNull())
+				return;
+
+			if (isMissionInterruptionRequested())
 				return;
 
 			QThread::msleep(500);
 		}
 
-		if (!injector.getEnableHash(util::kAutoStackEnable))
+		if (!gamedevice.getEnableHash(util::kAutoStackEnable))
 			return;
 
-		if (injector.worker.isNull())
+		if (gamedevice.isGameInterruptionRequested())
 			return;
 
-		injector.worker->sortItem();
+		if (gamedevice.worker.isNull())
+			return;
+
+		gamedevice.worker->sortItem();
 	}
 }
 
 void MissionThread::autoRecordNPC()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	for (;;)
 	{
 		for (long long i = 0; i < 5; ++i)
 		{
 			QThread::msleep(1000);
 
-			if (isInterruptionRequested())
+			if (gamedevice.isGameInterruptionRequested())
+				return;
+
+			if (gamedevice.worker.isNull())
+				return;
+
+			if (isMissionInterruptionRequested())
 				return;
 		}
 
-		if (injector.worker.isNull())
-			continue;
-
-		if (isInterruptionRequested())
+		if (gamedevice.isGameInterruptionRequested())
 			return;
 
-		if (!injector.worker->getOnlineFlag())
+		if (gamedevice.worker.isNull())
+			return;
+
+		if (isMissionInterruptionRequested())
+			return;
+
+		if (!gamedevice.worker->getOnlineFlag())
 			continue;
 
-		if (injector.worker->getBattleFlag())
+		if (gamedevice.worker->getBattleFlag())
 			continue;
 
 		AStarDevice astar;
 
-		QHash<long long, sa::map_unit_t> units = injector.worker->mapUnitHash.toHash();
-		util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
+		QHash<long long, sa::map_unit_t> units = gamedevice.worker->mapUnitHash.toHash();
+		util::Config config(gamedevice.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
 		for (const sa::map_unit_t& unit : units)
 		{
-			if (isInterruptionRequested())
+			if (gamedevice.isGameInterruptionRequested())
 				return;
 
-			if (injector.worker.isNull())
+			if (isMissionInterruptionRequested())
+				return;
+
+			if (gamedevice.worker.isNull())
+				return;
+
+			if (!gamedevice.worker->getOnlineFlag())
 				break;
 
-			if (!injector.worker->getOnlineFlag())
-				break;
-
-			if (injector.worker->getBattleFlag())
+			if (gamedevice.worker->getBattleFlag())
 				break;
 
 			if ((unit.objType != sa::kObjectNPC)
 				|| unit.name.isEmpty()
-				|| (injector.worker->getWorldStatus() != 9)
-				|| (injector.worker->getGameStatus() != 3)
-				|| injector.worker->npcUnitPointHash.contains(QPoint(unit.x, unit.y)))
+				|| (gamedevice.worker->getWorldStatus() != 9)
+				|| (gamedevice.worker->getGameStatus() != 3)
+				|| gamedevice.worker->npcUnitPointHash.contains(QPoint(unit.x, unit.y)))
 			{
 				continue;
 			}
 
-			injector.worker->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
+			gamedevice.worker->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
 
 			util::Config::MapData d;
-			long long nowFloor = injector.worker->nowFloor.get();
-			QPoint nowPoint = injector.worker->nowPoint.get();
+			long long nowFloor = gamedevice.worker->getFloor();
+			QPoint nowPoint = gamedevice.worker->getPoint();
 
 			d.floor = nowFloor;
 			d.name = unit.name;
@@ -1457,7 +1503,7 @@ void MissionThread::autoRecordNPC()
 			//npc前方一格
 			QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
 			//檢查是否可走
-			if (injector.worker->mapDevice.isPassable(currentIndex, &astar, nowFloor, nowPoint, newPoint))
+			if (gamedevice.worker->mapDevice.isPassable(currentIndex, &astar, nowFloor, nowPoint, newPoint))
 			{
 				d.x = newPoint.x();
 				d.y = newPoint.y();
@@ -1467,7 +1513,7 @@ void MissionThread::autoRecordNPC()
 				//再往前一格
 				QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
 				//檢查是否可走
-				if (injector.worker->mapDevice.isPassable(currentIndex, &astar, nowFloor, nowPoint, additionPoint))
+				if (gamedevice.worker->mapDevice.isPassable(currentIndex, &astar, nowFloor, nowPoint, additionPoint))
 				{
 					d.x = additionPoint.x();
 					d.y = additionPoint.y();
@@ -1479,7 +1525,7 @@ void MissionThread::autoRecordNPC()
 					for (long long i = 0; i < 8; ++i)
 					{
 						newPoint = util::fix_point.value(i) + unit.p;
-						if (injector.worker->mapDevice.isPassable(currentIndex, &astar, nowFloor, nowPoint, newPoint))
+						if (gamedevice.worker->mapDevice.isPassable(currentIndex, &astar, nowFloor, nowPoint, newPoint))
 						{
 							d.x = newPoint.x();
 							d.y = newPoint.y();
@@ -1559,7 +1605,7 @@ void MissionThread::autoRecordNPC()
 			unit.p = pos;
 			unit.name = name;
 
-			injector.worker->npcUnitPointHash.insert(pos, unit);
+			gamedevice.worker->npcUnitPointHash.insert(pos, unit);
 
 			config.writeMapData(name, d);
 		}
@@ -1568,20 +1614,20 @@ void MissionThread::autoRecordNPC()
 
 void MissionThread::asyncFindPath()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.worker.isNull())
 		return;
 
 	QPoint dst = args_.value(0).toPoint();
-	injector.worker->findPathAsync(dst);
+	gamedevice.worker->findPathAsync(dst);
 }
 
 #if 0
 //自動鎖寵排程
 void MainObject::checkAutoLockSchedule()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.worker.isNull())
 		return;
 
 	auto checkSchedule = [this](util::UserSetting set)->bool
@@ -1597,8 +1643,8 @@ void MainObject::checkAutoLockSchedule()
 				{ "R", kRide },
 			};
 
-			Injector& injector = Injector::getInstance(getIndex());
-			QString lockPetSchedule = injector.getStringHash(set);
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			QString lockPetSchedule = gamedevice.getStringHash(set);
 			long long rindex = -1;
 			long long bindex = -1;
 			do
@@ -1658,7 +1704,7 @@ void MainObject::checkAutoLockSchedule()
 
 						PetState type = hashType.value(typeStr, kRest);
 
-						PET pet = injector.worker->getPet(petIndex);
+						PET pet = gamedevice.worker->getPet(petIndex);
 
 						if (pet.level >= level)
 							continue;
@@ -1697,28 +1743,28 @@ void MainObject::checkAutoLockSchedule()
 
 			if (rindex != -1)
 			{
-				PET pet = injector.worker->getPet(rindex);
+				PET pet = gamedevice.worker->getPet(rindex);
 				if (pet.hp <= 1)
 				{
-					injector.worker->setPetState(rindex, kRest);
+					gamedevice.worker->setPetState(rindex, kRest);
 					QThread::msleep(100);
 				}
 
 				if (pet.state != kRide)
-					injector.worker->setPetState(rindex, kRide);
+					gamedevice.worker->setPetState(rindex, kRide);
 			}
 
 			if (bindex != -1)
 			{
-				PET pet = injector.worker->getPet(bindex);
+				PET pet = gamedevice.worker->getPet(bindex);
 				if (pet.hp <= 1)
 				{
-					injector.worker->setPetState(bindex, kRest);
+					gamedevice.worker->setPetState(bindex, kRest);
 					QThread::msleep(100);
 				}
 
 				if (pet.state != kBattle)
-					injector.worker->setPetState(bindex, kBattle);
+					gamedevice.worker->setPetState(bindex, kBattle);
 			}
 
 			for (long long i = 0; i < sa::MAX_PET; ++i)
@@ -1726,14 +1772,14 @@ void MainObject::checkAutoLockSchedule()
 				if (bindex == i || rindex == i)
 					continue;
 
-				PET pet = injector.worker->getPet(i);
+				PET pet = gamedevice.worker->getPet(i);
 				if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
-					injector.worker->setPetState(i, kRest);
+					gamedevice.worker->setPetState(i, kRest);
 			}
 			return false;
 		};
 
-	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
+	if (gamedevice.getEnableHash(util::kLockPetScheduleEnable) && !gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
 
 }

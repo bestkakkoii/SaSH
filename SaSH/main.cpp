@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "mainform.h"
 #include "util.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "net/rpc.h"
 #include <QCommandLineParser>
 
@@ -75,8 +75,8 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 
 		for (long long i = 0; i < SASH_MAX_THREAD; ++i)
 		{
-			Injector* pinstance = nullptr;
-			if (Injector::get(i, &pinstance) && pinstance != nullptr)
+			GameDevice* pinstance = nullptr;
+			if (GameDevice::get(i, &pinstance) && pinstance != nullptr)
 				pinstance->log.close();
 		}
 
@@ -239,8 +239,8 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 
 			for (long long i = 0; i < SASH_MAX_THREAD; ++i)
 			{
-				Injector* pinstance = nullptr;
-				if (Injector::get(i, &pinstance) && pinstance != nullptr)
+				GameDevice* pinstance = nullptr;
+				if (GameDevice::get(i, &pinstance) && pinstance != nullptr)
 					pinstance->log.close();
 			}
 
@@ -463,10 +463,10 @@ int main(int argc, char* argv[])
 	}
 	}
 
-	if (!Injector::server.isListening())
+	if (!GameDevice::server.isListening())
 	{
-		Injector::server.setParent(&a);
-		if (!Injector::server.start(&a))
+		GameDevice::server.setParent(&a);
+		if (!GameDevice::server.start(&a))
 			return -1;
 	}
 

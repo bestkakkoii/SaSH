@@ -250,7 +250,6 @@
 #include <model/combobox.h>
 #include <model/listview.h>
 #include <model/treewidgetitem.h>
-#include <model/threadplugin.h>
 #include <model/signaldispatcher.h>
 #include <model/fastlabel.h>
 #include <model/customtitlebar.h>

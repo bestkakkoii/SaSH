@@ -19,27 +19,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "parser.h"
 #include "signaldispatcher.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "interpreter.h"
 
 //"調用" 傳參數最小佔位
 constexpr long long kCallPlaceHoldSize = 2;
 //"格式化" 最小佔位
 constexpr long long kFormatPlaceHoldSize = 3;
-
-//不輸出到列表也不做更動的全局變量名稱
-static const QStringList exceptionList = {
-	"TARGET", "_THIS_PARSER", "_INDEX_", "_THIS", "_G", "_HOOKFORSTOP",
-	"BattleClass", "CharClass", "InfoClass", "ItemClass", "MapClass", "PetClass", "SystemClass", "TARGET", "Timer", "_G", "_HOOKFORSTOP", "_INDEX", "_INDEX_", "_ROWCOUNT_",
-	"_THIS", "_print", "assert", "base",  "collectgarbage",
-	"contains", "copy", "coroutine", "dbclick", "debug", "dofile", "dragto", "error", "find", "format", "full", "getmetatable",
-	"half", "input", "io", "ipairs", "lclick", "load", "loadfile", "loadset", "lower", "math", "mkpath", "mktable", "dlg", "ocr", "findfiles",
-	"msg", "next", "os", "package", "pairs", "pcall",  "print", "printf", "rawequal",
-	"rawget", "rawlen", "rawset", "rclick", "regex", "replace", "require", "rex", "rexg", "rnd", "saveset", "select", "set", "setmetatable",
-	"skill", "sleep", "split", "string", "table", "tadd", "tback", "tfront", "timer", "tjoin", "tmerge", "todb", "toint", "tonumber", "tostr",
-	"tostring", "tpadd", "tpopback", "tpopfront", "trim", "trotate", "trsort", "tshuffle", "tsleft", "tsort", "tsright", "tswap", "tunique", "type",
-	"unit", "upper", "utf8", "warn", "xpcall"
-};
 
 #pragma region  LuaTools
 void __fastcall makeTable(sol::state& lua, const char* name, long long i, long long j)
@@ -191,14 +177,14 @@ void hookProc(lua_State* L, lua_Debug* ar)
 	{
 		luadebug::checkStopAndPause(s);
 
-		if (!lua["_THIS_PARSER"].valid())
+		if (!lua["__THIS_PARSER"].valid())
 			return;
 
-		Parser* pparser = lua["_THIS_PARSER"].get<Parser*>();
+		Parser* pparser = lua["__THIS_PARSER"].get<Parser*>();
 		if (pparser == nullptr)
 			return;
 
-		lua.set("_LINE_", pparser->getCurrentLine() + 1);
+		lua.set("LINE", pparser->getCurrentLine() + 1);
 
 		//獲取區域變量數值
 		long long i;
@@ -216,6 +202,10 @@ void hookProc(lua_State* L, lua_Debug* ar)
 				key = QString("temporary_%1").arg(tmpIndex++);
 			else if (key == "(C temporary)")
 				key = QString("c_temporary_%1").arg(ctmpIndex++);
+			else if (key.startsWith("_"))
+				continue;
+			else if (key.startsWith("("))
+				continue;
 			else
 			{
 				if (pair.first == "(boolean)")
@@ -321,17 +311,60 @@ void Parser::initialize(Parser* pparent)
 	}
 
 #pragma region init
+	lua_.set_function("__require", [this](std::string sname, sol::this_state s)->sol::object
+		{
+			sol::state_view lua(s);
+			QString name = util::toQString(sname);
+			QStringList paths;
+			util::searchFiles(util::applicationDirPath(), name, ".lua", &paths, false, true);
+			if (paths.isEmpty())
+				return sol::lua_nil;
+
+			QString path = paths.first();
+			if (path.isEmpty())
+				return sol::lua_nil;
+
+			sol::protected_function loadfile = lua["loadfile"];
+			if (!loadfile.valid())
+				return sol::lua_nil;
+
+			sol::protected_function_result result = loadfile(path.toStdString());
+			if (!result.valid())
+			{
+				sol::error err = result;
+				qDebug() << err.what();
+				return sol::lua_nil;
+			}
+
+			sol::protected_function f = result;
+			if (!f.valid())
+				return sol::lua_nil;
+
+			result = f();
+
+			if (!result.valid())
+			{
+				sol::error err = result;
+				qDebug() << err.what();
+				return sol::lua_nil;
+			}
+
+			return result;
+		});
+
+	lua_.safe_script("require = __require;", sol::script_pass_on_error);
+
 	lua_.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->long long
 		{
-			Injector& injector = Injector::getInstance(getIndex());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			QString mission = util::toQString(smisson);
 
 			long long timeout = 5000;
 			if (otimeout.is<long long>())
 				timeout = otimeout.as<long long>();
 
-			if (!injector.worker.isNull())
-				return injector.worker->checkJobDailyState(mission, timeout);
+			if (!gamedevice.worker.isNull())
+				return gamedevice.worker->checkJobDailyState(mission, timeout);
 			else
 				return -1;
 		});
@@ -339,40 +372,40 @@ void Parser::initialize(Parser* pparent)
 
 	lua_.set_function("getgamestate", [this](long long id)->long long
 		{
-			Injector& injector = Injector::getInstance(getIndex());
-			InterfaceSender sender(injector.getParentWidget());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
 
 			return sender.GetGameState(id);
 		});
 
 	lua_.set_function("rungame", [this](long long id)->long long
 		{
-			Injector& injector = Injector::getInstance(getIndex());
-			InterfaceSender sender(injector.getParentWidget());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
 
 			return sender.RunGame(id);
 		});
 
 	lua_.set_function("closegame", [this](long long id)->long long
 		{
-			Injector& injector = Injector::getInstance(getIndex());
-			InterfaceSender sender(injector.getParentWidget());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
 
 			return sender.CloseGame(id);
 		});
 
 	lua_.set_function("openwindow", [this](long long id)->long long
 		{
-			Injector& injector = Injector::getInstance(getIndex());
-			InterfaceSender sender(injector.getParentWidget());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
 
 			return sender.OpenNewWindow(id);
 		});
 
 	lua_.set_function("setlogin", [this](long long id, long long server, long long subserver, long long position, std::string account, std::string password)->long long
 		{
-			Injector& injector = Injector::getInstance(getIndex());
-			InterfaceSender sender(injector.getParentWidget());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
 
 			QString acc = util::toQString(account);
 			QString pwd = util::toQString(password);
@@ -382,32 +415,32 @@ void Parser::initialize(Parser* pparent)
 
 	lua_.set_function("runex", [this](long long id, std::string path)->long long
 		{
-			Injector& injector = Injector::getInstance(getIndex());
-			InterfaceSender sender(injector.getParentWidget());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
 
 			return sender.RunFile(id, util::toQString(path));
 		});
 
 	lua_.set_function("stoprunex", [this](long long id)->long long
 		{
-			Injector& injector = Injector::getInstance(getIndex());
-			InterfaceSender sender(injector.getParentWidget());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
 
 			return sender.StopFile(id);
 		});
 
 	lua_.set_function("dostrex", [this](long long id, std::string content)->long long
 		{
-			Injector& injector = Injector::getInstance(getIndex());
-			InterfaceSender sender(injector.getParentWidget());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
 
 			return sender.RunScript(id, util::toQString(content));
 		});
 
 	lua_.set_function("loadsetex", [this](long long id, std::string content)->long long
 		{
-			Injector& injector = Injector::getInstance(getIndex());
-			InterfaceSender sender(injector.getParentWidget());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
 
 			return sender.LoadSettings(id, util::toQString(content));
 		});
@@ -456,10 +489,10 @@ void Parser::initialize(Parser* pparent)
 
 	lua_.set_function("dlg", [this](std::string buttonstr, std::string stext, sol::object otype, sol::object otimeout, sol::this_state s)->sol::object
 		{
-			Injector& injector = Injector::getInstance(getIndex());
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			sol::state_view lua_(s);
 
-			if (injector.worker.isNull())
+			if (gamedevice.worker.isNull())
 				return sol::lua_nil;
 
 			QString buttonStrs = util::toQString(buttonstr);
@@ -483,7 +516,7 @@ void Parser::initialize(Parser* pparent)
 
 			buttonStrs = buttonStrs.toUpper();
 			QStringList buttonStrList = buttonStrs.split(util::rexOR, Qt::SkipEmptyParts);
-			safe::Vector<long long> buttonVec;
+			safe::vector<long long> buttonVec;
 			unsigned long long buttonFlag = 0;
 			for (const QString& str : buttonStrList)
 			{
@@ -496,25 +529,25 @@ void Parser::initialize(Parser* pparent)
 				buttonFlag |= value;
 			}
 
-			injector.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.on();
-			injector.worker->createRemoteDialog(type, buttonFlag, text);
+			gamedevice.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.on();
+			gamedevice.worker->createRemoteDialog(type, buttonFlag, text);
 			bool bret = false;
-			util::Timer timer;
+			util::timer timer;
 			for (;;)
 			{
-				if (injector.IS_SCRIPT_INTERRUPT.get())
+				if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 					return sol::lua_nil;
 				if (timer.hasExpired(timeout))
 					break;
 
-				if (!injector.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.get())
+				if (!gamedevice.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.get())
 				{
 					bret = true;
 					break;
 				}
 				QThread::msleep(100);
 			}
-			injector.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.off();
+			gamedevice.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.off();
 
 			if (!bret)
 			{
@@ -546,7 +579,7 @@ void Parser::initialize(Parser* pparent)
 				{ "下一页", sa::kButtonNext },
 			};
 
-			sa::custom_dialog_t dialog = injector.worker->customDialog.get();
+			sa::custom_dialog_t dialog = gamedevice.worker->customDialog.get();
 
 			QString sbtype;
 			sbtype = big5.key(dialog.button, "");
@@ -654,7 +687,7 @@ void Parser::initialize(Parser* pparent)
 
 	timer["new"] = [this](sol::this_state s)->long long
 		{
-			std::unique_ptr<util::Timer> timer(q_check_ptr(new util::Timer()));
+			std::unique_ptr<util::timer> timer(q_check_ptr(new util::timer()));
 			sash_assume(timer != nullptr);
 			if (nullptr == timer)
 				return 0;
@@ -678,7 +711,7 @@ void Parser::initialize(Parser* pparent)
 			if (id == 0)
 				return 0;
 
-			util::Timer* timer = timerMap_.value(id).get();
+			util::timer* timer = timerMap_.value(id).get();
 			if (nullptr == timer)
 				return 0;
 
@@ -690,7 +723,7 @@ void Parser::initialize(Parser* pparent)
 			if (id == 0)
 				return 0;
 
-			util::Timer* timer = timerMap_.value(id).get();
+			util::timer* timer = timerMap_.value(id).get();
 			if (nullptr == timer)
 				return 0;
 
@@ -702,7 +735,7 @@ void Parser::initialize(Parser* pparent)
 			if (id == 0)
 				return "";
 
-			util::Timer* timer = timerMap_.value(id).get();
+			util::timer* timer = timerMap_.value(id).get();
 			if (nullptr == timer)
 				return "";
 
@@ -768,8 +801,8 @@ void Parser::initialize(Parser* pparent)
 			{
 				insertGlobalVar("vret", "nil");
 				luadebug::showErrorMsg(s, luadebug::WARN_LEVEL, QObject::tr("force stop by user input stop code"));
-				Injector& injector = Injector::getInstance(getIndex());
-				injector.stopScript();
+				GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+				gamedevice.stopScript();
 				return sol::lua_nil;
 			}
 
@@ -1608,7 +1641,7 @@ void Parser::initialize(Parser* pparent)
 			return t
 		end
 
-	)");
+	)", sol::script_pass_on_error);
 
 #pragma region _copyfunstr
 	std::string _copyfunstr = R"(
@@ -1820,7 +1853,7 @@ void Parser::initialize(Parser* pparent)
 #pragma endregion
 
 	lua_State* L = lua_.lua_state();
-	lua_["_THIS_PARSER"] = pparent;
+	lua_["__THIS_PARSER"] = pparent;
 	lua_sethook(L, &hookProc, LUA_MASKRET | LUA_MASKCALL | LUA_MASKLINE, NULL);//
 }
 
@@ -1989,6 +2022,17 @@ QVariant Parser::luaDoString(QString expr)
 	localVars.append(expr);
 	QString exprStr = localVars.join("\n");
 
+	QString luaFunction = QString(R"(
+			local __success, __result = pcall(function()
+				%1
+			end)
+			if not __success then
+				error(__result)
+			else
+				return __result
+			end
+	)").arg(exprStr);
+
 	sol::state& lua_ = pLua_->getLua();
 
 	const std::string exprStrUTF8(util::toConstData(exprStr));
@@ -2001,8 +2045,8 @@ QVariant Parser::luaDoString(QString expr)
 		sol::error err = loaded_chunk;
 		QString errStr = util::toQString(err.what());
 		handleError(kLuaError, errStr);
-		Injector& injector = Injector::getInstance(getIndex());
-		injector.stopScript();
+		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+		gamedevice.stopScript();
 		return "nil";
 	}
 
@@ -2571,7 +2615,7 @@ void Parser::importLocalVariablesToPreLuaList()
 //插入全局變量
 void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 {
-	if (exceptionList.contains(name))
+	if (g_lua_exception_var_list.contains(name) || name.startsWith("__"))
 		return;
 
 	if (nullptr == pLua_)
@@ -2625,8 +2669,8 @@ void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 				sol::error err = loaded_chunk;
 				QString errStr = util::toQString(err.what());
 				handleError(kLuaError, errStr);
-				Injector& injector = Injector::getInstance(getIndex());
-				injector.stopScript();
+				GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+				gamedevice.stopScript();
 				return;
 			}
 		}
@@ -2669,6 +2713,9 @@ void Parser::removeGlobalVar(const QString& name)
 void Parser::insertLocalVar(const QString& name, const QVariant& value)
 {
 	if (name.isEmpty())
+		return;
+
+	if (g_lua_exception_var_list.contains(name) || name.startsWith("_"))
 		return;
 
 	QVariantHash& hash = getLocalVarsRef();
@@ -2834,8 +2881,8 @@ bool Parser::jump(const QString& name, bool noStack)
 	}
 	else if (newName == "exit")
 	{
-		Injector& injector = Injector::getInstance(getIndex());
-		injector.stopScript();
+		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+		gamedevice.stopScript();
 		return true;
 	}
 
@@ -3173,11 +3220,7 @@ bool Parser::processIfCompare()
 	*/
 
 	QString exprStr = QString("if (%1) then return true; else return false; end").arg(getToken<QString>(1).simplified());
-	insertGlobalVar("_IFEXPR", exprStr);
-
 	QVariant value = luaDoString(exprStr);
-
-	insertGlobalVar("_IFRESULT", util::toQString(value.toBool()));
 
 	return checkJump(currentLineTokens_, 2, value.toBool(), SuccessJump) == kHasJump;
 }
@@ -3308,12 +3351,12 @@ void Parser::processFormation()
 			}
 
 			long long currentIndex = getIndex();
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (injector.log.isOpen())
-				injector.log.write(formatedStr, getCurrentLine());
+			GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+			if (gamedevice.log.isOpen())
+				gamedevice.log.write(formatedStr, getCurrentLine());
 
-			if (!injector.worker.isNull())
-				injector.worker->announce(formatedStr, color);
+			if (!gamedevice.worker.isNull())
+				gamedevice.worker->announce(formatedStr, color);
 
 			const QDateTime time(QDateTime::currentDateTime());
 			const QString timeStr(time.toString("hh:mm:ss:zzz"));
@@ -3341,9 +3384,9 @@ void Parser::processFormation()
 			}
 
 			long long currentIndex = getIndex();
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (!injector.worker.isNull())
-				injector.worker->talk(formatedStr, color);
+			GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+			if (!gamedevice.worker.isNull())
+				gamedevice.worker->talk(formatedStr, color);
 		}
 		else
 		{
@@ -3526,8 +3569,8 @@ void Parser::processBack()
 void Parser::processDelay()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	long long extraDelay = injector.getValueHash(util::kScriptSpeedValue);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	long long extraDelay = gamedevice.getValueHash(util::kScriptSpeedValue);
 	if (extraDelay > 1000ll)
 	{
 		//將超過1秒的延時分段
@@ -3535,7 +3578,7 @@ void Parser::processDelay()
 		long long size = extraDelay / 1000ll;
 		for (i = 0; i < size; ++i)
 		{
-			if (injector.IS_SCRIPT_INTERRUPT.get())
+			if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 				return;
 			QThread::msleep(1000L);
 		}
@@ -3792,7 +3835,7 @@ bool Parser::processLuaString()
 		if (key.startsWith("sol."))
 			continue;
 
-		if (exceptionList.contains(key))
+		if (g_lua_exception_var_list.contains(key) || key.startsWith("_"))
 			continue;
 
 		if (!globalNames_->contains(key))
@@ -3827,9 +3870,14 @@ bool Parser::processLuaCode()
 	luaBegin_ = true;
 
 	const QString luaFunction = QString(R"(
-return (function()
-%1
-end)()
+		local __success, __result = pcall(function()
+			%1
+		end)
+		if not __success then
+			error(__result)
+		else
+			return __result
+		end
 	)").arg(luaCode);
 
 	QVariant result = luaDoString(luaFunction);
@@ -3849,7 +3897,7 @@ void Parser::processTokens()
 
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	pLua_->setMax(size());
 
@@ -3865,11 +3913,11 @@ void Parser::processTokens()
 	RESERVE currentType = TK_UNK;
 	QString name;
 
-	util::Timer timer;
+	util::timer timer;
 
 	for (;;)
 	{
-		if (injector.IS_SCRIPT_INTERRUPT.get())
+		if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 		{
 			break;
 		}
@@ -3902,7 +3950,7 @@ void Parser::processTokens()
 		if (!skip)
 		{
 			processDelay();
-			if (injector.IS_SCRIPT_DEBUG_ENABLE.get() && injector.IS_SCRIPT_EDITOR_OPENED.get())
+			if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get() && gamedevice.IS_SCRIPT_EDITOR_OPENED.get())
 			{
 				QThread::msleep(1);
 			}
@@ -3933,7 +3981,7 @@ void Parser::processTokens()
 		}
 		case TK_EXIT:
 		{
-			injector.stopScript();
+			gamedevice.stopScript();
 			break;
 		}
 		case TK_MULTIVAR:
@@ -3946,7 +3994,7 @@ void Parser::processTokens()
 			if (!processLuaCode())
 			{
 				name.clear();
-				injector.stopScript();
+				gamedevice.stopScript();
 			}
 			break;
 		}
@@ -4084,7 +4132,7 @@ void Parser::processTokens()
 		}
 		}
 
-		if (injector.IS_SCRIPT_INTERRUPT.get())
+		if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 		{
 			break;
 		}
@@ -4103,7 +4151,7 @@ void Parser::processTokens()
 
 	if (&signalDispatcher != nullptr)
 	{
-		if (injector.IS_SCRIPT_DEBUG_ENABLE.get() && !isSubScript())
+		if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get() && !isSubScript())
 		{
 			emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script report : valid %1，error %2，comment %3，space %4 ==========")
 				.arg(counter_->validCommand).arg(counter_->error).arg(counter_->comment).arg(counter_->space));
@@ -4119,7 +4167,7 @@ void Parser::processTokens()
 
 			emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
 				.arg("'" + path + "' " + (isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok"))).arg(util::formatMilliseconds(timer.cost())));
-			injector.log.close();
+			gamedevice.log.close();
 		}
 	}
 
@@ -4130,11 +4178,11 @@ void Parser::processTokens()
 void Parser::exportVarInfo()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.IS_SCRIPT_DEBUG_ENABLE.get())//檢查是否為調試模式
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())//檢查是否為調試模式
 		return;
 
-	if (!injector.IS_SCRIPT_EDITOR_OPENED.get())//檢查編輯器是否打開
+	if (!gamedevice.IS_SCRIPT_EDITOR_OPENED.get())//檢查編輯器是否打開
 		return;
 
 	QVariantHash varhash;
@@ -4161,17 +4209,17 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	bool bret = false;
 	sol::state& lua_ = pLua_->getLua();
 
-	if (expr.contains("_FILE_"))
+	if (expr.contains("FILE"))
 	{
-		lua_.set("_FILE_", util::toConstData(getScriptFileName()));
+		lua_.set("FILE", util::toConstData(getScriptFileName()));
 	}
 
-	if (expr.contains("_FUNCTION_"))
+	if (expr.contains("FUNCTION"))
 	{
 		if (!callStack_.isEmpty())
-			lua_.set("_FUNCTION_", util::toConstData(callStack_.top().name));
+			lua_.set("FUNCTION", util::toConstData(callStack_.top().name));
 		else
-			lua_.set("_FUNCTION_", sol::lua_nil);
+			lua_.set("FUNCTION", sol::lua_nil);
 	}
 
 	if (expr.contains("CURRENTSCRIPTDIR"))
@@ -4265,76 +4313,76 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	long long currentIndex = getIndex();
-	if (lua_["_INDEX"].valid() && lua_["_INDEX"].is<long long>())
+	if (lua_["__INDEX"].valid() && lua_["__INDEX"].is<long long>())
 	{
-		long long tempIndex = lua_["_INDEX"].get<long long>();
+		long long tempIndex = lua_["__INDEX"].get<long long>();
 
 		if (tempIndex >= 0 && tempIndex < SASH_MAX_THREAD)
 			currentIndex = tempIndex;
 	}
 
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	if (expr.contains("HWND"))
 	{
-		lua_.set("HWND", reinterpret_cast<long long>(injector.getParentWidget()));
+		lua_.set("HWND", reinterpret_cast<long long>(gamedevice.getParentWidget()));
 	}
 
 	if (expr.contains("GAMEPID"))
 	{
-		lua_.set("GAMEPID", injector.getProcessId());
+		lua_.set("GAMEPID", gamedevice.getProcessId());
 	}
 
 	if (expr.contains("GAMEHWND"))
 	{
-		lua_.set("GAMEPID", reinterpret_cast<long long>(injector.getProcessWindow()));
+		lua_.set("GAMEPID", reinterpret_cast<long long>(gamedevice.getProcessWindow()));
 	}
 
 	if (expr.contains("GAMEHANDLE"))
 	{
-		lua_.set("GAMEHANDLE", reinterpret_cast<long long>(injector.getProcess()));
+		lua_.set("GAMEHANDLE", reinterpret_cast<long long>(gamedevice.getProcess()));
 	}
 
 	if (expr.contains("INDEX"))
 	{
-		lua_.set("INDEX", injector.getIndex());
+		lua_.set("INDEX", gamedevice.getIndex());
 	}
 
 
 	/////////////////////////////////////////////////////////////////////////////////////
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return;
 
 	if (expr.contains("GAME"))
 	{
 		bret = true;
-		lua_.set("GAME", injector.worker->getGameStatus());
+		lua_.set("GAME", gamedevice.worker->getGameStatus());
 	}
 
 	if (expr.contains("WORLD"))
 	{
 		bret = true;
-		lua_.set("WORLD", injector.worker->getWorldStatus());
+		lua_.set("WORLD", gamedevice.worker->getWorldStatus());
 	}
 
 	if (expr.contains("isonline"))
 	{
-		lua_.set("isonline", injector.worker->getOnlineFlag());
+		lua_.set("isonline", gamedevice.worker->getOnlineFlag());
 	}
 
 	if (expr.contains("isbattle"))
 	{
-		lua_.set("isbattle", injector.worker->getBattleFlag());
+		lua_.set("isbattle", gamedevice.worker->getBattleFlag());
 	}
 
 	if (expr.contains("isnormal"))
 	{
-		lua_.set("isnormal", !injector.worker->getBattleFlag());
+		lua_.set("isnormal", !gamedevice.worker->getBattleFlag());
 	}
 
 	if (expr.contains("isdialog"))
 	{
-		lua_.set("isdialog", injector.worker->isDialogVisible());
+		lua_.set("isdialog", gamedevice.worker->isDialogVisible());
 	}
 
 	if (expr.contains("gtime"))
@@ -4346,7 +4394,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			{ sa::kTimeMorning, QObject::tr("morning") },
 		};
 
-		long long satime = injector.worker->saCurrentGameTime.get();
+		long long satime = gamedevice.worker->saCurrentGameTime.get();
 		QString timeStr = hash.value(satime, QObject::tr("unknown"));
 		lua_.set("gtime", util::toConstData(timeStr));
 	}
@@ -4354,13 +4402,13 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	//char\.(\w+)
 	if (expr.contains("char"))
 	{
-		injector.worker->updateDatasFromMemory();
+		gamedevice.worker->updateDatasFromMemory();
 
 		sol::meta::unqualified_t<sol::table> ch = lua_["char"];
 
-		sa::character_t _pc = injector.worker->getCharacter();
+		sa::character_t _pc = gamedevice.worker->getCharacter();
 
-		if (injector.worker->getOnlineFlag())
+		if (gamedevice.worker->getOnlineFlag())
 		{
 			QString preHash = QString("%1%2%3%4%5%6%7%8%9%10%11%12%13")
 				.arg(_pc.name).arg(_pc.modelid).arg(_pc.faceid).arg(_pc.dp).arg(_pc.transmigration)
@@ -4447,7 +4495,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("pet") || expr.contains("pet["))
 	{
-		injector.worker->updateDatasFromMemory();
+		gamedevice.worker->updateDatasFromMemory();
 
 		const QHash<QString, sa::PetState> hash = {
 			{ "battle", sa::kBattle },
@@ -4459,9 +4507,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		sol::meta::unqualified_t<sol::table> pet = lua_["pet"];
 
-		pet["count"] = injector.worker->getPetSize();
+		pet["count"] = gamedevice.worker->getPetSize();
 
-		QHash<long long, sa::pet_t> pets = injector.worker->getPets();
+		QHash<long long, sa::pet_t> pets = gamedevice.worker->getPets();
 		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
 			sa::pet_t p = pets.value(i);
@@ -4469,7 +4517,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			pet[index]["valid"] = p.valid;
 
-			if (injector.worker->getOnlineFlag() && p.valid)
+			if (gamedevice.worker->getOnlineFlag() && p.valid)
 			{
 				QString preHash = QString("%1%2%3%4%5%6%7%8%9%10%11%12%13%14%15")
 					.arg(p.name).arg(p.modelid).arg(p.maxSkill).arg(p.transmigration)
@@ -4543,17 +4591,17 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	{
 		sol::meta::unqualified_t<sol::table> team = lua_["team"];
 
-		team["count"] = static_cast<long long>(injector.worker->getTeamSize());
+		team["count"] = static_cast<long long>(gamedevice.worker->getTeamSize());
 
 		sa::map_unit_t unit = {};
 		sa::team_t t = {};
 		long long index = -1;
 
-		injector.worker->updateDatasFromMemory();
+		gamedevice.worker->updateDatasFromMemory();
 
 		for (long long i = 0; i < sa::MAX_TEAM; ++i)
 		{
-			t = injector.worker->getTeam(i);
+			t = gamedevice.worker->getTeam(i);
 			index = i + 1;
 
 			team[index]["valid"] = t.valid;
@@ -4564,8 +4612,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			team[index]["name"] = util::toConstData(t.name);
 
-			if (injector.worker->mapUnitHash.contains(t.id))
-				team[index]["fname"] = util::toConstData(injector.worker->mapUnitHash.value(t.id).freeName);
+			if (gamedevice.worker->mapUnitHash.contains(t.id))
+				team[index]["fname"] = util::toConstData(gamedevice.worker->mapUnitHash.value(t.id).freeName);
 			else
 				team[index]["fname"] = "";
 
@@ -4586,45 +4634,45 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	{
 		sol::meta::unqualified_t<sol::table> map = lua_["map"];
 
-		map["name"] = util::toConstData(injector.worker->getFloorName());
+		map["name"] = util::toConstData(gamedevice.worker->getFloorName());
 
-		map["floor"] = injector.worker->getFloor();
+		map["floor"] = gamedevice.worker->getFloor();
 
-		map["x"] = injector.worker->getPoint().x();
+		map["x"] = gamedevice.worker->getPoint().x();
 
-		map["y"] = injector.worker->getPoint().y();
+		map["y"] = gamedevice.worker->getPoint().y();
 
 		if (expr.contains("ground"))
-			map["ground"] = util::toConstData(injector.worker->getGround());
+			map["ground"] = util::toConstData(gamedevice.worker->getGround());
 
 		map.set_function("isxy", [this, currentIndex](long long x, long long y, sol::this_state s)->bool
 			{
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (injector.worker.isNull())
+				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+				if (gamedevice.worker.isNull())
 					return false;
-				QPoint pos = injector.worker->getPoint();
+				QPoint pos = gamedevice.worker->getPoint();
 				return pos == QPoint(x, y);
 			});
 
 		map.set_function("isrect", [this, currentIndex](long long x1, long long y1, long long x2, long long y2, sol::this_state s)->bool
 			{
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (injector.worker.isNull())
+				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+				if (gamedevice.worker.isNull())
 					return false;
-				QPoint pos = injector.worker->getPoint();
+				QPoint pos = gamedevice.worker->getPoint();
 				return pos.x() >= x1 && pos.x() <= x2 && pos.y() >= y1 && pos.y() <= y2;
 
 			});
 
 		map.set_function("ismap", [this, currentIndex](sol::object omap, sol::this_state s)->bool
 			{
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (injector.worker.isNull())
+				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+				if (gamedevice.worker.isNull())
 					return false;
 
 				if (omap.is<long long>())
 				{
-					return injector.worker->getFloor() == omap.as<long long>();
+					return gamedevice.worker->getFloor() == omap.as<long long>();
 				}
 
 				QString mapNames = util::toQString(omap);
@@ -4636,7 +4684,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				for (const QString& it : mapNameList)
 				{
 					floor = it.toLongLong(&ok);
-					if (ok && injector.worker->getFloor() == floor)
+					if (ok && gamedevice.worker->getFloor() == floor)
 						return true;
 
 					newName = it;
@@ -4649,9 +4697,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 					if (newName.isEmpty())
 						continue;
 
-					if (isExact && injector.worker->getFloorName() == newName)
+					if (isExact && gamedevice.worker->getFloorName() == newName)
 						return true;
-					else if (injector.worker->getFloorName().contains(newName))
+					else if (gamedevice.worker->getFloorName().contains(newName))
 						return true;
 				}
 
@@ -4666,7 +4714,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		for (long long i = 0; i < sa::MAX_ADDRESS_BOOK; ++i)
 		{
-			sa::address_bool_t addressBook = injector.worker->getAddressBook(i);
+			sa::address_bool_t addressBook = gamedevice.worker->getAddressBook(i);
 			long long index = i + 1;
 
 			card[index]["valid"] = addressBook.valid;
@@ -4692,7 +4740,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
 		{
-			QString text = injector.worker->getChatHistory(i);
+			QString text = gamedevice.worker->getChatHistory(i);
 			long long index = i + 1;
 
 			if (!text.isEmpty())
@@ -4703,8 +4751,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		chat["contains"] = [this, currentIndex](std::string str, sol::this_state s)->bool
 			{
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (injector.worker.isNull())
+				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+				if (gamedevice.worker.isNull())
 					return false;
 
 				if (str.empty())
@@ -4714,7 +4762,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				QString text = util::toQString(str);
 				for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
 				{
-					QString cmptext = injector.worker->getChatHistory(i);
+					QString cmptext = gamedevice.worker->getChatHistory(i);
 					for (const QString& it : list)
 					{
 						if (cmptext.contains(it))
@@ -4729,7 +4777,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	//unit\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("unit") || expr.contains("unit["))
 	{
-		QList<sa::map_unit_t> units = injector.worker->mapUnitHash.values();
+		QList<sa::map_unit_t> units = gamedevice.worker->mapUnitHash.values();
 
 		long long size = units.size();
 
@@ -4773,8 +4821,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		unit["find"] = [this, currentIndex](sol::object oname, sol::object ofname, sol::this_state s)->sol::object
 			{
 				sol::state_view lua(s);
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (injector.worker.isNull())
+				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+				if (gamedevice.worker.isNull())
 					return sol::lua_nil;
 
 				QString name = "";
@@ -4792,9 +4840,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 					return sol::lua_nil;
 
 				sa::map_unit_t _unit = {};
-				if (!injector.worker->findUnit(name, sa::kObjectNPC, &_unit, freeName, modelid))
+				if (!gamedevice.worker->findUnit(name, sa::kObjectNPC, &_unit, freeName, modelid))
 				{
-					if (!injector.worker->findUnit(name, sa::kObjectHuman, &_unit, freeName, modelid))
+					if (!gamedevice.worker->findUnit(name, sa::kObjectHuman, &_unit, freeName, modelid))
 						return sol::lua_nil;
 				}
 
@@ -4832,13 +4880,13 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	{
 		sol::meta::unqualified_t<sol::table> battle = lua_["battle"];
 
-		battle["count"] = injector.worker->battle_total.get();
-		battle["dura"] = injector.worker->battleDurationTimer.cost() / 1000.0;
-		battle["time"] = injector.worker->battle_total_time.get() / 1000.0 / 60.0;
-		battle["cost"] = injector.worker->battle_one_round_time.get() / 1000.0;
-		battle["round"] = injector.worker->battleCurrentRound.get() + 1;
-		battle["field"] = util::toConstData(injector.worker->getFieldString(injector.worker->battleField.get()));
-		battle["charpos"] = static_cast<long long>(injector.worker->battleCharCurrentPos.get() + 1);
+		battle["count"] = gamedevice.worker->battle_total.get();
+		battle["dura"] = gamedevice.worker->battleDurationTimer.cost() / 1000.0;
+		battle["time"] = gamedevice.worker->battle_total_time.get() / 1000.0 / 60.0;
+		battle["cost"] = gamedevice.worker->battle_one_round_time.get() / 1000.0;
+		battle["round"] = gamedevice.worker->battleCurrentRound.get() + 1;
+		battle["field"] = util::toConstData(gamedevice.worker->getFieldString(gamedevice.worker->battleField.get()));
+		battle["charpos"] = static_cast<long long>(gamedevice.worker->battleCharCurrentPos.get() + 1);
 		battle["petpos"] = -1;
 		battle["size"] = 0;
 		battle["enemycount"] = 0;
@@ -4865,11 +4913,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			battle[index]["ridehpp"] = 0;
 		}
 
-		if (injector.worker->getBattleFlag())
+		if (gamedevice.worker->getBattleFlag())
 		{
-			sa::battle_data_t bt = injector.worker->getBattleData();
+			sa::battle_data_t bt = gamedevice.worker->getBattleData();
 
-			battle["petpos"] = static_cast<long long>(bt.objects.value(injector.worker->battleCharCurrentPos.get() + 5).pos + 1);
+			battle["petpos"] = static_cast<long long>(bt.objects.value(gamedevice.worker->battleCharCurrentPos.get() + 5).pos + 1);
 
 			long long size = bt.objects.size();
 			battle["size"] = size;
@@ -4899,7 +4947,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 				battle[index]["hpp"] = obj.hpPercent;
 
-				battle[index]["status"] = util::toConstData(injector.worker->getBadStatusString(obj.status));
+				battle[index]["status"] = util::toConstData(gamedevice.worker->getBadStatusString(obj.status));
 
 				battle[index]["ride"] = obj.rideFlag > 0;
 
@@ -4919,13 +4967,13 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	//dialog\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
 	if (expr.contains("dialog") || expr.contains("dialog["))
 	{
-		QStringList dialogstrs = injector.worker->currentDialog.get().linedatas;
+		QStringList dialogstrs = gamedevice.worker->currentDialog.get().linedatas;
 
 		sol::meta::unqualified_t<sol::table> dlg = lua_["dialog"];
 
 		long long size = dialogstrs.size();
 
-		bool visible = injector.worker->isDialogVisible();
+		bool visible = gamedevice.worker->isDialogVisible();
 
 		for (long long i = 0; i < sa::MAX_DIALOG_LINE; ++i)
 		{
@@ -4943,7 +4991,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				dlg[index] = "";
 		}
 
-		sa::dialog_t dialog = injector.worker->currentDialog.get();
+		sa::dialog_t dialog = gamedevice.worker->currentDialog.get();
 		dlg["id"] = dialog.dialogid;
 		dlg["unitid"] = dialog.unitid;
 		dlg["type"] = dialog.windowtype;
@@ -4953,19 +5001,19 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		dlg["contains"] = [this, currentIndex](std::string str, sol::this_state s)->bool
 			{
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (injector.worker.isNull())
+				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+				if (gamedevice.worker.isNull())
 					return false;
 
 				if (str.empty())
 					return false;
 
-				if (!injector.worker->isDialogVisible())
+				if (!gamedevice.worker->isDialogVisible())
 					return false;
 
 				QString text = util::toQString(str);
 				QStringList list = text.split(util::rexOR, Qt::SkipEmptyParts);
-				QStringList dialogstrs = injector.worker->currentDialog.get().linedatas;
+				QStringList dialogstrs = gamedevice.worker->currentDialog.get().linedatas;
 				long long size = dialogstrs.size();
 				for (long long i = 0; i < size; ++i)
 				{
@@ -4989,7 +5037,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		for (long long i = 0; i < sa::MAX_MAGIC; ++i)
 		{
 			long long index = i + 1;
-			sa::magic_t magic = injector.worker->getMagic(i);
+			sa::magic_t magic = gamedevice.worker->getMagic(i);
 
 			mg[index]["valid"] = magic.valid;
 			mg[index]["index"] = index;
@@ -5003,8 +5051,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		mg["find"] = [this, currentIndex](sol::object oname, sol::this_state s)->sol::object
 			{
 				sol::state_view lua(s);
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (injector.worker.isNull())
+				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+				if (gamedevice.worker.isNull())
 					return 0;
 
 				QString name = "";
@@ -5015,11 +5063,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 					return sol::lua_nil;
 
 
-				long long index = injector.worker->getMagicIndexByName(name);
+				long long index = gamedevice.worker->getMagicIndexByName(name);
 				if (index == -1)
 					return sol::lua_nil;
 
-				sa::magic_t _magic = injector.worker->getMagic(index);
+				sa::magic_t _magic = gamedevice.worker->getMagic(index);
 
 				sol::table t = lua.create_table();
 
@@ -5043,7 +5091,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		for (long long i = 0; i < sa::MAX_PROFESSION_SKILL; ++i)
 		{
 			long long index = i + 1;
-			sa::profession_skill_t skill = injector.worker->getSkill(i);
+			sa::profession_skill_t skill = gamedevice.worker->getSkill(i);
 
 			sk[index]["valid"] = skill.valid;
 			sk[index]["index"] = index;
@@ -5060,8 +5108,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		sk["find"] = [this, currentIndex](sol::object oname, sol::this_state s)->sol::object
 			{
 				sol::state_view lua(s);
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (injector.worker.isNull())
+				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+				if (gamedevice.worker.isNull())
 					return 0;
 
 				QString name = "";
@@ -5071,11 +5119,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				if (name.isEmpty())
 					return sol::lua_nil;
 
-				long long index = injector.worker->getSkillIndexByName(name);
+				long long index = gamedevice.worker->getSkillIndexByName(name);
 				if (index == -1)
 					return sol::lua_nil;
 
-				sa::profession_skill_t _skill = injector.worker->getSkill(index);
+				sa::profession_skill_t _skill = gamedevice.worker->getSkill(index);
 
 				sol::table t = lua.create_table();
 
@@ -5109,7 +5157,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			for (j = 0; j < sa::MAX_PET_SKILL; ++j)
 			{
 				index = j + 1;
-				sa::pet_skill_t skill = injector.worker->getPetSkill(i, j);
+				sa::pet_skill_t skill = gamedevice.worker->getPetSkill(i, j);
 
 				psk[petIndex][index]["valid"] = skill.valid;
 				psk[petIndex][index]["index"] = index;
@@ -5124,8 +5172,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		psk["find"] = [this, currentIndex](long long petIndex, sol::object oname, sol::this_state s)->sol::object
 			{
 				sol::state_view lua(s);
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (injector.worker.isNull())
+				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+				if (gamedevice.worker.isNull())
 					return 0;
 
 				QString name = "";
@@ -5135,11 +5183,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				if (name.isEmpty())
 					return sol::lua_nil;
 
-				long long index = injector.worker->getPetSkillIndexByName(petIndex, name);
+				long long index = gamedevice.worker->getPetSkillIndexByName(petIndex, name);
 				if (index == -1)
 					return sol::lua_nil;
 
-				sa::pet_skill_t _skill = injector.worker->getPetSkill(petIndex, index);
+				sa::pet_skill_t _skill = gamedevice.worker->getPetSkill(petIndex, index);
 
 				sol::table t = lua.create_table();
 
@@ -5171,7 +5219,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			{
 				index = j + 1;
 
-				sa::item_t item = injector.worker->getPetEquip(i, j);
+				sa::item_t item = gamedevice.worker->getPetEquip(i, j);
 
 				peq[petIndex][index]["valid"] = item.valid;
 				peq[petIndex][index]["index"] = index;
@@ -5190,7 +5238,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 	if (expr.contains("point"))
 	{
-		sa::currency_data_t point = injector.worker->currencyData.get();
+		sa::currency_data_t point = gamedevice.worker->currencyData.get();
 
 		sol::meta::unqualified_t<sol::table> pt = lua_["point"];
 
@@ -5210,7 +5258,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		for (long long i = 0; i < sa::MAX_ADDRESS_BOOK; ++i)
 		{
 			long long card = i + 1;
-			sa::mail_history_t mail = injector.worker->getMailHistory(i);
+			sa::mail_history_t mail = gamedevice.worker->getMailHistory(i);
 			for (j = 0; j < sa::MAIL_MAX_HISTORY; ++j)
 			{
 				long long index = j + 1;

@@ -24,11 +24,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //utilities
 #include "signaldispatcher.h"
 #include <util.h>
-#include <injector.h>
+#include <gamedevice.h>
 #include "script/interpreter.h"
 #include "net/rpc.h"
 
-safe::Hash<long long, MainForm*> g_mainFormHash;
+safe::hash<long long, MainForm*> g_mainFormHash;
 
 void MainForm::createMenu(QMenuBar* pMenuBar)
 {
@@ -242,10 +242,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case WM_KEYUP + WM_USER + VK_DELETE:
 	{
-		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.worker.isNull())
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		if (!gamedevice.worker.isNull())
 		{
-			injector.worker->cleanChatHistory();
+			gamedevice.worker->cleanChatHistory();
 			*result = 1;
 		}
 		return true;
@@ -320,8 +320,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kRunFile:
 	{
 		long long id = msg->wParam;
-		Injector& injector = Injector::getInstance(id);
-		if (injector.IS_SCRIPT_FLAG.get())
+		GameDevice& gamedevice = GameDevice::getInstance(id);
+		if (gamedevice.IS_SCRIPT_FLAG.get())
 		{
 			updateStatusText(tr("already run"));
 			return true;
@@ -370,7 +370,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
-		injector.currentScriptFileName = fileName;
+		gamedevice.currentScriptFileName.set(fileName);
 		emit signalDispatcher.loadFileToTable(fileName, true);
 
 		++interfaceCount_;
@@ -381,8 +381,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kStopFile:
 	{
 		long long id = msg->wParam;
-		Injector& injector = Injector::getInstance(id);
-		if (!injector.IS_SCRIPT_FLAG.get())
+		GameDevice& gamedevice = GameDevice::getInstance(id);
+		if (!gamedevice.IS_SCRIPT_FLAG.get())
 		{
 			updateStatusText(tr("not run yet"));
 			return true;
@@ -399,8 +399,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kRunGame:
 	{
 		long long id = msg->wParam;
-		Injector& injector = Injector::getInstance(id);
-		if (!injector.worker.isNull())
+		GameDevice& gamedevice = GameDevice::getInstance(id);
+		if (!gamedevice.worker.isNull())
 		{
 			updateStatusText(tr("server already on"));
 			return true;
@@ -417,14 +417,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kCloseGame:
 	{
 		long long id = msg->wParam;
-		Injector& injector = Injector::getInstance(id);
-		if (injector.worker.isNull())
+		GameDevice& gamedevice = GameDevice::getInstance(id);
+		if (gamedevice.worker.isNull())
 		{
 			updateStatusText(tr("server is off"));
 			return true;
 		}
 
-		injector.close();
+		gamedevice.close();
 		++interfaceCount_;
 		updateStatusText();
 		*result = 1;
@@ -436,23 +436,23 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 
 		long long id = msg->wParam;
-		Injector& injector = Injector::getInstance(id);
+		GameDevice& gamedevice = GameDevice::getInstance(id);
 		long long value = 0;
-		if (injector.worker.isNull())
+		if (gamedevice.worker.isNull())
 			return true;
 
-		if (!injector.IS_TCP_CONNECTION_OK_TO_USE.get())
+		if (!gamedevice.IS_TCP_CONNECTION_OK_TO_USE.get())
 			return true;
 
-		if (injector.IS_INJECT_OK.get())
+		if (gamedevice.IS_INJECT_OK.get())
 		{
 			value = 1;
 
-			if (!injector.worker->getOnlineFlag())
+			if (!gamedevice.worker->getOnlineFlag())
 				value = 2;
 			else
 			{
-				if (!injector.worker->getBattleFlag())
+				if (!gamedevice.worker->getBattleFlag())
 					value = 3;
 				else
 					value = 4;
@@ -470,9 +470,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 
 		long long id = msg->wParam;
-		Injector& injector = Injector::getInstance(id);
+		GameDevice& gamedevice = GameDevice::getInstance(id);
 		long long value = 0;
-		if (injector.IS_SCRIPT_FLAG.get())
+		if (gamedevice.IS_SCRIPT_FLAG.get())
 			value = 1;
 
 		++interfaceCount_;
@@ -593,9 +593,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 		case HideGame:
 		{
-			Injector& injector = Injector::getInstance(id);
+			GameDevice& gamedevice = GameDevice::getInstance(id);
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
-			injector.setEnableHash(util::kHideWindowEnable, arg > 0);
+			gamedevice.setEnableHash(util::kHideWindowEnable, arg > 0);
 			emit signalDispatcher.applyHashSettingsToUI();
 			++interfaceCount_;
 			updateStatusText();
@@ -800,8 +800,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		*result = 0;
 		long long id = msg->wParam;
-		Injector& injector = Injector::getInstance(id);
-		if (injector.worker.isNull())
+		GameDevice& gamedevice = GameDevice::getInstance(id);
+		if (gamedevice.worker.isNull())
 		{
 			updateStatusText(tr("server is off"));
 			return true;
@@ -809,7 +809,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 		++interfaceCount_;
 		updateStatusText();
-		*result = injector.getProcessId();
+		*result = gamedevice.getProcessId();
 
 		return true;
 	}
@@ -817,8 +817,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		*result = 0;
 		long long id = msg->wParam;
-		Injector& injector = Injector::getInstance(id);
-		if (injector.worker.isNull())
+		GameDevice& gamedevice = GameDevice::getInstance(id);
+		if (gamedevice.worker.isNull())
 		{
 			updateStatusText(tr("server is off"));
 			return true;
@@ -826,7 +826,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 		++interfaceCount_;
 		updateStatusText();
-		*result = reinterpret_cast<long long>(injector.getProcessWindow());
+		*result = reinterpret_cast<long long>(gamedevice.getProcessWindow());
 		return true;
 	}
 	case InterfaceMessage::kLoadSettings:
@@ -879,7 +879,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		*result = 0;
 		long long id = msg->wParam;
-		Injector& injector = Injector::getInstance(id);
+		GameDevice& gamedevice = GameDevice::getInstance(id);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 		do
 		{
@@ -945,12 +945,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			injector.setEnableHash(util::kAutoLoginEnable, true);
-			injector.setStringHash(util::kGameAccountString, username);
-			injector.setStringHash(util::kGamePasswordString, password);
-			injector.setValueHash(util::kServerValue, server);
-			injector.setValueHash(util::kSubServerValue, subserver);
-			injector.setValueHash(util::kPositionValue, position);
+			gamedevice.setEnableHash(util::kAutoLoginEnable, true);
+			gamedevice.setStringHash(util::kGameAccountString, username);
+			gamedevice.setStringHash(util::kGamePasswordString, password);
+			gamedevice.setValueHash(util::kServerValue, server);
+			gamedevice.setValueHash(util::kSubServerValue, subserver);
+			gamedevice.setValueHash(util::kPositionValue, position);
 			qDebug() << __FUNCTION__ << "set ok apply to ui now.";
 			emit signalDispatcher.applyHashSettingsToUI();
 			++interfaceCount_;
@@ -959,12 +959,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 		} while (false);
 
-		injector.setEnableHash(util::kAutoLoginEnable, false);
-		injector.setStringHash(util::kGameAccountString, "");
-		injector.setStringHash(util::kGamePasswordString, "");
-		injector.setValueHash(util::kServerValue, 0);
-		injector.setValueHash(util::kSubServerValue, 0);
-		injector.setValueHash(util::kPositionValue, 0);
+		gamedevice.setEnableHash(util::kAutoLoginEnable, false);
+		gamedevice.setStringHash(util::kGameAccountString, "");
+		gamedevice.setStringHash(util::kGamePasswordString, "");
+		gamedevice.setValueHash(util::kServerValue, 0);
+		gamedevice.setValueHash(util::kSubServerValue, 0);
+		gamedevice.setValueHash(util::kPositionValue, 0);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return true;
 	}
@@ -986,12 +986,12 @@ void MainForm::moveEvent(QMoveEvent* e)
 
 		QPoint pos = e->pos();
 		long long currentIndex = getIndex();
-		Injector& injector = Injector::getInstance(currentIndex);
-		HWND hWnd = injector.getProcessWindow();
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		HWND hWnd = gamedevice.getProcessWindow();
 		if (hWnd == nullptr)
 			break;
 
-		if (!injector.getEnableHash(util::kWindowDockEnable))
+		if (!gamedevice.getEnableHash(util::kWindowDockEnable))
 			break;
 
 		//HWND獲取寬度
@@ -1114,9 +1114,9 @@ MainForm::MainForm(long long index, QWidget* parent)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	signalDispatcher.setParent(this);
 
-	Injector& injector = Injector::getInstance(index);
+	GameDevice& gamedevice = GameDevice::getInstance(index);
 	WId wid = this->winId();
-	injector.setParentWidget(reinterpret_cast<HWND>(wid));
+	gamedevice.setParentWidget(reinterpret_cast<HWND>(wid));
 
 	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::QueuedConnection);
@@ -1213,8 +1213,8 @@ void MainForm::closeEvent(QCloseEvent* e)
 	trayIcon_.hide();
 	hide();
 
-	//Injector::getInstance(getIndex()).close();
-	Injector::getInstance(getIndex()).postMessage(kUninitialize, NULL, NULL);
+	//GameDevice::getInstance(getIndex()).close();
+	GameDevice::getInstance(getIndex()).postMessage(kUninitialize, NULL, NULL);
 	UniqueIdManager::getInstance().deallocateUniqueId(getIndex());
 
 	for (const auto& it : g_mainFormHash)
@@ -1397,7 +1397,7 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionCloseGame")
 	{
-		Injector::getInstance(currentIndex).close();
+		GameDevice::getInstance(currentIndex).close();
 		return;
 	}
 
@@ -1453,9 +1453,9 @@ void MainForm::onMenuActionTriggered()
 	if (actionName == "actionSave")
 	{
 		QString fileName;
-		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.worker.isNull())
-			fileName = injector.worker->getCharacter().name;
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		if (!gamedevice.worker.isNull())
+			fileName = gamedevice.worker->getCharacter().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.saveHashSettings(fileName);
 		return;
@@ -1464,9 +1464,9 @@ void MainForm::onMenuActionTriggered()
 	if (actionName == "actionLoad")
 	{
 		QString fileName;
-		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.worker.isNull())
-			fileName = injector.worker->getCharacter().name;
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		if (!gamedevice.worker.isNull())
+			fileName = gamedevice.worker->getCharacter().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.loadHashSettings(fileName);
 		return;
@@ -1652,10 +1652,10 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 	}
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, long long> valueHash = injector.getValuesHash();
-	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	QHash<util::UserSetting, bool> enableHash = gamedevice.getEnablesHash();
+	QHash<util::UserSetting, long long> valueHash = gamedevice.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = gamedevice.getStringsHash();
 	QString key;
 	util::UserSetting hkey = util::kSettingNotUsed;
 	const QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
@@ -1730,7 +1730,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 
 	long long currentIndex = getIndex();
 
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	QHash<util::UserSetting, bool> enableHash;
 	QHash<util::UserSetting, long long> valueHash;
 	QHash<util::UserSetting, QString> stringHash;
@@ -1771,9 +1771,9 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 		}
 	}
 
-	injector.setEnablesHash(enableHash);
-	injector.setValuesHash(valueHash);
-	injector.setStringsHash(stringHash);
+	gamedevice.setEnablesHash(enableHash);
+	gamedevice.setValuesHash(valueHash);
+	gamedevice.setStringsHash(stringHash);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.applyHashSettingsToUI();
@@ -1923,20 +1923,20 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 void MainForm::onAppendScriptLog(const QString& text, long long color)
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	injector.scriptLogModel.append(text, color);
-	emit injector.scriptLogModel.dataAppended();
+	gamedevice.scriptLogModel.append(text, color);
+	emit gamedevice.scriptLogModel.dataAppended();
 }
 
 //對話日誌
 void MainForm::onAppendChatLog(const QString& text, long long color)
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	injector.chatLogModel.append(text, color);
-	emit injector.chatLogModel.dataAppended();
+	gamedevice.chatLogModel.append(text, color);
+	emit gamedevice.chatLogModel.dataAppended();
 }
 
 #if 0

@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "util.h"
 #include "signaldispatcher.h"
 
-#include "injector.h"
+#include <gamedevice.h>
 
 MapForm::MapForm(long long index, QWidget* parent)
 	: QWidget(parent)
@@ -74,8 +74,8 @@ MapForm::~MapForm()
 	}
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	injector.IS_FINDINGPATH.off();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	gamedevice.IS_FINDINGPATH.off();
 }
 
 void MapForm::showEvent(QShowEvent* e)
@@ -105,25 +105,25 @@ void MapForm::onButtonClicked()
 	if (name == "pushButton_findpath_start")
 	{
 		QMutexLocker lock(&missionThreadMutex_);
-		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.isValid())
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		if (!gamedevice.isValid())
 			return;
 
-		if (injector.IS_SCRIPT_FLAG.get())
+		if (gamedevice.IS_SCRIPT_FLAG.get())
 			return;
 
-		if (injector.IS_FINDINGPATH.get())
+		if (gamedevice.IS_FINDINGPATH.get())
 			return;
 
-		if (injector.worker.isNull())
+		if (gamedevice.worker.isNull())
 			return;
 
-		if (!injector.worker->getOnlineFlag())
+		if (!gamedevice.worker->getOnlineFlag())
 			return;
 
-		if (injector.IS_FINDINGPATH.get())
+		if (gamedevice.IS_FINDINGPATH.get())
 		{
-			injector.IS_FINDINGPATH.off();
+			gamedevice.IS_FINDINGPATH.off();
 		}
 
 		if (missionThread_ != nullptr)
@@ -133,7 +133,7 @@ void MapForm::onButtonClicked()
 			missionThread_ = nullptr;
 		}
 
-		connect(injector.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
+		connect(gamedevice.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
 
 		long long x = ui.spinBox_findpath_x->value();
 		long long y = ui.spinBox_findpath_y->value();
@@ -152,8 +152,8 @@ void MapForm::onButtonClicked()
 	}
 	else if (name == "pushButton_findpath_stop")
 	{
-		Injector& injector = Injector::getInstance(currentIndex);
-		injector.IS_FINDINGPATH.off();
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		gamedevice.IS_FINDINGPATH.off();
 		ui.pushButton_findpath_stop->setEnabled(false);
 		ui.pushButton_findpath_start->setEnabled(true);
 	}
@@ -194,8 +194,8 @@ void MapForm::onUpdateNpcList(long long floor)
 	QList<util::Config::MapData> datas;
 	long long currentIndex = getIndex();
 	{
-		Injector& injector = Injector::getInstance(currentIndex);
-		util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		util::Config config(gamedevice.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		datas = config.readMapData(key);
 		if (datas.isEmpty())
 			return;
@@ -224,25 +224,25 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 		return;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.isValid())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.isValid())
 		return;
 
-	if (injector.IS_SCRIPT_FLAG.get())
+	if (gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
-	if (injector.IS_FINDINGPATH.get())
+	if (gamedevice.IS_FINDINGPATH.get())
 		return;
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return;
 
-	if (!injector.worker->getOnlineFlag())
+	if (!gamedevice.worker->getOnlineFlag())
 		return;
 
-	if (injector.IS_FINDINGPATH.get())
+	if (gamedevice.IS_FINDINGPATH.get())
 	{
-		injector.IS_FINDINGPATH.off();
+		gamedevice.IS_FINDINGPATH.off();
 	}
 
 	if (missionThread_ != nullptr)
@@ -252,7 +252,7 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 		missionThread_ = nullptr;
 	}
 
-	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
+	connect(gamedevice.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
 
 	QPoint point = npc_hash_.value(row);
 	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));

@@ -19,13 +19,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma once
 #include <QObject>
 #include <QSharedMemory>
-#include <threadplugin.h>
+#include <indexer.h>
 #include <util.h>
 
 class QThread;
 class Server;
 
-class MissionThread : public ThreadPlugin
+class MissionThread : public QObject, public Indexer
 {
 	Q_OBJECT
 public:
@@ -49,6 +49,15 @@ public:
 	inline void appendArg(const QVariant& arg) { args_.append(arg); }
 	inline void appendArgs(const QVariantList& args) { args_.append(args); }
 
+	[[nodiscard]] inline bool __fastcall isMissionInterruptionRequested() const
+	{
+		return isMissionInterruptionRequested_.get();
+	}
+
+	void requestMissionInterruption()
+	{
+		isMissionInterruptionRequested_.on();
+	}
 signals:
 	void started();
 
@@ -59,15 +68,21 @@ public slots:
 	void autoRecordNPC();
 	void asyncFindPath();
 
+	void reset()
+	{
+		isMissionInterruptionRequested_.off();
+	}
+
 private slots:
 	void onFinished();
 
 private:
 	QThread thread_;
 	QVariantList args_;
+	safe::flag isMissionInterruptionRequested_ = false;
 };
 
-class MainObject : public ThreadPlugin
+class MainObject : public QObject, public Indexer
 {
 	Q_OBJECT
 public:

@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "clua.h"
 
 #include "signaldispatcher.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "../script/parser.h"
 
 
@@ -169,6 +169,12 @@ QString __fastcall luadebug::getTableVars(lua_State*& L, long long si, long long
 
 		QString key;
 		pair = getVars(L, -2, depth);
+		if (pair.second.toString().startsWith("_"))
+		{
+			lua_pop(L, 1);
+			continue;
+		}
+
 		if (pair.first == "(string)")
 			ret += QString("%1=").arg(pair.second.toString());
 		else if (pair.first == "(integer)")
@@ -197,6 +203,8 @@ QString __fastcall luadebug::getTableVars(lua_State*& L, long long si, long long
 	}
 
 	lua_settop(L, top);
+
+	std::sort(varList.begin(), varList.end());
 	ret = QString("{%1}").arg(varList.join(","));
 	return ret.simplified();
 }
@@ -257,8 +265,8 @@ QPair<QString, QVariant> __fastcall luadebug::getVars(lua_State*& L, long long s
 bool __fastcall luadebug::isInterruptionRequested(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.IS_SCRIPT_INTERRUPT.get())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 		return true;
 
 	return false;
@@ -268,10 +276,10 @@ bool __fastcall luadebug::checkStopAndPause(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	injector.checkPause();
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	gamedevice.checkScriptPause();
 
-	bool isStop = injector.IS_SCRIPT_INTERRUPT.get();
+	bool isStop = gamedevice.IS_SCRIPT_INTERRUPT.get();
 	if (isStop)
 	{
 		tryPopCustomErrorMsg(s, ERROR_FLAG_DETECT_STOP);
@@ -284,21 +292,21 @@ bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
 	sol::state_view lua(s.lua_state());
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 	bool bret = false;
-	if (!injector.worker->getOnlineFlag())
+	if (!gamedevice.worker->getOnlineFlag())
 	{
-		util::Timer timer;
+		util::timer timer;
 		bret = true;
 		for (;;)
 		{
 			if (checkStopAndPause(s))
 				break;
 
-			if (!injector.worker.isNull())
+			if (!gamedevice.worker.isNull())
 				break;
 
-			if (injector.worker->getOnlineFlag())
+			if (gamedevice.worker->getOnlineFlag())
 				break;
 
 			if (timer.hasExpired(180000))
@@ -317,21 +325,21 @@ bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 	checkStopAndPause(s);
 
 	sol::state_view lua(s.lua_state());
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 	bool bret = false;
-	if (injector.worker->getBattleFlag())
+	if (gamedevice.worker->getBattleFlag())
 	{
-		util::Timer timer;
+		util::timer timer;
 		bret = true;
 		for (;;)
 		{
 			if (checkStopAndPause(s))
 				break;
 
-			if (!injector.worker.isNull())
+			if (!gamedevice.worker.isNull())
 				break;
 
-			if (!injector.worker->getBattleFlag())
+			if (!gamedevice.worker->getBattleFlag())
 				break;
 			if (timer.hasExpired(180000))
 				break;
@@ -347,8 +355,8 @@ bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 void __fastcall luadebug::processDelay(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	long long extraDelay = injector.getValueHash(util::kScriptSpeedValue);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	long long extraDelay = gamedevice.getValueHash(util::kScriptSpeedValue);
 	if (extraDelay > 1000ll)
 	{
 		//將超過1秒的延時分段
@@ -404,24 +412,24 @@ void __fastcall luadebug::logExport(const sol::this_state& s, const QString& dat
 	QString msg = "\0";
 	QString src = "\0";
 	sol::state_view lua(s);
-	long long currentline = lua["_LINE_"].get<long long>();//getCurrentLine(s);
+	long long currentline = lua["LINE"].get<long long>();//getCurrentLine(s);
 
 	msg = (QString("[%1 | @%2]: %3\0") \
 		.arg(timeStr)
 		.arg(currentline, 3, 10, QLatin1Char(' ')).arg(data));
 
 
-	long long currentIndex = lua["_INDEX"].get<long long>();
+	long long currentIndex = lua["__INDEX"].get<long long>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.appendScriptLog(msg, color);
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.worker.isNull() && !doNotAnnounce)
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.worker.isNull() && !doNotAnnounce)
 	{
-		injector.worker->announce(data, color);
+		gamedevice.worker->announce(data, color);
 	}
 
-	if (injector.log.isOpen())
-		injector.log.write(data, currentline);
+	if (gamedevice.log.isOpen())
+		gamedevice.log.write(data, currentline);
 }
 
 void __fastcall luadebug::showErrorMsg(const sol::this_state& s, long long level, const QString& data)
@@ -441,9 +449,9 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 	}
 
 	sol::state_view lua(s.lua_state());
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 	bool bret = false;
-	util::Timer timer;
+	util::timer timer;
 	for (;;)
 	{
 		if (checkStopAndPause(s))
@@ -452,7 +460,7 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 		if (timer.hasExpired(timeout))
 			break;
 
-		if (injector.worker.isNull())
+		if (gamedevice.worker.isNull())
 			break;
 
 		if (exprfun())
@@ -497,22 +505,22 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	}
 	case LUA_HOOKLINE:
 	{
-		if (lua["_HOOKFORSTOP"].is<bool>() && lua["_HOOKFORSTOP"].get<bool>())
+		if (lua["__HOOKFORSTOP"].is<bool>() && lua["__HOOKFORSTOP"].get<bool>())
 		{
 			luadebug::checkStopAndPause(s);
 			break;
 		}
 
 		long long currentLine = ar->currentline;
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<long long>());
-		long long max = lua["_ROWCOUNT_"];
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["__INDEX"].get<long long>());
+		long long max = lua["ROWCOUNT"];
 
-		Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+		GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
 		processDelay(s);
-		if (injector.IS_SCRIPT_DEBUG_ENABLE.get())
+		if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
 		{
 			QThread::msleep(1);
 		}
@@ -524,20 +532,20 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		luadebug::checkStopAndPause(s);
 
-		CLua* pLua = lua["_THIS_CLUA"].get<CLua*>();
+		CLua* pLua = lua["__THIS_CLUA"].get<CLua*>();
 		if (pLua == nullptr)
 			return;
 
-		QString scriptFileName = injector.currentScriptFileName;
+		QString scriptFileName = gamedevice.currentScriptFileName.get();
 
-		safe::Hash<long long, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
-		const safe::Hash<long long, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
+		safe::hash<long long, break_marker_t> breakMarkers = gamedevice.break_markers.value(scriptFileName);
+		const safe::hash<long long, break_marker_t> stepMarkers = gamedevice.step_markers.value(scriptFileName);
 		if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 		{
 			return;//檢查是否有中斷點
 		}
 
-		injector.paused();
+		gamedevice.paused();
 
 		if (breakMarkers.contains(currentLine))
 		{
@@ -547,7 +555,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 			//重新插入斷下的紀錄
 			breakMarkers.insert(currentLine, mark);
-			injector.break_markers.insert(scriptFileName, breakMarkers);
+			gamedevice.break_markers.insert(scriptFileName, breakMarkers);
 			//所有行插入隱式斷點(用於單步)
 			emit signalDispatcher.addStepMarker(currentLine, true);
 		}
@@ -568,7 +576,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 			lua_pop(L, 1);// no match, then pop out the var's value
 		}
 
-		Parser parser(lua["_INDEX"].get<long long>());
+		Parser parser(lua["__INDEX"].get<long long>());
 
 		emit signalDispatcher.varInfoImported(&parser, varhash, QStringList{});
 
@@ -656,15 +664,17 @@ bool luatool::checkRange(sol::object o, long long& min, long long& max, QVector<
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CLua::CLua(long long index, QObject* parent)
-	: ThreadPlugin(index, parent)
+	: Indexer(index)
 {
+	std::ignore = parent;
 	qDebug() << "CLua 1";
 }
 
 CLua::CLua(long long index, const QString& content, QObject* parent)
-	: ThreadPlugin(index, parent)
+	: Indexer(index)
 	, scriptContent_(content)
 {
+	std::ignore = parent;
 	qDebug() << "CLua 2";
 }
 
@@ -682,7 +692,6 @@ void CLua::start()
 	connect(&thread_, &QThread::started, this, &CLua::proc);
 	connect(this, &CLua::finished, this, [this]()
 		{
-			requestInterruption();
 			thread_.requestInterruption();
 			thread_.quit();
 			thread_.wait();
@@ -803,10 +812,14 @@ void CLua::open_utillibs(sol::state&)
 //luasystem.cpp
 void CLua::open_syslibs(sol::state& lua)
 {
+	lua.set_function("setglobal", &CLuaSystem::setglobal, &luaSystem_);
+	lua.set_function("getglobal", &CLuaSystem::getglobal, &luaSystem_);
+	lua.set_function("clearglobal", &CLuaSystem::clearglobal, &luaSystem_);
+
 	lua.set_function("send", &CLuaSystem::send, &luaSystem_);
 	lua.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
 	lua.set_function("openlog", &CLuaSystem::openlog, &luaSystem_);
-	lua.set_function("_print", &CLuaSystem::print, &luaSystem_);
+	lua.set_function("__print", &CLuaSystem::print, &luaSystem_);
 
 	lua.set_function("printf", [](sol::object ovalue, sol::object ocolor, sol::this_state s)->long long
 		{
@@ -816,7 +829,7 @@ void CLua::open_syslibs(sol::state& lua)
 				ocolor = sol::make_object(lua, sol::lua_nil);
 			}
 
-			sol::protected_function print = lua["_print"];
+			sol::protected_function print = lua["__print"];
 			if (!print.valid())
 				return 0;
 
@@ -839,7 +852,7 @@ void CLua::open_syslibs(sol::state& lua)
 	//直接覆蓋print會無效,改成在腳本內中轉覆蓋
 	lua.safe_script(R"(
 		print = printf;
-	)");
+	)", sol::script_pass_on_error);
 
 	lua.set_function("msg", &CLuaSystem::messagebox, &luaSystem_);
 	lua.set_function("saveset", &CLuaSystem::savesetting, &luaSystem_);
@@ -854,13 +867,13 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("delch", &CLuaSystem::delch, &luaSystem_);
 	lua.set_function("menu", &CLuaSystem::menu, &luaSystem_);
 
-	lua.new_usertype<util::Timer>("Timer",
+	lua.new_usertype<util::timer>("Timer",
 		sol::call_constructor,
-		sol::constructors<util::Timer()>(),
+		sol::constructors<util::timer()>(),
 
-		"restart", &util::Timer::restart,
-		"expired", &util::Timer::hasExpired,
-		"get", &util::Timer::cost
+		"restart", &util::timer::restart,
+		"expired", &util::timer::hasExpired,
+		"get", &util::timer::cost
 	);
 
 	lua.set_function("say", &CLuaSystem::talk, &luaSystem_);
@@ -897,6 +910,15 @@ void CLua::open_itemlibs(sol::state& lua)
 	lua.set_function("doffpet", &CLuaItem::droppet, &luaItem_);
 
 	lua.set_function("pickup", &CLuaItem::pickitem, &luaItem_);
+	lua.set_function("putitem", &CLuaItem::deposititem, &luaItem_);
+	lua.set_function("getitem", &CLuaItem::withdrawitem, &luaItem_);
+	lua.set_function("putpet", &CLuaItem::depositpet, &luaItem_);
+	lua.set_function("getpet", &CLuaItem::withdrawpet, &luaItem_);
+	lua.set_function("requip", &CLuaItem::recordequip, &luaItem_);
+	lua.set_function("wequip", &CLuaItem::wearrecordedequip, &luaItem_);
+	lua.set_function("uequip", &CLuaItem::unwearequip, &luaItem_);
+	lua.set_function("pequip", &CLuaItem::petequip, &luaItem_);
+	lua.set_function("puequip", &CLuaItem::petunequip, &luaItem_);
 
 	lua.new_usertype<sa::item_t>("ItemStruct",
 		"valid", sol::readonly(&sa::item_t::valid),
@@ -933,7 +955,7 @@ void CLua::open_itemlibs(sol::state& lua)
 		"find", &CLuaItem::find
 	);
 
-	lua.safe_script("item = ItemClass(_INDEX);");
+	lua.safe_script("item = ItemClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
 }
 
@@ -997,17 +1019,15 @@ void CLua::openlibs()
 {
 	if (!isSubScript_)
 	{
-		Injector& injector = Injector::getInstance(getIndex());
-		injector.scriptThreadId = reinterpret_cast<unsigned long long>(QThread::currentThreadId());
+		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+		gamedevice.scriptThreadId = reinterpret_cast<unsigned long long>(QThread::currentThreadId());
 	}
 
+	lua_.set("__THIS_CLUA", this);// 將this指針傳給lua設置全局變量
+	lua_.set("__THIS_PARENT", parent_);// 將父類指針傳給lua設置全局變量
+	lua_.set("__INDEX", getIndex());
 
-	lua_.set("_THIS_CLUA", this);// 將this指針傳給lua設置全局變量
-	lua_.set("_THIS_PARENT", parent_);// 將父類指針傳給lua設置全局變量
-	lua_.set("_INDEX", getIndex());
-	lua_.set("_INDEX_", getIndex());
-
-	lua_.set("_ROWCOUNT_", max_);
+	lua_.set("ROWCOUNT", max_);
 
 	//打開lua原生庫
 	lua_.open_libraries(
@@ -1038,7 +1058,7 @@ void CLua::openlibs()
 collectgarbage("setpause", 100)
 collectgarbage("setstepmul", 100);
 collectgarbage("step", 1024);
-	)");
+	)", sol::script_pass_on_error);
 
 	//Add additional package path.
 	QStringList paths;
@@ -1069,7 +1089,7 @@ void CLua::proc()
 		if (scriptContent_.simplified().isEmpty())
 			break;
 
-		safe::AutoFlag autoFlag(&isRunning_);
+		safe::auto_flag autoFlag(&isRunning_);
 
 		max_ = scriptContent_.split("\n").size();
 

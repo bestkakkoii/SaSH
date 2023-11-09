@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 
 #include "signaldispatcher.h"
-#include "injector.h"
+#include <gamedevice.h>
 
 CharInfoForm::CharInfoForm(long long index, QWidget* parent)
 	: QWidget(parent)
@@ -43,21 +43,21 @@ CharInfoForm::CharInfoForm(long long index, QWidget* parent)
 
 	connect(ui.tableWidget->horizontalHeader(), &QHeaderView::sectionClicked, this, &CharInfoForm::onHeaderClicked);
 
-	Injector& injector = Injector::getInstance(index);
-	if (!injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(index);
+	if (!gamedevice.worker.isNull())
 	{
-		QHash<long long, QVariant> playerInfoColContents = injector.worker->playerInfoColContents.toHash();
+		QHash<long long, QVariant> playerInfoColContents = gamedevice.worker->playerInfoColContents.toHash();
 		for (auto it = playerInfoColContents.begin(); it != playerInfoColContents.end(); ++it)
 		{
 			onUpdateCharInfoColContents(it.key(), it.value());
 		}
 
-		long long stone = injector.worker->getCharacter().gold;
+		long long stone = gamedevice.worker->getCharacter().gold;
 		onUpdateCharInfoStone(stone);
 
 		for (long long i = 0; i < sa::MAX_PET; ++i)
 		{
-			sa::pet_t pet = injector.worker->getPet(i);
+			sa::pet_t pet = gamedevice.worker->getPet(i);
 			onUpdateCharInfoPetState(i, pet.state);
 		}
 	}
@@ -170,41 +170,41 @@ void CharInfoForm::onHeaderClicked(long long logicalIndex)
 		long long petIndex = logicalIndex - 2;
 		if (petIndex < 0 || petIndex >= sa::MAX_PET)
 			break;
-		Injector& injector = Injector::getInstance(currentIndex);
-		if (injector.worker.isNull())
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		if (gamedevice.worker.isNull())
 			break;
 
-		sa::pet_t pet = injector.worker->getPet(petIndex);
+		sa::pet_t pet = gamedevice.worker->getPet(petIndex);
 		switch (pet.state)
 		{
 		case sa::PetState::kRest:
 		{
 
-			injector.worker->setPetState(petIndex, sa::PetState::kStandby);
+			gamedevice.worker->setPetState(petIndex, sa::PetState::kStandby);
 			break;
 		}
 		case sa::PetState::kStandby:
 		{
-			injector.worker->setPetState(petIndex, sa::PetState::kBattle);
+			gamedevice.worker->setPetState(petIndex, sa::PetState::kBattle);
 			break;
 		}
 		case sa::PetState::kBattle:
 		{
-			injector.worker->setPetState(petIndex, sa::PetState::kMail);
+			gamedevice.worker->setPetState(petIndex, sa::PetState::kMail);
 			break;
 		}
 		case sa::PetState::kMail:
 		{
 
-			if (injector.worker->getPet(petIndex).loyal == 100)
-				injector.worker->setPetState(petIndex, sa::PetState::kRide);
+			if (gamedevice.worker->getPet(petIndex).loyal == 100)
+				gamedevice.worker->setPetState(petIndex, sa::PetState::kRide);
 			else
-				injector.worker->setPetState(petIndex, sa::PetState::kRest);
+				gamedevice.worker->setPetState(petIndex, sa::PetState::kRest);
 			break;
 		}
 		case sa::PetState::kRide:
 		{
-			injector.worker->setPetState(petIndex, sa::PetState::kRest);
+			gamedevice.worker->setPetState(petIndex, sa::PetState::kRest);
 			break;
 		}
 		}

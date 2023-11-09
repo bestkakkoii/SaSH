@@ -18,17 +18,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "clua.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 long long CLuaBattle::charUseAttack(long long objIndex, sol::this_state s)//atk
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattleCharAttackAct(--objIndex);
+	gamedevice.worker->sendBattleCharAttackAct(--objIndex);
 
 	return TRUE;
 }
@@ -36,11 +36,11 @@ long long CLuaBattle::charUseAttack(long long objIndex, sol::this_state s)//atk
 long long CLuaBattle::charUseMagic(long long magicIndex, long long objIndex, sol::this_state s)//magic
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattleCharMagicAct(--magicIndex, --objIndex);
+	gamedevice.worker->sendBattleCharMagicAct(--magicIndex, --objIndex);
 
 	return TRUE;
 }
@@ -48,11 +48,11 @@ long long CLuaBattle::charUseMagic(long long magicIndex, long long objIndex, sol
 long long CLuaBattle::charUseSkill(long long skillIndex, long long objIndex, sol::this_state s)//skill
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattleCharJobSkillAct(--skillIndex, --objIndex);
+	gamedevice.worker->sendBattleCharJobSkillAct(--skillIndex, --objIndex);
 
 	return TRUE;
 }
@@ -60,11 +60,11 @@ long long CLuaBattle::charUseSkill(long long skillIndex, long long objIndex, sol
 long long CLuaBattle::switchPet(long long petIndex, sol::this_state s)//switch
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattleCharSwitchPetAct(--petIndex);
+	gamedevice.worker->sendBattleCharSwitchPetAct(--petIndex);
 
 	return TRUE;
 }
@@ -72,11 +72,11 @@ long long CLuaBattle::switchPet(long long petIndex, sol::this_state s)//switch
 long long CLuaBattle::escape(sol::this_state s)//escape
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattleCharEscapeAct();
+	gamedevice.worker->sendBattleCharEscapeAct();
 
 	return TRUE;
 }
@@ -84,11 +84,11 @@ long long CLuaBattle::escape(sol::this_state s)//escape
 long long CLuaBattle::defense(sol::this_state s)//defense
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattleCharDefenseAct();
+	gamedevice.worker->sendBattleCharDefenseAct();
 
 	return TRUE;
 }
@@ -96,11 +96,11 @@ long long CLuaBattle::defense(sol::this_state s)//defense
 long long CLuaBattle::useItem(long long itemIndex, long long objIndex, sol::this_state s)//item
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattleCharItemAct(--itemIndex, --objIndex);
+	gamedevice.worker->sendBattleCharItemAct(--itemIndex, --objIndex);
 
 	return TRUE;
 }
@@ -108,11 +108,11 @@ long long CLuaBattle::useItem(long long itemIndex, long long objIndex, sol::this
 long long CLuaBattle::catchPet(long long objIndex, sol::this_state s)//catch
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattleCharCatchPetAct(--objIndex);
+	gamedevice.worker->sendBattleCharCatchPetAct(--objIndex);
 
 	return TRUE;
 }
@@ -120,11 +120,11 @@ long long CLuaBattle::catchPet(long long objIndex, sol::this_state s)//catch
 long long CLuaBattle::nothing(sol::this_state s)//nothing
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattleCharDoNothing();
+	gamedevice.worker->sendBattleCharDoNothing();
 
 	return TRUE;
 }
@@ -132,11 +132,11 @@ long long CLuaBattle::nothing(sol::this_state s)//nothing
 long long CLuaBattle::petUseSkill(long long petSkillIndex, long long objIndex, sol::this_state s)//petskill
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattlePetSkillAct(--petSkillIndex, --objIndex);
+	gamedevice.worker->sendBattlePetSkillAct(--petSkillIndex, --objIndex);
 
 	return TRUE;
 }
@@ -144,11 +144,11 @@ long long CLuaBattle::petUseSkill(long long petSkillIndex, long long objIndex, s
 long long CLuaBattle::petNothing(sol::this_state s)//pet nothing
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->sendBattlePetDoNothing();
+	gamedevice.worker->sendBattlePetDoNothing();
 
 	return TRUE;
 }
@@ -156,14 +156,9 @@ long long CLuaBattle::petNothing(sol::this_state s)//pet nothing
 long long CLuaBattle::bwait(sol::object otimeout, sol::object jump, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (jump.is<long long>() || jump.is<std::string>())
-		lua["_JUMP"] = jump;
-	else
-		lua["_JUMP"] = sol::lua_nil;
-
-	if (injector.worker.isNull())
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 
@@ -171,28 +166,23 @@ long long CLuaBattle::bwait(sol::object otimeout, sol::object jump, sol::this_st
 	if (otimeout.is<long long>())
 		timeout = otimeout.as<long long>();
 
-	injector.sendMessage(kEnableBattleDialog, false, NULL);
-	bool bret = luadebug::waitfor(s, timeout, [&injector]()
+	gamedevice.sendMessage(kEnableBattleDialog, false, NULL);
+	bool bret = luadebug::waitfor(s, timeout, [&gamedevice]()
 		{
-			if (!injector.worker->getBattleFlag())
+			if (!gamedevice.worker->getBattleFlag())
 				return true;
-			long long G = injector.worker->getGameStatus();
-			long long W = injector.worker->getWorldStatus();
+			long long G = gamedevice.worker->getGameStatus();
+			long long W = gamedevice.worker->getWorldStatus();
 
 			return W == 10 && G == 4;
 		});
 
-	if (injector.worker->getBattleFlag())
+	if (gamedevice.worker->getBattleFlag())
 	{
-		injector.sendMessage(kEnableBattleDialog, true, NULL);
+		gamedevice.sendMessage(kEnableBattleDialog, true, NULL);
 	}
 	else
 		bret = false;
-
-	if (bret)
-	{
-		lua["_JUMP"] = sol::lua_nil;
-	}
 
 	return bret;
 }
@@ -200,16 +190,16 @@ long long CLuaBattle::bwait(sol::object otimeout, sol::object jump, sol::this_st
 long long CLuaBattle::bend(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	long long G = injector.worker->getGameStatus();
+	long long G = gamedevice.worker->getGameStatus();
 	if (G == 4)
 	{
-		mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
-		injector.worker->setGameStatus(5);
-		injector.worker->isBattleDialogReady.off();
+		mem::write<short>(gamedevice.getProcess(), gamedevice.getProcessModule() + 0xE21E8, 1);
+		gamedevice.worker->setGameStatus(5);
+		gamedevice.worker->isBattleDialogReady.off();
 		return TRUE;
 	}
 	return FALSE;

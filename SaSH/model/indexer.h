@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <atomic>
 #include <QObject>
+#include "safe.h"
 
 class Indexer
 {
@@ -28,11 +29,11 @@ public:
 
 	virtual inline void setIndex(long long index)
 	{
-		index_.store(index, std::memory_order_release);
+		index_.set(index);
 	}
 
-	virtual inline long long getIndex() const { return index_.load(std::memory_order_acquire); }
+	virtual inline long long getIndex() const { return index_.get(); }
 
 private:
-	std::atomic_int64_t index_ = -1;
+	safe::integer index_ = -1;
 };

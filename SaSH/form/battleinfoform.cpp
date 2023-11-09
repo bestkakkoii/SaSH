@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "battleinfoform.h"
 
 #include "signaldispatcher.h"
-#include "injector.h"
+#include <gamedevice.h>
 
 //constexpr long long max_col = 2;
 constexpr long long max_row = 10;
@@ -52,12 +52,12 @@ BattleInfoForm::BattleInfoForm(long long index, QWidget* parent)
 	ui.tableWidget_bottom->setRowCount(max_row);
 	ui.tableWidget_top->setRowCount(max_row);
 
-	Injector& injector = Injector::getInstance(index);
-	if (!injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(index);
+	if (!gamedevice.worker.isNull())
 	{
-		QString timeLabelContents = injector.worker->timeLabelContents.get();
-		QString labelCharAction = injector.worker->labelCharAction.get();
-		QString labelPetAction = injector.worker->labelPetAction.get();
+		QString timeLabelContents = gamedevice.worker->timeLabelContents.get();
+		QString labelCharAction = gamedevice.worker->labelCharAction.get();
+		QString labelPetAction = gamedevice.worker->labelPetAction.get();
 
 		onUpdateTimeLabelContents(timeLabelContents);
 		onUpdateLabelCharAction(labelCharAction);
@@ -217,7 +217,7 @@ void BattleInfoForm::onNotifyBattleActionState(long long index)
 	if (!fill_hash.contains(index))
 		return;
 
-	Injector& injector = Injector::getInstance(getIndex());
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
 	const QPair<long long, long long> pair = fill_hash.value(index);
 
@@ -235,11 +235,11 @@ void BattleInfoForm::onNotifyBattleActionState(long long index)
 		return;
 
 	QString text = item->text().mid(1);
-	QString actMark = injector.getStringHash(util::kBattleActMarkString);
+	QString actMark = gamedevice.getStringHash(util::kBattleActMarkString);
 	if (text.simplified().startsWith(actMark))
 		return;
 
-	QString spaceMark = injector.getStringHash(util::kBattleSpaceMarkString);
+	QString spaceMark = gamedevice.getStringHash(util::kBattleSpaceMarkString);
 	if (spaceMark.isEmpty())
 		spaceMark = "　";
 
@@ -261,8 +261,8 @@ void BattleInfoForm::onNotifyBattleActionState(long long index)
 
 void BattleInfoForm::onUpdateBattleItemRowContents(long long index, const QString& text, const QColor& color)
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	QString spaceMark = injector.getStringHash(util::kBattleSpaceMarkString);
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	QString spaceMark = gamedevice.getStringHash(util::kBattleSpaceMarkString);
 
 	const QPair<long long, long long> fill = fill_hash.value(index, qMakePair(-1, -1));
 	if (fill.first == -1)

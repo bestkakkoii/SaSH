@@ -446,7 +446,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
     </ClCompile>
     <ClCompile Include="form\settingfiledialog.cpp" />
-    <ClCompile Include="injector.cpp" />
+    <ClCompile Include="gamedevice.cpp" />
     <ClCompile Include="mainthread.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
@@ -528,7 +528,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <QtMoc Include="form\settingfiledialog.h" />
     <QtMoc Include="form\findandreplaceform.h" />
     <ClInclude Include="globalmicro.h" />
-    <ClInclude Include="injector.h" />
+    <ClInclude Include="gamedevice.h" />
     <QtMoc Include="interfacer.h" />
     <ClInclude Include="map\astardevice.h" />
     <ClInclude Include="map\mapdevice.h" />
@@ -542,7 +542,6 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <QtMoc Include="model\dragdropwidget.h" />
     <ClInclude Include="model\highlighter.h" />
     <QtMoc Include="model\listview.h" />
-    <QtMoc Include="model\threadplugin.h" />
     <QtMoc Include="model\qthumbnailform.h" />
     <QtMoc Include="model\qthumbnailwidget.h" />
     <QtMoc Include="model\pushButton.h" />

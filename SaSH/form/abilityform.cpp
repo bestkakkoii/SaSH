@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "abilityform.h"
 #include <util.h>
-#include <injector.h>
+#include <gamedevice.h>
 
 AbilityForm::AbilityForm(long long index, QWidget* parent)
 	: QDialog(parent)
@@ -63,10 +63,10 @@ AbilityForm::~AbilityForm()
 void AbilityForm::onApplyHashSettingsToUI()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, long long> valueHash = injector.getValuesHash();
-	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	QHash<util::UserSetting, bool> enableHash = gamedevice.getEnablesHash();
+	QHash<util::UserSetting, long long> valueHash = gamedevice.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = gamedevice.getStringsHash();
 
 	ui.checkBox->setChecked(enableHash.value(util::kAutoAbilityEnable));
 
@@ -124,8 +124,8 @@ void AbilityForm::on_tableWidget_cellDoubleClicked(int row, int column)
 
 void AbilityForm::on_checkBox_stateChanged(int state)
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	injector.setEnableHash(util::kAutoAbilityEnable, state == Qt::Checked);
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	gamedevice.setEnableHash(util::kAutoAbilityEnable, state == Qt::Checked);
 }
 
 void AbilityForm::onButtonClicked()
@@ -179,9 +179,9 @@ void AbilityForm::onButtonClicked()
 
 		QString str = list.join("|");
 
-		Injector& injector = Injector::getInstance(getIndex());
+		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
-		injector.setStringHash(util::kAutoAbilityString, str);
+		gamedevice.setStringHash(util::kAutoAbilityString, str);
 		return;
 	}
 
@@ -190,8 +190,8 @@ void AbilityForm::onButtonClicked()
 		long long size = ui.tableWidget->rowCount();
 		for (long long i = size - 1, j = 0; i >= j; --i)
 			ui.tableWidget->removeRow(i);
-		Injector& injector = Injector::getInstance(getIndex());
-		injector.setStringHash(util::kAutoAbilityString, "");
+		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+		gamedevice.setStringHash(util::kAutoAbilityString, "");
 		return;
 	}
 

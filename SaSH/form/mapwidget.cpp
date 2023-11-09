@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "mainthread.h"
 #include "mapwidget.h"
 #include "util.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "net/tcpserver.h"
 #include "map/mapdevice.h"
 #include "model/customtitlebar.h"
@@ -142,8 +142,8 @@ void MapWidget::showEvent(QShowEvent*)
 	setUpdatesEnabled(true);
 	blockSignals(false);
 
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.IS_FINDINGPATH.get())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.IS_FINDINGPATH.get())
 	{
 		ui.pushButton_findPath->setEnabled(false);
 	}
@@ -165,10 +165,10 @@ void MapWidget::onFindPathFinished()
 void MapWidget::closeEvent(QCloseEvent*)
 {
 	QMutexLocker lock(&missionThreadMutex_);
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.IS_FINDINGPATH.get())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.IS_FINDINGPATH.get())
 	{
-		injector.IS_FINDINGPATH.off();
+		gamedevice.IS_FINDINGPATH.off();
 	}
 
 	if (missionThread_ != nullptr)
@@ -221,20 +221,20 @@ void MapWidget::onRefreshTimeOut()
 		return;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull()) return;
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull()) return;
 
 
-	if (!injector.worker->getOnlineFlag()) return;
+	if (!gamedevice.worker->getOnlineFlag()) return;
 
-	sa::character_t _ch = injector.worker->getCharacter();
-	long long floor = injector.worker->getFloor();
-	const QPointF qp_current(injector.worker->getPoint());
+	sa::character_t _ch = gamedevice.worker->getCharacter();
+	long long floor = gamedevice.worker->getFloor();
+	const QPointF qp_current(gamedevice.worker->getPoint());
 
 	QString caption(tr("[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8")
 		.arg(currentIndex)
 		.arg(_ch.name)
-		.arg(injector.worker->getFloorName())
+		.arg(gamedevice.worker->getFloorName())
 		.arg(floor)
 		.arg(qp_current.x()).arg(qp_current.y())
 		.arg(qFloor(curMousePos_.x())).arg(qFloor(curMousePos_.y())));
@@ -243,17 +243,17 @@ void MapWidget::onRefreshTimeOut()
 		caption += " " + tr("downloading(%1%2)").arg(util::toQString(downloadMapProgress_)).arg("%");
 	setWindowTitle(caption);
 
-	bool map_ret = injector.worker->mapDevice.readFromBinary(currentIndex, floor, injector.worker->getFloorName(), true);
+	bool map_ret = gamedevice.worker->mapDevice.readFromBinary(currentIndex, floor, gamedevice.worker->getFloorName(), true);
 	if (!map_ret)
 		return;
 
-	QPixmap ppix = injector.worker->mapDevice.getPixmapByIndex(floor);
+	QPixmap ppix = gamedevice.worker->mapDevice.getPixmapByIndex(floor);
 	if (ppix.isNull())  return;
 
 
-	injector.worker->mapDevice.getMapDataByFloor(floor, &map_);
+	gamedevice.worker->mapDevice.getMapDataByFloor(floor, &map_);
 
-	QHash<long long, sa::map_unit_t> unitHash = injector.worker->mapUnitHash.toHash();
+	QHash<long long, sa::map_unit_t> unitHash = gamedevice.worker->mapUnitHash.toHash();
 	auto findMapUnitByPoint = [&unitHash](const QPoint& p, sa::map_unit_t* u)->bool
 		{
 			for (auto it = unitHash.begin(); it != unitHash.end(); ++it)
@@ -554,20 +554,20 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 {
 	QMutexLocker lock(&missionThreadMutex_);
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.IS_SCRIPT_FLAG.get())
+	if (gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return;
 
-	if (!injector.worker->getOnlineFlag())
+	if (!gamedevice.worker->getOnlineFlag())
 		return;
 
-	if (injector.IS_FINDINGPATH.get())
+	if (gamedevice.IS_FINDINGPATH.get())
 	{
-		injector.IS_FINDINGPATH.off();
+		gamedevice.IS_FINDINGPATH.off();
 	}
 
 	if (missionThread_ != nullptr)
@@ -577,7 +577,7 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 		missionThread_ = nullptr;
 	}
 
-	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
+	connect(gamedevice.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
 
 	const QPointF predst(pos / zoom_value_);
 	const QPoint dst(predst.toPoint());
@@ -640,44 +640,44 @@ void MapWidget::onDownloadMapTimeout()
 		return;
 	}
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 	{
 		isDownloadingMap_ = false;
 		return;
 	}
 
-	injector.worker->downloadMap(downloadMapX_, downloadMapY_);
-	long long floor = injector.worker->getFloor();
-	QString name = injector.worker->getFloorName();
+	gamedevice.worker->downloadMap(downloadMapX_, downloadMapY_);
+	long long floor = gamedevice.worker->getFloor();
+	QString name = gamedevice.worker->getFloorName();
 
 	downloadNextBlock();
 
 	if (downloadMapProgress_ >= 100.0)
 	{
 		downloadMapTimer_.stop();
-		const QPoint qp_current = injector.worker->getPoint();
+		const QPoint qp_current = gamedevice.worker->getPoint();
 		QString caption(tr("[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8")
 			.arg(currentIndex)
-			.arg(injector.worker->getCharacter().name)
-			.arg(injector.worker->getFloorName())
-			.arg(injector.worker->getFloor())
+			.arg(gamedevice.worker->getCharacter().name)
+			.arg(gamedevice.worker->getFloorName())
+			.arg(gamedevice.worker->getFloor())
 			.arg(qp_current.x()).arg(qp_current.y())
 			.arg(qFloor(curMousePos_.x())).arg(qFloor(curMousePos_.y())));
 		caption += " " + tr("downloading(%1%2)").arg(util::toQString(100.00)).arg("%");
 		setWindowTitle(caption);
 
-		injector.worker->mapDevice.clear(floor);
-		const QString fileName(injector.worker->mapDevice.getCurrentPreHandleMapPath(currentIndex, floor));
+		gamedevice.worker->mapDevice.clear(floor);
+		const QString fileName(gamedevice.worker->mapDevice.getCurrentPreHandleMapPath(currentIndex, floor));
 		QFile file(fileName);
 		if (file.exists())
 		{
 			file.remove();
 		}
 		isDownloadingMap_ = false;
-		injector.worker->EO();
-		injector.worker->mapDevice.readFromBinary(currentIndex, floor, name, true, true);
+		gamedevice.worker->EO();
+		gamedevice.worker->mapDevice.readFromBinary(currentIndex, floor, name, true, true);
 		if (!ui.pushButton_download->isEnabled())
 			ui.pushButton_download->setEnabled(true);
 	}
@@ -688,9 +688,9 @@ void MapWidget::on_pushButton_download_clicked()
 	if (isDownloadingMap_)
 		return;
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 	{
 		return;
 	}
@@ -698,7 +698,7 @@ void MapWidget::on_pushButton_download_clicked()
 	ui.pushButton_download->setEnabled(false);
 
 	sa::map_t map = {};
-	injector.worker->mapDevice.getMapDataByFloor(injector.worker->getFloor(), &map);
+	gamedevice.worker->mapDevice.getMapDataByFloor(gamedevice.worker->getFloor(), &map);
 
 	downloadCount_ = 0;
 	downloadMapXSize_ = map.width;
@@ -719,60 +719,60 @@ void MapWidget::on_pushButton_download_clicked()
 void MapWidget::on_pushButton_clear_clicked()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return;
 
-	long long floor = injector.worker->getFloor();
-	injector.worker->mapDevice.clear(floor);
+	long long floor = gamedevice.worker->getFloor();
+	gamedevice.worker->mapDevice.clear(floor);
 
-	const QString fileName(injector.worker->mapDevice.getCurrentPreHandleMapPath(currentIndex, floor));
+	const QString fileName(gamedevice.worker->mapDevice.getCurrentPreHandleMapPath(currentIndex, floor));
 	QFile file(fileName);
 	if (!file.exists())
 		return;
 
 	file.remove();
 
-	injector.worker->mapDevice.readFromBinary(currentIndex, floor, injector.worker->getFloorName(), true, true);
+	gamedevice.worker->mapDevice.readFromBinary(currentIndex, floor, gamedevice.worker->getFloorName(), true, true);
 }
 
 void MapWidget::on_pushButton_returnBase_clicked()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 	{
 		return;
 	}
 
-	if (injector.isValid())
-		injector.setEnableHash(util::kLogBackEnable, true);
+	if (gamedevice.isValid())
+		gamedevice.setEnableHash(util::kLogBackEnable, true);
 }
 
 void MapWidget::on_pushButton_findPath_clicked()
 {
 	QMutexLocker lock(&missionThreadMutex_);
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.isValid())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.isValid())
 		return;
 
-	if (injector.IS_SCRIPT_FLAG.get())
+	if (gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
-	if (injector.IS_FINDINGPATH.get())
+	if (gamedevice.IS_FINDINGPATH.get())
 		return;
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return;
 
-	if (!injector.worker->getOnlineFlag())
+	if (!gamedevice.worker->getOnlineFlag())
 		return;
 
-	if (injector.IS_FINDINGPATH.get())
+	if (gamedevice.IS_FINDINGPATH.get())
 	{
-		injector.IS_FINDINGPATH.off();
+		gamedevice.IS_FINDINGPATH.off();
 	}
 
 	if (missionThread_ != nullptr)
@@ -782,7 +782,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 		missionThread_ = nullptr;
 	}
 
-	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
+	connect(gamedevice.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
 
 	long long x = ui.spinBox_findPathX->value();
 	long long y = ui.spinBox_findPathY->value();
@@ -804,8 +804,8 @@ void MapWidget::on_pushButton_findPath_clicked()
 void MapWidget::onClear()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	injector.IS_FINDINGPATH.off();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	gamedevice.IS_FINDINGPATH.off();
 }
 
 void MapWidget::updateNpcListAllContents(const QVariant& d)
@@ -863,23 +863,23 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.isValid())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.isValid())
 		return;
 
-	if (injector.IS_SCRIPT_FLAG.get())
+	if (gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
-	if (injector.IS_FINDINGPATH.get())
+	if (gamedevice.IS_FINDINGPATH.get())
 		return;
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return;
 
-	if (!injector.worker->getOnlineFlag())
+	if (!gamedevice.worker->getOnlineFlag())
 		return;
 
-	connect(injector.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
+	connect(gamedevice.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
 
 	QString name(item_name->text());
 	QString text(item->text());
@@ -898,38 +898,38 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	{
 		static const QRegularExpression rex(R"(\[NPC\]\[\d+\])");
 		name = name.remove(rex);
-		if (!injector.worker->findUnit(name, sa::kObjectNPC, &unit))
+		if (!gamedevice.worker->findUnit(name, sa::kObjectNPC, &unit))
 			return;
 	}
 	else if (name.contains(tr("[P]")))
 	{
 		name = name.remove(tr("[P]"));
-		if (!injector.worker->findUnit(name, sa::kObjectPet, &unit))
+		if (!gamedevice.worker->findUnit(name, sa::kObjectPet, &unit))
 			return;
 	}
 	else if (name.contains(tr("[H]")))
 	{
 		name = name.remove(tr("[H]"));
-		if (!injector.worker->findUnit(name, sa::kObjectHuman, &unit))
+		if (!gamedevice.worker->findUnit(name, sa::kObjectHuman, &unit))
 			return;
 	}
 	else if (name.contains(tr("[I]")))
 	{
 		name = name.remove(tr("[I]"));
-		if (!injector.worker->findUnit(name, sa::kObjectItem, &unit))
+		if (!gamedevice.worker->findUnit(name, sa::kObjectItem, &unit))
 			return;
 	}
 	else if (name.contains(tr("[G]")))
 	{
 		name = name.remove(tr("[G]"));
-		if (!injector.worker->findUnit(name, sa::kObjectGold, &unit))
+		if (!gamedevice.worker->findUnit(name, sa::kObjectGold, &unit))
 			return;
 	}
 	else
 	{
-		if (injector.IS_FINDINGPATH.get())
+		if (gamedevice.IS_FINDINGPATH.get())
 		{
-			injector.IS_FINDINGPATH.off();
+			gamedevice.IS_FINDINGPATH.off();
 		}
 
 		if (missionThread_ != nullptr)
@@ -953,13 +953,13 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 
 	AStarDevice astar;
-	long long floor = injector.worker->getFloor();
-	QPoint point = injector.worker->getPoint();
+	long long floor = gamedevice.worker->getFloor();
+	QPoint point = gamedevice.worker->getPoint();
 	//npc前方一格
 	QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
 
 	//檢查是否可走
-	if (injector.worker->mapDevice.isPassable(currentIndex, &astar, floor, point, newPoint))
+	if (gamedevice.worker->mapDevice.isPassable(currentIndex, &astar, floor, point, newPoint))
 	{
 		x = newPoint.x();
 		y = newPoint.y();
@@ -969,7 +969,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		//再往前一格
 		QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
 		//檢查是否可走
-		if (injector.worker->mapDevice.isPassable(currentIndex, &astar, floor, point, additionPoint))
+		if (gamedevice.worker->mapDevice.isPassable(currentIndex, &astar, floor, point, additionPoint))
 		{
 			x = additionPoint.x();
 			y = additionPoint.y();
@@ -981,7 +981,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 			for (long long i = 0; i < 8; ++i)
 			{
 				newPoint = util::fix_point.value(i) + unit.p;
-				if (injector.worker->mapDevice.isPassable(currentIndex, &astar, floor, point, newPoint))
+				if (gamedevice.worker->mapDevice.isPassable(currentIndex, &astar, floor, point, newPoint))
 				{
 					x = newPoint.x();
 					y = newPoint.y();
@@ -996,9 +996,9 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		}
 	}
 
-	if (injector.IS_FINDINGPATH.get())
+	if (gamedevice.IS_FINDINGPATH.get())
 	{
-		injector.IS_FINDINGPATH.off();
+		gamedevice.IS_FINDINGPATH.off();
 	}
 
 	if (missionThread_ != nullptr)

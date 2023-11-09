@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <stdlib.h>
 #include "autil.h"
 
-#include <injector.h>
+#include <gamedevice.h>
 
 Autil::Autil(long long index)
 	: Indexer(index)
@@ -197,8 +197,8 @@ long long Autil::util_GetFunctionFromSlice(long long* func, long long* fieldcoun
 void Autil::util_SendMesg(long long func, char* buffer)
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.isValid())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.isValid())
 		return;
 
 	char t1[NETDATASIZE] = {};
@@ -214,11 +214,11 @@ void Autil::util_SendMesg(long long func, char* buffer)
 	t2[size] = '\n';
 	size += 1;
 
-	HANDLE hProcess = injector.getProcess();
+	HANDLE hProcess = gamedevice.getProcess();
 	mem::VirtualMemory ptr(hProcess, size, true);
 
 	mem::write(hProcess, ptr, t2, size);
-	injector.sendMessage(kSendPacket, ptr, size);
+	gamedevice.sendMessage(kSendPacket, ptr, size);
 }
 
 // -------------------------------------------------------------------

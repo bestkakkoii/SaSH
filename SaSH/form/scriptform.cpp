@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "scriptform.h"
 #include "util.h"
 #include "script/interpreter.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 ScriptForm::ScriptForm(long long index, QWidget* parent)
@@ -67,7 +67,7 @@ ScriptForm::ScriptForm(long long index, QWidget* parent)
 
 	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
-	Injector& injector = Injector::getInstance(index);
+	GameDevice& gamedevice = GameDevice::getInstance(index);
 	QString currentScriptFileName = config.read<QString>("Script", "LastModifyFile");
 
 	if (currentScriptFileName.isEmpty() || !QFile::exists(currentScriptFileName))
@@ -84,7 +84,7 @@ ScriptForm::ScriptForm(long long index, QWidget* parent)
 		currentScriptFileName = defaultScriptPath;
 	}
 
-	injector.currentScriptFileName = currentScriptFileName;
+	gamedevice.currentScriptFileName.set(currentScriptFileName);
 	emit signalDispatcher.loadFileToTable(currentScriptFileName);
 }
 
@@ -95,8 +95,8 @@ ScriptForm::~ScriptForm()
 void ScriptForm::onScriptStarted()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.IS_SCRIPT_FLAG.get())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
 	if (interpreter_ != nullptr)
@@ -110,11 +110,11 @@ void ScriptForm::onScriptStarted()
 	if (nullptr == interpreter_)
 		return;
 
-	injector.scriptLogModel.clear();
+	gamedevice.scriptLogModel.clear();
 
 	connect(interpreter_.get(), &Interpreter::finished, this, &ScriptForm::onScriptFinished, Qt::QueuedConnection);
 
-	interpreter_->doFileWithThread(selectedRow_, injector.currentScriptFileName);
+	interpreter_->doFileWithThread(selectedRow_, gamedevice.currentScriptFileName.get());
 
 	ui.pushButton_script_start->setEnabled(false);
 	ui.pushButton_script_pause->setEnabled(true);
@@ -123,46 +123,46 @@ void ScriptForm::onScriptStarted()
 
 void ScriptForm::onScriptPaused()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (!injector.IS_SCRIPT_FLAG.get())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (!gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
 	if (interpreter_ != nullptr)
 	{
-		if (!injector.isPaused())
+		if (!gamedevice.isScriptPaused())
 		{
 			ui.pushButton_script_pause->setText(tr("resume"));
-			injector.paused();
+			gamedevice.paused();
 		}
 	}
 }
 
 void ScriptForm::onScriptResumed()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (!injector.IS_SCRIPT_FLAG.get())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (!gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
 	if (interpreter_ != nullptr)
 	{
 
-		if (injector.isPaused())
+		if (gamedevice.isScriptPaused())
 		{
 			ui.pushButton_script_pause->setText(tr("pause"));
-			injector.resumed();
+			gamedevice.resumed();
 		}
 	}
 }
 
 void ScriptForm::onScriptStoped()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (!injector.IS_SCRIPT_FLAG.get())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (!gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
-	injector.stopScript();
-	if (injector.isPaused())
-		injector.resumed();
+	gamedevice.stopScript();
+	if (gamedevice.isScriptPaused())
+		gamedevice.resumed();
 }
 
 //腳本結束信號槽
@@ -190,14 +190,14 @@ void ScriptForm::onButtonClicked()
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	if (name == "pushButton_script_start")
 	{
-		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.IS_SCRIPT_FLAG.get() && QFile::exists(injector.currentScriptFileName))
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		if (!gamedevice.IS_SCRIPT_FLAG.get() && QFile::exists(gamedevice.currentScriptFileName.get()))
 			emit signalDispatcher.scriptStarted();
 	}
 	else if (name == "pushButton_script_pause")
 	{
-		Injector& injector = Injector::getInstance(currentIndex);
-		if (!injector.isPaused())
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		if (!gamedevice.isScriptPaused())
 			emit signalDispatcher.scriptPaused();
 		else
 			emit signalDispatcher.scriptResumed();
@@ -367,8 +367,8 @@ void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTab
 	long long row = current->row();
 	selectedRow_ = row;
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.IS_SCRIPT_FLAG.get())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
 	if (row == 0)
@@ -401,8 +401,8 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 	do
 	{
 		long long currentIndex = getIndex();
-		Injector& injector = Injector::getInstance(currentIndex);
-		if (injector.IS_SCRIPT_FLAG.get())
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		if (gamedevice.IS_SCRIPT_FLAG.get())
 			break;
 
 		/*得到文件路徑*/
@@ -434,8 +434,8 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 		if (!fileinfo.isFile())
 			break;
 
-		if (!injector.IS_SCRIPT_FLAG.get())
-			injector.currentScriptFileName = strpath;
+		if (!gamedevice.IS_SCRIPT_FLAG.get())
+			gamedevice.currentScriptFileName.set(strpath);
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.loadFileToTable(strpath);
@@ -465,8 +465,8 @@ void ScriptForm::onReloadScriptList()
 void ScriptForm::onSpeedChanged(int value)
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	injector.setValueHash(util::kScriptSpeedValue, value);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	gamedevice.setValueHash(util::kScriptSpeedValue, value);
 
 	emit SignalDispatcher::getInstance(currentIndex).scriptSpeedChanged(value);
 }
@@ -474,10 +474,10 @@ void ScriptForm::onSpeedChanged(int value)
 void ScriptForm::onApplyHashSettingsToUI()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, long long> valueHash = injector.getValuesHash();
-	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	QHash<util::UserSetting, bool> enableHash = gamedevice.getEnablesHash();
+	QHash<util::UserSetting, long long> valueHash = gamedevice.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = gamedevice.getStringsHash();
 
 	ui.spinBox_speed->setValue(valueHash.value(util::kScriptSpeedValue));
 }

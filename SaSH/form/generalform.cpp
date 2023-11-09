@@ -4,7 +4,7 @@
 
 #include "mainthread.h"
 #include <util.h>
-#include <injector.h>
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 //#ifndef _DEBUG
@@ -266,7 +266,7 @@ void GeneralForm::onButtonClicked()
 
 	long long currentIndex = getIndex();
 
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	if (name == "pushButton_addpath")
 	{
@@ -328,18 +328,18 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_logout")
 	{
-		if (injector.isValid() && !injector.worker.isNull())
+		if (gamedevice.isValid() && !gamedevice.worker.isNull())
 		{
-			injector.setEnableHash(util::kLogOutEnable, true);
+			gamedevice.setEnableHash(util::kLogOutEnable, true);
 		}
 		return;
 	}
 
 	if (name == "pushButton_logback")
 	{
-		if (injector.isValid() && !injector.worker.isNull())
+		if (gamedevice.isValid() && !gamedevice.worker.isNull())
 		{
-			injector.setEnableHash(util::kLogBackEnable, true);
+			gamedevice.setEnableHash(util::kLogBackEnable, true);
 		}
 
 		return;
@@ -347,9 +347,9 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_clear")
 	{
-		if (injector.isValid() && !injector.worker.isNull())
+		if (gamedevice.isValid() && !gamedevice.worker.isNull())
 		{
-			injector.worker->cleanChatHistory();
+			gamedevice.worker->cleanChatHistory();
 		}
 
 		return;
@@ -363,22 +363,22 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_joingroup")
 	{
-		if (!injector.worker.isNull())
-			injector.worker->setTeamState(true);
+		if (!gamedevice.worker.isNull())
+			gamedevice.worker->setTeamState(true);
 		return;
 	}
 
 	if (name == "pushButton_leavegroup")
 	{
-		if (!injector.worker.isNull())
-			injector.worker->setTeamState(false);
+		if (!gamedevice.worker.isNull())
+			gamedevice.worker->setTeamState(false);
 		return;
 	}
 
 	if (name == "pushButton_dock")
 	{
-		bool flag = injector.getEnableHash(util::kWindowDockEnable);
-		injector.setEnableHash(util::kWindowDockEnable, !flag);
+		bool flag = gamedevice.getEnableHash(util::kWindowDockEnable);
+		gamedevice.setEnableHash(util::kWindowDockEnable, !flag);
 		if (flag)
 		{
 			ui.pushButton_dock->setText(tr("dock"));
@@ -410,16 +410,16 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_eo")
 	{
-		if (injector.isValid() && !injector.worker.isNull())
-			injector.setEnableHash(util::kEchoEnable, true);
+		if (gamedevice.isValid() && !gamedevice.worker.isNull())
+			gamedevice.setEnableHash(util::kEchoEnable, true);
 		return;
 	}
 
 	if (name == "pushButton_savesettings")
 	{
 		QString fileName;
-		if (!injector.worker.isNull())
-			fileName = injector.worker->getCharacter().name;
+		if (!gamedevice.worker.isNull())
+			fileName = gamedevice.worker->getCharacter().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.saveHashSettings(fileName);
 		return;
@@ -428,8 +428,8 @@ void GeneralForm::onButtonClicked()
 	if (name == "pushButton_loadsettings")
 	{
 		QString fileName;
-		if (!injector.worker.isNull())
-			fileName = injector.worker->getCharacter().name;
+		if (!gamedevice.worker.isNull())
+			fileName = gamedevice.worker->getCharacter().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.loadHashSettings(fileName);
 		return;
@@ -454,64 +454,64 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		return;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	//login
 	if (name == "checkBox_autologin")
 	{
-		injector.setEnableHash(util::kAutoLoginEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoLoginEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autoreconnect")
 	{
-		injector.setEnableHash(util::kAutoReconnectEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoReconnectEnable, isChecked);
 		return;
 	}
 
 	//support
 	if (name == "checkBox_hidechar")
 	{
-		injector.setEnableHash(util::kHideCharacterEnable, isChecked);
+		gamedevice.setEnableHash(util::kHideCharacterEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_closeeffect")
 	{
-		injector.setEnableHash(util::kCloseEffectEnable, isChecked);
+		gamedevice.setEnableHash(util::kCloseEffectEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autostartscript")
 	{
-		injector.setEnableHash(util::kAutoStartScriptEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoStartScriptEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_hidewindow")
 	{
-		injector.setEnableHash(util::kHideWindowEnable, isChecked);
+		gamedevice.setEnableHash(util::kHideWindowEnable, isChecked);
 		if (isChecked)
-			injector.hide();
+			gamedevice.hide();
 		else
-			injector.show();
+			gamedevice.show();
 
 		return;
 	}
 
 	if (name == "checkBox_mute")
 	{
-		injector.setEnableHash(util::kMuteEnable, isChecked);
+		gamedevice.setEnableHash(util::kMuteEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autojoin")
 	{
-		injector.setEnableHash(util::kAutoJoinEnable, isChecked);
-		long long type = injector.getValueHash(util::kAutoFunTypeValue);
+		gamedevice.setEnableHash(util::kAutoJoinEnable, isChecked);
+		long long type = gamedevice.getValueHash(util::kAutoFunTypeValue);
 		if (isChecked && type != 0)
 		{
-			injector.setValueHash(util::kAutoFunTypeValue, 0);
+			gamedevice.setValueHash(util::kAutoFunTypeValue, 0);
 		}
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -521,56 +521,56 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 	if (name == "checkBox_locktime")
 	{
-		injector.setEnableHash(util::kLockTimeEnable, isChecked);
+		gamedevice.setEnableHash(util::kLockTimeEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autorestart")
 	{
-		injector.setEnableHash(util::kAutoRestartGameEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoRestartGameEnable, isChecked);
 		return;
 	}
 
 	//support2
 	if (name == "checkBox_fastwalk")
 	{
-		injector.setEnableHash(util::kFastWalkEnable, isChecked);
+		gamedevice.setEnableHash(util::kFastWalkEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_passwall")
 	{
-		injector.setEnableHash(util::kPassWallEnable, isChecked);
+		gamedevice.setEnableHash(util::kPassWallEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_lockmove")
 	{
-		injector.setEnableHash(util::kLockMoveEnable, isChecked);
-		injector.sendMessage(kEnableMoveLock, isChecked, NULL);
+		gamedevice.setEnableHash(util::kLockMoveEnable, isChecked);
+		gamedevice.sendMessage(kEnableMoveLock, isChecked, NULL);
 		return;
 	}
 
 	if (name == "checkBox_lockimage")
 	{
-		injector.setEnableHash(util::kLockImageEnable, isChecked);
+		gamedevice.setEnableHash(util::kLockImageEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autodropmeat")
 	{
-		injector.setEnableHash(util::kAutoDropMeatEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoDropMeatEnable, isChecked);
 
 		return;
 	}
 
 	if (name == "checkBox_autodrop")
 	{
-		bool bOriginal = injector.getEnableHash(util::kAutoDropEnable);
+		bool bOriginal = gamedevice.getEnableHash(util::kAutoDropEnable);
 		if (bOriginal == isChecked)
 			return;
 
-		injector.setEnableHash(util::kAutoDropEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoDropEnable, isChecked);
 
 		if (!isChecked)
 			return;
@@ -579,13 +579,13 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant d = injector.getUserData(util::kUserItemNames);
+		QVariant d = gamedevice.getUserData(util::kUserItemNames);
 		if (d.isValid())
 		{
 			srcSelectList = d.toStringList();
 		}
 
-		QString src = injector.getStringHash(util::kAutoDropItemString);
+		QString src = gamedevice.getStringHash(util::kAutoDropItemString);
 		if (!src.isEmpty())
 		{
 			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
@@ -595,32 +595,32 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			return;
 
 		QString dst = dstList.join("|");
-		injector.setStringHash(util::kAutoDropItemString, dst);
+		gamedevice.setStringHash(util::kAutoDropItemString, dst);
 
 		return;
 	}
 
 	if (name == "checkBox_autostack")
 	{
-		injector.setEnableHash(util::kAutoStackEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoStackEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_knpc")
 	{
-		injector.setEnableHash(util::kKNPCEnable, isChecked);
+		gamedevice.setEnableHash(util::kKNPCEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autoanswer")
 	{
-		injector.setEnableHash(util::kAutoAnswerEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoAnswerEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autoeatbean")
 	{
-		injector.setEnableHash(util::kAutoEatBeanEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoEatBeanEnable, isChecked);
 		return;
 	}
 
@@ -631,7 +631,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		{
 			ui.checkBox_fastautowalk->setChecked(!isChecked);
 		}
-		injector.setEnableHash(util::kAutoWalkEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoWalkEnable, isChecked);
 		return;
 	}
 
@@ -641,7 +641,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		{
 			ui.checkBox_autowalk->setChecked(!isChecked);
 		}
-		injector.setEnableHash(util::kFastAutoWalkEnable, isChecked);
+		gamedevice.setEnableHash(util::kFastAutoWalkEnable, isChecked);
 		return;
 	}
 
@@ -652,11 +652,11 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			ui.checkBox_autobattle->setChecked(!isChecked);
 		}
 
-		bool bOriginal = injector.getEnableHash(util::kFastBattleEnable);
-		injector.setEnableHash(util::kFastBattleEnable, isChecked);
-		if (!bOriginal && isChecked && !injector.worker.isNull())
+		bool bOriginal = gamedevice.getEnableHash(util::kFastBattleEnable);
+		gamedevice.setEnableHash(util::kFastBattleEnable, isChecked);
+		if (!bOriginal && isChecked && !gamedevice.worker.isNull())
 		{
-			injector.worker->doBattleWork(false);
+			gamedevice.worker->doBattleWork(false);
 		}
 		return;
 	}
@@ -668,11 +668,11 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			ui.checkBox_fastbattle->setChecked(!isChecked);
 		}
 
-		bool bOriginal = injector.getEnableHash(util::kAutoBattleEnable);
-		injector.setEnableHash(util::kAutoBattleEnable, isChecked);
-		if (!bOriginal && isChecked && !injector.worker.isNull())
+		bool bOriginal = gamedevice.getEnableHash(util::kAutoBattleEnable);
+		gamedevice.setEnableHash(util::kAutoBattleEnable, isChecked);
+		if (!bOriginal && isChecked && !gamedevice.worker.isNull())
 		{
-			injector.worker->doBattleWork(false);
+			gamedevice.worker->doBattleWork(false);
 		}
 
 		return;
@@ -680,23 +680,23 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 	if (name == "checkBox_autocatch")
 	{
-		injector.setEnableHash(util::kAutoCatchEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoCatchEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autoescape")
 	{
-		injector.setEnableHash(util::kAutoEscapeEnable, isChecked);
+		gamedevice.setEnableHash(util::kAutoEscapeEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_lockattck")
 	{
-		bool bOriginal = injector.getEnableHash(util::kLockAttackEnable);
+		bool bOriginal = gamedevice.getEnableHash(util::kLockAttackEnable);
 		if (bOriginal == isChecked)
 			return;
 
-		injector.setEnableHash(util::kLockAttackEnable, isChecked);
+		gamedevice.setEnableHash(util::kLockAttackEnable, isChecked);
 
 		if (!isChecked)
 			return;
@@ -705,7 +705,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant d = injector.getUserData(util::kUserEnemyNames);
+		QVariant d = gamedevice.getUserData(util::kUserEnemyNames);
 		if (d.isValid())
 			srcSelectList = d.toStringList();
 
@@ -714,7 +714,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			it.prepend("%(ename) == ");
 		}
 
-		QString src = injector.getStringHash(util::kLockAttackString);
+		QString src = gamedevice.getStringHash(util::kLockAttackString);
 		if (!src.isEmpty())
 			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
 
@@ -722,17 +722,17 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			return;
 
 		QString dst = dstList.join("|");
-		injector.setStringHash(util::kLockAttackString, dst);
+		gamedevice.setStringHash(util::kLockAttackString, dst);
 		return;
 	}
 
 	if (name == "checkBox_lockescape")
 	{
-		bool bOriginal = injector.getEnableHash(util::kLockEscapeEnable);
+		bool bOriginal = gamedevice.getEnableHash(util::kLockEscapeEnable);
 		if (bOriginal == isChecked)
 			return;
 
-		injector.setEnableHash(util::kLockEscapeEnable, isChecked);
+		gamedevice.setEnableHash(util::kLockEscapeEnable, isChecked);
 
 		if (!isChecked)
 			return;
@@ -741,11 +741,11 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant d = injector.getUserData(util::kUserEnemyNames);
+		QVariant d = gamedevice.getUserData(util::kUserEnemyNames);
 		if (d.isValid())
 			srcSelectList = d.toStringList();
 
-		QString src = injector.getStringHash(util::kLockEscapeString);
+		QString src = gamedevice.getStringHash(util::kLockEscapeString);
 		if (!src.isEmpty())
 			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
 
@@ -753,86 +753,86 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			return;
 
 		QString dst = dstList.join("|");
-		injector.setStringHash(util::kLockEscapeString, dst);
+		gamedevice.setStringHash(util::kLockEscapeString, dst);
 		return;
 	}
 
 	if (name == "checkBox_battletimeextend")
 	{
-		injector.setEnableHash(util::kBattleTimeExtendEnable, isChecked);
+		gamedevice.setEnableHash(util::kBattleTimeExtendEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_falldownescape")
 	{
-		injector.setEnableHash(util::kFallDownEscapeEnable, isChecked);
+		gamedevice.setEnableHash(util::kFallDownEscapeEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_showexp")
 	{
-		injector.setEnableHash(util::kShowExpEnable, isChecked);
+		gamedevice.setEnableHash(util::kShowExpEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autoswitch")
 	{
-		injector.setEnableHash(util::kBattleAutoSwitchEnable, isChecked);
+		gamedevice.setEnableHash(util::kBattleAutoSwitchEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_battleautoeo")
 	{
-		injector.setEnableHash(util::kBattleAutoEOEnable, isChecked);
+		gamedevice.setEnableHash(util::kBattleAutoEOEnable, isChecked);
 		return;
 	}
 
 	//shortcut switcher
 	if (name == "checkBox_switcher_team")
 	{
-		injector.setEnableHash(util::kSwitcherTeamEnable, isChecked);
+		gamedevice.setEnableHash(util::kSwitcherTeamEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_pk")
 	{
-		injector.setEnableHash(util::kSwitcherPKEnable, isChecked);
+		gamedevice.setEnableHash(util::kSwitcherPKEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_card")
 	{
-		injector.setEnableHash(util::kSwitcherCardEnable, isChecked);
+		gamedevice.setEnableHash(util::kSwitcherCardEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_trade")
 	{
-		injector.setEnableHash(util::kSwitcherTradeEnable, isChecked);
+		gamedevice.setEnableHash(util::kSwitcherTradeEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_group")
 	{
-		injector.setEnableHash(util::kSwitcherGroupEnable, isChecked);
+		gamedevice.setEnableHash(util::kSwitcherGroupEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_family")
 	{
-		injector.setEnableHash(util::kSwitcherFamilyEnable, isChecked);
+		gamedevice.setEnableHash(util::kSwitcherFamilyEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_job")
 	{
-		injector.setEnableHash(util::kSwitcherJobEnable, isChecked);
+		gamedevice.setEnableHash(util::kSwitcherJobEnable, isChecked);
 		return;
 	}
 
 	else if (name == "checkBox_switcher_world")
 	{
-		injector.setEnableHash(util::kSwitcherWorldEnable, isChecked);
+		gamedevice.setEnableHash(util::kSwitcherWorldEnable, isChecked);
 		return;
 	}
 }
@@ -848,11 +848,11 @@ void GeneralForm::onSpinBoxValueChanged(int value)
 		return;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	if (name == "spinBox_speedboost")
 	{
-		injector.setValueHash(util::kSpeedBoostValue, value);
+		gamedevice.setValueHash(util::kSpeedBoostValue, value);
 		return;
 	}
 }
@@ -868,7 +868,7 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 		return;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	if (name == "comboBox_serverlist")
 	{
 		{
@@ -882,28 +882,28 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 
 	if (name == "comboBox_server")
 	{
-		injector.setValueHash(util::kServerValue, value);
+		gamedevice.setValueHash(util::kServerValue, value);
 		serverListReLoad();
 		return;
 	}
 
 	if (name == "comboBox_subserver")
 	{
-		injector.setValueHash(util::kSubServerValue, value);
+		gamedevice.setValueHash(util::kSubServerValue, value);
 		return;
 	}
 
 	if (name == "comboBox_position")
 	{
-		injector.setValueHash(util::kPositionValue, value);
+		gamedevice.setValueHash(util::kPositionValue, value);
 		return;
 	}
 
 	if (name == "comboBox_locktime")
 	{
-		injector.setValueHash(util::kLockTimeValue, value);
+		gamedevice.setValueHash(util::kLockTimeValue, value);
 		if (ui.checkBox_locktime->isChecked())
-			injector.sendMessage(kSetTimeLock, true, value);
+			gamedevice.sendMessage(kSetTimeLock, true, value);
 		return;
 	}
 
@@ -920,10 +920,10 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 void GeneralForm::onApplyHashSettingsToUI()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, long long> valueHash = injector.getValuesHash();
-	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	QHash<util::UserSetting, bool> enableHash = gamedevice.getEnablesHash();
+	QHash<util::UserSetting, long long> valueHash = gamedevice.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = gamedevice.getStringsHash();
 
 	{
 		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
@@ -1072,8 +1072,8 @@ void GeneralForm::startGameAsync()
 
 		long long currentIndex = getIndex();
 
-		Injector& injector = Injector::getInstance(currentIndex);
-		injector.currentGameExePath = path;
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		gamedevice.currentGameExePath = path;
 
 		MainObject* pMainObject = nullptr;
 		if (!thread_manager.createThread(currentIndex, &pMainObject, nullptr) || (nullptr == pMainObject))
@@ -1081,8 +1081,8 @@ void GeneralForm::startGameAsync()
 
 		connect(pMainObject, &MainObject::finished, this, [this]()
 			{
-				Injector& injector = Injector::getInstance(getIndex());
-				if (!injector.getEnableHash(util::kAutoRestartGameEnable))
+				GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+				if (!gamedevice.getEnableHash(util::kAutoRestartGameEnable))
 					ui.pushButton_start->setEnabled(true);
 				else
 				{
@@ -1090,10 +1090,10 @@ void GeneralForm::startGameAsync()
 				}
 			}, Qt::QueuedConnection);
 
-		if (injector.getEnableHash(util::kAutoStartScriptEnable))
+		if (gamedevice.getEnableHash(util::kAutoStartScriptEnable))
 		{
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-			if (!injector.IS_SCRIPT_FLAG.get())
+			if (!gamedevice.IS_SCRIPT_FLAG.get())
 				emit signalDispatcher.scriptStarted();
 		}
 		return;
@@ -1109,12 +1109,12 @@ void GeneralForm::createServerList()
 	if (currentListIndex < 0)
 		currentListIndex = 0;
 	QStringList list;
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	{
 		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
-		injector.currentServerListIndex = currentListIndex;
+		gamedevice.currentServerListIndex.set(currentListIndex);
 		list = config.readArray<QString>("System", "Server", QString("List_%1").arg(currentListIndex));
 		if (list.isEmpty())
 		{
@@ -1215,8 +1215,8 @@ void GeneralForm::createServerList()
 		ui.comboBox_subserver->addItems(subList);
 	}
 
-	injector.serverNameList.set(serverNameList);
-	injector.subServerNameList.set(subServerNameList);
+	gamedevice.serverNameList.set(serverNameList);
+	gamedevice.subServerNameList.set(subServerNameList);
 
 	if (current >= 0)
 		ui.comboBox_server->setCurrentIndex(current);

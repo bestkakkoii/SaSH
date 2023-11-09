@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "mapdevice.h"
 #include "astardevice.h"
 #include <net/tcpserver.h>
-#include "injector.h"
+#include <gamedevice.h>
 
 //魔力包含3字節的'MAP'和 9個'\0' 石器沒有
 struct mapheader_s
@@ -33,8 +33,8 @@ struct mapheader_s
 
 constexpr const char* kDefaultMapSuffix = ".dat";
 
-safe::Hash<long long, QPixmap> g_pixMap;
-safe::Hash<long long, sa::map_t> g_maps;
+safe::hash<long long, QPixmap> g_pixMap;
+safe::hash<long long, sa::map_t> g_maps;
 
 //不可通行地面、物件數據 或 傳點|樓梯
 #pragma region StaticTable
@@ -1104,8 +1104,8 @@ QString MapDevice::getCurrentMapPath(long long floor) const
 
 QString MapDevice::getCurrentPreHandleMapPath(long long currentIndex, long long floor) const
 {
-	Injector& injector = Injector::getInstance(currentIndex);
-	const QString dirPath(QString("%1/lib/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	const QString dirPath(QString("%1/lib/map/%2").arg(util::applicationDirPath()).arg(gamedevice.currentServerListIndex.get()));
 	QDir dir(dirPath);
 	if (!dir.exists())
 		dir.mkdir(dirPath);
@@ -1293,7 +1293,7 @@ bool MapDevice::readFromBinary(long long currentIndex, long long floor, const QS
 
 			//調試專用
 //#ifdef _DEBUG
-//			if (point == injector.worker->getPoint())
+//			if (point == gamedevice.worker->getPoint())
 //			{
 //				qDebug() << "ground:" << sGround << "object:" << sObject << "flag: HI[" << HIBYTE(sLabel) << "] LO[" << LOBYTE(sLabel) << "]";
 //			}
@@ -1632,9 +1632,9 @@ bool MapDevice::calcNewRoute(long long currentIndex, AStarDevice* pastar,
 		if (!isDstAsWarpPoint && dstobj != sa::kObjectRoad)
 			break;
 
-		Injector& injector = Injector::getInstance(currentIndex);
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-		AStarCallback canPassCallback = [&map, &blockList, &injector, isDstAsWarpPoint, &src](const QPoint& point)->bool
+		AStarCallback canPassCallback = [&map, &blockList, &gamedevice, isDstAsWarpPoint, &src](const QPoint& point)->bool
 			{
 				if (point == src)
 					return true;
@@ -1645,9 +1645,9 @@ bool MapDevice::calcNewRoute(long long currentIndex, AStarDevice* pastar,
 				//村內避免踩NPC
 				if (map.floor == 2000)
 				{
-					if (injector.worker->npcUnitPointHash.contains(point))
+					if (gamedevice.worker->npcUnitPointHash.contains(point))
 					{
-						sa::map_unit_t unit = injector.worker->npcUnitPointHash.value(point);
+						sa::map_unit_t unit = gamedevice.worker->npcUnitPointHash.value(point);
 						if (unit.type == sa::kObjectNPC && unit.modelid > 0)
 							return false;
 					}

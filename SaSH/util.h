@@ -1084,6 +1084,15 @@ namespace util
 		}
 	}
 
+	inline QString __fastcall utf8toSha512String(std::string sUtf8Str)
+	{
+		QByteArray utf8Str(sUtf8Str.c_str());
+		QByteArray sha3_512hashArray(QCryptographicHash::hash(utf8Str, QCryptographicHash::Sha3_512));
+		sha3_512hashArray = sha3_512hashArray.toHex();
+		sha3_512hashArray = sha3_512hashArray.toUpper();
+		return util::toQString(sha3_512hashArray);
+	}
+
 	inline [[nodiscard]] QString __fastcall toUnicode(const char* str, bool trim = true, bool ext = true)
 	{
 		static const QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//取GB2312解碼器
@@ -1762,7 +1771,8 @@ QGroupBox {
 		const QString& icon, QStringList* list = nullptr,
 		const QString& folderIcon = ":/image/icon_directory.svg");
 
-	void __fastcall searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent = false);
+	void __fastcall searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot,
+		QStringList* result, bool withcontent = false, bool isExact = false);
 
 	bool __fastcall enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
 
@@ -2314,7 +2324,7 @@ QGroupBox {
 
 		QString fileName_ = "\0";
 
-		inline static safe::Hash<QString, QVariantMap> cacheHash_ = {};
+		inline static safe::hash<QString, QVariantMap> cacheHash_ = {};
 
 		QVariantMap cache_ = {};
 
@@ -2323,10 +2333,10 @@ QGroupBox {
 		bool hasChanged_ = false;
 	};
 
-	class Timer
+	class timer
 	{
 	public:
-		Timer()
+		timer()
 		{
 			timer_.start();
 		}

@@ -10,11 +10,11 @@
 
 namespace safe
 {
-	class Flag
+	class flag
 	{
 	public:
-		Flag() = default;
-		Flag(bool flag) : flag_(flag) {}
+		flag() = default;
+		flag(bool flag) : flag_(flag) {}
 
 		void on()
 		{
@@ -54,11 +54,11 @@ namespace safe
 #endif
 	};
 
-	class Integer
+	class integer
 	{
 	public:
-		Integer() = default;
-		Integer(long long flag) : flag_(flag) {}
+		integer() = default;
+		integer(long long flag) : flag_(flag) {}
 
 		void set(long long flag)
 		{
@@ -81,7 +81,7 @@ namespace safe
 #ifdef SAFEFLAG_USE_MUTEX
 			std::unique_lock<std::shared_mutex> lock(mutex_);
 #endif
-			flag_.store(0, std::memory_order_release);
+			flag_.store(0LL, std::memory_order_release);
 		}
 
 		void add(long long flag)
@@ -105,7 +105,7 @@ namespace safe
 #ifdef SAFEFLAG_USE_MUTEX
 			std::unique_lock<std::shared_mutex> lock(mutex_);
 #endif
-			flag_.fetch_add(1, std::memory_order_release);
+			flag_.fetch_add(1LL, std::memory_order_release);
 		}
 
 		void dec()
@@ -113,66 +113,66 @@ namespace safe
 #ifdef SAFEFLAG_USE_MUTEX
 			std::unique_lock<std::shared_mutex> lock(mutex_);
 #endif
-			flag_.fetch_sub(1, std::memory_order_release);
+			flag_.fetch_sub(1LL, std::memory_order_release);
 		}
 
 	private:
-		std::atomic_llong flag_ = 0;
+		std::atomic_llong flag_ = 0LL;
 #ifdef SAFEFLAG_USE_MUTEX
 		mutable std::shared_mutex mutex_;
 #endif
 	};
 
-	class AutoFlag
+	class auto_flag
 	{
 	public:
-		AutoFlag(Flag* flag)
+		auto_flag(flag* flag)
 			: flag_(flag)
 		{
 			if (flag_ != nullptr)
 				flag_->on();
 		}
 
-		~AutoFlag()
+		~auto_flag()
 		{
 			if (flag_ != nullptr)
 				flag_->off();
 		}
 
 	private:
-		Flag* flag_ = nullptr;
+		flag* flag_ = nullptr;
 
 	};
 
-	class AutoInteger
+	class auto_integer
 	{
 	public:
-		AutoInteger(Integer* flag)
+		auto_integer(integer* flag)
 			: flag_(flag)
 		{
 			if (flag_ != nullptr)
 				flag_->set(flag_->get() + 1);
 		}
 
-		~AutoInteger()
+		~auto_integer()
 		{
 			if (flag_ != nullptr)
 				flag_->set(flag_->get() - 1);
 		}
 
 	private:
-		Integer* flag_ = nullptr;
+		integer* flag_ = nullptr;
 	};
 
 #pragma region Data
 	template <typename T>
-	class Data
+	class data
 	{
 	public:
-		Data() = default;
-		virtual ~Data() = default;
+		data() = default;
+		virtual ~data() = default;
 
-		Data(T data) : data_(data) {}
+		data(T d) : data_(d) {}
 
 		T get() const
 		{
@@ -180,10 +180,10 @@ namespace safe
 			return data_;
 		}
 
-		void set(const T& data)
+		void set(const T& d)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			data_ = data;
+			data_ = d;
 		}
 
 		void reset()
@@ -193,15 +193,15 @@ namespace safe
 		}
 
 		//==
-		bool operator==(const T& data) const
+		bool operator==(const T& d) const
 		{
-			return (get() == data);
+			return (get() == d);
 		}
 
 		//!=
-		bool operator!=(const T& data) const
+		bool operator!=(const T& d) const
 		{
-			return (get() != data);
+			return (get() != d);
 		}
 
 	private:
@@ -213,208 +213,208 @@ namespace safe
 #pragma region Hash
 	//基於Qt QHash 的線程安全Hash容器
 	template <typename K, typename V>
-	class Hash
+	class hash
 	{
 	public:
-		Hash() = default;
+		hash() = default;
 
-		inline Hash(std::initializer_list<std::pair<K, V> > list)
+		inline hash(std::initializer_list<std::pair<K, V> > list)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			hash = list;
+			hash_ = list;
 		}
 
 		bool isEmpty() const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.isEmpty();
+			return hash_.isEmpty();
 		}
 
 		//copy
-		Hash(const QHash<K, V>& other)
+		hash(const QHash<K, V>& other)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			hash = other;
+			hash_ = other;
 		}
 
 		//copy assign
-		Hash(const Hash<K, V>& other)
+		hash(const hash<K, V>& other)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			hash = other.hash;
+			hash_ = other.hash_;
 		}
 
 		//move
-		Hash(QHash<K, V>&& other)
+		hash(QHash<K, V>&& other)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			hash = other;
+			hash_ = other;
 		}
 
 		//move assign
-		Hash(Hash<K, V>&& other) noexcept
+		hash(hash<K, V>&& other) noexcept
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			hash = other.hash;
+			hash_ = other.hash_;
 		}
 
-		Hash operator=(const Hash& other)
+		hash operator=(const hash& other)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			hash = other.hash;
+			hash_ = other.hash_;
 			return *this;
 		}
 
 		//operator=
-		Hash operator=(const QHash <K, V>& other)
+		hash operator=(const QHash <K, V>& other)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			hash = other;
+			hash_ = other;
 			return *this;
 		}
 
 		inline void insert(const K& key, const V& value)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			hash.insert(key, value);
+			hash_.insert(key, value);
 		}
 		inline void remove(const K& key)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			hash.remove(key);
+			hash_.remove(key);
 		}
 		inline bool contains(const K& key) const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.contains(key);
+			return hash_.contains(key);
 		}
 		inline V value(const K& key) const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.value(key);
+			return hash_.value(key);
 		}
 		inline V value(const K& key, const V& defaultValue) const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.value(key, defaultValue);
+			return hash_.value(key, defaultValue);
 		}
 
 		inline long long size() const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.size();
+			return hash_.size();
 		}
 		inline QList <K> keys() const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.keys();
+			return hash_.keys();
 		}
 
 		inline QList <V> values() const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.values();
+			return hash_.values();
 		}
 		//take
 		inline V take(const K& key)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			return hash.take(key);
+			return hash_.take(key);
 		}
 
 		inline void clear()
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			hash.clear();
+			hash_.clear();
 		}
 
 		inline K key(const V& value) const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.key(value);
+			return hash_.key(value);
 		}
 
 		inline K key(const V& value, const K& defaultValue) const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.key(value, defaultValue);
+			return hash_.key(value, defaultValue);
 		}
 
 		inline typename QHash<K, V>::iterator begin()
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.begin();
+			return hash_.begin();
 		}
 
 		inline typename QHash<K, V>::const_iterator begin() const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.begin();
+			return hash_.begin();
 		}
 
 		//const
 		inline typename QHash<K, V>::const_iterator cbegin() const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.constBegin();
+			return hash_.constBegin();
 		}
 
 		inline typename QHash<K, V>::iterator end()
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.end();
+			return hash_.end();
 		}
 
 		//const
 		inline typename QHash<K, V>::const_iterator cend() const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.constEnd();
+			return hash_.constEnd();
 		}
 
 		inline typename QHash<K, V>::const_iterator end() const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.end();
+			return hash_.end();
 		}
 
 		//erase
 		inline  typename QHash<K, V>::iterator erase(typename QHash<K, V>::iterator it)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
-			return hash.erase(it);
+			return hash_.erase(it);
 		}
 
 		//find
 		inline typename QHash<K, V>::iterator find(const K& key)
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash.find(key);
+			return hash_.find(key);
 		}
 
 		QHash <K, V> toHash() const
 		{
 			std::shared_lock<std::shared_mutex> lock(mutex_);
-			return hash;
+			return hash_;
 		}
 
 	private:
-		QHash<K, V> hash;
+		QHash<K, V> hash_;
 		mutable std::shared_mutex mutex_;
 	};
 #pragma endregion
 
-#pragma region Queue
+#pragma region queue
 	template <typename V>
-	class Queue
+	class queue
 	{
 	public:
-		Queue() = default;
-		explicit Queue(long long maxSize)
+		queue() = default;
+		explicit queue(long long maxSize)
 			: maxSize_(maxSize)
 		{
 		}
-		virtual ~Queue() = default;
+		virtual ~queue() = default;
 
 		void clear()
 		{
@@ -481,7 +481,7 @@ namespace safe
 		}
 
 		//=
-		Queue& operator=(const Queue& other)
+		queue& operator=(const queue& other)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
 			if (this != &other)
@@ -500,43 +500,43 @@ namespace safe
 
 #pragma region Vector
 	template <typename T>
-	class Vector
+	class vector
 	{
 	public:
-		Vector() = default;
-		virtual ~Vector() = default;
-		explicit Vector(long long size) : data_(size)
+		vector() = default;
+		virtual ~vector() = default;
+		explicit vector(long long size) : data_(size)
 		{
 		}
 
-		explicit Vector(const QVector<T>& other) : data_(other)
+		explicit vector(const QVector<T>& other) : data_(other)
 		{
 		}
 
-		explicit Vector(QVector<T>&& other) : data_(other)
+		explicit vector(QVector<T>&& other) : data_(other)
 		{
 		}
 
-		explicit Vector(std::initializer_list<T> args) : data_(args)
+		explicit vector(std::initializer_list<T> args) : data_(args)
 		{
 		}
 
-		Vector<T>& operator=(const QVector<T>& other)
+		vector<T>& operator=(const QVector<T>& other)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
 			data_ = other;
 			return *this;
 		}
 
-		explicit Vector(const Vector<T>& other) : data_(other.data_)
+		explicit vector(const vector<T>& other) : data_(other.data_)
 		{
 		}
 
-		Vector(Vector<T>&& other) noexcept : data_(other.data_)
+		vector(vector<T>&& other) noexcept : data_(other.data_)
 		{
 		}
 
-		Vector<T>& operator=(Vector<T>&& other) noexcept
+		vector<T>& operator=(vector<T>&& other) noexcept
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
 			data_ = other.data_;
@@ -549,7 +549,7 @@ namespace safe
 			return data_.data();
 		}
 
-		explicit Vector(const std::vector<T>& other) : data_(other.begin(), other.end())
+		explicit vector(const std::vector<T>& other) : data_(other.begin(), other.end())
 		{
 		}
 
@@ -609,7 +609,7 @@ namespace safe
 			data_.append(value);
 		}
 
-		void append(const Vector<T>& other)
+		void append(const vector<T>& other)
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
 			data_.append(other.data_);
@@ -631,12 +631,6 @@ namespace safe
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
 			data_.append(args);
-		}
-
-		void push_back(const T& value)
-		{
-			std::unique_lock<std::shared_mutex> lock(mutex_);
-			data_.push_back(value);
 		}
 
 		typename QVector<T>::iterator begin()

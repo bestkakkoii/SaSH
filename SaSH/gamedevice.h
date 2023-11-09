@@ -26,21 +26,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "model/logger.h"
 
 class StringListModel;
-class Injector : public QObject, public Indexer
+class GameDevice : public QObject, public Indexer
 {
 private:
-	static safe::Hash<long long, Injector*> instances;
+	static safe::hash<long long, GameDevice*> instances;
 
-	explicit Injector(long long index);
+	explicit GameDevice(long long index);
 
 public:
-	virtual ~Injector();
+	virtual ~GameDevice();
 
-	static Injector& getInstance(long long index)
+	static GameDevice& getInstance(long long index)
 	{
 		if (!instances.contains(index))
 		{
-			Injector* instance = q_check_ptr(new Injector(index));
+			GameDevice* instance = q_check_ptr(new GameDevice(index));
 			sash_assume(instance != nullptr);
 			if (instance != nullptr)
 				instances.insert(index, instance);
@@ -49,7 +49,7 @@ public:
 		return *instances.value(index);
 	}
 
-	static bool get(long long index, Injector** ppinstance)
+	static bool get(long long index, GameDevice** ppinstance)
 	{
 		if (!instances.contains(index))
 			return false;
@@ -59,17 +59,35 @@ public:
 		return true;
 	}
 
-public:
 	static void reset();
 	static void reset(long long index);
-
+public:
 	virtual inline void setIndex(long long index) override
 	{
 		if (!worker.isNull())
 			worker->setIndex(index);
 
-		Indexer::setIndex(index);
+		setIndex(index);
 	}
+
+public:
+	[[nodiscard]] inline bool __fastcall isGameInterruptionRequested() const
+	{
+		return isGameInterruptionRequested_.get();
+	}
+
+	void gameRequestInterruption()
+	{
+		isGameInterruptionRequested_.on();
+	}
+
+	void resetGameInterruptionFlag()
+	{
+		isGameInterruptionRequested_.off();
+	}
+
+private:
+	safe::flag isGameInterruptionRequested_ = false;
 
 public:
 	enum CreateProcessResult
@@ -104,7 +122,7 @@ public:
 
 	CreateProcessResult __fastcall createProcess(process_information_t& pi);
 
-	bool __fastcall remoteInitialize(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
+	bool __fastcall remoteInitialize(GameDevice::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
 
 	bool __fastcall injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason, bool bConnectOnly);
 
@@ -162,32 +180,39 @@ public:
 
 	[[nodiscard]] inline HWND __fastcall getParentWidget() const { return parentWidget_; }
 
-	inline bool __fastcall isPaused() const { return isPaused_; }
+	inline bool __fastcall isScriptPaused() const { return isScriptPaused_.get(); }
 
-	inline void __fastcall checkPause()
+	inline void __fastcall checkScriptPause()
 	{
-		std::unique_lock<std::mutex> lock(pausedMutex_);
-		if (isPaused_.load(std::memory_order_acquire))
+		if (isScriptPaused())
 		{
-			pausedCondition_.wait(lock);
+			std::unique_lock<std::mutex> lock(scriptPausedMutex_);
+			scriptPausedCondition_.wait(lock);
 		}
 	}
 
 	inline void __fastcall paused()
 	{
-		pausedMutex_.lock();
-		isPaused_.store(true, std::memory_order_release);
-		pausedMutex_.unlock();
+		if (isScriptPaused())
+			return;
+
+		{
+			std::unique_lock<std::mutex> lock(scriptPausedMutex_);
+			isScriptPaused_.on();
+		}
 	}
 
 	inline void __fastcall resumed()
 	{
+		if (!isScriptPaused())
+			return;
+
 		{
-			pausedMutex_.lock();
-			isPaused_.store(false, std::memory_order_release);
-			pausedMutex_.unlock();
+			std::unique_lock<std::mutex> lock(scriptPausedMutex_);
+			isScriptPaused_.off();
 		}
-		pausedCondition_.notify_all();
+
+		scriptPausedCondition_.notify_all();
 	}
 
 	inline void stopScript()
@@ -229,11 +254,11 @@ private:
 #endif
 
 public:
-	safe::Flag IS_INJECT_OK = false;//是否注入成功
+	safe::flag IS_INJECT_OK = false;//是否注入成功
 
-	safe::Flag IS_TCP_CONNECTION_OK_TO_USE = false;
+	safe::flag IS_TCP_CONNECTION_OK_TO_USE = false;
 
-	safe::Flag IS_SCRIPT_EDITOR_OPENED = false;
+	safe::flag IS_SCRIPT_EDITOR_OPENED = false;
 
 	QString currentGameExePath;//當前使用的遊戲進程完整路徑
 
@@ -241,36 +266,36 @@ public:
 
 	StringListModel chatLogModel; //聊天日誌模型
 
-	safe::Data<QStringList> serverNameList;
+	safe::data<QStringList> serverNameList;
 
-	safe::Data<QStringList> subServerNameList;
+	safe::data<QStringList> subServerNameList;
 
 	unsigned long long scriptThreadId = 0;
 
-	static Server server;//與遊戲TCP通信專用
+	static Server server;//與遊戲TCP通信專用，所有實例共用Server，但分派不同線程給Client socket
 	QScopedPointer<Worker> worker;
 
 	Autil autil;
 
 	Logger log;
 
-	safe::Hash<QString, safe::Hash<long long, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
-	safe::Hash<QString, safe::Hash<long long, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
-	safe::Hash<QString, safe::Hash<long long, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
-	safe::Hash<QString, safe::Hash<long long, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
+	safe::hash<QString, safe::hash<long long, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
+	safe::hash<QString, safe::hash<long long, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
+	safe::hash<QString, safe::hash<long long, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
+	safe::hash<QString, safe::hash<long long, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
 
 public:
-	safe::Flag IS_SCRIPT_FLAG = false;//主腳本是否運行 //DO NOT RESET!!!
+	safe::flag IS_SCRIPT_FLAG = false;//主腳本是否運行 //DO NOT RESET!!!
 
-	safe::Flag IS_SCRIPT_INTERRUPT = false;//主腳本是否中斷 //DO NOT RESET!!!
+	safe::flag IS_SCRIPT_INTERRUPT = false;//主腳本是否中斷 //DO NOT RESET!!!
 
-	safe::Flag IS_FINDINGPATH = false;//DO NOT RESET!!!
+	safe::flag IS_FINDINGPATH = false;//DO NOT RESET!!!
 
-	safe::Flag IS_SCRIPT_DEBUG_ENABLE = false;//DO NOT RESET!!!
+	safe::flag IS_SCRIPT_DEBUG_ENABLE = false;//DO NOT RESET!!!
 
-	long long currentServerListIndex = 0;//DO NOT RESET!!!
+	safe::integer currentServerListIndex = 0;//DO NOT RESET!!!
 
-	QString currentScriptFileName;//當前運行的主腳本完整路徑 //DO NOT RESET!!!
+	safe::data<QString> currentScriptFileName;//當前運行的主腳本完整路徑 //DO NOT RESET!!!
 
 private:
 	unsigned long long hGameModule_ = 0x400000ULL;
@@ -280,17 +305,17 @@ private:
 	HMODULE hookdllModule_ = nullptr;
 
 private:
-	std::atomic_bool isPaused_ = false;
-	std::condition_variable pausedCondition_;
-	std::mutex pausedMutex_;
+	safe::flag isScriptPaused_ = false;
+	std::condition_variable scriptPausedCondition_;
+	std::mutex scriptPausedMutex_;
 
 private:
-	safe::Hash<util::UserData, QVariant> userData_hash_ = {
+	safe::hash<util::UserData, QVariant> userData_hash_ = {
 		{ util::kUserItemNames, QStringList() },
 
 	};
 
-	safe::Hash<util::UserSetting, long long> userSetting_value_hash_ = {
+	safe::hash<util::UserSetting, long long> userSetting_value_hash_ = {
 		{ util::kSettingNotUsed, util::kSettingNotUsed },
 		{ util::kSettingMinValue, util::kSettingMinValue },
 
@@ -420,7 +445,7 @@ private:
 
 	};
 
-	safe::Hash<util::UserSetting, bool> userSetting_enable_hash_ = {
+	safe::hash<util::UserSetting, bool> userSetting_enable_hash_ = {
 		{ util::kAutoLoginEnable, false },
 		{ util::kAutoReconnectEnable, true },
 
@@ -511,7 +536,7 @@ private:
 
 	};
 
-	safe::Hash<util::UserSetting, QString> userSetting_string_hash_ = {
+	safe::hash<util::UserSetting, QString> userSetting_string_hash_ = {
 		{ util::kAutoDropItemString, "" },
 		{ util::kLockAttackString, "" },
 		{ util::kLockEscapeString, "" },

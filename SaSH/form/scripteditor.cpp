@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "scripteditor.h"
 #include "model/customtitlebar.h"
 
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 #include <QSpinBox>
@@ -125,8 +125,8 @@ void ScriptEditor::init()
 {
 	long long index = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	Injector& injector = Injector::getInstance(index);
-	ui.listView_log->setModel(&injector.scriptLogModel);
+	GameDevice& gamedevice = GameDevice::getInstance(index);
+	ui.listView_log->setModel(&gamedevice.scriptLogModel);
 
 	onScriptStopMode();
 	emit signalDispatcher.reloadScriptList();
@@ -134,9 +134,9 @@ void ScriptEditor::init()
 
 	//ui.webEngineView->setUrl(QUrl("https://gitee.com/Bestkakkoii/sash/wikis/pages"));
 
-	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
+	if (!gamedevice.currentScriptFileName.get().isEmpty() && QFile::exists(gamedevice.currentScriptFileName.get()))
 	{
-		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
+		emit signalDispatcher.loadFileToTable(gamedevice.currentScriptFileName.get());
 	}
 
 	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
@@ -259,8 +259,8 @@ void ScriptEditor::createSpeedSpinBox()
 
 	long long currentIndex = getIndex();
 	pSpeedSpinBox->setRange(0, 10000);
-	Injector& injector = Injector::getInstance(currentIndex);
-	long long value = injector.getValueHash(util::kScriptSpeedValue);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	long long value = gamedevice.getValueHash(util::kScriptSpeedValue);
 	pSpeedSpinBox->setValue(value);
 	pSpeedSpinBox->setAttribute(Qt::WA_StyledBackground);
 	pSpeedSpinBox->setSingleStep(100);
@@ -321,8 +321,8 @@ ScriptEditor::~ScriptEditor()
 {
 	usageTimer_.stop();
 	qDebug() << "~ScriptEditor";
-	Injector& injector = Injector::getInstance(getIndex());
-	injector.IS_SCRIPT_EDITOR_OPENED.off();
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	gamedevice.IS_SCRIPT_EDITOR_OPENED.off();
 }
 
 void ScriptEditor::showEvent(QShowEvent* e)
@@ -338,14 +338,14 @@ void ScriptEditor::showEvent(QShowEvent* e)
 	setAttribute(Qt::WA_Mapped);
 	QMainWindow::showEvent(e);
 
-	Injector& injector = Injector::getInstance(getIndex());
-	injector.IS_SCRIPT_EDITOR_OPENED.on();
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	gamedevice.IS_SCRIPT_EDITOR_OPENED.on();
 }
 
 void ScriptEditor::closeEvent(QCloseEvent* e)
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	injector.IS_SCRIPT_EDITOR_OPENED.off();
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	gamedevice.IS_SCRIPT_EDITOR_OPENED.off();
 
 	setUpdatesEnabled(false);
 	blockSignals(true);
@@ -355,8 +355,8 @@ void ScriptEditor::closeEvent(QCloseEvent* e)
 
 	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
-	if (!injector.currentScriptFileName.isEmpty())
-		config.write("Script", "LastModifyFile", injector.currentScriptFileName);
+	if (!gamedevice.currentScriptFileName.get().isEmpty())
+		config.write("Script", "LastModifyFile", gamedevice.currentScriptFileName.get());
 
 	QString ObjectName = ui.widget->objectName();
 	QFont font = ui.widget->getOldFont();
@@ -609,8 +609,8 @@ QString ScriptEditor::formatCode(QString content)
 void ScriptEditor::fileSave(QString content)
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.IS_SCRIPT_FLAG.get())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
 	const QString directoryName(util::applicationDirPath() + "/script");
@@ -619,7 +619,7 @@ void ScriptEditor::fileSave(QString content)
 	if (!dir.exists())
 		dir.mkdir(directoryName);
 
-	const QString fileName(injector.currentScriptFileName);//當前路徑
+	const QString fileName(gamedevice.currentScriptFileName.get());//當前路徑
 
 	if (fileName.isEmpty())
 		return;
@@ -648,9 +648,9 @@ void ScriptEditor::fileSave(QString content)
 	emit signalDispatcher.addErrorMarker(-1, false);
 	emit signalDispatcher.addStepMarker(-1, false);
 
-	injector.forward_markers.clear();
-	injector.error_markers.clear();
-	injector.step_markers.clear();
+	gamedevice.forward_markers.clear();
+	gamedevice.error_markers.clear();
+	gamedevice.step_markers.clear();
 	reshowBreakMarker();
 
 	emit ui.comboBox_labels->clicked();
@@ -681,10 +681,10 @@ void ScriptEditor::loadFile(const QString& fileName)
 	long long scollValue = ui.widget->verticalScrollBar()->value();
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
-		setWindowTitle(QString("[%1][%2] %3").arg(currentIndex).arg(injector.worker->getCharacter().name).arg(fileName));
+	if (!gamedevice.worker.isNull() && gamedevice.worker->getOnlineFlag())
+		setWindowTitle(QString("[%1][%2] %3").arg(currentIndex).arg(gamedevice.worker->getCharacter().name).arg(fileName));
 	else
 		setWindowTitle(QString("[%1] %2").arg(currentIndex).arg(fileName));
 
@@ -705,9 +705,9 @@ void ScriptEditor::loadFile(const QString& fileName)
 	emit signalDispatcher.addErrorMarker(-1, false);
 	emit signalDispatcher.addStepMarker(-1, false);
 
-	injector.forward_markers.clear();
-	injector.error_markers.clear();
-	injector.step_markers.clear();
+	gamedevice.forward_markers.clear();
+	gamedevice.error_markers.clear();
+	gamedevice.step_markers.clear();
 
 	reshowBreakMarker();
 	emit ui.comboBox_labels->clicked();
@@ -732,7 +732,7 @@ void ScriptEditor::loadFile(const QString& fileName)
 		ui.widget->setReadOnly(true);
 	}
 
-	if (injector.IS_SCRIPT_FLAG.get())
+	if (gamedevice.IS_SCRIPT_FLAG.get())
 	{
 		onScriptStartMode();
 	}
@@ -742,15 +742,15 @@ void ScriptEditor::setContinue()
 {
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	emit signalDispatcher.addForwardMarker(-1, false);
 	emit signalDispatcher.addErrorMarker(-1, false);
 	emit signalDispatcher.addStepMarker(-1, false);
 
-	injector.forward_markers.clear();
-	injector.error_markers.clear();
-	injector.step_markers.clear();
+	gamedevice.forward_markers.clear();
+	gamedevice.error_markers.clear();
+	gamedevice.step_markers.clear();
 
 	emit signalDispatcher.scriptResumed();
 }
@@ -782,7 +782,7 @@ QString ScriptEditor::getFullPath(TreeWidgetItem* item)
 	QString suffix = "." + info.suffix();
 	if (suffix.isEmpty())
 		strpath += util::SCRIPT_DEFAULT_SUFFIX;
-	if (suffix != util::SCRIPT_PRIVATE_SUFFIX_DEFAULT && suffix != util::SCRIPT_DEFAULT_SUFFIX && suffix != util::SCRIPT_LUA_SUFFIX_DEFAULT)
+	if (suffix != util::SCRIPT_PRIVATE_SUFFIX_DEFAULT && suffix != util::SCRIPT_DEFAULT_SUFFIX)
 		strpath.replace(suffix, util::SCRIPT_DEFAULT_SUFFIX);
 
 	return strpath;
@@ -877,7 +877,7 @@ void ScriptEditor::createScriptListContextMenu()
 		});
 }
 
-void ScriptEditor::setMark(CodeEditor::SymbolHandler element, safe::Hash<QString, safe::Hash<long long, break_marker_t>>& hash, long long liner, bool b)
+void ScriptEditor::setMark(CodeEditor::SymbolHandler element, safe::hash<QString, safe::hash<long long, break_marker_t>>& hash, long long liner, bool b)
 {
 	do
 	{
@@ -888,14 +888,14 @@ void ScriptEditor::setMark(CodeEditor::SymbolHandler element, safe::Hash<QString
 			break;
 		}
 
-		Injector& injector = Injector::getInstance(getIndex());
+		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
-		QString currentScriptFileName = injector.currentScriptFileName;
+		QString currentScriptFileName = gamedevice.currentScriptFileName.get();
 		if (currentScriptFileName.isEmpty())
 			break;
 
 
-		safe::Hash<long long, break_marker_t> markers = hash.value(currentScriptFileName);
+		safe::hash<long long, break_marker_t> markers = hash.value(currentScriptFileName);
 
 		if (b)
 		{
@@ -931,14 +931,14 @@ void ScriptEditor::setStepMarks()
 	long long index = 1;
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 
-	QString currentScriptFileName = injector.currentScriptFileName;
+	QString currentScriptFileName = gamedevice.currentScriptFileName.get();
 	if (currentScriptFileName.isEmpty())
 		return;
 
-	safe::Hash<long long, break_marker_t> markers = injector.step_markers.value(currentScriptFileName);
+	safe::hash<long long, break_marker_t> markers = gamedevice.step_markers.value(currentScriptFileName);
 	break_marker_t bk = {};
 
 	for (long long i = 0; i < maxliner; ++i)
@@ -951,16 +951,16 @@ void ScriptEditor::setStepMarks()
 		markers.insert(index, bk);
 	}
 
-	injector.step_markers.insert(currentScriptFileName, markers);
+	gamedevice.step_markers.insert(currentScriptFileName, markers);
 }
 
 void ScriptEditor::reshowBreakMarker()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	const safe::Hash<QString, safe::Hash<long long, break_marker_t>> mks = injector.break_markers;
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	const safe::hash<QString, safe::hash<long long, break_marker_t>> mks = gamedevice.break_markers;
 
-	QString currentScriptFileName = injector.currentScriptFileName;
+	QString currentScriptFileName = gamedevice.currentScriptFileName.get();
 	if (currentScriptFileName.isEmpty())
 		return;
 
@@ -970,7 +970,7 @@ void ScriptEditor::reshowBreakMarker()
 		if (fileName != currentScriptFileName)
 			continue;
 
-		const safe::Hash<long long, break_marker_t> mk = mks.value(fileName);
+		const safe::hash<long long, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
 			ui.widget->markerAdd(bit.line, CodeEditor::SymbolHandler::SYM_POINT);
@@ -1015,18 +1015,18 @@ void ScriptEditor::onSetStaticLabelLineText(int line, int index)
 
 void ScriptEditor::on_widget_cursorPositionChanged(int line, int index)
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (!injector.IS_SCRIPT_FLAG.get())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (!gamedevice.IS_SCRIPT_FLAG.get())
 		onSetStaticLabelLineText(line, index);
 }
 
 void ScriptEditor::on_widget_textChanged()
 {
-	Injector& injector = Injector::getInstance(getIndex());
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	const QString text(ui.widget->text());
-	if (scripts_.value(injector.currentScriptFileName, "") != text)
+	if (scripts_.value(gamedevice.currentScriptFileName.get(), "") != text)
 	{
-		scripts_.insert(injector.currentScriptFileName, text);
+		scripts_.insert(gamedevice.currentScriptFileName.get(), text);
 		isModified_ = true;
 		ui.widget->setModified(true);
 		emit ui.widget->modificationChanged(true);
@@ -1153,9 +1153,9 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	if (str.isEmpty())
 		return;
 
-	Injector& injector = Injector::getInstance(getIndex());
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 	{
 		ui.widget->insert(str + " ");
 		return;
@@ -1163,8 +1163,8 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 
 	if (str == "button" || str == "input")
 	{
-		sa::dialog_t dialog = injector.worker->currentDialog.get();
-		QString npcName = injector.worker->mapUnitHash.value(dialog.unitid).name;
+		sa::dialog_t dialog = gamedevice.worker->currentDialog.get();
+		QString npcName = gamedevice.worker->mapUnitHash.value(dialog.unitid).name;
 		if (npcName.isEmpty())
 			return;
 
@@ -1172,7 +1172,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "waitdlg")
 	{
-		sa::dialog_t dialog = injector.worker->currentDialog.get();
+		sa::dialog_t dialog = gamedevice.worker->currentDialog.get();
 		QString lineStr;
 		for (const QString& s : dialog.linedatas)
 		{
@@ -1190,8 +1190,8 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "learn")
 	{
-		sa::dialog_t dialog = injector.worker->currentDialog.get();
-		QString npcName = injector.worker->mapUnitHash.value(dialog.unitid).name;
+		sa::dialog_t dialog = gamedevice.worker->currentDialog.get();
+		QString npcName = gamedevice.worker->mapUnitHash.value(dialog.unitid).name;
 		if (npcName.isEmpty())
 			return;
 
@@ -1199,23 +1199,23 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "findpath" || str == "move")
 	{
-		QPoint pos = injector.worker->getPoint();
+		QPoint pos = gamedevice.worker->getPoint();
 		str = QString("%1(%2, %3)").arg(str).arg(pos.x()).arg(pos.y());
 	}
 	else if (str == "dir")
 	{
-		long long dir = injector.worker->getDir();
+		long long dir = gamedevice.worker->getDir();
 		str = QString("%1(%2)").arg(str).arg(dir);
 	}
 	else if (str == "walkpos")
 	{
-		QPoint pos = injector.worker->getPoint();
+		QPoint pos = gamedevice.worker->getPoint();
 		str = QString("%1(%2, %3, 5000)").arg(str).arg(pos.x()).arg(pos.y());
 	}
 	else if (str == "w")
 	{
-		QPoint pos = injector.worker->getPoint();
-		long long dir = injector.worker->getDir();
+		QPoint pos = gamedevice.worker->getPoint();
+		long long dir = gamedevice.worker->getDir();
 		const QString dirStr = "ABCDEFGH";
 		if (dir < 0 || dir >= dirStr.size())
 			return;
@@ -1223,7 +1223,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "waitmap")
 	{
-		long long floor = injector.worker->getFloor();
+		long long floor = gamedevice.worker->getFloor();
 		str = QString("%1(%2, 5000, +2)").arg(str).arg(floor);
 	}
 	else if (str == "sleep")
@@ -1240,8 +1240,8 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "findnpc")
 	{
-		QPoint pos = injector.worker->getPoint();
-		QList<sa::map_unit_t> units = injector.worker->mapUnitHash.values();
+		QPoint pos = gamedevice.worker->getPoint();
+		QList<sa::map_unit_t> units = gamedevice.worker->mapUnitHash.values();
 		auto getdis = [&pos](QPoint p)
 			{
 				//歐幾里得
@@ -1270,8 +1270,8 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "findnpc with mod")
 	{
-		QPoint pos = injector.worker->getPoint();
-		QList<sa::map_unit_t> units = injector.worker->mapUnitHash.values();
+		QPoint pos = gamedevice.worker->getPoint();
+		QList<sa::map_unit_t> units = gamedevice.worker->mapUnitHash.values();
 		auto getdis = [&pos](QPoint p)
 			{
 				//歐幾里得
@@ -1414,18 +1414,17 @@ void ScriptEditor::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* it
 {
 	if (item == nullptr)
 		return;
-	Injector& injector = Injector::getInstance(getIndex());
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	if (item->text(2).isEmpty())
 		return;
 
-	if (injector.IS_SCRIPT_FLAG.get())
+	if (gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
 	if (item->text(3).isEmpty())
 		return;
 
-	injector.currentScriptFileName = item->text(3);
-	//emit signalDispatcher.loadFileToTable();
+	gamedevice.currentScriptFileName.set(item->text(3));
 	loadFile(item->text(3));
 	long long line = item->text(2).toLongLong();
 	QString text = ui.widget->text(line - 1);
@@ -1572,27 +1571,27 @@ void ScriptEditor::on_listView_log_doubleClicked(const QModelIndex& index)
 void ScriptEditor::onApplyHashSettingsToUI()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.worker.isNull() && gamedevice.worker->getOnlineFlag())
 	{
-		QString title = injector.currentScriptFileName;
-		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(injector.worker->getCharacter().name).arg(title);
+		QString title = gamedevice.currentScriptFileName.get();
+		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(gamedevice.worker->getCharacter().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 
-	ui.listView_log->setModel(&injector.scriptLogModel);
+	ui.listView_log->setModel(&gamedevice.scriptLogModel);
 
 	if (pSpeedSpinBox != nullptr)
-		pSpeedSpinBox->setValue(injector.getValueHash(util::kScriptSpeedValue));
+		pSpeedSpinBox->setValue(gamedevice.getValueHash(util::kScriptSpeedValue));
 
-	ui.actionDebug->setChecked(injector.IS_SCRIPT_DEBUG_ENABLE.get());
+	ui.actionDebug->setChecked(gamedevice.IS_SCRIPT_DEBUG_ENABLE.get());
 }
 
 void ScriptEditor::onWidgetModificationChanged(bool changed)
 {
 	if (!changed) return;
-	Injector& injector = Injector::getInstance(getIndex());
-	scripts_.insert(injector.currentScriptFileName, ui.widget->text());
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	scripts_.insert(gamedevice.currentScriptFileName.get(), ui.widget->text());
 }
 
 void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int column)
@@ -1607,8 +1606,8 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 	do
 	{
 		long long currnetIndex = getIndex();
-		Injector& injector = Injector::getInstance(currnetIndex);
-		if (injector.IS_SCRIPT_FLAG.get())
+		GameDevice& gamedevice = GameDevice::getInstance(currnetIndex);
+		if (gamedevice.IS_SCRIPT_FLAG.get())
 			break;
 
 		/*得到文件路徑*/
@@ -1642,12 +1641,12 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 		emit signalDispatcher.addErrorMarker(-1, false);
 		emit signalDispatcher.addStepMarker(-1, false);
 
-		injector.forward_markers.clear();
-		injector.error_markers.clear();
-		injector.step_markers.clear();
+		gamedevice.forward_markers.clear();
+		gamedevice.error_markers.clear();
+		gamedevice.step_markers.clear();
 
-		if (!injector.IS_SCRIPT_FLAG.get())
-			injector.currentScriptFileName = strpath;
+		if (!gamedevice.IS_SCRIPT_FLAG.get())
+			gamedevice.currentScriptFileName.set(strpath);
 
 		emit signalDispatcher.loadFileToTable(strpath);
 
@@ -1696,11 +1695,11 @@ void ScriptEditor::onScriptTreeWidgetItemChanged(QTreeWidgetItem* newitem, int c
 
 void ScriptEditor::onScriptLabelRowTextChanged(int line, int, bool)
 {
-	Injector& injector = Injector::getInstance(getIndex());
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	if (line < 0)
 		line = 1;
 
-	if (!injector.IS_SCRIPT_DEBUG_ENABLE.get())
+	if (!gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
 	{
 		onSetStaticLabelLineText(line - 1, NULL);
 		return;
@@ -1744,8 +1743,8 @@ void ScriptEditor::onSpeedChanged(int value)
 	pSpeedSpinBox->blockSignals(false);
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	injector.setValueHash(util::kScriptSpeedValue, value);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	gamedevice.setValueHash(util::kScriptSpeedValue, value);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.applyHashSettingsToUI();
 }
@@ -1782,20 +1781,20 @@ void ScriptEditor::onActionTriggered()
 	if (name.isEmpty())
 		return;
 
-	Injector& injector = Injector::getInstance(currnetIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currnetIndex);
 
 	if (name == "actionSave")
 	{
-		injector.scriptLogModel.clear();
+		gamedevice.scriptLogModel.clear();
 
 		fileSave(ui.widget->text());
-		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
+		emit signalDispatcher.loadFileToTable(gamedevice.currentScriptFileName.get());
 		return;
 	}
 
 	if (name == "actionStart")
 	{
-		if (injector.step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG.get())
+		if (gamedevice.step_markers.size() == 0 && !gamedevice.IS_SCRIPT_FLAG.get())
 		{
 			emit signalDispatcher.scriptStarted();
 		}
@@ -1868,11 +1867,11 @@ void ScriptEditor::onActionTriggered()
 
 	if (name == "actionLogback")
 	{
-		if (injector.worker.isNull())
+		if (gamedevice.worker.isNull())
 			return;
 
-		if (injector.isValid())
-			injector.setEnableHash(util::kLogBackEnable, true);
+		if (gamedevice.isValid())
+			gamedevice.setEnableHash(util::kLogBackEnable, true);
 		return;
 	}
 
@@ -1895,7 +1894,7 @@ void ScriptEditor::onActionTriggered()
 
 	if (name == "actionDebug")
 	{
-		injector.IS_SCRIPT_DEBUG_ENABLE.set(pAction->isChecked());
+		gamedevice.IS_SCRIPT_DEBUG_ENABLE.set(pAction->isChecked());
 		return;
 	}
 }
@@ -2023,15 +2022,15 @@ void ScriptEditor::onScriptStopMode()
 
 	long long currnetIndex = getIndex();
 
-	Injector& injector = Injector::getInstance(getIndex());
-	injector.forward_markers.clear();
-	injector.step_markers.clear();
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	gamedevice.forward_markers.clear();
+	gamedevice.step_markers.clear();
 }
 
 void ScriptEditor::onScriptBreakMode()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (!injector.IS_SCRIPT_FLAG.get())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (!gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
 	ui.mainToolBar->setUpdatesEnabled(false);
@@ -2091,8 +2090,8 @@ void ScriptEditor::onScriptBreakMode()
 
 void ScriptEditor::onScriptPauseMode()
 {
-	Injector& injector = Injector::getInstance(getIndex());
-	if (!injector.IS_SCRIPT_FLAG.get())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (!gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
 	ui.mainToolBar->setUpdatesEnabled(false);
@@ -2153,15 +2152,15 @@ void ScriptEditor::onScriptPauseMode()
 void ScriptEditor::onAddForwardMarker(long long liner, bool b)
 {
 	long long currnetIndex = getIndex();
-	Injector& injector = Injector::getInstance(currnetIndex);
-	setMark(CodeEditor::SymbolHandler::SYM_ARROW, injector.forward_markers, liner, b);
+	GameDevice& gamedevice = GameDevice::getInstance(currnetIndex);
+	setMark(CodeEditor::SymbolHandler::SYM_ARROW, gamedevice.forward_markers, liner, b);
 }
 
 void ScriptEditor::onAddErrorMarker(long long liner, bool b)
 {
 	long long currnetIndex = getIndex();
-	Injector& injector = Injector::getInstance(currnetIndex);
-	setMark(CodeEditor::SymbolHandler::SYM_TRIANGLE, injector.error_markers, liner, b);
+	GameDevice& gamedevice = GameDevice::getInstance(currnetIndex);
+	setMark(CodeEditor::SymbolHandler::SYM_TRIANGLE, gamedevice.error_markers, liner, b);
 }
 
 void ScriptEditor::onAddStepMarker(long long, bool b)
@@ -2170,8 +2169,8 @@ void ScriptEditor::onAddStepMarker(long long, bool b)
 	if (!b)
 	{
 		ui.widget->setUpdatesEnabled(false);
-		Injector& injector = Injector::getInstance(currnetIndex);
-		setMark(CodeEditor::SymbolHandler::SYM_STEP, injector.step_markers, -1, false);
+		GameDevice& gamedevice = GameDevice::getInstance(currnetIndex);
+		setMark(CodeEditor::SymbolHandler::SYM_STEP, gamedevice.step_markers, -1, false);
 		ui.widget->setUpdatesEnabled(true);
 	}
 	else
@@ -2186,7 +2185,7 @@ void ScriptEditor::onAddStepMarker(long long, bool b)
 void ScriptEditor::onAddBreakMarker(long long liner, bool b)
 {
 	long long currnetIndex = getIndex();
-	Injector& injector = Injector::getInstance(currnetIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currnetIndex);
 	do
 	{
 		if (liner == -1)
@@ -2195,13 +2194,13 @@ void ScriptEditor::onAddBreakMarker(long long liner, bool b)
 			break;
 		}
 
-		QString currentScriptFileName = injector.currentScriptFileName;
+		QString currentScriptFileName = gamedevice.currentScriptFileName.get();
 		if (currentScriptFileName.isEmpty())
 			break;
 
 		if (b)
 		{
-			safe::Hash<long long, break_marker_t> markers = injector.break_markers.value(currentScriptFileName);
+			safe::hash<long long, break_marker_t> markers = gamedevice.break_markers.value(currentScriptFileName);
 			break_marker_t bk = markers.value(liner);
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
@@ -2211,16 +2210,16 @@ void ScriptEditor::onAddBreakMarker(long long liner, bool b)
 			bk.maker = static_cast<long long>(CodeEditor::SymbolHandler::SYM_POINT);
 
 			markers.insert(liner, bk);
-			injector.break_markers.insert(currentScriptFileName, markers);
+			gamedevice.break_markers.insert(currentScriptFileName, markers);
 			ui.widget->markerAdd(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
 		else if (!b)
 		{
-			safe::Hash<long long, break_marker_t> markers = injector.break_markers.value(currentScriptFileName);
+			safe::hash<long long, break_marker_t> markers = gamedevice.break_markers.value(currentScriptFileName);
 			if (markers.contains(liner))
 			{
 				markers.remove(liner);
-				injector.break_markers.insert(currentScriptFileName, markers);
+				gamedevice.break_markers.insert(currentScriptFileName, markers);
 			}
 
 			ui.widget->markerDelete(liner, CodeEditor::SymbolHandler::SYM_POINT);
@@ -2234,17 +2233,17 @@ void ScriptEditor::onBreakMarkInfoImport()
 {
 	ui.treeWidget_breakList->setUpdatesEnabled(false);
 	long long currnetIndex = getIndex();
-	Injector& injector = Injector::getInstance(currnetIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currnetIndex);
 	QList<QTreeWidgetItem*> trees = {};
 	ui.treeWidget_breakList->clear();
 	ui.treeWidget_breakList->setColumnCount(4);
 	ui.treeWidget_breakList->setHeaderLabels(QStringList{ tr("CONTENT"),tr("COUNT"), tr("ROW"), tr("FILE") });
-	const safe::Hash<QString, safe::Hash<long long, break_marker_t>> mks = injector.break_markers;
+	const safe::hash<QString, safe::hash<long long, break_marker_t>> mks = gamedevice.break_markers;
 	TreeWidgetItem* item = nullptr;
 	for (auto it = mks.cbegin(); it != mks.cend(); ++it)
 	{
 		QString fileName = it.key();
-		const safe::Hash<long long, break_marker_t> mk = mks.value(fileName);
+		const safe::hash<long long, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
 			item = q_check_ptr(new TreeWidgetItem({ bit.content, util::toQString(bit.count), util::toQString(bit.line + 1), fileName }));
@@ -2334,8 +2333,8 @@ void ScriptEditor::onFindAllFinished(const QString& expr, const QVariant& varmap
 	pTreeWidgetFindAll_->setUpdatesEnabled(false);
 	pTreeWidgetFindAll_->clear();
 
-	Injector& injector = Injector::getInstance(getIndex());
-	QString currentScriptFileName = injector.currentScriptFileName;
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	QString currentScriptFileName = gamedevice.currentScriptFileName.get();
 	QFileInfo fileInfo(currentScriptFileName);
 	QString fileName = fileInfo.fileName();
 
@@ -2429,12 +2428,12 @@ void ScriptEditor::onEncryptSave()
 	}
 
 	Crypto crypto;
-	Injector& injector = Injector::getInstance(currnetIndex);
-	if (crypto.encodeScript(injector.currentScriptFileName, password))
+	GameDevice& gamedevice = GameDevice::getInstance(currnetIndex);
+	if (crypto.encodeScript(gamedevice.currentScriptFileName.get(), password))
 	{
-		QString newFileName = injector.currentScriptFileName;
+		QString newFileName = gamedevice.currentScriptFileName.get();
 		newFileName.replace(util::SCRIPT_DEFAULT_SUFFIX, util::SCRIPT_PRIVATE_SUFFIX_DEFAULT);
-		injector.currentScriptFileName = newFileName;
+		gamedevice.currentScriptFileName.set(newFileName);
 		ui.statusBar->showMessage(QString(tr("Encrypt script %1 saved")).arg(newFileName), 5000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currnetIndex);
 		emit signalDispatcher.loadFileToTable(newFileName);
@@ -2476,15 +2475,14 @@ void ScriptEditor::onDecryptSave()
 
 	Crypto crypto;
 	QString content;
-	Injector& injector = Injector::getInstance(currnetIndex);
-	if (crypto.decodeScript(injector.currentScriptFileName, password, content))
+	GameDevice& gamedevice = GameDevice::getInstance(currnetIndex);
+	QString currentScriptFileName = gamedevice.currentScriptFileName.get();
+	if (crypto.decodeScript(currentScriptFileName, password, content))
 	{
-		QString newFileName = injector.currentScriptFileName;
-		newFileName.replace(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT, util::SCRIPT_DEFAULT_SUFFIX);
-		injector.currentScriptFileName = newFileName;
-		ui.statusBar->showMessage(QString(tr("Decrypt script %1 saved")).arg(newFileName), 5000);
+		gamedevice.currentScriptFileName.set(currentScriptFileName);
+		ui.statusBar->showMessage(QString(tr("Decrypt script %1 saved")).arg(currentScriptFileName), 5000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currnetIndex);
-		emit signalDispatcher.loadFileToTable(newFileName);
+		emit signalDispatcher.loadFileToTable(currentScriptFileName);
 		emit signalDispatcher.reloadScriptList();
 	}
 	else
@@ -2691,8 +2689,8 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 					varType = QObject::tr("Table");
 
 					depth = kMaxLuaTableDepth;
-					pparser->luaDoString(QString("_TMP = %1").arg(var.toString()));
-					if (lua["_TMP"].is<sol::table>())
+					pparser->luaDoString(QString("__TMP = %1").arg(var.toString()));
+					if (lua["__TMP"].is<sol::table>())
 					{
 						QStringList treeTexts = { field, varName, "", QString("(%1)").arg(varType) };
 						pNode = q_check_ptr(new TreeWidgetItem(treeTexts));
@@ -2700,7 +2698,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 						if (pNode == nullptr)
 							continue;
 
-						if (luaTableToTreeWidgetItem(field, pNode, lua["_TMP"].get<sol::table>(), depth, "local"))
+						if (luaTableToTreeWidgetItem(field, pNode, lua["__TMP"].get<sol::table>(), depth, "local"))
 						{
 							pNode->setData(0, Qt::UserRole, QString("local"));
 							pNode->setText(2, QString("(%1)").arg(pNode->childCount()));
@@ -2711,7 +2709,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetSystem, TreeWidget* w
 							delete pNode;
 					}
 
-					lua["_TMP"] = sol::lua_nil;
+					lua["__TMP"] = sol::lua_nil;
 					continue;
 				}
 				else

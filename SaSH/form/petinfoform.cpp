@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "petinfoform.h"
 
 #include "util.h"
-#include "injector.h"
+#include <gamedevice.h>
 
 PetInfoForm::PetInfoForm(long long index, QWidget* parent)
 	: QWidget(parent)
@@ -80,10 +80,10 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 	{
 		long long currentIndex = ui.comboBox->currentIndex();
 
-		Injector& injector = Injector::getInstance(getIndex());
+		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 		if (currentIndex >= 0 && currentIndex < sa::MAX_PET)
 		{
-			sa::pet_t pet = injector.worker->getPet(currentIndex);
+			sa::pet_t pet = gamedevice.worker->getPet(currentIndex);
 			base_level_ = pet.oldlevel;
 			if (base_level_ == 0)
 				base_level_ = 1;
@@ -114,8 +114,8 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 void PetInfoForm::on_comboBox_clicked()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return;
 
 	long long current = ui.comboBox->currentIndex();
@@ -124,7 +124,7 @@ void PetInfoForm::on_comboBox_clicked()
 	for (long long i = 0; i < sa::MAX_PET; ++i)
 	{
 		QVector<long long> v;
-		sa::pet_t pet = injector.worker->getPet(i);
+		sa::pet_t pet = gamedevice.worker->getPet(i);
 		QString name = util::toQString(i + 1) + ":";
 		if (!pet.name.isEmpty() && pet.valid)
 		{

@@ -8,7 +8,7 @@
 #include <qdialogbuttonbox.h>
 
 
-#include "../injector.h"
+#include <gamedevice.h>
 
 #ifdef _WIN64
 #ifdef _DEBUG
@@ -423,14 +423,14 @@ void CodeEditor::dropEvent(QDropEvent* e)
 	if (suffix != "txt")
 		return;
 
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.IS_SCRIPT_FLAG.get())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	emit signalDispatcher.loadFileToTable(path);
 
-	injector.currentScriptFileName = path;
+	gamedevice.currentScriptFileName.set(path);
 }
 
 void CodeEditor::commentSwitch()

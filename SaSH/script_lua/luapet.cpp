@@ -18,19 +18,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "clua.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 long long CLuaPet::setState(long long petIndex, long long state, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->setPetState(--petIndex, static_cast<sa::PetState>(state));
+	gamedevice.worker->setPetState(--petIndex, static_cast<sa::PetState>(state));
 
 	return TRUE;
 }
@@ -38,13 +38,13 @@ long long CLuaPet::setState(long long petIndex, long long state, sol::this_state
 long long CLuaPet::drop(long long petIndex, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->dropPet(--petIndex);
+	gamedevice.worker->dropPet(--petIndex);
 
 	return TRUE;
 }
@@ -52,15 +52,15 @@ long long CLuaPet::drop(long long petIndex, sol::this_state s)
 long long CLuaPet::rename(long long petIndex, std::string name, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
 	QString qname = util::toQString(name);
 
-	injector.worker->setPetFreeName(--petIndex, qname);
+	gamedevice.worker->setPetFreeName(--petIndex, qname);
 
 	return TRUE;
 }
@@ -68,8 +68,8 @@ long long CLuaPet::rename(long long petIndex, std::string name, sol::this_state 
 long long CLuaPet::learn(long long petIndex, long long fromSkillIndex, long long toSkillIndex, sol::object ounitid, sol::object odialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
@@ -87,7 +87,7 @@ long long CLuaPet::learn(long long petIndex, long long fromSkillIndex, long long
 	if (modelid != -1 || !npcname.isEmpty())
 	{
 		sa::map_unit_t unit = {};
-		if (injector.worker->findUnit(npcname, sa::kObjectNPC, &unit, "", modelid))
+		if (gamedevice.worker->findUnit(npcname, sa::kObjectNPC, &unit, "", modelid))
 		{
 			unitid = unit.id;
 		}
@@ -97,7 +97,7 @@ long long CLuaPet::learn(long long petIndex, long long fromSkillIndex, long long
 	if (odialogid.is<long long>())
 		dialogid = odialogid.as<long long>();
 
-	injector.worker->learn(--petIndex, --fromSkillIndex, --toSkillIndex, dialogid, unitid);
+	gamedevice.worker->learn(--petIndex, --fromSkillIndex, --toSkillIndex, dialogid, unitid);
 
 	return TRUE;
 }
@@ -105,13 +105,13 @@ long long CLuaPet::learn(long long petIndex, long long fromSkillIndex, long long
 long long CLuaPet::swap(long long petIndex, long long from, long long to, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->petitemswap(--petIndex, --from, --to);
+	gamedevice.worker->petitemswap(--petIndex, --from, --to);
 
 	return TRUE;
 }
@@ -119,13 +119,13 @@ long long CLuaPet::swap(long long petIndex, long long from, long long to, sol::t
 long long CLuaPet::deposit(long long petIndex, long long unitid, long long dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->depositPet(--petIndex, dialogid, unitid);
+	gamedevice.worker->depositPet(--petIndex, dialogid, unitid);
 
 	return TRUE;
 }
@@ -133,13 +133,13 @@ long long CLuaPet::deposit(long long petIndex, long long unitid, long long dialo
 long long CLuaPet::withdraw(long long petIndex, long long unitid, long long dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->withdrawPet(--petIndex, dialogid, unitid);
+	gamedevice.worker->withdrawPet(--petIndex, dialogid, unitid);
 
 	return TRUE;
 }

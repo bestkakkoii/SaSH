@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "iteminfoform.h"
 
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 ItemInfoForm::ItemInfoForm(long long index, QWidget* parent)
@@ -45,16 +45,16 @@ ItemInfoForm::ItemInfoForm(long long index, QWidget* parent)
 
 	onResetControlTextLanguage();
 
-	Injector& injector = Injector::getInstance(index);
-	if (!injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(index);
+	if (!gamedevice.worker.isNull())
 	{
-		QHash<long long, QVariant> hashItem = injector.worker->itemInfoRowContents.toHash();
+		QHash<long long, QVariant> hashItem = gamedevice.worker->itemInfoRowContents.toHash();
 		for (auto it = hashItem.begin(); it != hashItem.end(); ++it)
 		{
 			onUpdateItemInfoRowContents(it.key(), it.value());
 		}
 
-		QHash<long long, QVariant> hashEquip = injector.worker->equipInfoRowContents.toHash();
+		QHash<long long, QVariant> hashEquip = gamedevice.worker->equipInfoRowContents.toHash();
 		for (auto it = hashEquip.begin(); it != hashEquip.end(); ++it)
 		{
 			onUpdateEquipInfoRowContents(it.key(), it.value());
@@ -63,11 +63,11 @@ ItemInfoForm::ItemInfoForm(long long index, QWidget* parent)
 
 	connect(ui.pushButton_refresh, &PushButton::clicked, this, [index]()
 		{
-			Injector& injector = Injector::getInstance(index);
-			if (!injector.worker.isNull())
+			GameDevice& gamedevice = GameDevice::getInstance(index);
+			if (!gamedevice.worker.isNull())
 			{
 				for (long long i = 0; i < 4; ++i)
-					injector.worker->sortItem();
+					gamedevice.worker->sortItem();
 			}
 		});
 
@@ -152,24 +152,24 @@ void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
 {
 	std::ignore = column;
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return;
 
-	injector.worker->useItem(static_cast<long long>(row) + sa::CHAR_EQUIPSLOT_COUNT, 0);
+	gamedevice.worker->useItem(static_cast<long long>(row) + sa::CHAR_EQUIPSLOT_COUNT, 0);
 }
 
 void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int column)
 {
 	std::ignore = column;
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return;
 
-	long long spotIndex = injector.worker->getItemEmptySpotIndex();
+	long long spotIndex = gamedevice.worker->getItemEmptySpotIndex();
 	if (spotIndex == -1)
 		return;
 
-	injector.worker->swapItem(row, spotIndex);
+	gamedevice.worker->swapItem(row, spotIndex);
 }

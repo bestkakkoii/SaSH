@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "selecttargetform.h"
 #include <util.h>
-#include <injector.h>
+#include <gamedevice.h>
 
 SelectTargetForm::SelectTargetForm(long long index, long long type, QString* dst, QWidget* parent)
 	: QDialog(parent)
@@ -49,8 +49,8 @@ SelectTargetForm::SelectTargetForm(long long index, long long type, QString* dst
 		}
 	}
 
-	Injector& injector = Injector::getInstance(index);
-	selectflag_ = static_cast<unsigned long long>(injector.getValueHash(static_cast<util::UserSetting>(type)));
+	GameDevice& gamedevice = GameDevice::getInstance(index);
+	selectflag_ = static_cast<unsigned long long>(gamedevice.getValueHash(static_cast<util::UserSetting>(type)));
 	checkControls();
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
@@ -119,8 +119,8 @@ void SelectTargetForm::onAccept()
 	{
 		*dst_ = generateShortName(selectflag_);
 		long long currentIndex = getIndex();
-		Injector& injector = Injector::getInstance(currentIndex);
-		injector.setValueHash(static_cast<util::UserSetting>(type_), selectflag_);
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		gamedevice.setValueHash(static_cast<util::UserSetting>(type_), selectflag_);
 	}
 	accept();
 }

@@ -3,7 +3,7 @@
 
 #include "util.h"
 #include "signaldispatcher.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "script/parser.h"
 
 BattleConditionTextItem::BattleConditionTextItem(const QString& text, QGraphicsItem* parent)
@@ -292,7 +292,7 @@ void BattleSettingFrom::onButtonClicked()
 
 	long long currentIndex = getIndex();
 
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	if (name == "pushButton_save")
 	{
@@ -306,7 +306,7 @@ void BattleSettingFrom::onButtonClicked()
 			logicList.append(item->text());
 		}
 
-		injector.setStringHash(util::kBattleLogicsString, logicList.join("\n"));
+		gamedevice.setStringHash(util::kBattleLogicsString, logicList.join("\n"));
 		return;
 	}
 

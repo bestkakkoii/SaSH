@@ -295,7 +295,7 @@ QSharedPointer<sol::state> RPCServer::getDevice(long long id)
 			sol::lib::io
 		);
 
-		device->set("_INDEX", id);
+		device->set("__INDEX", id);
 
 		devices_.insert(id, device);
 		return device;

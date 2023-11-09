@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_TW">
 <context>
@@ -1927,7 +1927,7 @@
     </message>
 </context>
 <context>
-    <name>Injector</name>
+    <name>GameDevice</name>
     <message>
         <source>dwProcessId is null!</source>
         <translation type="vanished">進程ID為空!</translation>
@@ -4824,19 +4824,19 @@ New version:%2</source>
         <translation>早上</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="396"/>
+        <location filename="../gamedevice.cpp" line="396"/>
         <source>dwProcessId is null!</source>
         <translation>進程ID為空!</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="402"/>
+        <location filename="../gamedevice.cpp" line="402"/>
         <source>pReason is null!</source>
         <translation>錯誤訊息指針為空!</translation>
     </message>
     <message>
-        <location filename="../injector.cpp" line="418"/>
-        <location filename="../injector.cpp" line="425"/>
-        <location filename="../injector.cpp" line="432"/>
+        <location filename="../gamedevice.cpp" line="418"/>
+        <location filename="../gamedevice.cpp" line="425"/>
+        <location filename="../gamedevice.cpp" line="432"/>
         <source>Dll is not exist at %1</source>
         <translation>欲注入的插件不存在於 %1</translation>
     </message>

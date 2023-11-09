@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "afkinfoform.h"
 
 #include "signaldispatcher.h"
-#include "injector.h"
+#include <gamedevice.h>
 
 AfkInfoForm::AfkInfoForm(long long index, QWidget* parent)
 	: QWidget(parent)
@@ -51,27 +51,27 @@ AfkInfoForm::~AfkInfoForm()
 void AfkInfoForm::onButtonClicked()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return;
 
-	injector.worker->loginTimer.restart();
-	sa::character_t pc = injector.worker->getCharacter();
+	gamedevice.worker->loginTimer.restart();
+	sa::character_t pc = gamedevice.worker->getCharacter();
 	sa::afk_record_data_t recorder;
 	recorder.levelrecord = pc.level;
 	recorder.exprecord = pc.exp;
 	recorder.goldearn = 0;
 	recorder.deadthcount = 0;
-	injector.worker->afkRecords[0] = recorder;
+	gamedevice.worker->afkRecords[0] = recorder;
 
 	for (long long i = 0; i < sa::MAX_PET; ++i)
 	{
-		sa::pet_t pet = injector.worker->getPet(i);
+		sa::pet_t pet = gamedevice.worker->getPet(i);
 		recorder = {};
 		recorder.levelrecord = pet.level;
 		recorder.exprecord = pet.exp;
 		recorder.deadthcount = 0;
-		injector.worker->afkRecords[i + 1] = recorder;
+		gamedevice.worker->afkRecords[i + 1] = recorder;
 	}
 }
 

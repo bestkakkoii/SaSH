@@ -24,7 +24,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <vector>
 #include <WS2tcpip.h>
 
-#include <threadplugin.h>
 #include <indexer.h>
 #include <util.h>
 #include "lssproto.h"
@@ -52,11 +51,11 @@ private:
 	QFuture<void> netFuture_;
 };
 
-class Worker : public ThreadPlugin, public Lssproto
+class Worker : public QObject, public Indexer, public Lssproto
 {
 	Q_OBJECT
 public:
-	Worker(long long index, Socket* socket, QObject* parent);
+	Worker(long long index, QObject* parent);
 
 	virtual ~Worker();
 
@@ -288,17 +287,17 @@ public://actions
 
 	[[nodiscard]] QString __fastcall getFloorName();
 	//battle
-	void __fastcall sendBattleCharAttackAct(long long target);
-	void __fastcall sendBattleCharMagicAct(long long magicIndex, long long target);
-	void __fastcall sendBattleCharJobSkillAct(long long skillIndex, long long target);
-	void __fastcall sendBattleCharItemAct(long long itemIndex, long long target);
-	void __fastcall sendBattleCharDefenseAct();
-	void __fastcall sendBattleCharEscapeAct();
-	void __fastcall sendBattleCharCatchPetAct(long long petIndex);
-	void __fastcall sendBattleCharSwitchPetAct(long long petIndex);
-	void __fastcall sendBattleCharDoNothing();
-	void __fastcall sendBattlePetSkillAct(long long skillIndex, long long target);
-	void __fastcall sendBattlePetDoNothing();
+	bool __fastcall sendBattleCharAttackAct(long long target);
+	bool __fastcall sendBattleCharMagicAct(long long magicIndex, long long target);
+	bool __fastcall sendBattleCharJobSkillAct(long long skillIndex, long long target);
+	bool __fastcall sendBattleCharItemAct(long long itemIndex, long long target);
+	bool __fastcall sendBattleCharDefenseAct();
+	bool __fastcall sendBattleCharEscapeAct();
+	bool __fastcall sendBattleCharCatchPetAct(long long petIndex);
+	bool __fastcall sendBattleCharSwitchPetAct(long long petIndex);
+	bool __fastcall sendBattleCharDoNothing();
+	bool __fastcall sendBattlePetSkillAct(long long skillIndex, long long target);
+	bool __fastcall sendBattlePetDoNothing();
 	void __fastcall setBattleEnd();
 
 	void updateBattleTimeInfo();
@@ -348,7 +347,7 @@ public://actions
 	inline [[nodiscard]] sa::address_bool_t __fastcall getAddressBook(long long index) const { return addressBook_.value(index); }
 	inline [[nodiscard]] QHash<long long, sa::address_bool_t> __fastcall getAddressBooks() const { return addressBook_.toHash(); }
 
-	inline [[nodiscard]] sa::battle_data_t __fastcall getBattleData() const { return battleData.get(); }
+	inline [[nodiscard]] sa::battle_data_t __fastcall getBattleData() const { return battleData_.get(); }
 	inline [[nodiscard]] sa::mission_data_t __fastcall getMissionInfo(long long index) const { return missionInfo_.value(index); }
 	inline [[nodiscard]] QHash<long long, sa::mission_data_t> __fastcall getMissionInfos() const { return missionInfo_.toHash(); }
 	inline [[nodiscard]] sa::char_list_data_t __fastcall getCharListTable(long long index) const { return charListData_.value(index); }
@@ -361,8 +360,10 @@ public://actions
 	void __fastcall updateComboBoxList();
 
 	void __fastcall setWindowTitle(QString formatStr);
+
+	void addNetQueue(const QByteArray& data) { readQueue_.enqueue(data); }
 private:
-	void __fastcall setCharModelDir(long long dir);
+	void __fastcall setCharModelDirection(long long dir);
 
 	void __fastcall refreshItemInfo(long long index);
 
@@ -377,9 +378,9 @@ private:
 
 #pragma region BattleFunctions
 	long long __fastcall playerDoBattleWork(const sa::battle_data_t& bt);
-	void __fastcall handleCharBattleLogics(const sa::battle_data_t& bt);
+	bool __fastcall handleCharBattleLogics(const sa::battle_data_t& bt);
 	long long __fastcall petDoBattleWork(const sa::battle_data_t& bt);
-	void __fastcall handlePetBattleLogics(const sa::battle_data_t& bt);
+	bool __fastcall handlePetBattleLogics(const sa::battle_data_t& bt);
 
 	bool __fastcall isCharMpEnoughForMagic(long long magicIndex) const;
 	bool __fastcall isCharMpEnoughForSkill(long long magicIndex) const;
@@ -421,7 +422,7 @@ private:
 	void __fastcall updateCurrentSideRange(sa::battle_data_t* bt);
 	bool __fastcall checkFlagState(long long pos);
 
-	inline void __fastcall setBattleData(const sa::battle_data_t& data) { battleData.set(data); }
+	inline void __fastcall setBattleData(const sa::battle_data_t& data) { battleData_.set(data); }
 
 	//自動鎖寵
 	void checkAutoLockPet(); //Async concurrent, DO NOT change calling convention
@@ -456,50 +457,48 @@ private:
 
 private: //lockers
 	mutable QReadWriteLock petInfoLock_;
-	//mutable QReadWriteLock petSkillInfoLock_;
-	//mutable QReadWriteLock charInfoLock_;
-	//mutable QReadWriteLock charSkillInfoLock_;
-	//mutable QReadWriteLock charMagicInfoLock_;
 	mutable QReadWriteLock itemInfoLock_;
-	//mutable QReadWriteLock petEquipInfoLock_;
-	//mutable QReadWriteLock teamInfoLock_;
 	mutable QMutex moveLock_;
 
 private:
-	safe::Flag IS_BATTLE_FLAG = false;//是否在戰鬥中
-	safe::Flag IS_ONLINE_FLAG = false;//是否在線上
+	safe::flag isBattle_ = false;//是否在戰鬥中
+	safe::flag isOnline_ = false;//是否在線上
 
-	util::Timer eoTTLTimer;//伺服器響應時間(MS)
-	util::Timer connectingTimer;//登入連接時間(MS)
-	safe::Flag petEnableEscapeForTemp = false;//寵物臨時設置逃跑模式(觸發調用DoNothing)
-	safe::Integer tempCatchPetTargetIndex = -1;//臨時捕捉寵物目標索引
+	util::timer eoTTLTimer_;//伺服器響應時間(MS)
+	util::timer connectingTimer_;//登入連接時間(MS)
+	safe::flag petEnableEscapeForTemp_ = false;//寵物臨時設置逃跑模式(觸發調用DoNothing)
+	safe::integer tempCatchPetTargetIndex_ = -1;//臨時捕捉寵物目標索引
 
-	safe::Data<sa::battle_data_t> battleData; //戰鬥數據
+	safe::data<sa::battle_data_t> battleData_; //戰鬥數據
 
-	safe::Flag IS_WAITFOT_SKUP_RECV = false; //等待接收SKUP封包
-	QFuture<void> skupFuture; //自動加點線程管理器
+	safe::flag IS_WAITFOT_SKUP_RECV_ = false; //等待接收SKUP封包
+	QFuture<void> skupFuture_; //自動加點線程管理器
 
-	safe::Flag IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
+	safe::flag IS_LOCKATTACK_ESCAPE_DISABLE_ = false;//鎖定攻擊不逃跑 (轉指定攻擊)
 
-	safe::Flag battleBackupThreadFlag = false;//戰鬥動作備用線程標誌
+	safe::flag battleBackupThreadFlag_ = false;//戰鬥動作備用線程標誌
 
-	safe::Data<sa::character_t> character_ = {};
+	safe::data<sa::character_t> character_ = {};
 
-	safe::Hash<long long, sa::team_t> team_ = {};
-	safe::Hash<long long, sa::item_t> item_ = {};
-	safe::Hash<long long, QHash<long long, sa::item_t>> petItem_ = {};
-	safe::Hash<long long, sa::pet_t> pet_ = {};
-	safe::Hash<long long, sa::magic_t> magic_ = {};
-	safe::Hash<long long, sa::address_bool_t> addressBook_ = {};
-	safe::Hash<long long, sa::mission_data_t> missionInfo_ = {};
-	safe::Hash<long long, sa::char_list_data_t> charListData_ = {};
-	safe::Hash<long long, sa::mail_history_t> mailHistory_ = {};
-	safe::Hash<long long, sa::profession_skill_t> professionSkill_ = {};
-	safe::Hash<long long, QHash<long long, sa::pet_skill_t>> petSkill_ = {};
+	safe::hash<long long, sa::team_t> team_ = {};
+	safe::hash<long long, sa::item_t> item_ = {};
+	safe::hash<long long, QHash<long long, sa::item_t>> petItem_ = {};
+	safe::hash<long long, sa::pet_t> pet_ = {};
+	safe::hash<long long, sa::magic_t> magic_ = {};
+	safe::hash<long long, sa::address_bool_t> addressBook_ = {};
+	safe::hash<long long, sa::mission_data_t> missionInfo_ = {};
+	safe::hash<long long, sa::char_list_data_t> charListData_ = {};
+	safe::hash<long long, sa::mail_history_t> mailHistory_ = {};
+	safe::hash<long long, sa::profession_skill_t> professionSkill_ = {};
+	safe::hash<long long, QHash<long long, sa::pet_skill_t>> petSkill_ = {};
 
-	QHash<QString, bool> itemStackFlagHash = {};
+	QHash<QString, bool> itemStackFlagHash_ = {};
 
-	safe::Vector<bool> battlePetDisableList_ = {};
+	safe::vector<bool> battlePetDisableList_ = {};
+
+	safe::data<QString> nowFloorName_; //當前地圖名稱
+	safe::integer nowFloor_; //當前地圖編號
+	safe::data<QPoint> nowPoint_; //當前人物座標
 
 	QFuture<void> battleBackupFuture_; //戰鬥動作備用線程管理器
 	QFuture<void> autoLockPet_; //自動鎖寵線程管理器
@@ -510,12 +509,12 @@ private:
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
-	safe::Data<QString> lastSecretChatName_;//最後一次收到密語的發送方名稱
+	safe::data<QString> lastSecretChatName_;//最後一次收到密語的發送方名稱
 
 	//遊戲內當前時間相關
 	sa::ls_time_t saTimeStruct_ = {};
-	safe::Integer serverTime_ = 0LL;
-	safe::Integer firstServerTime_ = 0LL;
+	safe::integer serverTime_ = 0LL;
+	safe::integer firstServerTime_ = 0LL;
 
 	//交易相關
 	long long opp_showindex = 0;
@@ -542,71 +541,65 @@ private:
 #pragma endregion
 
 public:
-	safe::Queue<QByteArray> readQueue_; //接收來自客戶端的數據隊列
-
-	safe::Integer nowFloor; //當前地圖編號
-	safe::Data<QString> nowFloorName; //當前地圖名稱
-	safe::Data<QPoint> nowPoint; //當前人物座標
-
 	//戰鬥相關
-	safe::Flag battleCharAlreadyActed = true; //戰鬥人物已經動作
-	safe::Flag battlePetAlreadyActed = true; //戰鬥寵物已經動作
-	safe::Integer battleCharCurrentPos = 0; //戰鬥人物當前位置
-	safe::Integer battleBpFlag = 0; //戰鬥BP標誌
-	safe::Integer battleField = 0; //戰鬥場地
-	safe::Flag battleCharEscapeFlag = 0; //戰鬥人物退戰標誌
-	safe::Integer battleCharCurrentMp = 0; //戰鬥人物當前MP
-	safe::Integer battleCurrentAnimeFlag = 0; //戰鬥當前動畫標誌
+	safe::flag battleCharAlreadyActed = true; //戰鬥人物已經動作
+	safe::flag battlePetAlreadyActed = true; //戰鬥寵物已經動作
+	safe::integer battleCharCurrentPos = 0; //戰鬥人物當前位置
+	safe::integer battleBpFlag = 0; //戰鬥BP標誌
+	safe::integer battleField = 0; //戰鬥場地
+	safe::flag battleCharEscapeFlag = 0; //戰鬥人物退戰標誌
+	safe::integer battleCharCurrentMp = 0; //戰鬥人物當前MP
+	safe::integer battleCurrentAnimeFlag = 0; //戰鬥當前動畫標誌
 
 	//custom
-	safe::Flag IS_TRADING = false;
-	safe::Flag IS_DISCONNECTED = false;
+	safe::flag IS_TRADING = false;
+	safe::flag IS_DISCONNECTED = false;
 
-	safe::Flag IS_WAITFOR_missionInfo_FLAG = false;
-	safe::Flag IS_WAITFOR_BANK_FLAG = false;
-	safe::Flag IS_WAITFOR_DIALOG_FLAG = false;
-	safe::Flag IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
-	safe::Integer IS_WAITOFR_ITEM_CHANGE_PACKET = false;
+	safe::flag IS_WAITFOR_missionInfo_FLAG = false;
+	safe::flag IS_WAITFOR_BANK_FLAG = false;
+	safe::flag IS_WAITFOR_DIALOG_FLAG = false;
+	safe::flag IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
+	safe::integer IS_WAITOFR_ITEM_CHANGE_PACKET = false;
 
-	safe::Flag isBattleDialogReady = false;
-	safe::Flag isEOTTLSend = false;
-	safe::Integer lastEOTime = 0;
+	safe::flag isBattleDialogReady = false;
+	safe::flag isEOTTLSend = false;
+	safe::integer lastEOTime = 0;
 
-	util::Timer loginTimer;
-	util::Timer battleDurationTimer;
-	util::Timer normalDurationTimer;
-	util::Timer oneRoundDurationTimer;
+	util::timer loginTimer;
+	util::timer battleDurationTimer;
+	util::timer normalDurationTimer;
+	util::timer oneRoundDurationTimer;
 
-	safe::Integer battleCurrentRound = 0;
-	safe::Integer battle_total_time = 0;
-	safe::Integer battle_total = 0;
-	safe::Integer battle_one_round_time = 0;
+	safe::integer battleCurrentRound = 0;
+	safe::integer battle_total_time = 0;
+	safe::integer battle_total = 0;
+	safe::integer battle_one_round_time = 0;
 
-	safe::Integer saCurrentGameTime = 0;//遊戲時間 LSTimeSection
+	safe::integer saCurrentGameTime = 0;//遊戲時間 LSTimeSection
 
-	safe::Data<sa::currency_data_t> currencyData = {};
-	safe::Data<sa::custom_dialog_t> customDialog = {};
+	safe::data<sa::currency_data_t> currencyData = {};
+	safe::data<sa::custom_dialog_t> customDialog = {};
 
-	safe::Hash<long long, sa::map_unit_t> mapUnitHash;
-	safe::Hash<QPoint, sa::map_unit_t> npcUnitPointHash;
-	safe::Queue<QPair<long long, QString>> chatQueue;
+	safe::hash<long long, sa::map_unit_t> mapUnitHash;
+	safe::hash<QPoint, sa::map_unit_t> npcUnitPointHash;
+	safe::queue<QPair<long long, QString>> chatQueue;
 
 	QPair<long long, QVector<sa::bank_pet_t>> currentBankPetList;
-	safe::Vector<sa::item_t> currentBankItemList;
+	safe::vector<sa::item_t> currentBankItemList;
 
-	util::Timer repTimer;
+	util::timer repTimer;
 	sa::afk_record_data_t afkRecords[1 + sa::MAX_PET] = {};
 
-	safe::Data<sa::dialog_t> currentDialog = {};
+	safe::data<sa::dialog_t> currentDialog = {};
 
 	//用於緩存要發送到UI的數據(開啟子窗口初始化並加載當前最新數據時使用)
-	safe::Hash<long long, QVariant> playerInfoColContents;
-	safe::Hash<long long, QVariant> itemInfoRowContents;
-	safe::Hash<long long, QVariant> equipInfoRowContents;
-	safe::Data<QStringList> enemyNameListCache;
-	safe::Data<QString> timeLabelContents;
-	safe::Data<QString> labelCharAction;
-	safe::Data<QString> labelPetAction;
+	safe::hash<long long, QVariant> playerInfoColContents;
+	safe::hash<long long, QVariant> itemInfoRowContents;
+	safe::hash<long long, QVariant> equipInfoRowContents;
+	safe::data<QStringList> enemyNameListCache;
+	safe::data<QString> timeLabelContents;
+	safe::data<QString> labelCharAction;
+	safe::data<QString> labelPetAction;
 
 	MapDevice mapDevice;
 
@@ -625,6 +618,7 @@ private:
 	QByteArrayList netDataArrayList_ = {};
 	QByteArray netReadBufferArray_;
 	QByteArray netRawBufferArray_;
+	safe::queue<QByteArray> readQueue_; //接收來自客戶端的數據隊列
 
 private://lssproto
 	long long __fastcall appendReadBuf(const QByteArray& data);

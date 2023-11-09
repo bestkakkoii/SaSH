@@ -45,7 +45,7 @@ const char* Highlighter::keywords(int set) const
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
 		return
-			"dlg rnd "
+			"dlg rnd setglobal getglobal clearglobal "
 			"print printf sleep timer msg logout logback eo button say input menu "
 			"talk cls set saveset loadset "
 			"chpet chname chpetname chmap "
@@ -130,8 +130,8 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 8://KeywordSet8//紫色
 	{
-		return "vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR _INDEX"
-			"_LINE_ _FILE_ _FUNCTION_ _ROWCOUNT_ "
+		return "vret"
+			"LINE FILE FUNCTION ROWCOUNT "
 			"PID HWND GAMEPID GAMEHWND GAMEHANDLE THREADID GAME WORLD INDEX "
 			"INFINITE MAXPET MAXITEM MAXCHAR MAXSKILL MAXPETSKILL MAXEQUIP MAXCHAT MAXDLG MAXENEMY MAXCARD MAXDIR MAXMAGIC "
 			"CURRENTDIR CURRENTSCRIPTDIR SETTINGDIR SCRIPTDIR "

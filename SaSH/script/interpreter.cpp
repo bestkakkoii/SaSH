@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "interpreter.h"
 
 #include "map/mapdevice.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 //#include "crypto.h"
@@ -41,9 +41,9 @@ Interpreter::~Interpreter()
 
 bool Interpreter::isRunning() const
 {
-	Injector& injector = Injector::getInstance(getIndex());
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	return isRunning_.get()
-		&& injector.IS_SCRIPT_FLAG.get() && !injector.IS_SCRIPT_INTERRUPT.get();
+		&& gamedevice.IS_SCRIPT_FLAG.get() && !gamedevice.IS_SCRIPT_INTERRUPT.get();
 }
 
 //在新線程執行腳本文件
@@ -134,7 +134,7 @@ void Interpreter::doString(QString content)
 
 void Interpreter::onRunString()
 {
-	safe::AutoFlag autoSafeflag(&isRunning_);
+	safe::auto_flag autoSafeflag(&isRunning_);
 	parser_.parse(0);
 	emit finished();
 }
@@ -293,21 +293,21 @@ bool Interpreter::waitfor(long long timeout, std::function<bool()> exprfun)
 		return exprfun();
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	bool bret = false;
-	util::Timer timer;
+	util::timer timer;
 	long long delay = timeout / 10;
 	if (delay > 100)
 		delay = 100;
 
 	for (;;)
 	{
-		injector.checkPause();
+		gamedevice.checkScriptPause();
 
-		if (injector.IS_SCRIPT_INTERRUPT.get())
+		if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 			break;
 
-		if (injector.worker.isNull())
+		if (gamedevice.worker.isNull())
 			break;
 
 		if (exprfun())
@@ -338,23 +338,14 @@ void Interpreter::openLibs()
 	registerFunction("usemagic", &Interpreter::usemagic);
 	registerFunction("trade", &Interpreter::trade);
 	registerFunction("mail", &Interpreter::mail);
-
-	registerFunction("requip", &Interpreter::recordequip);
-	registerFunction("wequip", &Interpreter::wearequip);
-	registerFunction("uequip", &Interpreter::unwearequip);
-	registerFunction("puequip", &Interpreter::petunequip);
-	registerFunction("pequip", &Interpreter::petequip);
-
-	registerFunction("putpet", &Interpreter::depositpet);
-	registerFunction("getpet", &Interpreter::withdrawpet);
 }
 
 long long Interpreter::scriptCallBack(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.IS_SCRIPT_INTERRUPT.get())
+	if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 		return 0;
 
 	RESERVE currentType = TK.value(0).type;
@@ -371,27 +362,27 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 	if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 	{
-		injector.paused();
+		gamedevice.paused();
 		emit signalDispatcher.scriptPaused();
 	}
 
-	injector.checkPause();
+	gamedevice.checkScriptPause();
 
-	if (injector.IS_SCRIPT_INTERRUPT.get())
+	if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 		return 0;
 
-	if (!injector.IS_SCRIPT_DEBUG_ENABLE.get())
+	if (!gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
 		return 1;
 
 	QString scriptFileName = parser_.getScriptFileName();
-	safe::Hash<long long, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
-	const safe::Hash<long long, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
+	safe::hash<long long, break_marker_t> breakMarkers = gamedevice.break_markers.value(scriptFileName);
+	const safe::hash<long long, break_marker_t> stepMarkers = gamedevice.step_markers.value(scriptFileName);
 	if (!breakMarkers.contains(currentLine) && !stepMarkers.contains(currentLine))
 	{
 		return 1;//檢查是否有中斷點
 	}
 
-	injector.paused();
+	gamedevice.paused();
 
 	if (breakMarkers.contains(currentLine))
 	{
@@ -401,7 +392,7 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 		//重新插入斷下的紀錄
 		breakMarkers.insert(currentLine, mark);
-		injector.break_markers.insert(scriptFileName, breakMarkers);
+		gamedevice.break_markers.insert(scriptFileName, breakMarkers);
 		//所有行插入隱式斷點(用於單步)
 		emit signalDispatcher.addStepMarker(currentLine, true);
 		emit signalDispatcher.breakMarkInfoImport();
@@ -409,9 +400,9 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 	emit signalDispatcher.addForwardMarker(currentLine, true);
 
-	injector.checkPause();
+	gamedevice.checkScriptPause();
 
-	if (injector.IS_SCRIPT_INTERRUPT.get())
+	if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 		return 0;
 
 	return 1;
@@ -419,21 +410,21 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 void Interpreter::proc()
 {
-	safe::AutoFlag autoSafeflag(&isRunning_);
+	safe::auto_flag autoSafeflag(&isRunning_);
 	qDebug() << "Interpreter::run()";
 
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	injector.IS_SCRIPT_FLAG.on();
-	injector.IS_SCRIPT_INTERRUPT.off();
+	gamedevice.IS_SCRIPT_FLAG.on();
+	gamedevice.IS_SCRIPT_INTERRUPT.off();
 
 	parser_.initialize(&parser_);
 
-	doFile(beginLine_, injector.currentScriptFileName, this, nullptr, false, Parser::kSync);
+	doFile(beginLine_, gamedevice.currentScriptFileName.get(), this, nullptr, false, Parser::kSync);
 
-	injector.IS_SCRIPT_FLAG.off();
+	gamedevice.IS_SCRIPT_FLAG.off();
 
 	subInterpreterList_.clear();
 	subThreadFutureSync_.waitForFinished();
@@ -446,28 +437,28 @@ void Interpreter::proc()
 bool Interpreter::checkBattleThenWait()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	injector.checkPause();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	gamedevice.checkScriptPause();
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return false;
 
 	bool bret = false;
-	if (injector.worker->getBattleFlag())
+	if (gamedevice.worker->getBattleFlag())
 	{
-		util::Timer timer;
+		util::timer timer;
 		bret = true;
 		for (;;)
 		{
-			if (injector.IS_SCRIPT_INTERRUPT.get())
+			if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 				break;
 
-			if (injector.worker.isNull())
+			if (gamedevice.worker.isNull())
 				break;
 
-			injector.checkPause();
+			gamedevice.checkScriptPause();
 
-			if (!injector.worker->getBattleFlag())
+			if (!gamedevice.worker->getBattleFlag())
 				break;
 
 			if (timer.hasExpired(180000))
@@ -485,29 +476,29 @@ bool Interpreter::checkBattleThenWait()
 bool Interpreter::checkOnlineThenWait()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	injector.checkPause();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	gamedevice.checkScriptPause();
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return false;
 
 	bool bret = false;
 
-	if (!injector.worker->getOnlineFlag())
+	if (!gamedevice.worker->getOnlineFlag())
 	{
-		util::Timer timer;
+		util::timer timer;
 		bret = true;
 		for (;;)
 		{
-			if (injector.IS_SCRIPT_INTERRUPT.get())
+			if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 				break;
 
-			if (injector.worker.isNull())
+			if (gamedevice.worker.isNull())
 				break;
 
-			injector.checkPause();
+			gamedevice.checkScriptPause();
 
-			if (injector.worker->getOnlineFlag())
+			if (gamedevice.worker->getOnlineFlag())
 				break;
 
 			if (timer.hasExpired(180000))
@@ -525,7 +516,7 @@ bool Interpreter::checkOnlineThenWait()
 //執行子腳本
 long long Interpreter::run(long long currentIndex, long long currentline, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	QString fileName;
 	checkString(TK, 1, &fileName);
@@ -623,7 +614,7 @@ long long Interpreter::run(long long currentIndex, long long currentline, const 
 		if (interpreter == nullptr)
 			return Parser::kError;
 
-		injector.currentScriptFileName = fileName;
+		gamedevice.currentScriptFileName.set(fileName);
 
 		if (varShareMode == kShare)
 		{
@@ -647,7 +638,7 @@ long long Interpreter::run(long long currentIndex, long long currentline, const 
 		emit signalDispatcher.loadFileToTable(currentFileName);
 
 		//還原數據
-		injector.currentScriptFileName = currentFileName;
+		gamedevice.currentScriptFileName.set(currentFileName);
 		parser_.setTokens(tokens);
 		parser_.setLabels(labels);
 		parser_.setFunctionNodeList(functionNodeList);
@@ -679,9 +670,9 @@ long long Interpreter::run(long long currentIndex, long long currentline, const 
 //執行代碼塊
 long long Interpreter::dostr(long long currentIndex, long long currentline, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return Parser::kServerNotReady;
 
 	QString text;

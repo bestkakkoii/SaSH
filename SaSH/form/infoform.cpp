@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 
 #include "signaldispatcher.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "util.h"
 
 InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
@@ -97,11 +97,11 @@ void InfoForm::updateInfo()
 	if (ui.tabWidget->currentIndex() != 0)
 		return;
 
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.worker.isNull())
 		return;
 
-	injector.worker->updateBattleTimeInfo();
+	gamedevice.worker->updateBattleTimeInfo();
 }
 
 void InfoForm::setCurrentPage(long long defaultPage)
@@ -163,11 +163,11 @@ void InfoForm::onResetControlTextLanguage()
 void InfoForm::onApplyHashSettingsToUI()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.worker.isNull() && injector.worker->getOnlineFlag())
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.worker.isNull() && gamedevice.worker->getOnlineFlag())
 	{
 		QString title = tr("InfoForm");
-		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(injector.worker->getCharacter().name).arg(title);
+		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(gamedevice.worker->getCharacter().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 }

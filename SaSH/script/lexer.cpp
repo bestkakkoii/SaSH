@@ -18,7 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "lexer.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 #pragma region KeyWord
@@ -57,13 +57,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ "usemagic", TK_CMD },
 	{ "useitem", TK_CMD },
 	{ "doffitem", TK_CMD },
-	{ "putpet", TK_CMD },
-	{ "getpet", TK_CMD },
-	{ "uequip", TK_CMD },
-	{ "requip", TK_CMD },
-	{ "wequip", TK_CMD },
-	{ "puequip", TK_CMD },
-	{ "pequip", TK_CMD },
 	{ "trade", TK_CMD },
 	{ "mail", TK_CMD },
 };

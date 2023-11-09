@@ -19,15 +19,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "interpreter.h"
 #include "util.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "map/mapdevice.h"
 
 //action
 long long Interpreter::useitem(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -35,18 +35,18 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 
 	QHash<QString, long long> hash = {
 		{ "自己", 0},
-		{ "戰寵", injector.worker->getCharacter().battlePetNo},
-		{ "騎寵", injector.worker->getCharacter().ridePetNo},
+		{ "戰寵", gamedevice.worker->getCharacter().battlePetNo},
+		{ "騎寵", gamedevice.worker->getCharacter().ridePetNo},
 		{ "隊長", 6},
 
 		{ "自己", 0},
-		{ "战宠", injector.worker->getCharacter().battlePetNo},
-		{ "骑宠", injector.worker->getCharacter().ridePetNo},
+		{ "战宠", gamedevice.worker->getCharacter().battlePetNo},
+		{ "骑宠", gamedevice.worker->getCharacter().ridePetNo},
 		{ "队长", 6},
 
 		{ "self", 0},
-		{ "battlepet", injector.worker->getCharacter().battlePetNo},
-		{ "ride", injector.worker->getCharacter().ridePetNo},
+		{ "battlepet", gamedevice.worker->getCharacter().battlePetNo},
+		{ "ride", gamedevice.worker->getCharacter().ridePetNo},
 		{ "leader", 6},
 	};
 
@@ -64,7 +64,7 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 		hash.insert("teammate" + util::toQString(i), i + 1 + sa::MAX_PET);
 	}
 
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
 	QString itemName;
 	QString itemMemo;
@@ -155,20 +155,20 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 					memo = itemMemos.takeFirst();
 
 				QVector<long long> v;
-				if (!injector.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
+				if (!gamedevice.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
 					continue;
 
 				totalUse = target - 100;
 
 				bool ok = false;
-				QHash<long long, sa::item_t> items = injector.worker->getItems();
+				QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
 				for (const long long& it : v)
 				{
 					sa::item_t item = items.value(it);
 					long long size = item.stack;
 					for (long long i = 0; i < size; ++i)
 					{
-						injector.worker->useItem(it, 0);
+						gamedevice.worker->useItem(it, 0);
 						if (target != -1)
 						{
 							--totalUse;
@@ -194,20 +194,20 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 					name = itemNames.takeFirst();
 
 				QVector<long long> v;
-				if (!injector.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
+				if (!gamedevice.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
 					continue;
 
 				totalUse = target - 100;
 
 				bool ok = false;
-				QHash<long long, sa::item_t> items = injector.worker->getItems();
+				QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
 				for (const long long& it : v)
 				{
 					sa::item_t item = items.value(it);
 					long long size = item.stack;
 					for (long long i = 0; i < size; ++i)
 					{
-						injector.worker->useItem(it, 0);
+						gamedevice.worker->useItem(it, 0);
 						if (target != -1)
 						{
 							--totalUse;
@@ -238,13 +238,13 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 				memo = itemMemos.takeFirst();
 
 			QVector<long long> v;
-			if (!injector.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
+			if (!gamedevice.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
 				continue;
 
 			if (totalUse == 1)
 			{
 				long long itemIndex = v.front();
-				injector.worker->useItem(itemIndex, target);
+				gamedevice.worker->useItem(itemIndex, target);
 				break;
 			}
 
@@ -258,7 +258,7 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 					break;
 
 				long long itemIndex = v.takeFirst();
-				injector.worker->useItem(itemIndex, target);
+				gamedevice.worker->useItem(itemIndex, target);
 				--n;
 			}
 		}
@@ -272,14 +272,14 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 				name = itemNames.takeFirst();
 
 			QVector<long long> v;
-			if (!injector.worker->getItemIndexsByName(itemName, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
+			if (!gamedevice.worker->getItemIndexsByName(itemName, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
 				continue;
 
 			if (totalUse == 1)
 			{
 				long long itemIndex = v.front();
-				injector.worker->useItem(itemIndex, target);
-				injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+				gamedevice.worker->useItem(itemIndex, target);
+				gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
 				break;
 			}
 
@@ -293,23 +293,23 @@ long long Interpreter::useitem(long long currentIndex, long long currentLine, co
 					break;
 
 				long long itemIndex = v.takeFirst();
-				injector.worker->useItem(itemIndex, target);
-				injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+				gamedevice.worker->useItem(itemIndex, target);
+				gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
 				--n;
 			}
 		}
 	}
 
-	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	waitfor(500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 	return Parser::kNoChange;
 }
 
 long long Interpreter::dropitem(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -324,14 +324,14 @@ long long Interpreter::dropitem(long long currentIndex, long long currentLine, c
 	checkString(TK, 2, &memo);
 	if (tempName.isEmpty() && memo.isEmpty() && itemIndex == -1)
 	{
-		injector.worker->dropItem(-1);
+		gamedevice.worker->dropItem(-1);
 		return Parser::kNoChange;
 	}
 
 	if (tempName == kFuzzyPrefix)
 	{
 		for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
-			injector.worker->dropItem(i);
+			gamedevice.worker->dropItem(i);
 	}
 
 	if (tempName.isEmpty() && memo.isEmpty()
@@ -346,11 +346,11 @@ long long Interpreter::dropitem(long long currentIndex, long long currentLine, c
 		else
 			itemIndex -= 100;
 
-		injector.worker->dropItem(itemIndex);
+		gamedevice.worker->dropItem(itemIndex);
 		return Parser::kNoChange;
 	}
 
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
 	//指定丟棄白名單，位於白名單的物品不丟棄
 	if (tempName == QString("非"))
@@ -368,14 +368,14 @@ long long Interpreter::dropitem(long long currentIndex, long long currentLine, c
 			return Parser::kArgError + 3ll;
 
 		QVector<long long> indexs;
-		if (injector.worker->getItemIndexsByName(itemNames, "", &indexs, min, max))
+		if (gamedevice.worker->getItemIndexsByName(itemNames, "", &indexs, min, max))
 		{
 			//排除掉所有包含在indexs的
 			for (long long i = min; i <= max; ++i)
 			{
 				if (!indexs.contains(i))
 				{
-					injector.worker->dropItem(i);
+					gamedevice.worker->dropItem(i);
 				}
 			}
 		}
@@ -399,11 +399,11 @@ long long Interpreter::dropitem(long long currentIndex, long long currentLine, c
 		{
 			QVector<long long> indexs;
 			bool ok = false;
-			if (injector.worker->getItemIndexsByName(name, memo, &indexs))
+			if (gamedevice.worker->getItemIndexsByName(name, memo, &indexs))
 			{
 				for (const long long it : indexs)
 				{
-					injector.worker->dropItem(it);
+					gamedevice.worker->dropItem(it);
 					if (bOnlyOne)
 					{
 						ok = true;
@@ -418,438 +418,16 @@ long long Interpreter::dropitem(long long currentIndex, long long currentLine, c
 
 	}
 
-	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-	return Parser::kNoChange;
-}
-
-safe::Hash<long long, QHash<long long, sa::item_t>> recordedEquip_;
-long long Interpreter::recordequip(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-
-	injector.worker->updateItemByMemory();
-	QHash<long long, sa::item_t> items = injector.worker->getItems();
-	QHash<long long, sa::item_t> recordedItems = recordedEquip_.value(currentIndex);
-	for (long long i = 0; i < sa::CHAR_EQUIPSLOT_COUNT; ++i)
-	{
-		injector.worker->announce(QObject::tr("record equip:[%1]%2").arg(i + 1).arg(items.value(i).name));
-		recordedItems.insert(i, items.value(i));
-	}
-	recordedEquip_.insert(currentIndex, recordedItems);
-	return Parser::kNoChange;
-}
-
-long long Interpreter::wearequip(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	if (!injector.worker->getOnlineFlag())
-		return Parser::kNoChange;
-
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-
-	QHash<long long, sa::item_t> items = injector.worker->getItems();
-	for (long long i = 0; i < sa::CHAR_EQUIPSLOT_COUNT; ++i)
-	{
-		sa::item_t item = items.value(i);
-		sa::item_t recordedItem = recordedEquip_.value(currentIndex).value(i);
-		if (!recordedItem.valid || recordedItem.name.isEmpty())
-			continue;
-
-		if (item.name == recordedItem.name && item.memo == recordedItem.memo)
-			continue;
-
-		long long itemIndex = injector.worker->getItemIndexByName(recordedItem.name, true, "", sa::CHAR_EQUIPSLOT_COUNT);
-		if (itemIndex == -1)
-			continue;
-
-		injector.worker->useItem(itemIndex, 0);
-	}
-
-	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-	return Parser::kNoChange;
-}
-
-long long Interpreter::unwearequip(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	long long part = sa::CHAR_EQUIPNONE;
-
-	if (!checkInteger(TK, 1, &part) || part < 1)
-	{
-		QString partStr;
-		checkString(TK, 1, &partStr);
-		if (partStr.isEmpty())
-			return Parser::kArgError + 1ll;
-
-		if (partStr.toLower() == "all" || partStr.toLower() == QString("全部"))
-		{
-			part = 100;
-		}
-		else
-		{
-			part = sa::equipMap.value(partStr.toLower(), sa::CHAR_EQUIPNONE);
-			if (part == sa::CHAR_EQUIPNONE)
-				return Parser::kArgError + 1ll;
-		}
-	}
-	else
-		--part;
-
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-
-	if (part < 100)
-	{
-		long long spotIndex = injector.worker->getItemEmptySpotIndex();
-		if (spotIndex == -1)
-			return Parser::kNoChange;
-
-		injector.worker->swapItem(part, spotIndex);
-	}
-	else
-	{
-		QVector<long long> v;
-		if (!injector.worker->getItemEmptySpotIndexs(&v))
-			return Parser::kNoChange;
-
-		for (long long i = 0; i < sa::CHAR_EQUIPSLOT_COUNT; ++i)
-		{
-			if (v.isEmpty())
-				break;
-
-			long long itemIndex = v.takeFirst();
-
-			injector.worker->swapItem(i, itemIndex);
-		}
-	}
-
-	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-	return Parser::kNoChange;
-}
-
-long long Interpreter::petequip(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	long long petIndex = -1;
-	if (!checkInteger(TK, 1, &petIndex))
-		return Parser::kArgError + 1ll;
-
-	--petIndex;
-
-	if (petIndex < 0 || petIndex >= sa::MAX_PET)
-		return Parser::kArgError + 1ll;
-
-	QString itemName;
-	checkString(TK, 2, &itemName);
-
-	QStringList itemNames = itemName.split(util::rexOR);
-
-	QString itemMemo;
-	checkString(TK, 3, &itemMemo);
-
-	if (itemName.isEmpty() && itemMemo.isEmpty())
-		return Parser::kArgError + 1ll;
-
-	QStringList itemMemos = itemMemo.split(util::rexOR);
-
-	QStringList itemMemos2 = itemMemos;
-	for (const QString& name : itemNames)
-	{
-		QString memo;
-		if (!itemMemos2.isEmpty())
-			memo = itemMemos2.takeFirst();
-
-		long long itemIndex = injector.worker->getItemIndexByName(name, true, memo, sa::CHAR_EQUIPSLOT_COUNT);
-		if (itemIndex != -1)
-			injector.worker->petitemswap(petIndex, itemIndex, -1);
-	}
-
-	QStringList itemNames2 = itemNames;
-	for (const QString& memo : itemMemos)
-	{
-		QString name;
-		if (!itemNames2.isEmpty())
-			name = itemNames2.takeFirst();
-
-		long long itemIndex = injector.worker->getItemIndexByName(name, true, memo, sa::CHAR_EQUIPSLOT_COUNT);
-		if (itemIndex != -1)
-			injector.worker->petitemswap(petIndex, itemIndex, -1);
-	}
-
-	return Parser::kNoChange;
-}
-
-long long Interpreter::petunequip(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	long long part = sa::CHAR_EQUIPNONE;
-
-	long long petIndex = -1;
-	if (!checkInteger(TK, 1, &petIndex))
-		return Parser::kArgError + 1ll;
-
-	--petIndex;
-
-	if (petIndex < 0 || petIndex >= sa::MAX_PET)
-		return Parser::kArgError + 1ll;
-
-	QVector<long long> partIndexs;
-	if (!checkInteger(TK, 2, &part) || part < 1)
-	{
-		QString prePartStr;
-		checkString(TK, 2, &prePartStr);
-		if (prePartStr.isEmpty())
-			return Parser::kArgError + 2ll;
-
-		QStringList partStrs = prePartStr.split(util::rexOR, Qt::SkipEmptyParts);
-
-		if (prePartStr.toLower() == "all" || prePartStr.toLower() == QString("全部"))
-		{
-			part = 100;
-		}
-		else
-		{
-			for (const QString& partStr : partStrs)
-			{
-				part = sa::petEquipMap.value(partStr.toLower(), sa::PET_EQUIPNONE);
-				if (part != sa::PET_EQUIPNONE)
-					partIndexs.append(part);
-			}
-		}
-	}
-	else
-	{
-		--part;
-		partIndexs.append(part);
-	}
-
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-
-	if (!partIndexs.isEmpty())
-	{
-		QVector<long long> spots;
-		if (!injector.worker->getItemEmptySpotIndexs(&spots))
-			return Parser::kNoChange;
-
-		for (const long long& index : partIndexs)
-		{
-			if (spots.isEmpty())
-				break;
-
-			injector.worker->petitemswap(petIndex, index, spots.takeFirst());
-		}
-	}
-	else if (part == 100)
-	{
-		QVector<long long> spots;
-		if (!injector.worker->getItemEmptySpotIndexs(&spots))
-			return Parser::kNoChange;
-
-		for (long long index = 0; index < sa::MAX_PET_ITEM; ++index)
-		{
-			if (spots.isEmpty())
-				break;
-
-			injector.worker->petitemswap(petIndex, index, spots.takeFirst());
-		}
-	}
-
-	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-	return Parser::kNoChange;
-}
-
-long long Interpreter::depositpet(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	long long petIndex = 0;
-	QString petName;
-	if (!checkInteger(TK, 1, &petIndex))
-	{
-		checkString(TK, 1, &petName);
-		if (petName.isEmpty())
-			return Parser::kArgError + 1ll;
-	}
-
-	if (petIndex == 0 && petName.isEmpty())
-		return Parser::kArgError + 1ll;
-
-	if (petIndex > 0)
-		--petIndex;
-	else
-	{
-		QVector<long long> v;
-		if (!injector.worker->getPetIndexsByName(petName, &v))
-			return Parser::kArgError + 1ll;
-		petIndex = v.first();
-	}
-
-	if (petIndex == -1)
-		return Parser::kArgError + 1ll;
-
-	injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-	injector.worker->depositPet(petIndex);
-	waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
-
-	injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-	injector.worker->press(sa::kButtonYes);
-	waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
-
-	injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-	injector.worker->press(sa::kButtonOk);
-	waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
-
-	injector.worker->IS_WAITFOR_DIALOG_FLAG.off();
-	return Parser::kNoChange;
-}
-
-long long Interpreter::withdrawpet(long long currentIndex, long long currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.worker.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	QString petName;
-	checkString(TK, 1, &petName);
-	if (petName.isEmpty())
-		return Parser::kArgError + 1ll;
-
-	long long level = 0;
-	checkInteger(TK, 2, &level);
-
-	long long maxHp = 0;
-	checkInteger(TK, 3, &maxHp);
-
-	for (;;)
-	{
-		QPair<long long, QVector<sa::bank_pet_t>> bankPetList = injector.worker->currentBankPetList;
-		long long button = bankPetList.first;
-		if (button == 0)
-			break;
-
-		QVector<sa::bank_pet_t> petList = bankPetList.second;
-		long long petIndex = 0;
-		bool bret = false;
-		for (const sa::bank_pet_t& it : petList)
-		{
-			if (!petName.startsWith(kFuzzyPrefix))
-			{
-				if (it.name == petName && it.maxHp == maxHp && it.level == level)
-					bret = true;
-				else if (it.name == petName && 0 == maxHp && it.level == level)
-					bret = true;
-				else if (it.name == petName && it.maxHp == maxHp && 0 == level)
-					bret = true;
-				else if (it.name == petName && 0 == maxHp && 0 == level)
-					bret = true;
-			}
-			else
-			{
-				QString newName = petName.mid(1);
-				if (it.name.contains(newName) && it.maxHp == maxHp && it.level == level)
-					bret = true;
-				else if (it.name.contains(newName) && 0 == maxHp && it.level == level)
-					bret = true;
-				else if (it.name.contains(newName) && it.maxHp == maxHp && 0 == level)
-					bret = true;
-				else if (it.name.contains(newName) && 0 == maxHp && 0 == level)
-					bret = true;
-			}
-
-			if (bret)
-				break;
-
-			++petIndex;
-		}
-
-		if (bret)
-		{
-			injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-			injector.worker->withdrawPet(petIndex);
-			waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
-
-			injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-			injector.worker->press(sa::kButtonYes);
-			waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
-
-			injector.worker->IS_WAITFOR_DIALOG_FLAG.on();
-			injector.worker->press(sa::kButtonOk);
-			waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
-
-			injector.worker->IS_WAITFOR_DIALOG_FLAG.off();
-			break;
-		}
-
-		if (util::checkAND(button, sa::kButtonNext))
-		{
-			injector.worker->IS_WAITFOR_BANK_FLAG.on();
-			injector.worker->press(sa::kButtonNext);
-			if (!waitfor(1000, [&injector]()->bool { return !injector.worker->IS_WAITFOR_BANK_FLAG.get(); }))
-			{
-				injector.worker->IS_WAITFOR_BANK_FLAG.off();
-				break;
-			}
-			injector.worker->IS_WAITFOR_BANK_FLAG.off();
-		}
-		else
-			break;
-	}
-
-
+	waitfor(500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 	return Parser::kNoChange;
 }
 
 long long Interpreter::trade(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -871,7 +449,7 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 	{
 		QString tmp;
 		if (checkString(TK, 4, &tmp) && tmp == "all")
-			gold = injector.worker->getCharacter().gold;
+			gold = gamedevice.worker->getCharacter().gold;
 	}
 
 
@@ -879,19 +457,19 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 	checkInteger(TK, 5, &timeout);
 
 	sa::map_unit_t unit;
-	if (!injector.worker->findUnit(name, sa::kObjectHuman, &unit))
+	if (!gamedevice.worker->findUnit(name, sa::kObjectHuman, &unit))
 		return Parser::kNoChange;
 
 	QPoint dst;
 	AStarDevice astar;
-	long long dir = injector.worker->mapDevice.calcBestFollowPointByDstPoint(
-		currentIndex, &astar, injector.worker->getFloor(), injector.worker->getPoint(), unit.p, &dst, true, unit.dir);
+	long long dir = gamedevice.worker->mapDevice.calcBestFollowPointByDstPoint(
+		currentIndex, &astar, gamedevice.worker->getFloor(), gamedevice.worker->getPoint(), unit.p, &dst, true, unit.dir);
 	if (dir == -1)
 		return Parser::kNoChange;
 
-	injector.worker->setCharFaceDirection(dir);
+	gamedevice.worker->setCharFaceDirection(dir);
 
-	if (!injector.worker->tradeStart(name, timeout))
+	if (!gamedevice.worker->tradeStart(name, timeout))
 		return Parser::kNoChange;
 
 	//bool ok = false;
@@ -921,7 +499,7 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 			long long index = itemIndex.toLongLong(&bret);
 			--index;
 			index += sa::CHAR_EQUIPSLOT_COUNT;
-			QHash<long long, sa::item_t> items = injector.worker->getItems();
+			QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
 			if (bret && index >= sa::CHAR_EQUIPSLOT_COUNT && index < sa::MAX_ITEM)
 			{
 				if (items.value(index).valid)
@@ -938,7 +516,7 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 
 		if (!itemIndexVec.isEmpty())
 		{
-			injector.worker->tradeAppendItems(name, itemIndexVec);
+			gamedevice.worker->tradeAppendItems(name, itemIndexVec);
 			//ok = true;
 		}
 		else
@@ -973,7 +551,7 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 
 			if (bret && index >= 0 && index < sa::MAX_PET)
 			{
-				sa::pet_t pet = injector.worker->getPet(index);
+				sa::pet_t pet = gamedevice.worker->getPet(index);
 				if (pet.valid)
 					petIndexVec.append(index);
 			}
@@ -985,31 +563,31 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 
 		if (!petIndexVec.isEmpty())
 		{
-			injector.worker->tradeAppendPets(name, petIndexVec);
+			gamedevice.worker->tradeAppendPets(name, petIndexVec);
 			//ok = true;
 		}
 		else
 			return Parser::kArgError + 3ll;
 	}
 
-	if (gold > 0 && gold <= injector.worker->getCharacter().gold)
+	if (gold > 0 && gold <= gamedevice.worker->getCharacter().gold)
 	{
-		injector.worker->tradeAppendGold(name, gold);
+		gamedevice.worker->tradeAppendGold(name, gold);
 		//ok = true;
 	}
 
-	injector.worker->tradeComfirm(name);
+	gamedevice.worker->tradeComfirm(name);
 
-	waitfor(timeout, [&injector]()
+	waitfor(timeout, [&gamedevice]()
 		{
-			return injector.worker->getCharacter().trade_confirm >= 3;
+			return gamedevice.worker->getCharacter().trade_confirm >= 3;
 		});
 
-	injector.worker->tradeComplete(name);
+	gamedevice.worker->tradeComplete(name);
 
-	waitfor(timeout, [&injector]()
+	waitfor(timeout, [&gamedevice]()
 		{
-			return !injector.worker->IS_TRADING.get();
+			return !gamedevice.worker->IS_TRADING.get();
 		});
 
 	return Parser::kNoChange;
@@ -1017,9 +595,9 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 
 long long Interpreter::usemagic(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -1045,18 +623,18 @@ long long Interpreter::usemagic(long long currentIndex, long long currentLine, c
 		{
 			QHash<QString, long long> hash = {
 				{ "自己", 0},
-				{ "戰寵", injector.worker->getCharacter().battlePetNo},
-				{ "騎寵", injector.worker->getCharacter().ridePetNo},
+				{ "戰寵", gamedevice.worker->getCharacter().battlePetNo},
+				{ "騎寵", gamedevice.worker->getCharacter().ridePetNo},
 				{ "隊長", 6},
 
 				{ "自己", 0},
-				{ "战宠", injector.worker->getCharacter().battlePetNo},
-				{ "骑宠", injector.worker->getCharacter().ridePetNo},
+				{ "战宠", gamedevice.worker->getCharacter().battlePetNo},
+				{ "骑宠", gamedevice.worker->getCharacter().ridePetNo},
 				{ "队长", 6},
 
 				{ "self", 0},
-				{ "battlepet", injector.worker->getCharacter().battlePetNo},
-				{ "ride", injector.worker->getCharacter().ridePetNo},
+				{ "battlepet", gamedevice.worker->getCharacter().battlePetNo},
+				{ "ride", gamedevice.worker->getCharacter().ridePetNo},
 				{ "leader", 6},
 			};
 
@@ -1083,20 +661,20 @@ long long Interpreter::usemagic(long long currentIndex, long long currentLine, c
 		}
 	}
 
-	long long magicIndex = injector.worker->getMagicIndexByName(magicName);
+	long long magicIndex = gamedevice.worker->getMagicIndexByName(magicName);
 	if (magicIndex < 0)
 		return Parser::kArgError + 1ll;
 
-	injector.worker->useMagic(magicIndex, target);
+	gamedevice.worker->useMagic(magicIndex, target);
 
 	return Parser::kNoChange;
 }
 
 long long Interpreter::mail(long long currentIndex, long long currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance(currentIndex);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
@@ -1144,11 +722,11 @@ long long Interpreter::mail(long long currentIndex, long long currentLine, const
 	if (petIndex != -1 && itemMemo.isEmpty() && !itemName.isEmpty())
 		return Parser::kArgError + 4ll;
 
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
-	injector.worker->mail(card, text, petIndex, itemName, itemMemo);
+	gamedevice.worker->mail(card, text, petIndex, itemName, itemMemo);
 
-	waitfor(500, [&injector]()->bool { return injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
-	injector.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	waitfor(500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 	return Parser::kNoChange;
 }

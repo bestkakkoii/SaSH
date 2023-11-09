@@ -18,14 +18,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "clua.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 long long CLuaChar::rename(std::string sfname, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
@@ -33,7 +33,7 @@ long long CLuaChar::rename(std::string sfname, sol::this_state s)
 
 	QString name = util::toQString(sfname);
 
-	injector.worker->setCharFreeName(name);
+	gamedevice.worker->setCharFreeName(name);
 
 	return TRUE;
 }
@@ -41,8 +41,8 @@ long long CLuaChar::rename(std::string sfname, sol::this_state s)
 long long CLuaChar::skup(sol::object otype, long long count, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
@@ -91,7 +91,7 @@ long long CLuaChar::skup(sol::object otype, long long count, sol::this_state s)
 	if (count <= 0)
 		return FALSE;
 
-	injector.worker->addPoint(point, count);
+	gamedevice.worker->addPoint(point, count);
 
 	return TRUE;
 }
@@ -100,14 +100,14 @@ long long CLuaChar::skup(sol::object otype, long long count, sol::this_state s)
 long long CLuaChar::join(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->setTeamState(true);
+	gamedevice.worker->setTeamState(true);
 
 	return TRUE;
 }
@@ -115,14 +115,14 @@ long long CLuaChar::join(sol::this_state s)
 long long CLuaChar::leave(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->setTeamState(false);
+	gamedevice.worker->setTeamState(false);
 
 	return TRUE;
 }
@@ -130,14 +130,14 @@ long long CLuaChar::leave(sol::this_state s)
 long long CLuaChar::kick(long long teammateIndex, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	injector.worker->kickteam(--teammateIndex);
+	gamedevice.worker->kickteam(--teammateIndex);
 
 	return TRUE;
 }

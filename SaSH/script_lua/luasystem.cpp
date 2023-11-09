@@ -18,8 +18,266 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "clua.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
+
+// The shared memory key used by the application
+constexpr const char* kRemoteGlobalSharedMemoryKey = "RemoteGlobalSharedMemoryKey";
+constexpr const char* kRemoteGlobalSemaphoreKey = "RemoteGlobalSystemSemaphore";
+constexpr long long kRemoteGlobalSharedMemorySize = 6553600;  // Shared memory size
+
+static QSharedMemory g_remoteGlobalSharedMemory(kRemoteGlobalSharedMemoryKey);
+
+bool initializeSharedMemory()
+{
+	if (g_remoteGlobalSharedMemory.isAttached())
+		return true;
+
+	// Try to attach to existing shared memory, if it fails, create a new one
+	if (!g_remoteGlobalSharedMemory.attach())
+	{
+		// Create a shared memory segment with the specified size
+		if (!g_remoteGlobalSharedMemory.create(kRemoteGlobalSharedMemorySize))
+		{
+			qDebug() << "Unable to create shared memory segment.";
+			return false;
+		}
+	}
+	return true;
+}
+
+void setRemoteGlobal(const std::string& varname, const QVariant& value)
+{
+	QSystemSemaphore semaphore(kRemoteGlobalSemaphoreKey, 1, QSystemSemaphore::Open);
+	semaphore.acquire();
+
+	do
+	{
+		// Convert the variable name to a SHA-512 hash
+		QString hashedName = util::utf8toSha512String(varname);
+
+		if (!initializeSharedMemory())
+		{
+			break;
+		}
+
+		// Lock the shared memory for exclusive access
+		g_remoteGlobalSharedMemory.lock();
+
+		// Read the current data from the shared memory
+		QByteArray jsonData = QByteArray::fromRawData(static_cast<const char*>(g_remoteGlobalSharedMemory.constData()), kRemoteGlobalSharedMemorySize);
+		long long lastZeroIndex = jsonData.indexOf('\0');
+		if (lastZeroIndex != -1)
+			jsonData = jsonData.left(lastZeroIndex);
+
+		QJsonParseError error;
+		QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonData, &error);
+		QJsonObject jsonObject;
+		if ((error.error == QJsonParseError::NoError) && !jsonDocument.isNull() && jsonDocument.isObject())
+		{
+			jsonObject = jsonDocument.object();
+		}
+		else
+		{
+			// If JSON is corrupted or cannot be deserialized, we start fresh
+			qDebug() << "JSON data is corrupted." << error.errorString() << jsonDocument.isNull() << jsonDocument.isObject();
+			jsonObject = QJsonObject();
+		}
+
+		// Insert or update the value in the JSON object
+		if (value.isValid())
+			jsonObject.insert(hashedName, QJsonValue::fromVariant(value));
+		else if (jsonObject.contains(hashedName))
+			jsonObject.remove(hashedName);
+
+		//set back to jsonDocument
+		jsonDocument.setObject(jsonObject);
+
+		jsonData = jsonDocument.toJson(QJsonDocument::Compact);
+		qDebug() << "JSON data:" << util::toQString(jsonData);
+
+		const char* from = jsonData.constData();
+		memset(g_remoteGlobalSharedMemory.data(), 0, kRemoteGlobalSharedMemorySize);
+		_snprintf_s(reinterpret_cast<char*>(g_remoteGlobalSharedMemory.data()), kRemoteGlobalSharedMemorySize, _TRUNCATE, "%s", from);
+		g_remoteGlobalSharedMemory.unlock();
+	} while (false);
+
+	semaphore.release();
+}
+
+QVariant getRemoteGlobal(const std::string& varname)
+{
+	QSystemSemaphore semaphore(kRemoteGlobalSemaphoreKey, 1, QSystemSemaphore::Open);
+	semaphore.acquire();
+
+	QVariant returnValue;
+	do
+	{
+		QString hashedName = util::utf8toSha512String(varname);
+
+		if (!initializeSharedMemory())
+			break;
+
+		// Lock the shared memory for exclusive access
+		g_remoteGlobalSharedMemory.lock();
+
+		// Read the current data from the shared memory
+		QByteArray jsonData = QByteArray::fromRawData(static_cast<const char*>(g_remoteGlobalSharedMemory.constData()), kRemoteGlobalSharedMemorySize);
+		long long lastZeroIndex = jsonData.indexOf('\0');
+		if (lastZeroIndex != -1)
+			jsonData = jsonData.left(lastZeroIndex);
+
+		qDebug() << "JSON data:" << util::toQString(jsonData);
+
+		// Unlock the shared memory
+		g_remoteGlobalSharedMemory.unlock();
+
+		// Deserialize the JSON
+		QJsonParseError error;
+		QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonData, &error);
+		if ((error.error != QJsonParseError::NoError) || jsonDocument.isNull() || !jsonDocument.isObject())
+		{
+			qDebug() << "JSON data is corrupted." << error.errorString() << jsonDocument.isNull() << jsonDocument.isObject();
+			break;
+		}
+
+		QJsonObject jsonObject = jsonDocument.object();
+		QJsonValue jsonValue = jsonObject.value(hashedName);
+		returnValue = jsonValue.toVariant();
+	} while (false);
+
+	semaphore.release();
+	return returnValue;
+}
+
+void clearRemoteGlobal()
+{
+	QSystemSemaphore semaphore(kRemoteGlobalSemaphoreKey, 1, QSystemSemaphore::Open);
+	semaphore.acquire();
+
+	if (!initializeSharedMemory())
+		return;
+
+	// Lock the shared memory for exclusive access
+	g_remoteGlobalSharedMemory.lock();
+
+	// Clear the shared memory by setting it to zero
+	memset(g_remoteGlobalSharedMemory.data(), 0, kRemoteGlobalSharedMemorySize);
+
+	// Unlock the shared memory
+	g_remoteGlobalSharedMemory.unlock();
+}
+
+void CLuaSystem::clearglobal()
+{
+	//g_global_custom_variabls.clear();
+	clearRemoteGlobal();
+}
+
+long long CLuaSystem::setglobal(std::string sname, sol::object od, sol::this_state s)
+{
+	sol::state_view lua(s);
+	if (sname.empty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("global variable name cannot be empty"));
+		return FALSE;
+	}
+
+	//const QString newName = util::utf8toSha512String(sname);
+
+	if (od == sol::lua_nil)
+	{
+		setRemoteGlobal(sname, QVariant());
+		return TRUE;
+	}
+
+	QVariant value;
+	if (od.is<bool>())
+		value = od.as<bool>();
+	else if (od.is<long long>())
+		value = od.as<long long>();
+	else if (od.is<double>())
+		value = od.as<double>();
+	else if (od.is<std::string>())
+		value = util::toQString(od);
+	else if (od.is<sol::table>() && !od.is<sol::userdata>() && !od.is<sol::function>() && !od.is<sol::lightuserdata>())
+	{
+		long long depth = 1024;
+		QString text = luadebug::getTableVars(s.L, 2, depth);
+		value = QString("__table|%1").arg(text);
+	}
+	else
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("invalid value type"));
+		return FALSE;
+	}
+
+	//g_global_custom_variabls.insert(newName, value);
+
+	setRemoteGlobal(sname, value);
+
+	return TRUE;
+}
+
+sol::object CLuaSystem::getglobal(std::string sname, sol::this_state s)
+{
+	sol::state_view lua(s);
+
+	if (sname.empty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("global variable name cannot be empty"));
+		return FALSE;
+	}
+
+	//const QString newName = util::utf8toSha512String(sname);
+
+	//if (!g_global_custom_variabls.contains(newName))
+	//{
+	//	luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("global variable '%1' does not exist").arg(util::toQString(sname)));
+	//	return sol::lua_nil;
+	//}
+
+	QVariant value = getRemoteGlobal(sname);
+
+	QVariant::Type type = value.type();
+	switch (type)
+	{
+	case QVariant::Bool: return sol::make_object(lua, value.toBool());
+	case QVariant::Int: return sol::make_object(lua, value.toLongLong());
+	case QVariant::LongLong: return sol::make_object(lua, value.toLongLong());
+	case QVariant::Double: return sol::make_object(lua, value.toDouble());
+	case QVariant::String:
+	{
+		QString text = value.toString();
+		if (!text.startsWith("__table|"))
+			return sol::make_object(lua, util::toConstData(value.toString()));
+
+		text = text.mid(8);
+
+		QString tempScript = QString(R"(
+			return (%1);
+		)").arg(text);
+
+		std::string script = util::toConstData(tempScript);
+
+		sol::protected_function_result result = lua.safe_script(script, sol::script_pass_on_error);
+		if (!result.valid())
+		{
+			sol::error err = result;
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, err.what());
+			return sol::lua_nil;
+		}
+
+		sol::object obj = result;
+
+		if (obj.is<sol::table>())
+			return obj;
+		else
+			return sol::lua_nil;
+	}
+	default: return sol::lua_nil;
+	}
+}
 
 long long CLuaSystem::sleep(long long t, sol::this_state s)
 {
@@ -58,10 +316,10 @@ long long CLuaSystem::sleep(long long t, sol::this_state s)
 long long CLuaSystem::logout(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (!injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (!gamedevice.worker.isNull())
 	{
-		injector.worker->logOut();
+		gamedevice.worker->logOut();
 		return TRUE;
 	}
 
@@ -71,10 +329,10 @@ long long CLuaSystem::logout(sol::this_state s)
 long long CLuaSystem::logback(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (!injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (!gamedevice.worker.isNull())
 	{
-		injector.worker->logBack();
+		gamedevice.worker->logBack();
 		return TRUE;
 	}
 
@@ -84,20 +342,20 @@ long long CLuaSystem::logback(sol::this_state s)
 long long CLuaSystem::eo(sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	util::Timer timer;
-	injector.worker->EO();
+	util::timer timer;
+	gamedevice.worker->EO();
 
-	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !Injector::getInstance(currentIndex).worker->isEOTTLSend.get(); });
+	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !GameDevice::getInstance(currentIndex).worker->isEOTTLSend.get(); });
 
-	long long result = bret ? injector.worker->lastEOTime.get() : 0;
+	long long result = bret ? gamedevice.worker->lastEOTime.get() : 0;
 
 	return result;
 }
@@ -105,8 +363,8 @@ long long CLuaSystem::eo(sol::this_state s)
 long long CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	QString filename = util::toQString(sfilename);
 	if (filename.isEmpty())
@@ -123,7 +381,7 @@ long long CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::o
 	if (obuffersize.is<long long>())
 		buffersize = obuffersize.as<long long>();
 
-	bool bret = injector.log.initialize(filename, buffersize, format);
+	bool bret = gamedevice.log.initialize(filename, buffersize, format);
 	return bret;
 }
 
@@ -206,9 +464,9 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 		util::rnd::get(&color, 0LL, 10LL);
 	}
 
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 	bool split = false;
-	bool doNotAnnounce = color == -2 || injector.worker.isNull();
+	bool doNotAnnounce = color == -2 || gamedevice.worker.isNull();
 	QStringList l;
 	if (msg.contains("\r\n"))
 	{
@@ -233,7 +491,7 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 long long CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
+	long long currentIndex = lua["__INDEX"].get<long long>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	QString text;
@@ -264,8 +522,8 @@ long long CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_
 long long CLuaSystem::talk(sol::object ostr, sol::object ocolor, sol::object omode, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	QString text;
@@ -291,7 +549,7 @@ long long CLuaSystem::talk(sol::object ostr, sol::object ocolor, sol::object omo
 	if (omode.is<long long>() && omode.as<long long>() < sa::kTalkModeMax)
 		mode = static_cast<sa::TalkMode>(omode.as<long long>());
 
-	injector.worker->talk(text, color, mode);
+	gamedevice.worker->talk(text, color, mode);
 
 	return TRUE;
 }
@@ -299,11 +557,11 @@ long long CLuaSystem::talk(sol::object ostr, sol::object ocolor, sol::object omo
 long long CLuaSystem::cleanchat(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.worker->cleanChatHistory();
+	gamedevice.worker->cleanChatHistory();
 
 	return TRUE;
 }
@@ -324,7 +582,7 @@ long long CLuaSystem::savesetting(const std::string& sfileName, sol::this_state 
 		fileName.replace(suffix, "json");
 
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
+	long long currentIndex = lua["__INDEX"].get<long long>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.saveHashSettings(fileName, true);
 
@@ -353,7 +611,7 @@ long long CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state 
 	}
 
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
+	long long currentIndex = lua["__INDEX"].get<long long>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.loadHashSettings(fileName, true);
 
@@ -363,8 +621,8 @@ long long CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state 
 long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::object odialogid, sol::object oext, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
@@ -396,10 +654,10 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 	{
 		QString searchStr = util::toQString(ounitid.as<std::string>());
 		sa::map_unit_t unit;
-		if (injector.worker->findUnit(searchStr, sa::kObjectNPC, &unit, "", unitid))
+		if (gamedevice.worker->findUnit(searchStr, sa::kObjectNPC, &unit, "", unitid))
 		{
-			if (!injector.worker->isDialogVisible())
-				injector.worker->setCharFaceToPoint(unit.p);
+			if (!gamedevice.worker->isDialogVisible())
+				gamedevice.worker->setCharFaceToPoint(unit.p);
 			if (button == sa::kButtonNone && row == -1)
 				QThread::msleep(300);
 			unitid = unit.id;
@@ -408,13 +666,13 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 
 	if (sbuttonStr.empty() && row > 0)
 	{
-		injector.worker->press(row, dialogid, unitid);
+		gamedevice.worker->press(row, dialogid, unitid);
 		return TRUE;
 	}
 
 	if (button == sa::kButtonNone)
 	{
-		sa::dialog_t dialog = injector.worker->currentDialog.get();
+		sa::dialog_t dialog = gamedevice.worker->currentDialog.get();
 		QStringList textList = dialog.linebuttontext;
 		if (!textList.isEmpty())
 		{
@@ -445,13 +703,13 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 	unitid += ext;
 
 	if (button != sa::kButtonNone)
-		injector.worker->press(button, dialogid, unitid);
+		gamedevice.worker->press(button, dialogid, unitid);
 	else if (row != -1)
-		injector.worker->press(row, dialogid, unitid);
+		gamedevice.worker->press(row, dialogid, unitid);
 	else if (!text.isEmpty() && text.startsWith("#"))
 	{
 		text = text.mid(1);
-		injector.worker->inputtext(text, dialogid, unitid);
+		gamedevice.worker->inputtext(text, dialogid, unitid);
 	}
 	else
 		return FALSE;
@@ -462,15 +720,15 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 long long CLuaSystem::input(const std::string& str, long long unitid, long long dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
 	QString text = util::toQString(str);
 
-	injector.worker->inputtext(text, dialogid, unitid);
+	gamedevice.worker->inputtext(text, dialogid, unitid);
 
 	return TRUE;
 }
@@ -478,54 +736,54 @@ long long CLuaSystem::input(const std::string& str, long long unitid, long long 
 long long CLuaSystem::leftclick(long long x, long long y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.leftClick(x, y);
+	gamedevice.leftClick(x, y);
 	return TRUE;
 }
 
 long long CLuaSystem::rightclick(long long x, long long y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.rightClick(x, y);
+	gamedevice.rightClick(x, y);
 	return TRUE;
 }
 
 long long CLuaSystem::leftdoubleclick(long long x, long long y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.leftDoubleClick(x, y);
+	gamedevice.leftDoubleClick(x, y);
 	return TRUE;
 }
 
 long long CLuaSystem::mousedragto(long long x1, long long y1, long long x2, long long y2, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	if (injector.worker.isNull())
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	injector.dragto(x1, y1, x2, y2);
+	gamedevice.dragto(x1, y1, x2, y2);
 	return TRUE;
 }
 
 long long CLuaSystem::menu(long long index, sol::object otype, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (injector.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
@@ -551,11 +809,11 @@ long long CLuaSystem::menu(long long index, sol::object otype, sol::this_state s
 
 	if (type == 0)
 	{
-		injector.worker->saMenu(index);
+		gamedevice.worker->saMenu(index);
 	}
 	else
 	{
-		injector.worker->shopOk(index);
+		gamedevice.worker->shopOk(index);
 	}
 
 	return TRUE;
@@ -576,9 +834,9 @@ long long CLuaSystem::createch(sol::object odataplacenum
 	, sol::object ohometown, sol::object oforcecover, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	long long dataplacenum = 0;
@@ -716,7 +974,7 @@ long long CLuaSystem::createch(sol::object odataplacenum
 	else if (oforcecover.is<long long>())
 		forcecover = oforcecover.as<long long>() > 0;
 
-	injector.worker->createCharacter(static_cast<long long>(dataplacenum)
+	gamedevice.worker->createCharacter(static_cast<long long>(dataplacenum)
 		, charname
 		, static_cast<long long>(imgno)
 		, static_cast<long long>(faceimgno)
@@ -737,9 +995,9 @@ long long CLuaSystem::createch(sol::object odataplacenum
 long long CLuaSystem::delch(long long index, std::string spsw, sol::object option, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	--index;
@@ -762,7 +1020,7 @@ long long CLuaSystem::delch(long long index, std::string spsw, sol::object optio
 	else if (option.is<long long>())
 		backtofirst = option.as<long long>() > 0;
 
-	injector.worker->deleteCharacter(index, password, backtofirst);
+	gamedevice.worker->deleteCharacter(index, password, backtofirst);
 
 	return TRUE;
 }
@@ -770,9 +1028,9 @@ long long CLuaSystem::delch(long long index, std::string spsw, sol::object optio
 long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	qDebug() << "Received " << args.size() << " arguments:";
@@ -792,7 +1050,7 @@ long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_s
 		}
 	}
 
-	injector.autil.util_SendArgs(funId, vargs);
+	gamedevice.autil.util_SendArgs(funId, vargs);
 
 	return TRUE;
 }
@@ -800,9 +1058,9 @@ long long CLuaSystem::send(long long funId, sol::variadic_args args, sol::this_s
 long long CLuaSystem::chname(sol::object oname, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
@@ -825,7 +1083,7 @@ long long CLuaSystem::chname(sol::object oname, sol::this_state s)
 		return FALSE;
 	}
 
-	injector.worker->setCharFreeName(name);
+	gamedevice.worker->setCharFreeName(name);
 
 	return TRUE;
 }
@@ -833,9 +1091,9 @@ long long CLuaSystem::chname(sol::object oname, sol::this_state s)
 long long CLuaSystem::chpetname(long long index, sol::object oname, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
@@ -865,7 +1123,7 @@ long long CLuaSystem::chpetname(long long index, sol::object oname, sol::this_st
 		return FALSE;
 	}
 
-	injector.worker->setPetFreeName(index, name);
+	gamedevice.worker->setPetFreeName(index, name);
 
 	return TRUE;
 }
@@ -873,9 +1131,9 @@ long long CLuaSystem::chpetname(long long index, sol::object oname, sol::this_st
 long long CLuaSystem::chpet(long long petindex, sol::object ostate, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.worker.isNull())
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
 		return FALSE;
 
 	luadebug::checkOnlineThenWait(s);
@@ -896,11 +1154,11 @@ long long CLuaSystem::chpet(long long petindex, sol::object ostate, sol::this_st
 
 	sa::PetState state = sa::petStateMap.value(stateStr.toLower(), sa::PetState::kRest);
 
-	sa::pet_t pet = injector.worker->getPet(petindex);
+	sa::pet_t pet = gamedevice.worker->getPet(petindex);
 	if (pet.state == state)
 		return TRUE;
 
-	injector.worker->setPetState(petindex, state);
+	gamedevice.worker->setPetState(petindex, state);
 
 	return TRUE;
 }
@@ -908,8 +1166,8 @@ long long CLuaSystem::chpet(long long petindex, sol::object ostate, sol::this_st
 bool CLuaSystem::waitpos(sol::object p1, sol::object p2, sol::object p3, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
@@ -978,9 +1236,9 @@ bool CLuaSystem::waitpos(sol::object p1, sol::object p2, sol::object p3, sol::th
 	else
 		return FALSE;
 
-	auto check = [&injector, posList]()
+	auto check = [&gamedevice, posList]()
 		{
-			QPoint pos = injector.worker->getPoint();
+			QPoint pos = gamedevice.worker->getPoint();
 			for (const QPoint& p : posList)
 			{
 				if (p == pos)
@@ -1007,10 +1265,10 @@ bool CLuaSystem::waitpos(sol::object p1, sol::object p2, sol::object p3, sol::th
 bool CLuaSystem::waitmap(sol::object p1, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	util::Timer timer;
+	util::timer timer;
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
@@ -1033,14 +1291,14 @@ bool CLuaSystem::waitmap(sol::object p1, sol::object otimeout, sol::this_state s
 	if (otimeout.is<long long>())
 		timeout = otimeout.as<long long>();
 
-	auto check = [&injector, floor, mapnames]()
+	auto check = [&gamedevice, floor, mapnames]()
 		{
 			if (floor != 0)
-				return floor == injector.worker->getFloor();
+				return floor == gamedevice.worker->getFloor();
 			else
 			{
-				QString currentFloorName = injector.worker->getFloorName();
-				long long currentFloor = injector.worker->getFloor();
+				QString currentFloorName = gamedevice.worker->getFloorName();
+				long long currentFloor = gamedevice.worker->getFloor();
 
 				for (const QString& mapname : mapnames)
 				{
@@ -1073,7 +1331,7 @@ bool CLuaSystem::waitmap(sol::object p1, sol::object otimeout, sol::this_state s
 		});
 
 	if (!bret && timeout > 2000)
-		injector.worker->EO();
+		gamedevice.worker->EO();
 
 	return  bret;
 }
@@ -1081,8 +1339,8 @@ bool CLuaSystem::waitmap(sol::object p1, sol::object otimeout, sol::this_state s
 bool CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
@@ -1112,9 +1370,9 @@ bool CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object otim
 	if (otimeout.is<long long>())
 		timeout = otimeout.as<long long>();
 
-	injector.worker->updateItemByMemory();
+	gamedevice.worker->updateItemByMemory();
 
-	bool bret = luadebug::waitfor(s, timeout, [&injector, &itemNames, &itemMemos, min, max]()->bool
+	bool bret = luadebug::waitfor(s, timeout, [&gamedevice, &itemNames, &itemMemos, min, max]()->bool
 		{
 			QVector<long long> vec;
 			long long size = 0;
@@ -1126,7 +1384,7 @@ bool CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object otim
 			for (long long i = 0; i < size; ++i)
 			{
 				vec.clear();
-				if (injector.worker->getItemIndexsByName(itemNames.value(i), itemMemos.value(i), &vec, min, max) && !vec.isEmpty())
+				if (gamedevice.worker->getItemIndexsByName(itemNames.value(i), itemMemos.value(i), &vec, min, max) && !vec.isEmpty())
 					return true;
 			}
 
@@ -1139,13 +1397,13 @@ bool CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object otim
 bool CLuaSystem::waitteam(sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	sa::character_t pc = injector.worker->getCharacter();
+	sa::character_t pc = gamedevice.worker->getCharacter();
 
 	long long timeout = 5000;
 	if (otimeout.is<long long>())
@@ -1162,8 +1420,8 @@ bool CLuaSystem::waitteam(sol::object otimeout, sol::this_state s)
 bool CLuaSystem::waitpet(std::string name, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
@@ -1181,10 +1439,10 @@ bool CLuaSystem::waitpet(std::string name, sol::object otimeout, sol::this_state
 	if (otimeout.is<long long>())
 		timeout = otimeout.as<long long>();
 
-	bool bret = luadebug::waitfor(s, timeout, [&injector, petName]()->bool
+	bool bret = luadebug::waitfor(s, timeout, [&gamedevice, petName]()->bool
 		{
 			QVector<long long> v;
-			return injector.worker->getPetIndexsByName(petName, &v);
+			return gamedevice.worker->getPetIndexsByName(petName, &v);
 		});
 
 	return bret;
@@ -1193,8 +1451,8 @@ bool CLuaSystem::waitpet(std::string name, sol::object otimeout, sol::this_state
 bool CLuaSystem::waitdlg(sol::object p1, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	long long timeout = 5000;
 	if (otimeout.is<long long>())
@@ -1222,12 +1480,12 @@ bool CLuaSystem::waitdlg(sol::object p1, sol::object otimeout, sol::this_state s
 	bool bret = false;
 	if (dlgid != -1)
 	{
-		bret = luadebug::waitfor(s, timeout, [&injector, dlgid]()->bool
+		bret = luadebug::waitfor(s, timeout, [&gamedevice, dlgid]()->bool
 			{
-				if (!injector.worker->isDialogVisible())
+				if (!gamedevice.worker->isDialogVisible())
 					return false;
 
-				return injector.worker->currentDialog.get().dialogid == dlgid;
+				return gamedevice.worker->currentDialog.get().dialogid == dlgid;
 			});
 
 		return bret;
@@ -1238,15 +1496,15 @@ bool CLuaSystem::waitdlg(sol::object p1, sol::object otimeout, sol::this_state s
 
 		long long min = 0;
 		long long max = sa::MAX_DIALOG_LINE;
-		auto check = [&injector, min, max, cmpStrs]()->bool
+		auto check = [&gamedevice, min, max, cmpStrs]()->bool
 			{
-				if (!injector.worker->isDialogVisible())
+				if (!gamedevice.worker->isDialogVisible())
 					return false;
 
 				if (cmpStrs.isEmpty() || cmpStrs.front().isEmpty())
 					return true;
 
-				QStringList dialogStrList = injector.worker->currentDialog.get().linedatas;
+				QStringList dialogStrList = gamedevice.worker->currentDialog.get().linedatas;
 				for (long long i = min; i < max; ++i)
 				{
 					if (i < 0 || i > dialogStrList.size())
@@ -1280,8 +1538,8 @@ bool CLuaSystem::waitdlg(sol::object p1, sol::object otimeout, sol::this_state s
 bool CLuaSystem::waitsay(std::string sstr, sol::object otimeout, sol::this_state s)
 {
 	sol::state_view lua(s);
-	long long currentIndex = lua["_INDEX"].get<long long>();
-	Injector& injector = Injector::getInstance(currentIndex);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
@@ -1299,11 +1557,11 @@ bool CLuaSystem::waitsay(std::string sstr, sol::object otimeout, sol::this_state
 	if (otimeout.is<long long>())
 		timeout = otimeout.as<long long>();
 
-	auto check = [&injector, cmpStrs]()->bool
+	auto check = [&gamedevice, cmpStrs]()->bool
 		{
 			for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
 			{
-				QString text = injector.worker->getChatHistory(i);
+				QString text = gamedevice.worker->getChatHistory(i);
 				if (text.isEmpty())
 					continue;
 
@@ -1331,8 +1589,8 @@ long long CLuaSystem::set(std::string enumStr,
 	sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<long long>());
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["__INDEX"].get<long long>());
 
 	QString typeStr = util::toQString(enumStr);
 	if (typeStr.isEmpty())
@@ -1641,7 +1899,7 @@ long long CLuaSystem::set(std::string enumStr,
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
-		injector.setEnableHash(util::kScriptDebugModeEnable, value1 > 0);
+		gamedevice.setEnableHash(util::kScriptDebugModeEnable, value1 > 0);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
 	}
@@ -1676,10 +1934,10 @@ long long CLuaSystem::set(std::string enumStr,
 		if (value3 < 0)
 			value3 = 0;
 
-		injector.setValueHash(util::kBattleCharNormalActionTypeValue, value1);
-		injector.setValueHash(util::kBattleCharNormalActionEnemyValue, value2);
-		injector.setValueHash(util::kBattleCharNormalActionLevelValue, value3);
-		//injector.setValueHash(util::kBattleCharNormalActionTargetValue, value4);
+		gamedevice.setValueHash(util::kBattleCharNormalActionTypeValue, value1);
+		gamedevice.setValueHash(util::kBattleCharNormalActionEnemyValue, value2);
+		gamedevice.setValueHash(util::kBattleCharNormalActionLevelValue, value3);
+		//gamedevice.setValueHash(util::kBattleCharNormalActionTargetValue, value4);
 
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
@@ -1714,10 +1972,10 @@ long long CLuaSystem::set(std::string enumStr,
 		if (value3 < 0)
 			value3 = 0;
 
-		injector.setValueHash(util::kBattlePetNormalActionTypeValue, value1);
-		injector.setValueHash(util::kBattlePetNormalActionEnemyValue, value2);
-		injector.setValueHash(util::kBattlePetNormalActionLevelValue, value3);
-		//injector.setValueHash(util::kBattlePetNormalActionTargetValue, value4);
+		gamedevice.setValueHash(util::kBattlePetNormalActionTypeValue, value1);
+		gamedevice.setValueHash(util::kBattlePetNormalActionEnemyValue, value2);
+		gamedevice.setValueHash(util::kBattlePetNormalActionLevelValue, value3);
+		//gamedevice.setValueHash(util::kBattlePetNormalActionTargetValue, value4);
 
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
@@ -1748,7 +2006,7 @@ long long CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		injector.setValueHash(type, value1);
+		gamedevice.setValueHash(type, value1);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
 	}
@@ -1792,7 +2050,7 @@ long long CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		injector.setValueHash(type, value1);
+		gamedevice.setValueHash(type, value1);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
 	}
@@ -1864,23 +2122,23 @@ long long CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		injector.setEnableHash(type, ok);
+		gamedevice.setEnableHash(type, ok);
 		if (type == util::kFastBattleEnable && ok)
 		{
-			injector.setEnableHash(util::kAutoBattleEnable, !ok);
-			if (ok && !injector.worker.isNull())
-				injector.worker->doBattleWork(true);
+			gamedevice.setEnableHash(util::kAutoBattleEnable, !ok);
+			if (ok && !gamedevice.worker.isNull() && gamedevice.worker->getBattleFlag())
+				gamedevice.worker->doBattleWork(false);
 		}
 		else if (type == util::kAutoBattleEnable && ok)
 		{
-			injector.setEnableHash(util::kFastBattleEnable, !ok);
-			if (ok && !injector.worker.isNull())
-				injector.worker->doBattleWork(true);
+			gamedevice.setEnableHash(util::kFastBattleEnable, !ok);
+			if (ok && !gamedevice.worker.isNull() && gamedevice.worker->getBattleFlag())
+				gamedevice.worker->doBattleWork(false);
 		}
 		else if (type == util::kAutoWalkEnable && ok)
-			injector.setEnableHash(util::kFastAutoWalkEnable, !ok);
+			gamedevice.setEnableHash(util::kFastAutoWalkEnable, !ok);
 		else if (type == util::kFastAutoWalkEnable && ok)
-			injector.setEnableHash(util::kAutoWalkEnable, !ok);
+			gamedevice.setEnableHash(util::kAutoWalkEnable, !ok);
 
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
@@ -1920,42 +2178,42 @@ long long CLuaSystem::set(std::string enumStr,
 
 		QString text = util::toQString(p2);
 
-		injector.setEnableHash(type, ok);
+		gamedevice.setEnableHash(type, ok);
 		if (type == util::kLockPetScheduleEnable && ok)
 		{
-			injector.setEnableHash(util::kLockPetEnable, !ok);
-			injector.setEnableHash(util::kLockRideEnable, !ok);
-			injector.setStringHash(util::kLockPetScheduleString, text);
+			gamedevice.setEnableHash(util::kLockPetEnable, !ok);
+			gamedevice.setEnableHash(util::kLockRideEnable, !ok);
+			gamedevice.setStringHash(util::kLockPetScheduleString, text);
 		}
 		else if (type == util::kAutoJoinEnable && ok)
 		{
-			injector.setStringHash(util::kAutoFunNameString, text);
-			injector.setValueHash(util::kAutoFunTypeValue, 0);
+			gamedevice.setStringHash(util::kAutoFunNameString, text);
+			gamedevice.setValueHash(util::kAutoFunTypeValue, 0);
 		}
 		else if (type == util::kLockAttackEnable && ok)
-			injector.setStringHash(util::kLockAttackString, text);
+			gamedevice.setStringHash(util::kLockAttackString, text);
 		else if (type == util::kLockEscapeEnable && ok)
-			injector.setStringHash(util::kLockEscapeString, text);
+			gamedevice.setStringHash(util::kLockEscapeString, text);
 		else if (type == util::kAutoDropEnable && ok)
-			injector.setStringHash(util::kAutoDropItemString, text);
+			gamedevice.setStringHash(util::kAutoDropItemString, text);
 		else if (type == util::kBattleCatchCharItemEnable && ok)
 		{
-			injector.setStringHash(util::kBattleCatchCharItemString, text);
-			injector.setValueHash(util::kBattleCatchTargetItemHpValue, value1 + 1);
+			gamedevice.setStringHash(util::kBattleCatchCharItemString, text);
+			gamedevice.setValueHash(util::kBattleCatchTargetItemHpValue, value1 + 1);
 		}
 		else if (type == util::kNormalItemHealMpEnable && ok)
 		{
-			injector.setStringHash(util::kNormalItemHealMpItemString, text);
-			injector.setValueHash(util::kNormalItemHealMpValue, value1 + 1);
+			gamedevice.setStringHash(util::kNormalItemHealMpItemString, text);
+			gamedevice.setValueHash(util::kNormalItemHealMpValue, value1 + 1);
 		}
 		else if (type == util::kBattleItemHealMpEnable && ok)
 		{
-			injector.setStringHash(util::kBattleItemHealMpItemString, text);
-			injector.setValueHash(util::kBattleItemHealMpValue, value1 + 1);
+			gamedevice.setStringHash(util::kBattleItemHealMpItemString, text);
+			gamedevice.setValueHash(util::kBattleItemHealMpValue, value1 + 1);
 		}
 		else if (type == util::kAutoAbilityEnable)
 		{
-			injector.setStringHash(util::kAutoAbilityString, text);
+			gamedevice.setStringHash(util::kAutoAbilityString, text);
 		}
 
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -1993,27 +2251,27 @@ long long CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		injector.setEnableHash(type, ok);
+		gamedevice.setEnableHash(type, ok);
 		if (type == util::kLockPetEnable && ok)
 		{
-			injector.setEnableHash(util::kLockPetScheduleEnable, !ok);
-			injector.setValueHash(util::kLockPetValue, value1);
+			gamedevice.setEnableHash(util::kLockPetScheduleEnable, !ok);
+			gamedevice.setValueHash(util::kLockPetValue, value1);
 		}
 		else if (type == util::kLockRideEnable && ok)
 		{
-			injector.setEnableHash(util::kLockPetScheduleEnable, !ok);
-			injector.setValueHash(util::kLockRideValue, value1);
+			gamedevice.setEnableHash(util::kLockPetScheduleEnable, !ok);
+			gamedevice.setValueHash(util::kLockRideValue, value1);
 		}
 		else if (type == util::kLockTimeEnable && ok)
-			injector.setValueHash(util::kLockTimeValue, value1 + 1);
+			gamedevice.setValueHash(util::kLockTimeValue, value1 + 1);
 		else if (type == util::kBattleCatchTargetLevelEnable && ok)
-			injector.setValueHash(util::kBattleCatchTargetLevelValue, value1 + 1);
+			gamedevice.setValueHash(util::kBattleCatchTargetLevelValue, value1 + 1);
 		else if (type == util::kBattleCatchTargetMaxHpEnable && ok)
-			injector.setValueHash(util::kBattleCatchTargetMaxHpValue, value1 + 1);
+			gamedevice.setValueHash(util::kBattleCatchTargetMaxHpValue, value1 + 1);
 		else if (type == util::kBattleCatchPetSkillEnable && ok)
-			injector.setValueHash(util::kBattleCatchPetSkillValue, value1 + 1);
+			gamedevice.setValueHash(util::kBattleCatchPetSkillValue, value1 + 1);
 		else if (type == util::kBattleSkillMpEnable)
-			injector.setValueHash(util::kBattleSkillMpValue, value1 + 1);
+			gamedevice.setValueHash(util::kBattleSkillMpValue, value1 + 1);
 
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
@@ -2052,11 +2310,11 @@ long long CLuaSystem::set(std::string enumStr,
 			value2 = 0;
 
 
-		injector.setEnableHash(type, ok);
+		gamedevice.setEnableHash(type, ok);
 		if (type == util::kBattleCatchCharMagicEnable && ok)
 		{
-			injector.setValueHash(util::kBattleCatchTargetMagicHpValue, value1);
-			injector.setValueHash(util::kBattleCatchCharMagicValue, value2);
+			gamedevice.setValueHash(util::kBattleCatchTargetMagicHpValue, value1);
+			gamedevice.setValueHash(util::kBattleCatchCharMagicValue, value2);
 		}
 
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -2113,20 +2371,20 @@ long long CLuaSystem::set(std::string enumStr,
 		if (value5 < 0)
 			value5 = util::kSelectEnemyAny;
 
-		injector.setValueHash(type, value1);
+		gamedevice.setValueHash(type, value1);
 		if (type == util::kBattleCharRoundActionRoundValue && ok)
 		{
-			injector.setValueHash(util::kBattleCharRoundActionTypeValue, value2);
-			injector.setValueHash(util::kBattleCharRoundActionEnemyValue, value3);
-			injector.setValueHash(util::kBattleCharRoundActionLevelValue, value4);
-			//injector.setValueHash(util::kBattleCharRoundActionTargetValue, value5);
+			gamedevice.setValueHash(util::kBattleCharRoundActionTypeValue, value2);
+			gamedevice.setValueHash(util::kBattleCharRoundActionEnemyValue, value3);
+			gamedevice.setValueHash(util::kBattleCharRoundActionLevelValue, value4);
+			//gamedevice.setValueHash(util::kBattleCharRoundActionTargetValue, value5);
 		}
 		else if (type == util::kBattlePetRoundActionRoundValue && ok)
 		{
-			injector.setValueHash(util::kBattlePetRoundActionTypeValue, value2);
-			injector.setValueHash(util::kBattlePetRoundActionEnemyValue, value3);
-			injector.setValueHash(util::kBattlePetRoundActionLevelValue, value4);
-			//injector.setValueHash(util::kBattlePetRoundActionTargetValue, value5);
+			gamedevice.setValueHash(util::kBattlePetRoundActionTypeValue, value2);
+			gamedevice.setValueHash(util::kBattlePetRoundActionEnemyValue, value3);
+			gamedevice.setValueHash(util::kBattlePetRoundActionLevelValue, value4);
+			//gamedevice.setValueHash(util::kBattlePetRoundActionTargetValue, value5);
 		}
 
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -2161,7 +2419,7 @@ long long CLuaSystem::set(std::string enumStr,
 
 		if (value1 < 0)
 			value1 = 0;
-		injector.setEnableHash(type, ok);
+		gamedevice.setEnableHash(type, ok);
 
 		long long value2 = 0;
 		if (p2.is<long long>())
@@ -2196,30 +2454,30 @@ long long CLuaSystem::set(std::string enumStr,
 
 		if (type == util::kNormalMagicHealEnable && ok)
 		{
-			injector.setValueHash(util::kNormalMagicHealMagicValue, value1);
-			injector.setValueHash(util::kNormalMagicHealCharValue, value2 + 1);
-			injector.setValueHash(util::kNormalMagicHealPetValue, value3 + 1);
-			injector.setValueHash(util::kNormalMagicHealAllieValue, value4 + 1);
+			gamedevice.setValueHash(util::kNormalMagicHealMagicValue, value1);
+			gamedevice.setValueHash(util::kNormalMagicHealCharValue, value2 + 1);
+			gamedevice.setValueHash(util::kNormalMagicHealPetValue, value3 + 1);
+			gamedevice.setValueHash(util::kNormalMagicHealAllieValue, value4 + 1);
 		}
 		else if (type == util::kBattleMagicHealEnable && ok)
 		{
-			injector.setValueHash(util::kBattleMagicHealMagicValue, value1);
-			injector.setValueHash(util::kBattleMagicHealCharValue, value2 + 1);
-			injector.setValueHash(util::kBattleMagicHealPetValue, value3 + 1);
-			injector.setValueHash(util::kBattleMagicHealAllieValue, value4 + 1);
-			//injector.setValueHash(util::kBattleMagicHealTargetValue, value5);
+			gamedevice.setValueHash(util::kBattleMagicHealMagicValue, value1);
+			gamedevice.setValueHash(util::kBattleMagicHealCharValue, value2 + 1);
+			gamedevice.setValueHash(util::kBattleMagicHealPetValue, value3 + 1);
+			gamedevice.setValueHash(util::kBattleMagicHealAllieValue, value4 + 1);
+			//gamedevice.setValueHash(util::kBattleMagicHealTargetValue, value5);
 		}
 		else if (type == util::kBattleCrossActionCharEnable && ok)
 		{
-			injector.setValueHash(util::kBattleCharCrossActionTypeValue, value1);
-			injector.setValueHash(util::kBattleCharCrossActionRoundValue, value2);
-			//injector.setValueHash(util::kBattleCharCrossActionTargetValue, value3);
+			gamedevice.setValueHash(util::kBattleCharCrossActionTypeValue, value1);
+			gamedevice.setValueHash(util::kBattleCharCrossActionRoundValue, value2);
+			//gamedevice.setValueHash(util::kBattleCharCrossActionTargetValue, value3);
 		}
 		else if (type == util::kBattleCrossActionPetEnable && ok)
 		{
-			injector.setValueHash(util::kBattlePetCrossActionTypeValue, value1);
-			injector.setValueHash(util::kBattlePetCrossActionRoundValue, value2);
-			//injector.setValueHash(util::kBattlePetCrossActionTargetValue, value3);
+			gamedevice.setValueHash(util::kBattlePetCrossActionTypeValue, value1);
+			gamedevice.setValueHash(util::kBattlePetCrossActionRoundValue, value2);
+			//gamedevice.setValueHash(util::kBattlePetCrossActionTargetValue, value3);
 		}
 
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -2257,7 +2515,7 @@ long long CLuaSystem::set(std::string enumStr,
 		else
 			text = util::toQString(p1);
 
-		injector.setStringHash(type, text);
+		gamedevice.setStringHash(type, text);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
 	}

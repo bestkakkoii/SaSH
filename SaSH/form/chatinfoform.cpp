@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "chatinfoform.h"
 
 #include "util.h"
-#include "injector.h"
+#include <gamedevice.h>
 #include "signaldispatcher.h"
 
 static const QHash<long long, QColor> combo_colorhash = {
@@ -80,9 +80,9 @@ ChatInfoForm::ChatInfoForm(long long index, QWidget* parent)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ChatInfoForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 
-	Injector& injector = Injector::getInstance(index);
+	GameDevice& gamedevice = GameDevice::getInstance(index);
 
-	ui.listView_log->setModel(&injector.chatLogModel);
+	ui.listView_log->setModel(&gamedevice.chatLogModel);
 
 	delegate_ = q_check_ptr(new ColorDelegate(this));
 	sash_assume(delegate_ != nullptr);
@@ -113,9 +113,9 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 		//if (keyEvent->key() == Qt::Key_Delete)
 		//{
 		//	long long currentIndex = getIndex();
-		//	Injector& injector = Injector::getInstance(currentIndex);
-		//	if (!injector.worker.isNull())
-		//		injector.worker->cleanChatHistory();
+		//	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		//	if (!gamedevice.worker.isNull())
+		//		gamedevice.worker->cleanChatHistory();
 		//	return true;
 		//}
 	}
@@ -129,15 +129,15 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 			{
 				long long currentIndex = getIndex();
 				QString text = comboBox->currentText();
-				Injector& injector = Injector::getInstance(currentIndex);
-				if (!injector.worker.isNull())
+				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+				if (!gamedevice.worker.isNull())
 				{
 					long long nMode = ui.comboBox_channel->currentIndex();
 					sa::TalkMode mode = static_cast<sa::TalkMode>(nMode != -1 ? nMode : sa::kTalkNormal);
 					if (nMode != (static_cast<long long>(channelList_.size()) - 1))
-						injector.worker->talk(text, ui.comboBox_color->currentIndex(), mode);
+						gamedevice.worker->talk(text, ui.comboBox_color->currentIndex(), mode);
 					else
-						injector.worker->inputtext(text);
+						gamedevice.worker->inputtext(text);
 
 					comboBox->insertItem(0, text);
 
@@ -153,8 +153,8 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 void ChatInfoForm::onApplyHashSettingsToUI()
 {
 	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	ui.listView_log->setModel(&injector.chatLogModel);
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	ui.listView_log->setModel(&gamedevice.chatLogModel);
 }
 
 void ChatInfoForm::onResetControlTextLanguage()
