@@ -10258,7 +10258,7 @@ bool Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 
 		labelCharAction.set(text);
 		emit signalDispatcher.updateLabelCharAction(text);
-
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, color);
 		return true;
 	} while (false);
 
@@ -10488,7 +10488,7 @@ bool Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 
 		labelPetAction.set(text);
 		emit signalDispatcher.updateLabelPetAction(text);
-		emit signalDispatcher.battleTableItemForegroundColorChanged(battleCharCurrentPos.get(), color);
+		emit signalDispatcher.battleTableItemForegroundColorChanged(target, color);
 
 		return true;
 	} while (false);
@@ -10686,9 +10686,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-	}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -10747,7 +10747,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				break;
 			}
 		}
-}
+	}
 #endif
 }
 
@@ -11569,12 +11569,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-			}
+					}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-		}
-	}
+				}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11588,11 +11588,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-	}
+		}
 
 		setBattleData(bt);
 		break;
-}
+	}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12369,7 +12369,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-	}
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
@@ -12895,7 +12895,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12945,7 +12945,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -12981,7 +12981,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-}
+		}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13250,9 +13250,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13390,7 +13390,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13548,7 +13548,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}
