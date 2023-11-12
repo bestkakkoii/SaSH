@@ -663,14 +663,26 @@ void MainObject::mainProc()
 	}
 }
 
-bool MainObject::inGameInitialize()
+long long MainObject::inGameInitialize()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	if (gamedevice.isGameInterruptionRequested())
-		return false;
+	{
+		qDebug() << "gamedevice.isGameInterruptionRequested() == true";
+		return -1;
+	}
 
 	if (gamedevice.worker.isNull())
-		return false;
+	{
+		qDebug() << "gamedevice.worker.isNull() == true";
+		return -1;
+	}
+
+	if (!gamedevice.worker->getOnlineFlag())
+	{
+		qDebug() << "gamedevice.worker->getOnlineFlag() == false";
+		return 0;
+	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
@@ -679,13 +691,34 @@ bool MainObject::inGameInitialize()
 	for (;;)
 	{
 		if (gamedevice.isGameInterruptionRequested())
-			return false;
+		{
+			qDebug() << "gamedevice.isGameInterruptionRequested() == true";
+			return -1;
+		}
 
 		if (!gamedevice.isWindowAlive())
-			return false;
+		{
+			qDebug() << "gamedevice.isWindowAlive() == false";
+			return -1;
+		}
+
+		if (gamedevice.worker.isNull())
+		{
+			qDebug() << "gamedevice.worker.isNull() == true";
+			return -1;
+		}
+
+		if (!gamedevice.worker->getOnlineFlag())
+		{
+			qDebug() << "gamedevice.worker->getOnlineFlag() == false";
+			return 0;
+		}
 
 		if (timer.hasExpired(sa::MAX_TIMEOUT))
-			return false;
+		{
+			qDebug() << "timer.hasExpired(sa::MAX_TIMEOUT) == true";
+			return 0;
+		}
 
 		if (gamedevice.worker->checkWG(9, 3))
 			break;
@@ -721,7 +754,7 @@ bool MainObject::inGameInitialize()
 	gamedevice.worker->echo();
 	gamedevice.worker->updateDatasFromMemory();
 	gamedevice.worker->updateItemByMemory();
-	return true;
+	return 1;
 }
 
 long long MainObject::checkAndRunFunctions()
@@ -737,6 +770,7 @@ long long MainObject::checkAndRunFunctions()
 
 	if (status == util::kStatusDisappear)
 	{
+		qDebug() << "status == util::kStatusDisappear";
 		return 0;
 	}
 	else
@@ -790,8 +824,11 @@ long long MainObject::checkAndRunFunctions()
 	//每次登入後只會執行一次
 	if (login_run_once_flag_)
 	{
-		if (!inGameInitialize())
+		long long value = inGameInitialize();
+		if (-1 == value)
 			return 0;
+		else if (0 == value)
+			return 1;
 
 		login_run_once_flag_ = false;
 	}
@@ -1830,7 +1867,7 @@ void MainObject::checkAutoLockSchedule()
 					gamedevice.worker->setPetState(i, kRest);
 }
 			return false;
-		};
+};
 
 	if (gamedevice.getEnableHash(util::kLockPetScheduleEnable) && !gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
