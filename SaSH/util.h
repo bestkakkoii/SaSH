@@ -2423,13 +2423,28 @@ QGroupBox {
 		}
 	}
 
-	//打開控制台
-	inline void createConsole()
+	inline HWND getConsoleHandle()
 	{
-		if (!AllocConsole())
+		QByteArray ba = qgetenv("CONSOLE_HANDLE");
+		if (ba.isEmpty())
+			return nullptr;
+		return reinterpret_cast<HWND>(ba.toLongLong());
+	}
+
+	//打開控制台
+	inline HWND createConsole()
+	{
+		HWND hWnd = getConsoleHandle();
+		if (hWnd != nullptr)
 		{
-			return;
+			ShowWindow(hWnd, SW_HIDE);
+			ShowWindow(hWnd, SW_SHOW);
+			return hWnd;
 		}
+
+		if (FALSE == AllocConsole())
+			return nullptr;
+
 		FILE* fDummy;
 		freopen_s(&fDummy, "CONOUT$", "w", stdout);
 		freopen_s(&fDummy, "CONOUT$", "w", stderr);
@@ -2453,6 +2468,14 @@ QGroupBox {
 		SetConsoleCP(CP_UTF8);
 		SetConsoleOutputCP(CP_UTF8);
 		setlocale(LC_ALL, "en_US.UTF-8");
-	}
 
+		hWnd = GetConsoleWindow();
+		//remove close button
+		HMENU hMenu = GetSystemMenu(hWnd, FALSE);
+		if (hMenu != nullptr)
+			DeleteMenu(hMenu, SC_CLOSE, MF_BYCOMMAND);
+
+		qputenv("CONSOLE_HANDLE", QByteArray::number(reinterpret_cast<qint64>(hWnd)));
+		return hWnd;
+	}
 }

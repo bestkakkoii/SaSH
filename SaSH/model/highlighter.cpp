@@ -45,7 +45,7 @@ const char* Highlighter::keywords(int set) const
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
 		return
-			"dlg rnd setglobal getglobal clearglobal "
+			"dlg rnd setglobal getglobal clearglobal capture "
 			"print printf sleep timer msg logout logback eo button say input menu "
 			"talk cls set saveset loadset "
 			"chpet chname chpetname chmap "

@@ -204,6 +204,8 @@ public:
 	long long press(sol::object obutton, sol::object ounitid, sol::object odialogid, sol::object oext, sol::this_state s);//ok
 	long long input(const std::string& str, long long unitid, long long dialogid, sol::this_state s);//ok
 
+	long long capture(std::string sfilename, sol::this_state s);
+
 
 	bool waitpos(sol::object p1, sol::object p2, sol::object p3, sol::this_state s);
 	bool waitmap(sol::object p1, sol::object otimeout, sol::this_state s);

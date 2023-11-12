@@ -1102,6 +1102,11 @@ MainForm::MainForm(long long index, QWidget* parent)
 	setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 	setFixedWidth(290);
 
+	HWND hWnd = reinterpret_cast<HWND>(winId());
+	HMENU hMenu = GetSystemMenu(hWnd, FALSE);
+	if (hMenu != nullptr)
+		DeleteMenu(hMenu, SC_MAXIMIZE, MF_BYCOMMAND);
+
 	util::setWidget(this);
 
 	qRegisterMetaType<QVariant>("QVariant");

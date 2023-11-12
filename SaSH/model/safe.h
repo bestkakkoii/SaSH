@@ -509,6 +509,10 @@ namespace safe
 		{
 		}
 
+		vector(long long size, T fill) : data_(size, fill)
+		{
+		}
+
 		explicit vector(const QVector<T>& other) : data_(other)
 		{
 		}

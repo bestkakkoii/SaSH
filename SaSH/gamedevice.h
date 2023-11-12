@@ -170,6 +170,48 @@ public:
 
 	void __fastcall dragto(long long x1, long long y1, long long x2, long long y2) const;
 
+	bool capture(const QString& fileName)
+	{
+		if (!isValid())
+			return false;
+
+		QFileInfo fileInfo(fileName);
+		//check is a valid path
+		if (fileInfo.absolutePath().isEmpty() || fileInfo.fileName().isEmpty())
+			return false;
+
+		//check png suffix
+		if (fileInfo.suffix().toLower() != "png")
+			return false;
+
+		long long currentIndex = getIndex();
+
+		//取桌面指針
+		QScreen* screen = QGuiApplication::primaryScreen();
+		if (nullptr == screen)
+		{
+			return false;
+		}
+
+		//遊戲後臺滑鼠一移動到左上
+		LPARAM data = MAKELPARAM(0, 0);
+		sendMessage(WM_MOUSEMOVE, NULL, data);
+
+		//根據HWND擷取窗口後臺圖像
+		QPixmap pixmap = screen->grabWindow(reinterpret_cast<WId>(getProcessWindow()));
+
+		//轉存為QImage
+		QImage image = pixmap.toImage();
+
+		//only take middle part of the image
+		image = image.copy(269, 226, 102, 29);//368,253
+
+		if (QFile::exists(fileName))
+			QFile::remove(fileName);
+
+		return image.save(fileName, "PNG");
+	}
+
 	void __fastcall hide(long long mode = 0);
 
 	void __fastcall show();

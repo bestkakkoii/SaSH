@@ -83,6 +83,78 @@ namespace util
 		return hwnd;
 	}
 
+	inline HWND getConsoleHandle()
+	{
+		// get env from CONSOLE_HANDLE
+		size_t size = 0;
+		wchar_t* buffer = nullptr;
+		_wgetenv_s(&size, buffer, 0, L"SA_CONSOLE_HANDLE");
+		if (size == 0)
+			return nullptr;
+
+		buffer = new wchar_t[size];
+		_wgetenv_s(&size, buffer, size, L"SA_CONSOLE_HANDLE");
+		if (size == 0)
+			return nullptr;
+
+		std::wstring w = buffer;
+		delete[] buffer;
+
+		HWND hWnd = reinterpret_cast<HWND>(std::stoll(w));
+		return hWnd;
+	}
+
+	//打開控制台
+	inline HWND createConsole()
+	{
+		HWND hWnd = getConsoleHandle();
+		if (hWnd != nullptr)
+		{
+			ShowWindow(hWnd, SW_HIDE);
+			ShowWindow(hWnd, SW_SHOW);
+			return hWnd;
+		}
+
+		if (FALSE == AllocConsole())
+			return nullptr;
+
+		FILE* fDummy;
+		freopen_s(&fDummy, "CONOUT$", "w", stdout);
+		freopen_s(&fDummy, "CONOUT$", "w", stderr);
+		freopen_s(&fDummy, "CONIN$", "r", stdin);
+		std::cout.clear();
+		std::clog.clear();
+		std::cerr.clear();
+		std::cin.clear();
+
+		// std::wcout, std::wclog, std::wcerr, std::wcin
+		HANDLE hConOut = CreateFile(TEXT("CONOUT$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hConIn = CreateFile(TEXT("CONIN$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		SetStdHandle(STD_OUTPUT_HANDLE, hConOut);
+		SetStdHandle(STD_ERROR_HANDLE, hConOut);
+		SetStdHandle(STD_INPUT_HANDLE, hConIn);
+		std::wcout.clear();
+		std::wclog.clear();
+		std::wcerr.clear();
+		std::wcin.clear();
+
+		SetConsoleCP(CP_UTF8);
+		SetConsoleOutputCP(CP_UTF8);
+		setlocale(LC_ALL, "en_US.UTF-8");
+
+		hWnd = GetConsoleWindow();
+		//remove close button
+		HMENU hMenu = GetSystemMenu(hWnd, FALSE);
+		if (hMenu != nullptr)
+			DeleteMenu(hMenu, SC_CLOSE, MF_BYCOMMAND);
+
+		//qputenv("CONSOLE_HANDLE", QByteArray::number(reinterpret_cast<qint64>(hWnd)));
+		//set env
+		std::wstring hWndStr = std::to_wstring(reinterpret_cast<long long>(hWnd));
+		_wputenv_s(L"SA_CONSOLE_HANDLE", hWndStr.c_str());
+		return hWnd;
+	}
+
 	template<class T, class T2>
 	inline void MemoryMove(T dis, T2* src, size_t size)
 	{

@@ -54,8 +54,6 @@ void Interpreter::doFileWithThread(long long beginLine, const QString& fileName)
 
 	moveToThread(&thread_);
 	connect(this, &Interpreter::finished, &thread_, &QThread::quit, Qt::QueuedConnection);
-	//connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
-	//connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
 	connect(&thread_, &QThread::started, this, &Interpreter::proc, Qt::QueuedConnection);
 	thread_.start();
 }
@@ -126,8 +124,6 @@ void Interpreter::doString(QString content)
 
 	moveToThread(&thread_);
 	connect(this, &Interpreter::finished, &thread_, &QThread::quit, Qt::QueuedConnection);
-	//connect(&thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
-	//connect(this, &Interpreter::finished, this, [this]() { thread_ = nullptr; }, Qt::QueuedConnection);
 	connect(&thread_, &QThread::started, this, &Interpreter::onRunString, Qt::QueuedConnection);
 	thread_.start();
 }

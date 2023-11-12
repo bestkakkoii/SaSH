@@ -58,8 +58,8 @@ public:
 	{
 		isMissionInterruptionRequested_.on();
 	}
-signals:
-	void started();
+
+	void start();
 
 public slots:
 	void autoJoin();
@@ -73,10 +73,8 @@ public slots:
 		isMissionInterruptionRequested_.off();
 	}
 
-private slots:
-	void onFinished();
-
 private:
+	long long type_ = 0;
 	QThread thread_;
 	QVariantList args_;
 	safe::flag isMissionInterruptionRequested_ = false;
@@ -163,7 +161,7 @@ private:
 	bool flagSwitcherJobEnable_ = false;
 	bool flagSwitcherWorldEnable_ = false;
 
-	QVector<MissionThread*> autoThreads_;
+	safe::vector<MissionThread*> autoThreads_;
 };
 
 class ThreadManager : public QObject

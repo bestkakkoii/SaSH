@@ -1815,23 +1815,23 @@ bool Worker::getItemIndexsByName(const QString& name, const QString& memo, QVect
 		//說明為空
 		if (memo.isEmpty())
 		{
-			if (isExact && (newName == itemName))
+			if (isExact && (!newName.isEmpty() && (newName == itemName)))
 				v.append(i);
-			else if (!isExact && (itemName.contains(newName)))
+			else if (!isExact && (!newName.isEmpty() && itemName.contains(newName)))
 				v.append(i);
 		}
 		//道具名稱為空
 		else if (name.isEmpty())
 		{
-			if (itemMemo.contains(newMemo))
+			if (itemMemo.contains(newMemo) && !newMemo.isEmpty())
 				v.append(i);
 		}
 		//兩者都不為空
 		else if (!itemName.isEmpty() && !itemMemo.isEmpty())
 		{
-			if (isExact && (newName == itemName) && (itemMemo.contains(newMemo)))
+			if (isExact && (!newName.isEmpty() && newName == itemName) && (!newMemo.isEmpty() && itemMemo.contains(newMemo)))
 				v.append(i);
-			else if (!isExact && (itemName.contains(newName)) && (itemMemo.contains(newMemo)))
+			else if (!isExact && (!newName.isEmpty() && itemName.contains(newName)) && (!newMemo.isEmpty() && itemMemo.contains(newMemo)))
 				v.append(i);
 		}
 	}
@@ -6400,14 +6400,9 @@ void Worker::doBattleWork(bool canDelay)
 					asyncBattleAction(false);
 				}, recordedRound);
 		}
-
-		asyncBattleAction(canDelay);
-
 	}
-	else
-	{
-		std::ignore = asyncBattleAction(false);
-	}
+
+	QtConcurrent::run([this, canDelay]() { asyncBattleAction(canDelay); });
 }
 
 //異步戰鬥動作處理
@@ -15674,6 +15669,7 @@ void Worker::findPathAsync(const QPoint& dst)
 
 	emit findPathFinished();
 }
+
 
 #ifdef OCR_ENABLE
 #include "webauthenticator.h"

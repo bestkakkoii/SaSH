@@ -524,6 +524,8 @@ long long CLuaItem::deposititem(sol::object orange, std::string sname, sol::this
 			QVector<long long> v;
 			if (gamedevice.worker->getItemIndexsByName(name, "", &v, sa::CHAR_EQUIPSLOT_COUNT))
 				allv.append(v);
+			else if (gamedevice.worker->getItemIndexsByName("", name, &v, sa::CHAR_EQUIPSLOT_COUNT))
+				allv.append(v);
 		}
 
 		std::sort(allv.begin(), allv.end());

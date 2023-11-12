@@ -237,10 +237,14 @@ void SelectTargetForm::onCheckBoxStateChanged(long long state)
 
 	if (isChecked)
 	{
+		if (util::checkAND(selectflag_, tempFlg))
+			return;
 		selectflag_ |= tempFlg;
 	}
 	else
 	{
+		if (!util::checkAND(selectflag_, tempFlg))
+			return;
 		selectflag_ &= ~tempFlg;
 	}
 }

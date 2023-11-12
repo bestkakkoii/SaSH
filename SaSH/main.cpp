@@ -80,7 +80,6 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 				pinstance->log.close();
 		}
 
-		util::createConsole();
 		util::TextStream out(stderr);
 		out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
 		out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;
@@ -357,6 +356,10 @@ int main(int argc, char* argv[])
 
 	//////// 以下必須在 QApplication a(argc, argv); 之後設置否則會崩潰 ////////
 
+#ifndef _DEBUG
+	HWND hWnd = util::createConsole();
+	ShowWindow(hWnd, SW_HIDE);
+#endif
 
 	//調試相關設置
 	//qInstallMessageHandler(qtMessageHandler);

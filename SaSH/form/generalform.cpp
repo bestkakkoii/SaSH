@@ -514,6 +514,12 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			gamedevice.setValueHash(util::kAutoFunTypeValue, 0);
 		}
 
+		if (isChecked)
+		{
+			ui.checkBox_fastautowalk->setChecked(!isChecked);
+			ui.checkBox_autowalk->setChecked(!isChecked);
+		}
+
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return;
@@ -538,9 +544,21 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
-	if (name == "checkBox_passwall")
+	if (name == "checkBox_console")
 	{
-		gamedevice.setEnableHash(util::kPassWallEnable, isChecked);
+		HWND hWnd = util::getConsoleHandle();
+		if (hWnd != nullptr)
+		{
+			if (isChecked)
+			{
+				ShowWindow(hWnd, SW_HIDE);
+				ShowWindow(hWnd, SW_SHOW);
+			}
+			else
+				ShowWindow(hWnd, SW_HIDE);
+
+			return;
+		}
 		return;
 	}
 
@@ -630,6 +648,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		if (isChecked)
 		{
 			ui.checkBox_fastautowalk->setChecked(!isChecked);
+			ui.checkBox_autojoin->setChecked(!isChecked);
 		}
 		gamedevice.setEnableHash(util::kAutoWalkEnable, isChecked);
 		return;
@@ -640,6 +659,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		if (isChecked)
 		{
 			ui.checkBox_autowalk->setChecked(!isChecked);
+			ui.checkBox_autojoin->setChecked(!isChecked);
 		}
 		gamedevice.setEnableHash(util::kFastAutoWalkEnable, isChecked);
 		return;
@@ -1011,7 +1031,6 @@ void GeneralForm::onApplyHashSettingsToUI()
 
 	//support2
 	ui.checkBox_fastwalk->setChecked(enableHash.value(util::kFastWalkEnable));
-	ui.checkBox_passwall->setChecked(enableHash.value(util::kPassWallEnable));
 	ui.checkBox_lockmove->setChecked(enableHash.value(util::kLockMoveEnable));
 	ui.checkBox_lockimage->setChecked(enableHash.value(util::kLockImageEnable));
 	ui.checkBox_autodropmeat->setChecked(enableHash.value(util::kAutoDropMeatEnable));

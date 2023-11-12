@@ -26,37 +26,6 @@ template<typename T>
 inline static T CONVERT_GAMEVAR(ULONG_PTR offset) { return (T)((reinterpret_cast<ULONG_PTR>(g_hGameModule) + offset)); }
 
 #pragma region Debug
-#ifdef _DEBUG
-void createConsole()
-{
-	if (!AllocConsole())
-		return;
-
-	FILE* fDummy = nullptr;
-	freopen_s(&fDummy, "CONOUT$", "w", stdout);
-	freopen_s(&fDummy, "CONOUT$", "w", stderr);
-	freopen_s(&fDummy, "CONIN$", "r", stdin);
-	std::cout.clear();
-	std::clog.clear();
-	std::cerr.clear();
-	std::cin.clear();
-
-	// std::wcout, std::wclog, std::wcerr, std::wcin
-	HANDLE hConOut = CreateFile(TEXT("CONOUT$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	HANDLE hConIn = CreateFile(TEXT("CONIN$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hConOut == INVALID_HANDLE_VALUE || hConIn == INVALID_HANDLE_VALUE)
-		return;
-
-	SetStdHandle(STD_OUTPUT_HANDLE, hConOut);
-	SetStdHandle(STD_ERROR_HANDLE, hConOut);
-	SetStdHandle(STD_INPUT_HANDLE, hConIn);
-	std::wcout.clear();
-	std::wclog.clear();
-	std::wcerr.clear();
-	std::wcin.clear();
-}
-#endif
-
 #ifdef USE_MINIDUMP
 #include <DbgHelp.h>
 #include <assert.h>
@@ -346,13 +315,13 @@ int GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen)
 
 unsigned long GameService::New_inet_addr(const char* cp)
 {
-	std::cout << "inet_addr: " << std::string(cp) << std::endl;
+	std::cout << L"inet_addr: " << std::string(cp) << std::endl;
 	return pinet_addr(cp);
 }
 
 u_short GameService::New_ntohs(u_short netshort)
 {
-	std::cout << "ntohs: " << std::to_string(netshort) << std::endl;
+	std::wcout << L"ntohs: " << std::to_wstring(netshort) << std::endl;
 	return pntohs(netshort);
 }
 
@@ -519,6 +488,21 @@ void GameService::New_lssproto_TK_send(int fd, int x, int y, const char* message
 	//查找是否包含'//'
 	if (!msg.empty() && msg.find("//") != std::string::npos)
 	{
+		if (msg.find("//console"))
+		{
+			if (g_consoleHwnd == nullptr)
+				g_consoleHwnd = util::createConsole();
+			else
+			{
+				//is visible
+				if (IsWindowVisible(g_consoleHwnd))
+					ShowWindow(g_consoleHwnd, SW_HIDE);
+				else
+					ShowWindow(g_consoleHwnd, SW_SHOW);
+			}
+			return;
+		}
+
 		std::string str = "tk|";
 		str += std::to_string(x) + "|";
 		str += std::to_string(y) + "|";
@@ -1355,9 +1339,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case kInitialize:
 	{
-#ifdef _DEBUG
 		std::cout << "kInitialize" << std::endl;
-#endif
 		struct InitialData
 		{
 			long long parentHWnd = 0i64;
@@ -1370,9 +1352,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (nullptr == pData)
 			return 0L;
 
-#ifdef _DEBUG
-		std::cout << std::hex << "parentHWnd:0x" << pData->parentHWnd << " port:" << std::to_string(pData->port) << " type:" << std::to_string(pData->type) << std::endl;
-#endif
+		std::wcout << std::hex << L"parentHWnd:0x" << pData->parentHWnd << L" port:" << std::to_wstring(pData->port) << L" type:" << std::to_wstring(pData->type) << std::endl;
 
 		return g_GameService.initialize(pData->index,
 			reinterpret_cast<HWND>(pData->parentHWnd),
@@ -1381,13 +1361,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case kUninitialize:
 	{
-#ifdef _DEBUG
-		std::cout << "kUninitialize" << std::endl;
-#endif
+		std::wcout << L"kUninitialize" << std::endl;
 
 		return 	g_GameService.uninitialize();
-		//SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
-		//FreeLibraryAndExitThread(g_hDllModule, 0UL);
 	}
 	case kGetModule:
 	{
@@ -1522,6 +1498,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 
 		GetModuleFileNameW(nullptr, g_szGameModulePath, MAX_PATH);
 
+		GameService& g_GameService = GameService::getInstance();
+		g_GameService.g_consoleHwnd = util::createConsole();
+		if (g_GameService.g_consoleHwnd != nullptr)
+			ShowWindow(g_GameService.g_consoleHwnd, SW_HIDE);
+
 		g_hGameModule = GetModuleHandleW(nullptr);
 
 		g_MainThreadId = dwThreadId;
@@ -1540,9 +1521,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 		SetUnhandledExceptionFilter(MinidumpCallback);
 #endif
 
-#ifdef _DEBUG
-		//createConsole();
-#endif
 		DisableThreadLibraryCalls(hModule);
 	}
 	else if (DLL_PROCESS_DETACH == ul_reason_for_call)

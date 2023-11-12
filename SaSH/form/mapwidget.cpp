@@ -591,7 +591,7 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	if (missionThread_ == nullptr)
 		return;
 	missionThread_->appendArg(point);
-	emit missionThread_->started();
+	missionThread_->start();
 
 	ui.pushButton_findPath->setEnabled(false);
 }
@@ -796,7 +796,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 		return;
 
 	missionThread_->appendArg(point);
-	emit missionThread_->started();
+	missionThread_->start();
 
 	ui.pushButton_findPath->setEnabled(false);
 }
@@ -946,7 +946,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 			return;
 
 		missionThread_->appendArg(point);
-		emit missionThread_->started();
+		missionThread_->start();
 
 		ui.pushButton_findPath->setEnabled(false);
 		return;
@@ -1015,7 +1015,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		return;
 
 	missionThread_->appendArg(point);
-	emit missionThread_->started();
+	missionThread_->start();
 
 	ui.pushButton_findPath->setEnabled(false);
 }

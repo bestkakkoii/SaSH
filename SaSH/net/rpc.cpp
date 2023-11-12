@@ -265,15 +265,6 @@ void RPCServer::incomingConnection(qintptr socketDescriptor)
 		});
 
 	connect(clientSocket, &RPCSocket::readyRead, this, &RPCServer::onClientFirstReadyRead, Qt::QueuedConnection);
-
-	static bool first = true;
-	if (first)
-	{
-		first = false;
-#ifndef _DEBUG
-		util::createConsole();
-#endif
-	}
 }
 
 QSharedPointer<sol::state> RPCServer::getDevice(long long id)
@@ -299,7 +290,7 @@ QSharedPointer<sol::state> RPCServer::getDevice(long long id)
 
 		devices_.insert(id, device);
 		return device;
-	}
+}
 
 	return devices_.value(id);
 }

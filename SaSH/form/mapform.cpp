@@ -145,7 +145,7 @@ void MapForm::onButtonClicked()
 			return;
 
 		missionThread_->appendArg(point);
-		emit missionThread_->started();
+		missionThread_->start();
 
 		ui.pushButton_findpath_stop->setEnabled(true);
 		ui.pushButton_findpath_start->setEnabled(false);
@@ -261,7 +261,7 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 		return;
 
 	missionThread_->appendArg(point);
-	emit missionThread_->started();
+	missionThread_->start();
 
 	ui.pushButton_findpath_stop->setEnabled(true);
 	ui.pushButton_findpath_start->setEnabled(false);

@@ -591,6 +591,9 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 bool luatool::checkRange(sol::object o, long long& min, long long& max, QVector<long long>* pindexs)
 {
+	if (o == sol::lua_nil)
+		return true;
+
 	if (o.is<std::string>())
 	{
 		QString str = util::toQString(o.as<std::string>());
@@ -812,6 +815,8 @@ void CLua::open_utillibs(sol::state&)
 //luasystem.cpp
 void CLua::open_syslibs(sol::state& lua)
 {
+	lua.set_function("capture", &CLuaSystem::capture, &luaSystem_);
+
 	lua.set_function("setglobal", &CLuaSystem::setglobal, &luaSystem_);
 	lua.set_function("getglobal", &CLuaSystem::getglobal, &luaSystem_);
 	lua.set_function("clearglobal", &CLuaSystem::clearglobal, &luaSystem_);

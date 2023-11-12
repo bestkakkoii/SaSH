@@ -49,9 +49,8 @@ public:
 		WSADATA data;
 		if (WSAStartup(MAKEWORD(2, 2), &data) != 0)
 		{
-#ifdef _DEBUG
-			std::cout << "WSAStartup failed with error: " << WSAGetLastError() << std::endl;
-#endif
+			lastError_ = WSAGetLastError();
+			std::wcout << L"WSAStartup failed with error: " << getLastError() << std::endl;
 			return;
 		}
 	}
@@ -133,9 +132,7 @@ public:
 
 			if (nullptr == parendHwnd_)
 			{
-#ifdef _DEBUG
 				std::wcout << L"g_ParenthWnd is nullptr." << std::endl;
-#endif
 				break;
 			}
 
@@ -145,9 +142,7 @@ public:
 			if (Send(message) == FALSE)
 				break;
 
-#ifdef _DEBUG
 			std::wcout << L"Notified parent window OK" << std::endl;
-#endif
 			return TRUE;
 		} while (false);
 
@@ -250,6 +245,7 @@ public:
 			nullptr, lastError_, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&msg, 0, nullptr);
 
 		std::wstring result(msg);
+		std::wcerr << result << std::wstring(L"(") + std::to_wstring(lastError_) + std::wstring(L")") << std::endl;
 		LocalFree(msg);
 		return result;
 	}

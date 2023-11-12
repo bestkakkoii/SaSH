@@ -92,7 +92,7 @@
     <string>auto stack</string>
    </property>
   </widget>
-  <widget class="QCheckBox" name="checkBox_passwall">
+  <widget class="QCheckBox" name="checkBox_console">
    <property name="geometry">
     <rect>
      <x>220</x>
@@ -102,7 +102,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>pass wall</string>
+    <string>console</string>
    </property>
   </widget>
   <widget class="QCheckBox" name="checkBox_autodropmeat">

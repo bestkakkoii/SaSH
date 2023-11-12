@@ -165,6 +165,8 @@ public://g-var
 	int* g_world_status = nullptr;
 	int* g_game_status = nullptr;
 
+	HWND g_consoleHwnd = nullptr;
+
 private:
 	BOOL __fastcall sendToServer(const std::string& text);
 	BOOL __fastcall sendToServer(const char* buf, size_t len);
@@ -199,7 +201,6 @@ private:
 #else
 	std::unique_ptr<SyncClient> syncClient_ = nullptr;
 #endif
-
 };
 
 #endif //SADLL_H

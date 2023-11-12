@@ -805,19 +805,30 @@ long long MainObject::checkAndRunFunctions()
 	for (long long i = 0; i < MissionThread::kMaxAutoMission; ++i)
 	{
 		MissionThread* p = autoThreads_.value(i);
-		if (p == nullptr)
+		if (p != nullptr && !p->isFinished())
 		{
-			p = q_check_ptr(new MissionThread(currentIndex, i));
-			sash_assume(p != nullptr);
-			if (p == nullptr)
-				continue;
+			if (!p->isRunning())
+			{
+				p->start();
+			}
 
-			autoThreads_[i] = p;
 			continue;
 		}
 
 		if (p != nullptr)
-			emit p->started();
+		{
+			p->wait();
+			delete p;
+			p = nullptr;
+		}
+
+		p = q_check_ptr(new MissionThread(currentIndex, i));
+		sash_assume(p != nullptr);
+		if (p == nullptr)
+			continue;
+
+		autoThreads_[i] = p;
+		p->start();
 	}
 
 	//平時
@@ -1030,37 +1041,32 @@ void MainObject::checkEtcFlag()
 
 MissionThread::MissionThread(long long index, long long type, QObject* parent)
 	: Indexer(index)
+	, type_(type)
 {
 	std::ignore = parent;
 
 	switch (type)
 	{
 	case kAutoJoin:
-		connect(this, &MissionThread::started, this, &MissionThread::autoJoin, Qt::QueuedConnection);
+		connect(&thread_, &QThread::started, this, &MissionThread::autoJoin, Qt::QueuedConnection);
 		break;
 	case kAutoWalk:
-		connect(this, &MissionThread::started, this, &MissionThread::autoWalk, Qt::QueuedConnection);
+		connect(&thread_, &QThread::started, this, &MissionThread::autoWalk, Qt::QueuedConnection);
 		break;
 	case kAutoSortItem:
-		connect(this, &MissionThread::started, this, &MissionThread::autoSortItem, Qt::QueuedConnection);
+		connect(&thread_, &QThread::started, this, &MissionThread::autoSortItem, Qt::QueuedConnection);
 		break;
 	case kAutoRecordNPC:
-		connect(this, &MissionThread::started, this, &MissionThread::autoRecordNPC, Qt::QueuedConnection);
+		connect(&thread_, &QThread::started, this, &MissionThread::autoRecordNPC, Qt::QueuedConnection);
 		break;
 	case kAsyncFindPath:
-		connect(this, &MissionThread::started, this, &MissionThread::asyncFindPath, Qt::QueuedConnection);
+		connect(&thread_, &QThread::started, this, &MissionThread::asyncFindPath, Qt::QueuedConnection);
 		break;
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &MissionThread::requestMissionInterruption);
-
-	connect(&thread_, &QThread::finished, this, &MissionThread::reset, Qt::QueuedConnection);
-	connect(&thread_, &QThread::finished, &thread_, &QThread::quit, Qt::QueuedConnection);
-	connect(&thread_, &QThread::finished, this, &MissionThread::onFinished, Qt::QueuedConnection);
-
 	moveToThread(&thread_);
-	thread_.start();
 }
 
 MissionThread::~MissionThread()
@@ -1068,19 +1074,52 @@ MissionThread::~MissionThread()
 	qDebug() << "MissionThread::~MissionThread()";
 }
 
-void MissionThread::onFinished()
-{
-	qDebug() << "finished!";
-}
-
 void MissionThread::wait()
 {
 	if (thread_.isRunning())
 	{
 		requestMissionInterruption();
-		thread_.quit();
 		thread_.wait();
 	}
+}
+
+void MissionThread::start()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	switch (type_)
+	{
+	case kAutoJoin:
+	{
+		if (gamedevice.getEnableHash(util::kAutoWalkEnable) || gamedevice.getEnableHash(util::kFastAutoWalkEnable))
+			return;
+
+		if (!gamedevice.getEnableHash(util::kAutoJoinEnable))
+			return;
+
+		break;
+	}
+	case kAutoWalk:
+	{
+		if (!gamedevice.getEnableHash(util::kAutoWalkEnable) && !gamedevice.getEnableHash(util::kFastAutoWalkEnable))
+			return;
+
+		break;
+	}
+	case kAutoSortItem:
+	{
+		if (!gamedevice.getEnableHash(util::kAutoStackEnable))
+			return;
+
+		break;
+	}
+	case kAutoRecordNPC:
+		break;
+	case kAsyncFindPath:
+		break;
+	}
+
+	if (!thread_.isRunning())
+		thread_.start();
 }
 
 void MissionThread::autoJoin()
@@ -1107,24 +1146,24 @@ void MissionThread::autoJoin()
 	for (;;)
 	{
 		if (gamedevice.isGameInterruptionRequested())
-			return;
+			break;
 
 		//如果主線程關閉則自動退出
 		if (isMissionInterruptionRequested())
-			return;
+			break;
 
 		if (gamedevice.worker.isNull())
-			return;
+			break;
 
 		if (gamedevice.getEnableHash(util::kAutoWalkEnable) || gamedevice.getEnableHash(util::kFastAutoWalkEnable))
-			return;
+			break;
 
 		if (!gamedevice.getEnableHash(util::kAutoJoinEnable))
-			return;
+			break;
 
 		leader = gamedevice.getStringHash(util::kAutoFunNameString);
 		if (leader.isEmpty())
-			return;
+			break;
 
 		if (!gamedevice.worker->mapDevice.getMapDataByFloor(floor, &map))
 		{
@@ -1137,14 +1176,14 @@ void MissionThread::autoJoin()
 		{
 			//檢查隊長是否正確
 			if (util::checkAND(ch.status, sa::kCharacterStatus_IsLeader))
-				return;
+				break;
 
 			if (util::checkAND(ch.status, sa::kCharacterStatus_HasTeam))
 			{
 				QString name = gamedevice.worker->getTeam(0).name;
 				if ((!name.isEmpty() && leader == name)
 					|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
-					return;
+					break;
 
 				gamedevice.worker->setTeamState(false);
 				QThread::msleep(200);
@@ -1156,13 +1195,13 @@ void MissionThread::autoJoin()
 			break;
 
 		if (gamedevice.isGameInterruptionRequested())
-			return;
+			break;
 
 		if (gamedevice.worker.isNull())
-			return;
+			break;
 
 		if (isMissionInterruptionRequested())
-			return;
+			break;
 
 		//如果人物不在線上則自動退出
 		if (!gamedevice.worker->getOnlineFlag())
@@ -1209,7 +1248,7 @@ void MissionThread::autoJoin()
 		//計算最短離靠近目標人物的坐標和面相的方向
 		dir = gamedevice.worker->mapDevice.calcBestFollowPointByDstPoint(index, &astar, floor, current_point, unit.p, &newpoint, false, -1);
 		if (-1 == dir)
-			return;
+			break;
 
 		if (current_point == newpoint)
 		{
@@ -1223,7 +1262,7 @@ void MissionThread::autoJoin()
 		}
 
 		if (!gamedevice.worker->mapDevice.calcNewRoute(index, &astar, floor, current_point, newpoint, blockList, &path))
-			return;
+			break;
 
 		len = MAX_SINGLE_STEP;
 		size = static_cast<long long>(path.size()) - 1;
@@ -1245,6 +1284,8 @@ void MissionThread::autoJoin()
 
 		gamedevice.worker->move(path.at(len));
 	}
+
+	thread_.quit();
 }
 
 void MissionThread::autoWalk()
@@ -1257,14 +1298,14 @@ void MissionThread::autoWalk()
 	for (;;)
 	{
 		if (gamedevice.isGameInterruptionRequested())
-			return;
+			break;
 
 		if (gamedevice.worker.isNull())
-			return;
+			break;
 
 		//如果主線程關閉則自動退出
 		if (isMissionInterruptionRequested())
-			return;
+			break;
 
 		//取設置
 		bool enableAutoWalk = gamedevice.getEnableHash(util::kAutoWalkEnable);//走路遇敵開關
@@ -1272,7 +1313,7 @@ void MissionThread::autoWalk()
 		if (!enableAutoWalk && !enableFastAutoWalk)
 		{
 			current_pos = QPoint();
-			return;
+			break;
 		}
 		else if (current_pos.isNull())
 		{
@@ -1298,14 +1339,15 @@ void MissionThread::autoWalk()
 				for (long long i = 0; i < 5; ++i)
 				{
 					if (gamedevice.isGameInterruptionRequested())
-						return;
+						break;
 
 					if (gamedevice.worker.isNull())
-						return;
+						break;
 
 					//如果主線程關閉則自動退出
 					if (isMissionInterruptionRequested())
-						return;
+						break;
+
 					QThread::msleep(100);
 				}
 			}
@@ -1388,12 +1430,14 @@ void MissionThread::autoWalk()
 		}
 		QThread::msleep(walk_speed + 1);//避免太快無論如何都+15ms (太快並不會遇比較快)
 	}
+
+	thread_.quit();
 }
 
 void MissionThread::autoSortItem()
 {
 	long long i = 0;
-	constexpr long long duration = 30;
+	constexpr long long duration = 50;
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
 	for (;;)
@@ -1401,28 +1445,33 @@ void MissionThread::autoSortItem()
 		for (i = 0; i < duration; ++i)
 		{
 			if (gamedevice.isGameInterruptionRequested())
-				return;
+				break;
 
 			if (gamedevice.worker.isNull())
-				return;
+				break;
 
 			if (isMissionInterruptionRequested())
-				return;
+				break;
 
-			QThread::msleep(500);
+			if (!gamedevice.getEnableHash(util::kAutoStackEnable))
+				break;
+
+			QThread::msleep(100);
 		}
 
 		if (!gamedevice.getEnableHash(util::kAutoStackEnable))
-			return;
+			break;
 
 		if (gamedevice.isGameInterruptionRequested())
-			return;
+			break;
 
 		if (gamedevice.worker.isNull())
-			return;
+			break;
 
 		gamedevice.worker->sortItem();
 	}
+
+	thread_.quit();
 }
 
 void MissionThread::autoRecordNPC()
@@ -1431,28 +1480,28 @@ void MissionThread::autoRecordNPC()
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	for (;;)
 	{
-		for (long long i = 0; i < 5; ++i)
+		for (long long i = 0; i < 50; ++i)
 		{
-			QThread::msleep(1000);
+			QThread::msleep(100);
 
 			if (gamedevice.isGameInterruptionRequested())
-				return;
+				break;
 
 			if (gamedevice.worker.isNull())
-				return;
+				break;
 
 			if (isMissionInterruptionRequested())
-				return;
+				break;
 		}
 
 		if (gamedevice.isGameInterruptionRequested())
-			return;
+			break;
 
 		if (gamedevice.worker.isNull())
 			return;
 
 		if (isMissionInterruptionRequested())
-			return;
+			break;
 
 		if (!gamedevice.worker->getOnlineFlag())
 			continue;
@@ -1468,13 +1517,13 @@ void MissionThread::autoRecordNPC()
 		for (const sa::map_unit_t& unit : units)
 		{
 			if (gamedevice.isGameInterruptionRequested())
-				return;
+				break;
 
 			if (isMissionInterruptionRequested())
-				return;
+				break;
 
 			if (gamedevice.worker.isNull())
-				return;
+				break;
 
 			if (!gamedevice.worker->getOnlineFlag())
 				break;
@@ -1610,6 +1659,8 @@ void MissionThread::autoRecordNPC()
 			config.writeMapData(name, d);
 		}
 	}
+
+	thread_.quit();
 }
 
 void MissionThread::asyncFindPath()
@@ -1620,6 +1671,8 @@ void MissionThread::asyncFindPath()
 
 	QPoint dst = args_.value(0).toPoint();
 	gamedevice.worker->findPathAsync(dst);
+
+	thread_.quit();
 }
 
 #if 0
@@ -1775,7 +1828,7 @@ void MainObject::checkAutoLockSchedule()
 				PET pet = gamedevice.worker->getPet(i);
 				if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
 					gamedevice.worker->setPetState(i, kRest);
-			}
+}
 			return false;
 		};
 

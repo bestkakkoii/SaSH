@@ -278,6 +278,13 @@ sol::object CLuaSystem::getglobal(std::string sname, sol::this_state s)
 	}
 }
 
+long long CLuaSystem::capture(std::string sfilename, sol::this_state s)
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	return gamedevice.capture(util::toQString(sfilename));
+}
+
 long long CLuaSystem::sleep(long long t, sol::this_state s)
 {
 	if (t < 0)
@@ -2114,9 +2121,15 @@ long long CLuaSystem::set(std::string enumStr,
 				gamedevice.worker->doBattleWork(false);
 		}
 		else if (type == util::kAutoWalkEnable && ok)
+		{
 			gamedevice.setEnableHash(util::kFastAutoWalkEnable, !ok);
+			gamedevice.setEnableHash(util::kAutoJoinEnable, !ok);
+		}
 		else if (type == util::kFastAutoWalkEnable && ok)
+		{
 			gamedevice.setEnableHash(util::kAutoWalkEnable, !ok);
+			gamedevice.setEnableHash(util::kAutoJoinEnable, !ok);
+		}
 
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
@@ -2167,6 +2180,10 @@ long long CLuaSystem::set(std::string enumStr,
 		{
 			gamedevice.setStringHash(util::kAutoFunNameString, text);
 			gamedevice.setValueHash(util::kAutoFunTypeValue, 0);
+
+			gamedevice.setEnableHash(util::kAutoWalkEnable, false);
+			gamedevice.setEnableHash(util::kFastAutoWalkEnable, false);
+
 		}
 		else if (type == util::kLockAttackEnable && ok)
 			gamedevice.setStringHash(util::kLockAttackString, text);
