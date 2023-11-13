@@ -3978,12 +3978,12 @@ bool Worker::press(sa::ButtonType select, long long dialogid, long long unitid)
 			select = sa::kButtonNext;
 		else if (util::checkAND(dialog.buttontype, sa::kButtonPrevious))
 			select = sa::kButtonPrevious;
-		else if (util::checkAND(dialog.buttontype, sa::kButtonNo))
-			select = sa::kButtonNo;
 		else if (util::checkAND(dialog.buttontype, sa::kButtonYes))
 			select = sa::kButtonYes;
 		else if (util::checkAND(dialog.buttontype, sa::kButtonOk))
 			select = sa::kButtonOk;
+		else if (util::checkAND(dialog.buttontype, sa::kButtonNo))
+			select = sa::kButtonNo;
 		else if (util::checkAND(dialog.buttontype, sa::kButtonCancel))
 			select = sa::kButtonCancel;
 	}
@@ -7051,7 +7051,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				if (obj.pos < min || obj.pos > max)
 					continue;
 
-				if ((obj.maxHp > 0) && ((obj.hp == 0) || util::checkAND(obj.status, sa::BC_FLG_DEAD)))
+				if ((obj.level > 0) && (obj.maxHp > 0) && ((obj.hp == 0) || util::checkAND(obj.status, sa::BC_FLG_DEAD)))
 				{
 					*target = obj.pos;
 					return true;
@@ -7219,8 +7219,9 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				unsigned long long targetFlags = gamedevice.getValueHash(util::kBattleItemReviveTargetValue);
 				if (util::checkAND(targetFlags, kSelectPet))
 				{
-					if (bt.objects.value(battleCharCurrentPos.get() + 5).hp == 0
-						|| util::checkAND(bt.objects.value(battleCharCurrentPos.get() + 5).status, sa::BC_FLG_DEAD))
+					sa::battle_object_t obj = bt.objects.value(battleCharCurrentPos.get() + 5);
+					if (obj.maxHp > 0 && obj.level > 0 && (obj.hp == 0
+						|| util::checkAND(obj.status, sa::BC_FLG_DEAD)))
 					{
 						tempTarget = battleCharCurrentPos.get() + 5;
 						ok = true;
@@ -7231,10 +7232,27 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				{
 					if (util::checkAND(targetFlags, kSelectAllieAny) || util::checkAND(targetFlags, kSelectAllieAll))
 					{
-						if (bt.objects.value(battleCharCurrentPos.get() + 5).maxHp > 0 && checkDeadAllie(&tempTarget))
+						if (checkDeadAllie(&tempTarget))
 						{
 							ok = true;
 						}
+					}
+					else
+					{
+						for (long long i = sa::MAX_ENEMY - 1; i >= 10; --i)
+						{
+							sa::battle_object_t obj = bt.objects.value(i - 10);
+							if (util::checkAND(targetFlags, 1LL << i)
+								&& obj.level > 0 && obj.maxHp > 0 && (obj.hp == 0 || util::checkAND(obj.status, sa::BC_FLG_DEAD)))
+							{
+								tempTarget = i - 10;
+								ok = true;
+								break;
+							}
+						}
+
+						if (!ok)
+							break;
 					}
 				}
 
@@ -7698,8 +7716,9 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				unsigned long long targetFlags = gamedevice.getValueHash(util::kBattleMagicReviveTargetValue);
 				if (util::checkAND(targetFlags, kSelectPet) && bt.objects.value(battleCharCurrentPos.get() + 5).maxHp > 0)
 				{
-					if (bt.objects.value(battleCharCurrentPos.get() + 5).hp == 0
-						|| util::checkAND(bt.objects.value(battleCharCurrentPos.get() + 5).status, sa::BC_FLG_DEAD))
+					sa::battle_object_t obj = bt.objects.value(battleCharCurrentPos.get() + 5);
+					if (obj.maxHp > 0 && obj.level > 0 &&
+						(obj.hp == 0 || util::checkAND(obj.status, sa::BC_FLG_DEAD)))
 					{
 						tempTarget = battleCharCurrentPos.get() + 5;
 						ok = true;
@@ -7968,14 +7987,13 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 			do
 			{
 				sa::character_t pc = getCharacter();
-
-				if (bt.objects.value(battleCharCurrentPos.get() + 5).modelid > 0
-					|| !bt.objects.value(battleCharCurrentPos.get() + 5).name.isEmpty()
-					|| bt.objects.value(battleCharCurrentPos.get() + 5).level > 0
-					|| bt.objects.value(battleCharCurrentPos.get() + 5).maxHp > 0)
-					break;
-
 				sa::battle_object_t obj = bt.objects.value(battleCharCurrentPos.get() + 5);
+
+				if (obj.modelid > 0
+					|| !obj.name.isEmpty()
+					|| obj.level > 0
+					|| obj.maxHp > 0)
+					break;
 
 				long long petIndex = -1;
 				for (long long i = 0; i < sa::MAX_PET; ++i)
@@ -10684,7 +10702,7 @@ void Worker::lssproto_AB_recv(char* cdata)
 		}
 #endif
 	}
-}
+	}
 
 //名片數據
 void Worker::lssproto_ABI_recv(long long num, char* cdata)
@@ -13278,7 +13296,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+			}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13546,8 +13564,8 @@ void Worker::lssproto_C_recv(char* cdata)
 		}
 #endif
 #pragma endregion
+		}
 	}
-}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Worker::lssproto_CA_recv(char* cdata)
@@ -14319,7 +14337,7 @@ void Worker::lssproto_S_recv(char* cdata)
 					}
 #endif
 				}
-			}
+				}
 
 
 			pet.power = (((static_cast<double>(pet.atk + pet.def + pet.agi) + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0);
@@ -14327,7 +14345,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-		}
+			}
 
 		sa::character_t pc = getCharacter();
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < sa::MAX_PET)
@@ -14385,7 +14403,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 		gamedevice.setUserData(util::kUserPetNames, petNames);
-	}
+		}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -14946,7 +14964,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-}
+	}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)

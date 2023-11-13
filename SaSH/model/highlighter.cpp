@@ -21,8 +21,98 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 constexpr long long NewlineArrow = 32;
 
-Highlighter::Highlighter(QObject* parent)
+constexpr const char* g_sash_keywords[9] = {
+	"",
+	/*pink*/
+	"call pause exit label jmp back continue "
+
+	/*lua original*/
+	"function end goto break for while if repeat until do in then else elseif return ",
+
+	/*yellow*/
+	"dlg rnd setglobal getglobal clearglobal capture "
+	"print printf sleep timer msg logout logback eo button say input menu "
+	"talk cls set saveset loadset "
+	"chpet chname chpetname chmap "
+	"usemagic doffpet buy sell useitem doffitem swapitem pickup putitem "
+	"getitem putpet getpet make cook uequip requip "
+	"wequip pequip puequip skup join leave kick move "
+	"walkpos w dir findpath findnpc lclick rclick ldbclick dragto warp "
+	"learn trade run dostr sellpet mail reg "
+	"regex rex rexg trim upper lower half toint tostr todb replace find full "
+	"bh bj bp bs be bd bi bn bw bwn bwait bend "
+	"dofile createch delch doffstone send format "
+	"tsort trsort split mktable trotate tunique tshuffle tsleft tsright tmerge tjoin "
+	"tswap tadd tpadd tpopback tpopfront tfront tback mkpath findfiles contains openlog checkdaily "
+
+	"rungame closegame openwindow setlogin runex stoprunex dostrex loadsetex getgamestate "
+
+	"waitdlg waitsay waititem waitmap waitteam waitpet waitpos "
+
+	/* . */
+	"item:count item:indexof item:find "
+	"unit.find dialog.contains petskill.find skill.find magic.find "
+	"timer.get timer.gets timer.new timer.del timer.getstr "
+	"map.isxy map.isrect map.ismap chat.contains "
+
+	/*lua original*/
+	"assert collectgarbage dostring "
+	"coroutine.close coroutine.create coroutine.isyieldable coroutine.resume coroutine.running coroutine.status coroutine.wrap coroutine.yield "
+	"debug.debug debug.gethook debug.getinfo debug.getlocal debug.getmetatable debug.getregistry debug.getupvalue debug.getuservalue debug.setcstacklimit debug.sethook "
+	"debug.setlocal debug.setmetatable debug.setupvalue debug.setuservalue debug.traceback debug.upvalueid debug.upvaluejoin "
+	"dofile error "
+	"file:close file:flush file:lines file:read file:seek file:setvbuf file:write "
+	"getmetatable io.close io.flush io.input io.lines io.open io.output io.popen io.read io.tmpfile io.type io.write "
+	"ipairs load loadfile "
+	"math.abs math.acos math.asin math.atan math.ceil math.cos math.deg math.exp math.floor math.fmod math.log "
+	"math.max math.min math.modf math.rad math.random math.randomseed math.sin math.sqrt math.tan math.tointeger math.type math.ult "
+	"next "
+	"os.clock os.date os.difftime os.execute os.exit os.getenv os.remove os.rename os.setlocale os.time os.tmpname "
+	"package.loadlib package.searchpath "
+	"pairs pcall print rawequal rawget rawlen rawset require select setmetatable "
+	"string.byte string.char string.dump string.find string.format string.gmatch string.gsub string.len string.lower "
+	"string.match string.pack string.packsize string.rep string.reverse string.sub string.unpack string.upper "
+	"table.concat table.insert table.move table.pack table.remove table.sort table.unpack "
+	"tonumber tostring type "
+	"utf8.char utf8.codepoint utf8.codes utf8.len utf8.offset warn xpcall ",
+	/*light green*/
+	"string table "
+	"TARGET ",
+	/*blue green*/
+	"TARGET.SELF TARGET.PET TARGET.ALLIE_ANY TARGET.ALLIE_ALL TARGET.ENEMY_ANY "
+	"TARGET.ENEMY_ALL TARGET.ENEMY_FRONT TARGET.ENEMY_BACK TARGET.LEADER TARGET.LEADER_PET "
+	"TARGET.TEAM TARGET.TEAM1_PET TARGET.TEAM2 TARGET.TEAM2_PET TARGET.TEAM3 "
+	"TARGET.TEAM3_PET TARGET.TEAM4 TARGET.TEAM4_PET ",
+	/*dark blue*/
+	"local true false any "
+	"int double bool not and or nil ",
+	/*light blue*/
+	"pet magic skill petskill equip petequip map dialog chat point battle char mails "
+	/*lua original*/
+	"math os file debug coroutine utf8 package io ",
+	/*dark orange*/
+	"ifdef els elif endif ifndef define undef pragma err lua endlua ",
+	/*purple*/
+	"vret"
+	"LINE FILE FUNCTION ROWCOUNT "
+	"PID HWND GAMEPID GAMEHWND GAMEHANDLE THREADID GAME WORLD INDEX "
+	"INFINITE MAXPET MAXITEM MAXCHAR MAXSKILL MAXPETSKILL MAXEQUIP MAXCHAT MAXDLG MAXENEMY MAXCARD MAXDIR MAXMAGIC "
+	"CURRENTDIR CURRENTSCRIPTDIR SETTINGDIR SCRIPTDIR "
+	"isonline isbattle isnormal isdialog item.space item.isfull pet.count team.count "
+	"map.name map.floor map.ground map.x map.y unit.count dialog.buttontext dialog.id dialog.unitid dialog.type dialog.button "
+	"battle.field battle.round "
+	"char.hash char.name char.fname char.modelid char.faceid char.lv char.hp char.maxhp char.hpp char.mp char.maxmp char.mpp char.exp "
+	"char.maxexp char.stone char.point char.vit char.str char.tgh char.dex char.atk char.def char.agi char.chasma char.turn "
+	"char.earth char.water char.fire char.wind char.battlepet char.ridepet char.mailpet"
+	/*lua original*/
+	"_G _VERSION "
+	"utf8.charpattern package.path package.preload package.searchers package.config package.cpath package.loaded math.huge math.maxinteger math.mininteger math.pi "
+
+};
+
+Highlighter::Highlighter(const QHash<long long, QByteArray>& keywords, QObject* parent)
 	: QsciLexerLua(parent)
+	, keywords_(keywords)
 {
 	font_ = util::getFont();
 	font_.setFamily("YaHei Consolas Hybrid");
@@ -33,118 +123,37 @@ const char* Highlighter::keywords(int set) const
 {
 	switch (set)
 	{
-	case 1://粉色
+	case kPink://粉色
 	{
-		return
-			"call pause exit label jmp back continue "
-
-			/*lua original*/
-			"function end goto break for while if repeat until do in then else elseif return "
-			;
+		return !keywords_.value(set).isEmpty() ? keywords_[set].constData() : g_sash_keywords[set];
 	}
-	case 2://QsciLexerLua::BasicFunctions//黃色
+	case kYellow://QsciLexerLua::BasicFunctions//黃色
 	{
-		return
-			"dlg rnd setglobal getglobal clearglobal capture "
-			"print printf sleep timer msg logout logback eo button say input menu "
-			"talk cls set saveset loadset "
-			"chpet chname chpetname chmap "
-			"usemagic doffpet buy sell useitem doffitem swapitem pickup putitem "
-			"getitem putpet getpet make cook uequip requip "
-			"wequip pequip puequip skup join leave kick move "
-			"walkpos w dir findpath findnpc lclick rclick ldbclick dragto warp "
-			"learn trade run dostr sellpet mail reg "
-			"regex rex rexg trim upper lower half toint tostr todb replace find full "
-			"bh bj bp bs be bd bi bn bw bwn bwait bend "
-			"dofile createch delch doffstone send format "
-			"tsort trsort split mktable trotate tunique tshuffle tsleft tsright tmerge tjoin "
-			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath findfiles contains openlog checkdaily "
-
-			"rungame closegame openwindow setlogin runex stoprunex dostrex loadsetex getgamestate "
-
-			"waitdlg waitsay waititem waitmap waitteam waitpet waitpos "
-
-			/* . */
-			"item:count item:indexof item:find "
-			"unit.find dialog.contains petskill.find skill.find magic.find "
-			"timer.get timer.gets timer.new timer.del timer.getstr "
-			"map.isxy map.isrect map.ismap chat.contains "
-
-			/*lua original*/
-			"assert collectgarbage dostring "
-			"coroutine.close coroutine.create coroutine.isyieldable coroutine.resume coroutine.running coroutine.status coroutine.wrap coroutine.yield "
-			"debug.debug debug.gethook debug.getinfo debug.getlocal debug.getmetatable debug.getregistry debug.getupvalue debug.getuservalue debug.setcstacklimit debug.sethook "
-			"debug.setlocal debug.setmetatable debug.setupvalue debug.setuservalue debug.traceback debug.upvalueid debug.upvaluejoin "
-			"dofile error "
-			"file:close file:flush file:lines file:read file:seek file:setvbuf file:write "
-			"getmetatable io.close io.flush io.input io.lines io.open io.output io.popen io.read io.tmpfile io.type io.write "
-			"ipairs load loadfile "
-			"math.abs math.acos math.asin math.atan math.ceil math.cos math.deg math.exp math.floor math.fmod math.log "
-			"math.max math.min math.modf math.rad math.random math.randomseed math.sin math.sqrt math.tan math.tointeger math.type math.ult "
-			"next "
-			"os.clock os.date os.difftime os.execute os.exit os.getenv os.remove os.rename os.setlocale os.time os.tmpname "
-			"package.loadlib package.searchpath "
-			"pairs pcall print rawequal rawget rawlen rawset require select setmetatable "
-			"string.byte string.char string.dump string.find string.format string.gmatch string.gsub string.len string.lower "
-			"string.match string.pack string.packsize string.rep string.reverse string.sub string.unpack string.upper "
-			"table.concat table.insert table.move table.pack table.remove table.sort table.unpack "
-			"tonumber tostring type "
-			"utf8.char utf8.codepoint utf8.codes utf8.len utf8.offset warn xpcall "
-			;
+		return !keywords_.value(set).isEmpty() ? keywords_[set].constData() : g_sash_keywords[set];
 	}
-	case 3://QsciLexerLua::StringTableMathsFunction//草綠
+	case kLightGreen://QsciLexerLua::StringTableMathsFunction//草綠
 	{
-		return
-			"string table "
-			"TARGET "
-			;
+		return !keywords_.value(set).isEmpty() ? keywords_[set].constData() : g_sash_keywords[set];
 	}
-	case 4://QsciLexerLua::CoroutinesIOSystemFacilities//青綠
+	case kBlueGreen://QsciLexerLua::CoroutinesIOSystemFacilities//青綠
 	{
-		return
-			"TARGET.SELF TARGET.PET TARGET.ALLIE_ANY TARGET.ALLIE_ALL TARGET.ENEMY_ANY "
-			"TARGET.ENEMY_ALL TARGET.ENEMY_FRONT TARGET.ENEMY_BACK TARGET.LEADER TARGET.LEADER_PET "
-			"TARGET.TEAM TARGET.TEAM1_PET TARGET.TEAM2 TARGET.TEAM2_PET TARGET.TEAM3 "
-			"TARGET.TEAM3_PET TARGET.TEAM4 TARGET.TEAM4_PET "
-			;
+		return !keywords_.value(set).isEmpty() ? keywords_[set].constData() : g_sash_keywords[set];
 	}
-	case 5://KeywordSet5//深藍色
+	case kDarkBlue://KeywordSet5//深藍色
 	{
-		return "local true false any "
-			"int double bool not and or nil "
-			;
+		return !keywords_.value(set).isEmpty() ? keywords_[set].constData() : g_sash_keywords[set];
 	}
-	case 6://KeywordSet6//淺藍色
+	case kLightBlue://KeywordSet6//淺藍色
 	{
-		return
-			"pet magic skill petskill equip petequip map dialog chat point battle char mails "
-			/*lua original*/
-			"math os file debug coroutine utf8 package io "
-			;
+		return !keywords_.value(set).isEmpty() ? keywords_[set].constData() : g_sash_keywords[set];
 	}
-	case 7://KeywordSet7//土橘色
+	case kDarkOrange://KeywordSet7//土橘色
 	{
-		return
-			"ifdef els elif endif ifndef define undef pragma err lua endlua "
-			;
+		return !keywords_.value(set).isEmpty() ? keywords_[set].constData() : g_sash_keywords[set];
 	}
-	case 8://KeywordSet8//紫色
+	case kPurple://KeywordSet8//紫色
 	{
-		return "vret"
-			"LINE FILE FUNCTION ROWCOUNT "
-			"PID HWND GAMEPID GAMEHWND GAMEHANDLE THREADID GAME WORLD INDEX "
-			"INFINITE MAXPET MAXITEM MAXCHAR MAXSKILL MAXPETSKILL MAXEQUIP MAXCHAT MAXDLG MAXENEMY MAXCARD MAXDIR MAXMAGIC "
-			"CURRENTDIR CURRENTSCRIPTDIR SETTINGDIR SCRIPTDIR "
-			"isonline isbattle isnormal isdialog item.space item.isfull pet.count team.count "
-			"map.name map.floor map.ground map.x map.y unit.count dialog.buttontext dialog.id dialog.unitid dialog.type dialog.button "
-			"battle.field battle.round "
-			"char.hash char.name char.fname char.modelid char.faceid char.lv char.hp char.maxhp char.hpp char.mp char.maxmp char.mpp char.exp "
-			"char.maxexp char.stone char.point char.vit char.str char.tgh char.dex char.atk char.def char.agi char.chasma char.turn "
-			"char.earth char.water char.fire char.wind char.battlepet char.ridepet char.mailpet"
-			/*lua original*/
-			"_G _VERSION "
-			"utf8.charpattern package.path package.preload package.searchers package.config package.cpath package.loaded math.huge math.maxinteger math.mininteger math.pi "
-			;
+		return !keywords_.value(set).isEmpty() ? keywords_[set].constData() : g_sash_keywords[set];
 	}
 	case 9:
 		return "";

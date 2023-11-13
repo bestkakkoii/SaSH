@@ -1930,7 +1930,20 @@ void MainForm::onAppendScriptLog(const QString& text, long long color)
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	gamedevice.scriptLogModel.append(text, color);
+	QString newText = text;
+	newText.replace("\\r\\n", "\n");
+	newText.replace("\\n", "\n");
+	newText.replace("\\t", "\t");
+	newText.replace("\\v", "\v");
+	newText.replace("\\b", "\b");
+	newText.replace("\\f", "\f");
+	newText.replace("\\a", "\a");
+
+	QStringList list = text.split("\n", Qt::SkipEmptyParts);
+	for (const auto& it : list)
+	{
+		gamedevice.scriptLogModel.append(it, color);
+	}
 	emit gamedevice.scriptLogModel.dataAppended();
 }
 

@@ -7,7 +7,6 @@
 *.lai
 *.so
 *.so.*
-*.dll
 *.dylib
 
 # Qt-es
@@ -31,6 +30,10 @@ Makefile*
 *build-*
 *.qm
 *.prl
+
+# Temp
+*.tmp
+*.TMP
 
 # Qt unit tests
 target_wrapper.*

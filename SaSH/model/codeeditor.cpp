@@ -27,11 +27,13 @@
 CodeEditor::CodeEditor(QWidget* parent)
 	: QsciScintilla(parent)
 	, Indexer(-1)
-	, textLexer(this)
-	, apis(&textLexer)
 
 {
 	setAttribute(Qt::WA_StyledBackground);
+	SendScintilla(QsciScintilla::SCI_SETCODEPAGE, QsciScintilla::SC_CP_UTF8);//設置編碼為UTF-8
+	setUtf8(true);//設置編碼為UTF-8
+	setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+
 	//install font
 	QFontDatabase::addApplicationFont("YaHei Consolas Hybrid 1.12.ttf");
 	font_ = util::getFont();
@@ -39,14 +41,86 @@ CodeEditor::CodeEditor(QWidget* parent)
 	font_.setPointSize(11);
 	setFont(font_);
 
-	textLexer.setDefaultFont(font_);
-	setLexer(&textLexer);
-	SendScintilla(QsciScintilla::SCI_SETCODEPAGE, QsciScintilla::SC_CP_UTF8);//設置編碼為UTF-8
-	setUtf8(true);//設置編碼為UTF-8
-	setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+	QStringList paths;
+	util::searchFiles(util::applicationDirPath(), "highlight", ".lua", &paths, false);
+	QHash<long long, QByteArray> keywords;
+	if (!paths.isEmpty())
+	{
+		sol::state lua;
+		lua.open_libraries(
+			sol::lib::base,
+			sol::lib::package,
+			sol::lib::os,
+			sol::lib::string,
+			sol::lib::math,
+			sol::lib::table,
+			sol::lib::debug,
+			sol::lib::utf8,
+			sol::lib::coroutine,
+			sol::lib::io
+		);
+
+		lua.safe_script_file(paths.front().toStdString());
+
+		do
+		{
+			sol::table table = lua["Keywords"];
+			if (!table.valid())
+				break;
+
+			static const QHash<QString, Highlighter::HighLightColor> colorkeys = {
+				{ "pink", Highlighter::kPink },
+				{ "yellow", Highlighter::kYellow },
+				{ "lightgreen", Highlighter::kLightGreen },
+				{ "bluegreen", Highlighter::kBlueGreen },
+				{ "darkblue", Highlighter::kDarkBlue },
+				{ "lightblue", Highlighter::kLightBlue },
+				{ "darkorange", Highlighter::kDarkOrange },
+				{ "purple", Highlighter::kPurple }
+			};
+
+			for (const std::pair< sol::object, sol::object>& it : table)
+			{
+				if (!it.first.is<std::string>() || !it.second.is<std::string>())
+					continue;
+
+				const std::string key = it.first.as<std::string>();
+				if (key.empty())
+					continue;
+
+				const QString qkey = util::toQString(key);
+
+				if (!colorkeys.contains(qkey))
+					continue;
+
+				const std::string value = it.second.as<std::string>();
+				if (value.empty())
+					continue;
+
+				QString qvalue = util::toQString(value);
+				qvalue.replace("\r\n", " ");
+				qvalue.replace("\r", " ");
+				qvalue.replace("\t", " ");
+				qvalue.replace("\f", " ");
+				qvalue.replace("\v", " ");
+				qvalue.replace("\n", " ");
+				qvalue = qvalue.simplified();
+
+				const Highlighter::HighLightColor color = colorkeys.value(qkey);
+
+				keywords.insert(color, qvalue.toUtf8());
+			}
+
+		} while (false);
+	}
+
+	textLexer_ = new Highlighter(keywords, this);
+	textLexer_->setDefaultFont(font_);
+	apis_ = new QsciAPIs(textLexer_);
+	setLexer(textLexer_);
 
 	//代碼提示autoCompletion
-	QStringList paths;
+	paths.clear();
 	util::searchFiles(util::applicationDirPath(), "completion_api", ".txt", &paths, false);
 
 	if (!paths.isEmpty())
@@ -57,9 +131,9 @@ CodeEditor::CodeEditor(QWidget* parent)
 			QStringList list = content.split("\n");
 			for (const auto& it : list)
 			{
-				apis.add(it.simplified());
+				apis_->add(it.simplified());
 			}
-			apis.prepare();
+			apis_->prepare();
 		}
 	}
 
@@ -538,7 +612,7 @@ void CodeEditor::jumpToLineDialog()
 	if (dialog == nullptr)
 		return;
 
-	isDialogOpened = true;
+	isDialogOpened_ = true;
 
 	//connect if accept then jump to line
 	connect(dialog, &JumpToLineDialog::accepted, [this, pline]()
@@ -548,18 +622,18 @@ void CodeEditor::jumpToLineDialog()
 			QString text = this->text(line - 1);
 			setSelection(line - 1, 0, line - 1, text.length());
 			ensureLineVisible(line - 1);
-			isDialogOpened = false;
+			isDialogOpened_ = false;
 			delete pline;
 		});
 
 	connect(dialog, &JumpToLineDialog::rejected, [this]()
 		{
-			isDialogOpened = false;
+			isDialogOpened_ = false;
 		});
 
 	connect(dialog, &JumpToLineDialog::close, [this]()
 		{
-			isDialogOpened = false;
+			isDialogOpened_ = false;
 		});
 
 	dialog->show();

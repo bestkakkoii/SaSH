@@ -610,6 +610,8 @@ long long Interpreter::run(long long currentIndex, long long currentline, const 
 		if (interpreter == nullptr)
 			return Parser::kError;
 
+		interpreter->parser_.setSubScript(true);
+
 		gamedevice.currentScriptFileName.set(fileName);
 
 		if (varShareMode == kShare)
@@ -652,6 +654,7 @@ long long Interpreter::run(long long currentIndex, long long currentline, const 
 				if (nullptr == interpreter)
 					return false;
 
+				interpreter->parser_.setSubScript(true);
 				interpreter->parser_.initialize(&parser_);
 				if (interpreter->doFile(beginLine, fileName, this, &parser_, true, asyncMode))
 					return true;

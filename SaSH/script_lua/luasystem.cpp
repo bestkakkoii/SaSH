@@ -278,6 +278,88 @@ sol::object CLuaSystem::getglobal(std::string sname, sol::this_state s)
 	}
 }
 
+sol::object CLuaSystem::require(std::string sname, sol::this_state s)
+{
+	sol::state_view lua(s);
+	QString name = util::toQString(sname);
+	QStringList paths;
+	util::searchFiles(util::applicationDirPath(), name, ".lua", &paths, false, true);
+	if (paths.isEmpty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("cannot find file '%1'").arg(name));
+		return sol::lua_nil;
+	}
+
+	QString path = paths.first();
+	if (path.isEmpty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("cannot find file '%1'").arg(name));
+		return sol::lua_nil;
+	}
+
+	sol::protected_function loadfile = lua["loadfile"];
+	if (!loadfile.valid())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("cannot find function 'loadfile'"));
+		return sol::lua_nil;
+	}
+
+	sol::protected_function_result result = loadfile(util::toConstData(path));
+	if (!result.valid())
+	{
+		try
+		{
+			sol::error err = result;
+			qDebug() << util::toQString(err.what());
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, err.what());
+		}
+		catch (...)
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("loadfile failed with exception"));
+		}
+		return sol::lua_nil;
+	}
+
+	sol::object	obj = result;
+
+	if (obj.is<sol::function>())
+	{
+		sol::protected_function moduleFunction = obj.as< sol::function>();
+		if (!moduleFunction.valid())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("loadfile('%1') result is not a valid function").arg(path));
+			return sol::lua_nil;
+		}
+
+		result = moduleFunction();
+	}
+	else
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("loadfile('%1') result is '#%2' but not a function").arg(path).arg(static_cast<long long>(obj.get_type())));
+		return sol::lua_nil;
+	}
+
+	if (!result.valid())
+	{
+		try
+		{
+			sol::error err = result;
+			qDebug() << util::toQString(err.what());
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, err.what());
+		}
+		catch (...)
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("result function failed with exception"));
+		}
+	}
+
+	obj = result;
+	if (obj.is<sol::table>())
+		return obj;
+	else
+		return sol::lua_nil;
+}
+
 long long CLuaSystem::capture(std::string sfilename, sol::this_state s)
 {
 	sol::state_view lua(s);

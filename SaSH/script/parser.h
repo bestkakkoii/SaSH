@@ -632,6 +632,8 @@ private:
 
 	bool luaBegin_ = false;									//lua代碼塊開始標記
 
+	bool stopByExit_ = false;								//是否因為exit命令而停止
+
 	//不輸出到列表也不做更動的全局變量名稱
 	QStringList g_lua_exception_var_list = {
 		"__THIS_CLUA", "__THIS_PARENT", "__HOOKFORSTOP", "__INDEX", "__HOOKFORSTOP",

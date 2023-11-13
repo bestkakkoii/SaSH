@@ -817,6 +817,10 @@ void CLua::open_syslibs(sol::state& lua)
 {
 	lua.set_function("capture", &CLuaSystem::capture, &luaSystem_);
 
+	lua.set_function("__require", &CLuaSystem::require, &luaSystem_);
+	lua.safe_script("require = __require;", sol::script_pass_on_error);
+
+
 	lua.set_function("setglobal", &CLuaSystem::setglobal, &luaSystem_);
 	lua.set_function("getglobal", &CLuaSystem::getglobal, &luaSystem_);
 	lua.set_function("clearglobal", &CLuaSystem::clearglobal, &luaSystem_);
@@ -1267,11 +1271,11 @@ void CLua::proc()
 		}
 
 		luadebug::logExport(s, tableStrs, 0);
-	} while (false);
+		} while (false);
 
-	emit finished();
+		emit finished();
 
-	long long currentIndex = getIndex();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.scriptFinished();
-}
+		long long currentIndex = getIndex();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+		emit signalDispatcher.scriptFinished();
+	}

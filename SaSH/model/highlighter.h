@@ -23,11 +23,25 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <Qsci/qscilexercpp.h>
 #include <QSettings>
 #include <string>
+#include <QHash>
 
 class Highlighter : public QsciLexerLua
 {
 public:
-	explicit Highlighter(QObject* parent = 0);
+	enum HighLightColor
+	{
+		kNone,
+		kPink,
+		kYellow,
+		kLightGreen,
+		kBlueGreen,
+		kDarkBlue,
+		kLightBlue,
+		kDarkOrange,
+		kPurple,
+	};
+
+	explicit Highlighter(const QHash<long long, QByteArray>& keywords, QObject* parent = 0);
 
 	virtual const char* keywords(int set) const override;
 
@@ -54,5 +68,6 @@ public:
 
 private:
 	QFont font_;
+	QHash<long long, QByteArray> keywords_;
 };
 #endif // HIGHLIGHTER_H

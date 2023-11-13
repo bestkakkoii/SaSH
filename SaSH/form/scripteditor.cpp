@@ -1182,11 +1182,11 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 				break;
 			}
 		}
-		str = QString("%1('%2', 5000, -1)").arg(str).arg(lineStr);
+		str = QString("if not %1('%2', 5000), -1").arg(str).arg(lineStr);
 	}
 	else if (str == "waitsay")
 	{
-		str = QString("%1('', 5000, -1)").arg(str);
+		str = QString("if not %1('', 5000), -1").arg(str);
 	}
 	else if (str == "learn")
 	{
@@ -1210,7 +1210,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	else if (str == "walkpos")
 	{
 		QPoint pos = gamedevice.worker->getPoint();
-		str = QString("%1(%2, %3, 5000)").arg(str).arg(pos.x()).arg(pos.y());
+		str = QString("if not %1(%2, %3, 5000), -1").arg(str).arg(pos.x()).arg(pos.y());
 	}
 	else if (str == "w")
 	{
@@ -1224,7 +1224,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	else if (str == "waitmap")
 	{
 		long long floor = gamedevice.worker->getFloor();
-		str = QString("%1(%2, 5000, +2)").arg(str).arg(floor);
+		str = QString("if not %1(%2, 5000), +2").arg(str).arg(floor);
 	}
 	else if (str == "sleep")
 	{

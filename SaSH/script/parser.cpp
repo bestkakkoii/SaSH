@@ -311,48 +311,7 @@ void Parser::initialize(Parser* pparent)
 	}
 
 #pragma region init
-	lua_.set_function("__require", [this](std::string sname, sol::this_state s)->sol::object
-		{
-			sol::state_view lua(s);
-			QString name = util::toQString(sname);
-			QStringList paths;
-			util::searchFiles(util::applicationDirPath(), name, ".lua", &paths, false, true);
-			if (paths.isEmpty())
-				return sol::lua_nil;
 
-			QString path = paths.first();
-			if (path.isEmpty())
-				return sol::lua_nil;
-
-			sol::protected_function loadfile = lua["loadfile"];
-			if (!loadfile.valid())
-				return sol::lua_nil;
-
-			sol::protected_function_result result = loadfile(path.toStdString());
-			if (!result.valid())
-			{
-				sol::error err = result;
-				qDebug() << err.what();
-				return sol::lua_nil;
-			}
-
-			sol::protected_function f = result;
-			if (!f.valid())
-				return sol::lua_nil;
-
-			result = f();
-
-			if (!result.valid())
-			{
-				sol::error err = result;
-				qDebug() << err.what();
-				return sol::lua_nil;
-			}
-
-			return result;
-		});
-
-	lua_.safe_script("require = __require;", sol::script_pass_on_error);
 
 	lua_.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->long long
 		{
@@ -1951,16 +1910,34 @@ void Parser::handleError(long long err, const QString& addition)
 	}
 	case kLuaError://lua錯誤
 	{
+		long long currentLine = getCurrentLine() + 1;
 		if (extMsg.contains("FLAG_DETECT_STOP"))
 		{
-			emit signalDispatcher.appendScriptLog(QObject::tr("[info]") + QObject::tr("@ %1 | detail:%2").arg(getCurrentLine() + 1).arg("stop by user"), 6);
+			emit signalDispatcher.appendScriptLog(QObject::tr("[info]") + QObject::tr("@ %1 | detail:%2").arg(currentLine).arg("stop by user"), 6);
 			return;
 		}
 		--counter_->validCommand;
 		++counter_->error;
 		QString cmd = currentLineTokens_.value(0).data.toString();
-		msg = QObject::tr("[lua]:%1").arg(cmd) + extMsg;
-		break;
+		constexpr long long kMaxLuaErrorLength = 128;
+		msg = cmd + extMsg;
+		if (msg.size() < kMaxLuaErrorLength)
+			emit signalDispatcher.appendScriptLog(QObject::tr("[error]") + QObject::tr("@ %1 | detail:%2").arg(currentLine).arg(msg), 6);
+		else
+		{
+			//split to multi line each kMaxLuaErrorLength char
+			QString left = msg;
+			while (left.size() > kMaxLuaErrorLength)
+			{
+				QString line = left.left(kMaxLuaErrorLength);
+				emit signalDispatcher.appendScriptLog(QObject::tr("[error]") + QObject::tr("@ %1 | detail:%2").arg(currentLine).arg(line), 6);
+				left = left.mid(kMaxLuaErrorLength);
+			}
+
+			if (!left.isEmpty())
+				emit signalDispatcher.appendScriptLog(QObject::tr("[error]") + QObject::tr("@ %1 | detail:%2").arg(currentLine).arg(left), 6);
+		}
+		return;
 	}
 	default:
 	{
@@ -2881,9 +2858,14 @@ bool Parser::jump(const QString& name, bool noStack)
 	}
 	else if (newName == "exit")
 	{
-		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-		gamedevice.stopScript();
-		return true;
+		if (!isSubScript())
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			gamedevice.stopScript();
+		}
+
+		stopByExit_ = true;
+		return false;
 	}
 
 	//從跳轉位調用函數
@@ -3917,12 +3899,20 @@ void Parser::processTokens()
 
 	for (;;)
 	{
+		//用戶中斷
 		if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 		{
 			break;
 		}
 
+		//到結尾
 		if (empty())
+		{
+			break;
+		}
+
+		//經由命令而停止
+		if (stopByExit_)
 		{
 			break;
 		}
@@ -3981,7 +3971,12 @@ void Parser::processTokens()
 		}
 		case TK_EXIT:
 		{
-			gamedevice.stopScript();
+			if (!isSubScript())
+			{
+				GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+				gamedevice.stopScript();
+			}
+			stopByExit_ = true;
 			break;
 		}
 		case TK_MULTIVAR:
@@ -4133,6 +4128,11 @@ void Parser::processTokens()
 		}
 
 		if (gamedevice.IS_SCRIPT_INTERRUPT.get())
+		{
+			break;
+		}
+
+		if (stopByExit_)
 		{
 			break;
 		}

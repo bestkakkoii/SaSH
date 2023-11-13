@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QPainter>
 #include <highlighter.h>
 #include <QDialog>
+#include <QHash>
 #include <indexer.h>
 #include "form/findandreplaceform.h"
 
@@ -64,7 +65,7 @@ public:
 	inline bool isStep(long long mode) const { return ((mode & S_STEPMARK) == S_STEPMARK); }
 
 	QFont getOldFont() { return QsciScintilla::font(); }
-	void setNewFont(const QFont& f) { font_ = f; setFont(f); textLexer.setDefaultFont(f); }
+	void setNewFont(const QFont& f) { font_ = f; setFont(f); textLexer_->setDefaultFont(f); }
 
 public slots:
 	void commentSwitch();
@@ -80,11 +81,11 @@ signals:
 	void findAllFinished(const QString& expr, const QVariant& varmap);
 
 private:
-	Highlighter textLexer;
-	QsciAPIs apis;
+	Highlighter* textLexer_ = nullptr;
+	QsciAPIs* apis_ = nullptr;
 	QFont font_;
-	QFont linefont;
-	bool isDialogOpened = false;
+	QFont linefont_;
+	bool isDialogOpened_ = false;
 
 	FindAndReplaceForm findAndReplaceForm_;
 
@@ -102,7 +103,7 @@ protected:
 
 	virtual void mousePressEvent(QMouseEvent* e) override
 	{
-		if (isDialogOpened)
+		if (isDialogOpened_)
 			emit closeJumpToLineDialog();
 
 		QsciScintilla::mousePressEvent(e);
