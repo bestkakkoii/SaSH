@@ -729,26 +729,26 @@ long long MainObject::inGameInitialize()
 	if (!gamedevice.worker->getBattleFlag())
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
 
-	QDateTime current = QDateTime::currentDateTime();
-	QDateTime due = current.addYears(99);
-	const QString dueStr(due.toString("yyyy-MM-dd hh:mm:ss"));
+	//QDateTime current = QDateTime::currentDateTime();
+	//QDateTime due = current.addYears(99);
+	//const QString dueStr(due.toString("yyyy-MM-dd hh:mm:ss"));
 	const QString url("https://www.lovesa.cc");
-	QString currentVerStr;
-	QString newestVerStr;
+	//QString currentVerStr;
+	//QString newestVerStr;
 
-	if (!Downloader::checkUpdate(&currentVerStr, &newestVerStr, nullptr))
-	{
-		newestVerStr = "nil";
-	}
+	//if (!Downloader::checkUpdate(&currentVerStr, &newestVerStr, nullptr))
+	//{
+	//	newestVerStr = "nil";
+	//}
 
 	//登入後的廣告公告
 	constexpr bool isbeta = true;
 	const QString version = QString("%1.%2.%3")
 		.arg(SASH_VERSION_MAJOR) \
 		.arg(SASH_VERSION_MINOR) \
-		.arg(newestVerStr);
+		.arg(0);
 	gamedevice.worker->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
-	gamedevice.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
+	gamedevice.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(0));
 	gamedevice.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
 	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 	gamedevice.worker->echo();
@@ -1865,9 +1865,9 @@ void MainObject::checkAutoLockSchedule()
 				PET pet = gamedevice.worker->getPet(i);
 				if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
 					gamedevice.worker->setPetState(i, kRest);
-}
+			}
 			return false;
-};
+		};
 
 	if (gamedevice.getEnableHash(util::kLockPetScheduleEnable) && !gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);

@@ -291,11 +291,9 @@ void Parser::initialize(Parser* pparent)
 	makeTable(lua_, "card", sa::MAX_ADDRESS_BOOK);
 	makeTable(lua_, "map");
 	makeTable(lua_, "team", sa::MAX_TEAM);
-	//makeTable(lua_, "item", sa::MAX_ITEM + 200);
 	makeTable(lua_, "pet", sa::MAX_PET);
 	makeTable(lua_, "char");
 	makeTable(lua_, "timer");
-	makeTable(lua_, "dialog", sa::MAX_DIALOG_LINE);
 	makeTable(lua_, "magic", sa::MAX_MAGIC);
 	makeTable(lua_, "skill", sa::MAX_PROFESSION_SKILL);
 	makeTable(lua_, "petskill", sa::MAX_PET, sa::MAX_PET_SKILL);
@@ -4348,56 +4346,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		lua_.set("INDEX", gamedevice.getIndex());
 	}
 
-
 	/////////////////////////////////////////////////////////////////////////////////////
 	if (gamedevice.worker.isNull())
 		return;
-
-	if (expr.contains("GAME"))
-	{
-		bret = true;
-		lua_.set("GAME", gamedevice.worker->getGameStatus());
-	}
-
-	if (expr.contains("WORLD"))
-	{
-		bret = true;
-		lua_.set("WORLD", gamedevice.worker->getWorldStatus());
-	}
-
-	if (expr.contains("isonline"))
-	{
-		lua_.set("isonline", gamedevice.worker->getOnlineFlag());
-	}
-
-	if (expr.contains("isbattle"))
-	{
-		lua_.set("isbattle", gamedevice.worker->getBattleFlag());
-	}
-
-	if (expr.contains("isnormal"))
-	{
-		lua_.set("isnormal", !gamedevice.worker->getBattleFlag());
-	}
-
-	if (expr.contains("isdialog"))
-	{
-		lua_.set("isdialog", gamedevice.worker->isDialogVisible());
-	}
-
-	if (expr.contains("gtime"))
-	{
-		static const QHash<long long, QString> hash = {
-			{ sa::kTimeNoon, QObject::tr("noon") },
-			{ sa::kTimeEvening, QObject::tr("evening") },
-			{ sa::kTimeNight , QObject::tr("night") },
-			{ sa::kTimeMorning, QObject::tr("morning") },
-		};
-
-		long long satime = gamedevice.worker->saCurrentGameTime.get();
-		QString timeStr = hash.value(satime, QObject::tr("unknown"));
-		lua_.set("gtime", util::toConstData(timeStr));
-	}
 
 	//char\.(\w+)
 	if (expr.contains("char"))
@@ -4962,71 +4913,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				battle[index]["ridehpp"] = obj.rideHpPercent;
 			}
 		}
-	}
-
-	//dialog\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
-	if (expr.contains("dialog") || expr.contains("dialog["))
-	{
-		QStringList dialogstrs = gamedevice.worker->currentDialog.get().linedatas;
-
-		sol::meta::unqualified_t<sol::table> dlg = lua_["dialog"];
-
-		long long size = dialogstrs.size();
-
-		bool visible = gamedevice.worker->isDialogVisible();
-
-		for (long long i = 0; i < sa::MAX_DIALOG_LINE; ++i)
-		{
-			QString text;
-			if (i >= size || !visible)
-				text = "";
-			else
-				text = dialogstrs.value(i);
-
-			long long index = i + 1;
-
-			if (visible)
-				dlg[index] = util::toConstData(text);
-			else
-				dlg[index] = "";
-		}
-
-		sa::dialog_t dialog = gamedevice.worker->currentDialog.get();
-		dlg["id"] = dialog.dialogid;
-		dlg["unitid"] = dialog.unitid;
-		dlg["type"] = dialog.windowtype;
-		dlg["buttontext"] = util::toConstData(dialog.linebuttontext.join("|"));
-		dlg["button"] = dialog.buttontype;
-		dlg["data"] = util::toConstData(dialog.data);
-
-		dlg["contains"] = [this, currentIndex](std::string str, sol::this_state s)->bool
-			{
-				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-				if (gamedevice.worker.isNull())
-					return false;
-
-				if (str.empty())
-					return false;
-
-				if (!gamedevice.worker->isDialogVisible())
-					return false;
-
-				QString text = util::toQString(str);
-				QStringList list = text.split(util::rexOR, Qt::SkipEmptyParts);
-				QStringList dialogstrs = gamedevice.worker->currentDialog.get().linedatas;
-				long long size = dialogstrs.size();
-				for (long long i = 0; i < size; ++i)
-				{
-					QString cmptext = dialogstrs.value(i);
-					for (const QString& it : list)
-					{
-						if (cmptext.contains(it))
-							return true;
-					}
-				}
-
-				return false;
-			};
 	}
 
 	//magic\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)

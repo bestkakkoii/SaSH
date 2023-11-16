@@ -1375,6 +1375,9 @@ namespace sa
 		QString data = "";
 		QStringList linedatas;
 		QStringList linebuttontext;
+		std::string getData() const { return util::toConstData(data); }
+		std::string getLineData(long long index) const { return util::toConstData(linedatas[index]); }
+		std::string getLineButtonText(long long index) const { return util::toConstData(linebuttontext[index]); }
 	}dialog_t;
 
 	typedef struct battle_object_s

@@ -731,25 +731,6 @@ void CLua::open_enumlibs()
 	在lua中的使用方法: TEST.EnumValue1
 	*/
 
-	//kSelectSelf = 0x1,            // 己 (Self)
-	//kSelectPet = 0x2,             // 寵 (Pet)
-	//kSelectAllieAny = 0x4,        // 我任 (Any ally)
-	//kSelectAllieAll = 0x8,        // 我全 (All allies)
-	//kSelectEnemyAny = 0x10,       // 敵任 (Any enemy)
-	//kSelectEnemyAll = 0x20,       // 敵全 (All enemies)
-	//kSelectEnemyFront = 0x40,     // 敵前 (Front enemy)
-	//kSelectEnemyBack = 0x80,      // 敵後 (Back enemy)
-	//kSelectLeader = 0x100,        // 隊 (Leader)
-	//kSelectLeaderPet = 0x200,     // 隊寵 (Leader's pet)
-	//kSelectTeammate1 = 0x400,     // 隊1 (Teammate 1)
-	//kSelectTeammate1Pet = 0x800,  // 隊1寵 (Teammate 1's pet)
-	//kSelectTeammate2 = 0x1000,    // 隊2 (Teammate 2)
-	//kSelectTeammate2Pet = 0x2000, // 隊2寵 (Teammate 2's pet)
-	//kSelectTeammate3 = 0x4000,    // 隊3 (Teammate 3)
-	//kSelectTeammate3Pet = 0x8000, // 隊3寵 (Teammate 3's pet)
-	//kSelectTeammate4 = 0x10000,   // 隊4 (Teammate 4)
-	//kSelectTeammate4Pet = 0x20000 // 隊4寵 (Teammate 4's pet)
-
 	lua_.new_enum <util::SelectTarget>("TARGET",
 		{
 			{ "SELF", util::kSelectSelf },
@@ -810,6 +791,79 @@ void CLua::open_testlibs()
 void CLua::open_utillibs(sol::state&)
 {
 
+}
+
+class CLuaDialog
+{
+public:
+	CLuaDialog(long long index) : index_(index) {}
+	~CLuaDialog() = default;
+
+	std::string operator[](long long index)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+
+		QStringList dialogstrs = gamedevice.worker->currentDialog.get().linedatas;
+
+		long long size = dialogstrs.size();
+
+		bool visible = gamedevice.worker->isDialogVisible();
+
+		QString text;
+		if (index >= size || !visible)
+			text = "";
+		else
+			text = dialogstrs.value(index);
+
+		if (visible)
+			return util::toConstData(text);
+		else
+			return "";
+	}
+
+	long long getWindowType() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().windowtype; }
+	long long getButtonType() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().buttontype; }
+	long long getDialogId() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().dialogid; }
+	long long getUnitId() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().unitid; }
+	std::string getData() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return util::toConstData(gamedevice.worker->currentDialog.get().data); }
+	std::string  getLineData(long long index) const { GameDevice& gamedevice = GameDevice::getInstance(index_); return util::toConstData(gamedevice.worker->currentDialog.get().linedatas.join("|")); }
+	std::string  getButtonText(long long index) const { GameDevice& gamedevice = GameDevice::getInstance(index_); return util::toConstData(gamedevice.worker->currentDialog.get().linebuttontext.join("|")); }
+
+	bool contains(std::string str, sol::this_state s);
+
+private:
+	long long index_ = 0;
+};
+
+
+bool CLuaDialog::contains(std::string str, sol::this_state s)
+{
+	sol::state_view lua(s.lua_state());
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
+		return false;
+
+	if (str.empty())
+		return false;
+
+	if (!gamedevice.worker->isDialogVisible())
+		return false;
+
+	QString text = util::toQString(str);
+	QStringList list = text.split(util::rexOR, Qt::SkipEmptyParts);
+	QStringList dialogstrs = gamedevice.worker->currentDialog.get().linedatas;
+	long long size = dialogstrs.size();
+	for (long long i = 0; i < size; ++i)
+	{
+		QString cmptext = dialogstrs.value(i);
+		for (const QString& it : list)
+		{
+			if (cmptext.contains(it))
+				return true;
+		}
+	}
+
+	return false;
 }
 
 //luasystem.cpp
@@ -903,6 +957,120 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("waitteam", &CLuaSystem::waitteam, &luaSystem_);
 	lua.set_function("waitdlg", &CLuaSystem::waitdlg, &luaSystem_);
 	lua.set_function("waitsay", &CLuaSystem::waitsay, &luaSystem_);
+
+	lua.set_function("WORLD", [](sol::this_state s) ->long long
+		{
+			sol::state_view lua(s);
+			GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+			if (gamedevice.worker.isNull())
+				return 0;
+
+			return gamedevice.worker->getWorldStatus();
+		});
+
+	lua.set_function("GAME", [](sol::this_state s) ->long long
+		{
+			sol::state_view lua(s);
+			GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+			if (gamedevice.worker.isNull())
+				return 0;
+
+			return gamedevice.worker->getGameStatus();
+		});
+
+	lua.set_function("isonline", [](sol::this_state s) ->bool
+		{
+			sol::state_view lua(s);
+			GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+			if (gamedevice.worker.isNull())
+				return false;
+
+			return gamedevice.worker->getOnlineFlag();
+		});
+
+	lua.set_function("isbattle", [](sol::this_state s) ->bool
+		{
+			sol::state_view lua(s);
+			GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+			if (gamedevice.worker.isNull())
+				return false;
+
+			return gamedevice.worker->getBattleFlag();
+		});
+
+	lua.set_function("isnormal", [](sol::this_state s) ->bool
+		{
+			sol::state_view lua(s);
+			GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+			if (gamedevice.worker.isNull())
+				return false;
+
+			return !gamedevice.worker->getBattleFlag();
+		});
+
+	lua.set_function("isdialog", [](sol::this_state s) ->bool
+		{
+			sol::state_view lua(s);
+			GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+			if (gamedevice.worker.isNull())
+				return false;
+
+			return gamedevice.worker->isDialogVisible();
+		});
+
+	lua.set_function("gettime", [](sol::this_state s) ->std::string
+		{
+			sol::state_view lua(s);
+			GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+			if (gamedevice.worker.isNull())
+				return "";
+
+			static const QHash<long long, QString> hash = {
+				{ sa::kTimeNoon, QObject::tr("noon") },
+				{ sa::kTimeEvening, QObject::tr("evening") },
+				{ sa::kTimeNight , QObject::tr("night") },
+				{ sa::kTimeMorning, QObject::tr("morning") },
+			};
+
+			long long satime = gamedevice.worker->saCurrentGameTime.get();
+			QString timeStr = hash.value(satime, QObject::tr("unknown"));
+			return util::toConstData(timeStr);
+		});
+
+	lua.set_function("isvalid", [](sol::this_state s) ->bool
+		{
+			sol::state_view lua(s);
+			GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+			return gamedevice.worker.isNull();
+		});
+
+	lua.new_usertype<sa::dialog_t>("DialogStruct",
+		"type", sol::readonly(&sa::dialog_t::windowtype),
+		"button", sol::readonly(&sa::dialog_t::buttontype),
+		"id", sol::readonly(&sa::dialog_t::dialogid),
+		"unitid", sol::readonly(&sa::dialog_t::unitid),
+		"data", sol::property(&sa::dialog_t::getData),
+		"buttontext", sol::property(&sa::dialog_t::getLineButtonText)
+	);
+
+	lua.new_usertype<CLuaDialog>("DialogClass",
+		sol::call_constructor,
+		sol::constructors<CLuaDialog(long long)>(),
+		sol::meta_function::index, &CLuaDialog::operator[],
+		"contains", &CLuaDialog::contains,
+		"type", sol::property(&CLuaDialog::getWindowType),
+		"button", sol::property(&CLuaDialog::getButtonType),
+		"id", sol::property(&CLuaDialog::getDialogId),
+		"unitid", sol::property(&CLuaDialog::getUnitId),
+		"data", sol::property(&CLuaDialog::getData),
+		"buttontext", sol::property(&CLuaDialog::getButtonText)
+	);
+
+
+	lua.safe_script("dialog = DialogClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
+
+
 }
 
 void CLua::open_itemlibs(sol::state& lua)
@@ -1271,11 +1439,11 @@ void CLua::proc()
 		}
 
 		luadebug::logExport(s, tableStrs, 0);
-		} while (false);
+	} while (false);
 
-		emit finished();
+	emit finished();
 
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.scriptFinished();
-	}
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.scriptFinished();
+}
