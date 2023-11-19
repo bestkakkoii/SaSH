@@ -1442,10 +1442,11 @@ void CLua::open_petlibs(sol::state& lua)
 		"blessquick", sol::readonly(&sa::pet_t::blessquick),
 		"blessdef", sol::readonly(&sa::pet_t::blessdef),
 		"changenameflag", sol::readonly(&sa::pet_t::changeNameFlag),
-		"name", sol::property(&sa::pet_t::getName),
-		"freename", sol::property(&sa::pet_t::getFreeName),
 		"power", sol::readonly(&sa::pet_t::power),
-		"growth", sol::readonly(&sa::pet_t::growth)
+		"growth", sol::readonly(&sa::pet_t::growth),
+		"name", sol::property(&sa::pet_t::getName),
+		"fname", sol::property(&sa::pet_t::getFreeName),
+		"hash", sol::property(&sa::pet_t::getHash)
 	);
 
 	lua.new_usertype<CLuaPet>("PetClass",
@@ -1455,7 +1456,7 @@ void CLua::open_petlibs(sol::state& lua)
 		"count", &CLuaPet::count
 	);
 
-	lua.safe_script("pet = PetClass();", sol::script_pass_on_error);
+	lua.safe_script("pet = PetClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
 }
 
@@ -1792,14 +1793,14 @@ void CLua::proc()
 				}
 				tableStrs << ">";
 			}
-		}
+	}
 
 		luadebug::logExport(s, tableStrs, 0);
-	} while (false);
+} while (false);
 
-	emit finished();
+emit finished();
 
-	long long currentIndex = getIndex();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.scriptFinished();
+long long currentIndex = getIndex();
+SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+emit signalDispatcher.scriptFinished();
 }
