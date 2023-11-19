@@ -53,7 +53,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
-    <EnableASAN>true</EnableASAN>
+    <EnableASAN>false</EnableASAN>
     <EnableFuzzer>false</EnableFuzzer>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -146,7 +146,7 @@
       </WholeProgramOptimization>
       <SupportJustMyCode>true</SupportJustMyCode>
       <StructMemberAlignment>Default</StructMemberAlignment>
-      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerOutput>NoListing</AssemblerOutput>
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
       <LanguageStandard_C>Default</LanguageStandard_C>
@@ -218,7 +218,7 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat</Command>
       </WholeProgramOptimization>
       <AdditionalOptions>/bigobj /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>true</SupportJustMyCode>
-      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
       <LanguageStandard_C>Default</LanguageStandard_C>
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>

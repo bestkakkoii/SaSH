@@ -1216,6 +1216,7 @@ public:
 
 	sa::profession_skill_t operator[](long long index)
 	{
+		--index;
 		GameDevice& gamedevice = GameDevice::getInstance(index_);
 		if (gamedevice.worker.isNull())
 			return sa::profession_skill_t();
@@ -1237,7 +1238,7 @@ public:
 		if (name.isEmpty())
 			return sa::profession_skill_t();
 
-		bool isExist = false;
+		bool isExist = true;
 		QString newName = name;
 		if (name.startsWith("?"))
 		{
@@ -1249,17 +1250,20 @@ public:
 
 		for (auto it = skill.begin(); it != skill.end(); ++it)
 		{
-			QString skillname = it.value().name;
-			QString memo = it.value().memo;
+			sa::profession_skill_t skill = it.value();
+			skill.index = it.key() + 1;
+
+			QString skillname = skill.name;
+			QString memo = skill.memo;
 			if (skillname.isEmpty())
 				continue;
 
 			if (isExist && skillname == newName)
-				return it.value();
+				return skill;
 			else if (!isExist && skillname.contains(newName))
-				return it.value();
+				return skill;
 			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
-				return it.value();
+				return skill;
 		}
 
 		return sa::profession_skill_t();
@@ -1380,6 +1384,7 @@ void CLua::open_charlibs(sol::state& lua)
 		"costmp", sol::readonly(&sa::profession_skill_t::costmp),
 		"lv", sol::readonly(&sa::profession_skill_t::skill_level),
 		"cooltime", sol::readonly(&sa::profession_skill_t::cooltime),
+		"index", sol::readonly(&sa::profession_skill_t::index),
 		"name", sol::property(&sa::profession_skill_t::getName),
 		"memo", sol::property(&sa::profession_skill_t::getMemo)
 	);

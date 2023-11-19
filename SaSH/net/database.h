@@ -1313,6 +1313,7 @@ namespace sa
 	typedef struct profession_skill_s
 	{
 		bool valid = false;
+		long long index = -1;
 		long long skillId = 0;
 		long long target = 0;
 		long long kind = 0;
