@@ -1168,7 +1168,20 @@ namespace sa
 		std::string getChatRoomNum() const { return util::toConstData(chatRoomNum); }
 		std::string getChusheng() const { return util::toConstData(chusheng); }
 		std::string getFamily() const { return util::toConstData(family); }
-
+		std::string getHash() const
+		{
+			QString preHash = QString("%1%2%3%4%5%6%7%8%9%10%11%12%13")
+				.arg(name).arg(modelid).arg(faceid).arg(dp).arg(transmigration)
+				.arg(level).arg(maxExp).arg(maxHp).arg(maxMp)
+				.arg(earth).arg(water).arg(fire).arg(wind);
+			QByteArray preHashArray = preHash.toUtf8();
+			//get md5 hash
+			QByteArray hashStr = QCryptographicHash::hash(preHashArray, QCryptographicHash::Sha3_512);
+			QByteArray hashStrHex = hashStr.toHex();
+			hashStrHex = hashStrHex.toUpper();
+			hashStrHex = hashStrHex.left(8);
+			return hashStrHex.constData();
+		}
 		//以下棄用
 		//ITEM item[MAX_ITEM] = {};
 		//ITEM itempool[MAX_ITEM] = {};
@@ -1211,12 +1224,37 @@ namespace sa
 		long long changeNameFlag = 0;
 		QString name = "";
 		QString freeName = "";
-
+		std::string getName() const { return util::toConstData(name); }
+		std::string getFreeName() const { return util::toConstData(freeName); }
+		std::string getState() const {
+			const QHash<QString, sa::PetState> hash = {
+				{ "battle", sa::kBattle },
+				{ "standby", sa::kStandby },
+				{ "mail",sa::kMail },
+				{ "rest",sa::kRest },
+				{ "ride",sa::kRide },
+			};
+			QString str = hash.key(state, "");
+			return util::toConstData(str);
+		}
+		std::string getHash() const
+		{
+			QString preHash = QString("%1%2%3%4%5%6%7%8%9%10%11%12%13%14%15")
+				.arg(name).arg(modelid).arg(maxSkill).arg(transmigration)
+				.arg(level).arg(maxExp).arg(maxHp).arg(maxMp)
+				.arg(atk).arg(def).arg(agi)
+				.arg(earth).arg(water).arg(fire).arg(wind);
+			QByteArray preHashArray = preHash.toUtf8();
+			//get md5 hash
+			QByteArray hashStr = QCryptographicHash::hash(preHashArray, QCryptographicHash::Sha3_512);
+			QByteArray hashStrHex = hashStr.toHex();
+			hashStrHex = hashStrHex.toUpper();
+			hashStrHex = hashStrHex.left(8);
+			return hashStrHex.constData();
+		}
 		//custom
-		qreal power = 0.0;
-		qreal growth = 0.0;
-
-		//ITEM item[MAX_PET_ITEM] = {};		// 寵物道具
+		double power = 0.0;
+		double growth = 0.0;
 	} pet_t;
 
 	typedef struct magic_s
@@ -1228,6 +1266,8 @@ namespace sa
 		long long deadTargetFlag = 0;
 		QString name = "";
 		QString memo = "";
+		std::string getName() const { return util::toConstData(name); }
+		std::string getMemo() const { return util::toConstData(memo); }
 	} magic_t;
 
 	typedef struct team_s
@@ -1240,7 +1280,7 @@ namespace sa
 		long long hpPercent = 0;
 		long long mp = 0;
 		QString name = "";
-		//ACTION* ptAct;
+		std::string getName() const { return util::toConstData(name); }
 	} team_t;
 
 	typedef struct address_bool_s
@@ -1252,9 +1292,9 @@ namespace sa
 		long long dp = 0;
 		long long modelid = 0;
 		QString name = "";
-		//顯示名片星球
-		QString planetname = "";
-
+		QString planetname = "";//顯示名片星球
+		std::string getName() const { return util::toConstData(name); }
+		std::string getPlanetName() const { return util::toConstData(planetname); }
 	} address_bool_t;
 
 	typedef struct pet_skill_s
@@ -1265,6 +1305,8 @@ namespace sa
 		long long target = 0;
 		QString name = "";
 		QString memo = "";
+		std::string getName() const { return util::toConstData(name); }
+		std::string getMemo() const { return util::toConstData(memo); }
 	} pet_skill_t;
 
 	//人物職業
@@ -1280,6 +1322,8 @@ namespace sa
 		long long cooltime = 0;
 		QString name = "";
 		QString memo = "";
+		std::string getName() const { return util::toConstData(name); }
+		std::string getMemo() const { return util::toConstData(memo); }
 	} profession_skill_t;
 
 	typedef struct char_list_data_s
@@ -1318,6 +1362,7 @@ namespace sa
 		long long id = 0;								// 任務編號
 		long long state = 0;							//0無 1進行中 2已完成
 		QString name = "";						// 任務說明
+		QString memo = "";						// 任務說明
 	}mission_data_t;
 
 	typedef struct show_item_s
@@ -1398,6 +1443,10 @@ namespace sa
 		QString rideName = 0;
 		QString name = "";
 		QString freeName = "";
+		std::string getName() const { return util::toConstData(name); }
+		std::string getFreeName() const { return util::toConstData(freeName); }
+		std::string getRideName() const { return util::toConstData(rideName); }
+		std::string getStatus() const;
 	} battle_object_t;
 
 	typedef struct battle_data_s
@@ -1436,6 +1485,11 @@ namespace sa
 		QString family = "";
 		QString petname = "";
 		QString item_name = "";
+		std::string getName() const { return util::toConstData(name); }
+		std::string getFreeName() const { return util::toConstData(freeName); }
+		std::string getFamily() const { return util::toConstData(family); }
+		std::string getPetName() const { return util::toConstData(petname); }
+		std::string getItemName() const { return util::toConstData(item_name); }
 	} map_unit_t;
 
 	typedef struct bank_pet_s

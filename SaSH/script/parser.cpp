@@ -285,17 +285,10 @@ void Parser::initialize(Parser* pparent)
 
 	sol::state& lua_ = pLua_->getLua();
 
-	makeTable(lua_, "battle", sa::MAX_ENEMY);
 	makeTable(lua_, "unit", 2000);
-	makeTable(lua_, "chat", sa::MAX_CHAT_HISTORY);
 	makeTable(lua_, "card", sa::MAX_ADDRESS_BOOK);
-	makeTable(lua_, "map");
 	makeTable(lua_, "team", sa::MAX_TEAM);
-	makeTable(lua_, "pet", sa::MAX_PET);
-	makeTable(lua_, "char");
-	makeTable(lua_, "timer");
 	makeTable(lua_, "magic", sa::MAX_MAGIC);
-	makeTable(lua_, "skill", sa::MAX_PROFESSION_SKILL);
 	makeTable(lua_, "petskill", sa::MAX_PET, sa::MAX_PET_SKILL);
 	makeTable(lua_, "petequip", sa::MAX_PET, sa::MAX_PET_ITEM);
 	makeTable(lua_, "point");
@@ -310,6 +303,66 @@ void Parser::initialize(Parser* pparent)
 
 #pragma region init
 
+	lua_.set("FILE", util::toConstData(getScriptFileName()));
+
+	if (!callStack_.isEmpty())
+		lua_.set("FUNCTION", util::toConstData(callStack_.top().name));
+	else
+		lua_.set("FUNCTION", sol::lua_nil);
+
+	QString path = getScriptFileName();
+	QFileInfo info = QFileInfo(path);
+	lua_.set("CURRENTSCRIPTDIR", util::toConstData(info.absolutePath()));
+
+	lua_.set("SCRIPTDIR", util::toConstData(QString("%1/script").arg(util::applicationDirPath())));
+
+	lua_.set("SETTINGDIR", util::toConstData(QString("%1/settings").arg(util::applicationDirPath())));
+
+	lua_.set("CURRENTDIR", util::toConstData(util::applicationDirPath()));
+
+	lua_.set("PID", static_cast<long long>(_getpid()));
+
+	lua_.set("THREADID", reinterpret_cast<long long>(QThread::currentThreadId()));
+
+	lua_.set("INFINITE", std::numeric_limits<long long>::max());
+
+	lua_.set("MAXTHREAD", SASH_MAX_THREAD);
+
+	lua_.set("MAXCHAR", sa::MAX_CHARACTER);
+
+	lua_.set("MAXDIR", sa::MAX_DIR);
+
+	lua_.set("MAXITEM", sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT);
+
+	lua_.set("MAXEQUIP", sa::CHAR_EQUIPSLOT_COUNT);
+
+	lua_.set("MAXCARD", sa::MAX_ADDRESS_BOOK);
+
+	lua_.set("MAXMAGIC", sa::MAX_MAGIC);
+
+	lua_.set("MAXSKILL", sa::MAX_PROFESSION_SKILL);
+
+	lua_.set("MAXPET", sa::MAX_PET);
+
+	lua_.set("MAXPETSKILL", sa::MAX_PET_SKILL);
+
+	lua_.set("MAXCHAT", sa::MAX_CHAT_HISTORY);
+
+	lua_.set("MAXDLG", sa::MAX_DIALOG_LINE);
+
+	lua_.set("MAXENEMY", sa::MAX_ENEMY);
+
+	GameDevice& gamedevice = GameDevice::getInstance(index);
+
+	lua_.set("HWND", reinterpret_cast<long long>(gamedevice.getParentWidget()));
+
+	lua_.set("GAMEPID", gamedevice.getProcessId());
+
+	lua_.set("GAMEPID", reinterpret_cast<long long>(gamedevice.getProcessWindow()));
+
+	lua_.set("GAMEHANDLE", reinterpret_cast<long long>(gamedevice.getProcess()));
+
+	lua_.set("INDEX", gamedevice.getIndex());
 
 	lua_.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->long long
 		{
@@ -639,81 +692,6 @@ void Parser::initialize(Parser* pparent)
 
 		}
 	);
-
-	sol::meta::unqualified_t<sol::table> timer = lua_["timer"];
-
-	timer["new"] = [this](sol::this_state s)->long long
-		{
-			std::unique_ptr<util::timer> timer(q_check_ptr(new util::timer()));
-			sash_assume(timer != nullptr);
-			if (nullptr == timer)
-				return 0;
-
-			unsigned long long id = 0;
-			for (;;)
-			{
-				id = util::rnd::get<long long>();
-				if (timerMap_.contains(id))
-					continue;
-
-				timerMap_.insert(id, std::move(timer));
-				break;
-			}
-
-			return id;
-		};
-
-	timer["get"] = [this](long long id, sol::this_state s)->long long
-		{
-			if (id == 0)
-				return 0;
-
-			util::timer* timer = timerMap_.value(id).get();
-			if (nullptr == timer)
-				return 0;
-
-			return timer->cost();
-		};
-
-	timer["gets"] = [this](long long id, sol::this_state s)->long long
-		{
-			if (id == 0)
-				return 0;
-
-			util::timer* timer = timerMap_.value(id).get();
-			if (nullptr == timer)
-				return 0;
-
-			return timer->cost() / 1000;
-		};
-
-	timer["getstr"] = [this](long long id, sol::this_state s)->std::string
-		{
-			if (id == 0)
-				return "";
-
-			util::timer* timer = timerMap_.value(id).get();
-			if (nullptr == timer)
-				return "";
-
-			long long time = timer->cost();
-			QString formated = util::formatMilliseconds(time);
-			return util::toConstData(formated);
-		};
-
-	timer["del"] = [this](long long id, sol::this_state s)->bool
-		{
-			if (id == 0)
-				return "";
-
-			if (timerMap_.contains(id))
-			{
-				timerMap_.remove(id);
-				return true;
-			}
-
-			return false;
-		};
 
 	lua_.set_function("input", [this, index](sol::object oargs, sol::this_state s)->sol::object
 		{
@@ -3086,8 +3064,6 @@ void Parser::processClean()
 	}
 
 	pLua_.reset();
-
-	timerMap_.clear();
 }
 
 //處理所有核心命令之外的所有命令
@@ -4252,64 +4228,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		lua_.set("THREADID", reinterpret_cast<long long>(QThread::currentThreadId()));
 	}
 
-	if (expr.contains("INFINITE"))
-	{
-		lua_.set("INFINITE", std::numeric_limits<long long>::max());
-	}
-	if (expr.contains("MAXTHREAD"))
-	{
-		lua_.set("MAXTHREAD", SASH_MAX_THREAD);
-	}
-	if (expr.contains("MAXCHAR"))
-	{
-		lua_.set("MAXCHAR", sa::MAX_CHARACTER);
-	}
-	if (expr.contains("MAXDIR"))
-	{
-		lua_.set("MAXDIR", sa::MAX_DIR);
-	}
-	if (expr.contains("MAXITEM"))
-	{
-		lua_.set("MAXITEM", sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT);
-	}
-	if (expr.contains("MAXEQUIP"))
-	{
-		lua_.set("MAXEQUIP", sa::CHAR_EQUIPSLOT_COUNT);
-	}
-	if (expr.contains("MAXCARD"))
-	{
-		lua_.set("MAXCARD", sa::MAX_ADDRESS_BOOK);
-	}
-	if (expr.contains("MAXMAGIC"))
-	{
-		lua_.set("MAXMAGIC", sa::MAX_MAGIC);
-	}
-	if (expr.contains("MAXSKILL"))
-	{
-		lua_.set("MAXSKILL", sa::MAX_PROFESSION_SKILL);
-	}
-	if (expr.contains("MAXPET"))
-	{
-		lua_.set("MAXPET", sa::MAX_PET);
-	}
-	if (expr.contains("MAXPETSKILL"))
-	{
-		lua_.set("MAXPETSKILL", sa::MAX_PET_SKILL);
-	}
-	if (expr.contains("MAXCHAT"))
-	{
-		lua_.set("MAXCHAT", sa::MAX_CHAT_HISTORY);
-	}
-	if (expr.contains("MAXDLG"))
-	{
-		lua_.set("MAXDLG", sa::MAX_DIALOG_LINE);
-	}
-
-	if (expr.contains("MAXENEMY"))
-	{
-		lua_.set("MAXENEMY", sa::MAX_ENEMY);
-	}
-
 	long long currentIndex = getIndex();
 	if (lua_["__INDEX"].valid() && lua_["__INDEX"].is<long long>())
 	{
@@ -4349,193 +4267,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	/////////////////////////////////////////////////////////////////////////////////////
 	if (gamedevice.worker.isNull())
 		return;
-
-	//char\.(\w+)
-	if (expr.contains("char"))
-	{
-		gamedevice.worker->updateDatasFromMemory();
-
-		sol::meta::unqualified_t<sol::table> ch = lua_["char"];
-
-		sa::character_t _pc = gamedevice.worker->getCharacter();
-
-		if (gamedevice.worker->getOnlineFlag())
-		{
-			QString preHash = QString("%1%2%3%4%5%6%7%8%9%10%11%12%13")
-				.arg(_pc.name).arg(_pc.modelid).arg(_pc.faceid).arg(_pc.dp).arg(_pc.transmigration)
-				.arg(_pc.level).arg(_pc.maxExp).arg(_pc.maxHp).arg(_pc.maxMp)
-				.arg(_pc.earth).arg(_pc.water).arg(_pc.fire).arg(_pc.wind);
-			QByteArray preHashArray = preHash.toUtf8();
-			//get md5 hash
-			QByteArray hashStr = QCryptographicHash::hash(preHashArray, QCryptographicHash::Sha3_512);
-			QByteArray hashStrHex = hashStr.toHex();
-			hashStrHex = hashStrHex.toUpper();
-			hashStrHex = hashStrHex.left(8);
-			ch["hash"] = hashStrHex.constData();
-		}
-		else
-		{
-			ch["hash"] = "";
-		}
-
-		ch["name"] = util::toConstData(_pc.name);
-
-		ch["fname"] = util::toConstData(_pc.freeName);
-
-		ch["lv"] = _pc.level;
-
-		ch["hp"] = _pc.hp;
-
-		ch["maxhp"] = _pc.maxHp;
-
-		ch["hpp"] = _pc.hpPercent;
-
-		ch["mp"] = _pc.mp;
-
-		ch["maxmp"] = _pc.maxMp;
-
-		ch["mpp"] = _pc.mpPercent;
-
-		ch["exp"] = _pc.exp;
-
-		ch["maxexp"] = _pc.maxExp;
-
-		ch["stone"] = _pc.gold;
-
-		ch["vit"] = _pc.vit;
-
-		ch["str"] = _pc.str;
-
-		ch["tgh"] = _pc.tgh;
-
-		ch["dex"] = _pc.dex;
-
-		ch["atk"] = _pc.atk;
-
-		ch["def"] = _pc.def;
-
-		ch["chasma"] = _pc.chasma;
-
-		ch["turn"] = _pc.transmigration;
-
-		ch["earth"] = _pc.earth;
-
-		ch["water"] = _pc.water;
-
-		ch["fire"] = _pc.fire;
-
-		ch["wind"] = _pc.wind;
-
-		ch["modelid"] = _pc.modelid;
-
-		ch["faceid"] = _pc.faceid;
-
-		ch["family"] = util::toConstData(_pc.family);
-
-		ch["battlepet"] = _pc.battlePetNo + 1;
-
-		ch["ridepet"] = _pc.ridePetNo + 1;
-
-		ch["mailpet"] = _pc.mailPetNo + 1;
-
-		ch["luck"] = _pc.luck;
-
-		ch["point"] = _pc.point;
-	}
-
-	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if (expr.contains("pet") || expr.contains("pet["))
-	{
-		gamedevice.worker->updateDatasFromMemory();
-
-		const QHash<QString, sa::PetState> hash = {
-			{ "battle", sa::kBattle },
-			{ "standby", sa::kStandby },
-			{ "mail",sa::kMail },
-			{ "rest",sa::kRest },
-			{ "ride",sa::kRide },
-		};
-
-		sol::meta::unqualified_t<sol::table> pet = lua_["pet"];
-
-		pet["count"] = gamedevice.worker->getPetSize();
-
-		QHash<long long, sa::pet_t> pets = gamedevice.worker->getPets();
-		for (long long i = 0; i < sa::MAX_PET; ++i)
-		{
-			sa::pet_t p = pets.value(i);
-			long long index = i + 1;
-
-			pet[index]["valid"] = p.valid;
-
-			if (gamedevice.worker->getOnlineFlag() && p.valid)
-			{
-				QString preHash = QString("%1%2%3%4%5%6%7%8%9%10%11%12%13%14%15")
-					.arg(p.name).arg(p.modelid).arg(p.maxSkill).arg(p.transmigration)
-					.arg(p.level).arg(p.maxExp).arg(p.maxHp).arg(p.maxMp)
-					.arg(p.atk).arg(p.def).arg(p.agi)
-					.arg(p.earth).arg(p.water).arg(p.fire).arg(p.wind);
-				QByteArray preHashArray = preHash.toUtf8();
-				//get md5 hash
-				QByteArray hashStr = QCryptographicHash::hash(preHashArray, QCryptographicHash::Sha3_512);
-				QByteArray hashStrHex = hashStr.toHex();
-				hashStrHex = hashStrHex.toUpper();
-				hashStrHex = hashStrHex.left(8);
-				pet[index]["hash"] = hashStrHex.constData();
-			}
-			else
-			{
-				pet[index]["hash"] = "";
-			}
-
-			pet[index]["name"] = util::toConstData(p.name);
-
-			pet[index]["fname"] = util::toConstData(p.freeName);
-
-			pet[index]["lv"] = p.level;
-
-			pet[index]["hp"] = p.hp;
-
-			pet[index]["maxhp"] = p.maxHp;
-
-			pet[index]["hpp"] = p.hpPercent;
-
-			pet[index]["exp"] = p.exp;
-
-			pet[index]["maxexp"] = p.maxExp;
-
-			pet[index]["atk"] = p.atk;
-
-			pet[index]["def"] = p.def;
-
-			pet[index]["agi"] = p.agi;
-
-			pet[index]["loyal"] = p.loyal;
-
-			pet[index]["turn"] = p.transmigration;
-
-			pet[index]["earth"] = p.earth;
-
-			pet[index]["water"] = p.water;
-
-			pet[index]["fire"] = p.fire;
-
-			pet[index]["wind"] = p.wind;
-
-			pet[index]["modelid"] = p.modelid;
-
-			pet[index]["pos"] = p.index;//寵物顯示的位置
-
-			pet[index]["index"] = index;//寵物實際的索引
-
-			sa::PetState state = p.state;
-			QString str = hash.key(state, "");
-			pet[index]["state"] = util::toConstData(str);
-
-			pet[index]["power"] = p.power;
-		}
-	}
-
 
 	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("team") || expr.contains("team["))
@@ -4580,84 +4311,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		}
 	}
 
-	//map\.(\w+)
-	if (expr.contains("map"))
-	{
-		sol::meta::unqualified_t<sol::table> map = lua_["map"];
-
-		map["name"] = util::toConstData(gamedevice.worker->getFloorName());
-
-		map["floor"] = gamedevice.worker->getFloor();
-
-		map["x"] = gamedevice.worker->getPoint().x();
-
-		map["y"] = gamedevice.worker->getPoint().y();
-
-		if (expr.contains("ground"))
-			map["ground"] = util::toConstData(gamedevice.worker->getGround());
-
-		map.set_function("isxy", [this, currentIndex](long long x, long long y, sol::this_state s)->bool
-			{
-				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-				if (gamedevice.worker.isNull())
-					return false;
-				QPoint pos = gamedevice.worker->getPoint();
-				return pos == QPoint(x, y);
-			});
-
-		map.set_function("isrect", [this, currentIndex](long long x1, long long y1, long long x2, long long y2, sol::this_state s)->bool
-			{
-				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-				if (gamedevice.worker.isNull())
-					return false;
-				QPoint pos = gamedevice.worker->getPoint();
-				return pos.x() >= x1 && pos.x() <= x2 && pos.y() >= y1 && pos.y() <= y2;
-
-			});
-
-		map.set_function("ismap", [this, currentIndex](sol::object omap, sol::this_state s)->bool
-			{
-				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-				if (gamedevice.worker.isNull())
-					return false;
-
-				if (omap.is<long long>())
-				{
-					return gamedevice.worker->getFloor() == omap.as<long long>();
-				}
-
-				QString mapNames = util::toQString(omap);
-				QStringList mapNameList = mapNames.split(util::rexOR, Qt::SkipEmptyParts);
-				bool ok = false;
-				bool isExact = true;
-				long long floor = 0;
-				QString newName;
-				for (const QString& it : mapNameList)
-				{
-					floor = it.toLongLong(&ok);
-					if (ok && gamedevice.worker->getFloor() == floor)
-						return true;
-
-					newName = it;
-					if (newName.startsWith(kFuzzyPrefix))
-					{
-						newName = newName.mid(1);
-						isExact = false;
-					}
-
-					if (newName.isEmpty())
-						continue;
-
-					if (isExact && gamedevice.worker->getFloorName() == newName)
-						return true;
-					else if (gamedevice.worker->getFloorName().contains(newName))
-						return true;
-				}
-
-				return false;
-			});
-	}
-
 	//card\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("card") || expr.contains("card["))
 	{
@@ -4682,47 +4335,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			card[index]["lv"] = addressBook.level;
 		}
-	}
-
-	//chat\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
-	if (expr.contains("chat") || expr.contains("chat["))
-	{
-		sol::meta::unqualified_t<sol::table> chat = lua_["chat"];
-
-		for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
-		{
-			QString text = gamedevice.worker->getChatHistory(i);
-			long long index = i + 1;
-
-			if (!text.isEmpty())
-				chat[index] = util::toConstData(text);
-			else
-				chat[index] = "";
-		}
-
-		chat["contains"] = [this, currentIndex](std::string str, sol::this_state s)->bool
-			{
-				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-				if (gamedevice.worker.isNull())
-					return false;
-
-				if (str.empty())
-					return false;
-
-				QStringList list = util::toQString(str).split(util::rexOR, Qt::SkipEmptyParts);
-				QString text = util::toQString(str);
-				for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
-				{
-					QString cmptext = gamedevice.worker->getChatHistory(i);
-					for (const QString& it : list)
-					{
-						if (cmptext.contains(it))
-							return true;
-					}
-				}
-
-				return false;
-			};
 	}
 
 	//unit\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
@@ -4826,95 +4438,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			};
 	}
 
-	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if ((expr.contains("battle") || expr.contains("battle[")) && !expr.contains("isbattle"))
-	{
-		sol::meta::unqualified_t<sol::table> battle = lua_["battle"];
-
-		battle["count"] = gamedevice.worker->battle_total.get();
-		battle["dura"] = gamedevice.worker->battleDurationTimer.cost() / 1000.0;
-		battle["time"] = gamedevice.worker->battle_total_time.get() / 1000.0 / 60.0;
-		battle["cost"] = gamedevice.worker->battle_one_round_time.get() / 1000.0;
-		battle["round"] = gamedevice.worker->battleCurrentRound.get() + 1;
-		battle["field"] = util::toConstData(gamedevice.worker->getFieldString(gamedevice.worker->battleField.get()));
-		battle["charpos"] = static_cast<long long>(gamedevice.worker->battleCharCurrentPos.get() + 1);
-		battle["petpos"] = -1;
-		battle["size"] = 0;
-		battle["enemycount"] = 0;
-		battle["alliecount"] = 0;
-
-		for (long long i = 0; i < sa::MAX_ENEMY; ++i)
-		{
-			long long index = i + 1;
-			battle[index]["valid"] = false;
-			battle[index]["index"] = i;
-			battle[index]["name"] = "";
-			battle[index]["fname"] = "";
-			battle[index]["modelid"] = 0;
-			battle[index]["lv"] = 0;
-			battle[index]["hp"] = 0;
-			battle[index]["maxhp"] = 0;
-			battle[index]["hpp"] = 0;
-			battle[index]["status"] = "";
-			battle[index]["ride"] = false;
-			battle[index]["ridename"] = "";
-			battle[index]["ridelv"] = 0;
-			battle[index]["ridehp"] = 0;
-			battle[index]["ridemaxhp"] = 0;
-			battle[index]["ridehpp"] = 0;
-		}
-
-		if (gamedevice.worker->getBattleFlag())
-		{
-			sa::battle_data_t bt = gamedevice.worker->getBattleData();
-
-			battle["petpos"] = static_cast<long long>(bt.objects.value(gamedevice.worker->battleCharCurrentPos.get() + 5).pos + 1);
-
-			long long size = bt.objects.size();
-			battle["size"] = size;
-			battle["enemycount"] = bt.enemies.size();
-			battle["alliecount"] = bt.allies.size();
-
-			for (long long i = 0; i < size; ++i)
-			{
-				sa::battle_object_t obj = bt.objects.value(i);
-				long long index = i + 1;
-
-				battle[index]["valid"] = obj.maxHp > 0 && obj.level > 0 && obj.modelid > 0;
-
-				battle[index]["index"] = static_cast<long long>(obj.pos + 1);
-
-				battle[index]["name"] = util::toConstData(obj.name);
-
-				battle[index]["fname"] = util::toConstData(obj.freeName);
-
-				battle[index]["modelid"] = obj.modelid;
-
-				battle[index]["lv"] = obj.level;
-
-				battle[index]["hp"] = obj.hp;
-
-				battle[index]["maxhp"] = obj.maxHp;
-
-				battle[index]["hpp"] = obj.hpPercent;
-
-				battle[index]["status"] = util::toConstData(gamedevice.worker->getBadStatusString(obj.status));
-
-				battle[index]["ride"] = obj.rideFlag > 0;
-
-				battle[index]["ridename"] = util::toConstData(obj.rideName);
-
-				battle[index]["ridelv"] = obj.rideLevel;
-
-				battle[index]["ridehp"] = obj.rideHp;
-
-				battle[index]["ridemaxhp"] = obj.rideMaxHp;
-
-				battle[index]["ridehpp"] = obj.rideHpPercent;
-			}
-		}
-	}
-
 	//magic\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("magic") || expr.contains("magic["))
 	{
@@ -4964,65 +4487,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				t["name"] = util::toConstData(_magic.name);
 				t["memo"] = util::toConstData(_magic.memo);
 				t["target"] = _magic.target;
-
-				return t;
-			};
-	}
-
-	//skill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if (expr.contains("skill") || expr.contains("skill["))
-	{
-		sol::meta::unqualified_t<sol::table> sk = lua_["skill"];
-
-		for (long long i = 0; i < sa::MAX_PROFESSION_SKILL; ++i)
-		{
-			long long index = i + 1;
-			sa::profession_skill_t skill = gamedevice.worker->getSkill(i);
-
-			sk[index]["valid"] = skill.valid;
-			sk[index]["index"] = index;
-			sk[index]["costmp"] = skill.costmp;
-			sk[index]["modelid"] = skill.icon;
-			sk[index]["type"] = skill.kind;
-			sk[index]["lv"] = skill.skill_level;
-			sk[index]["id"] = skill.skillId;
-			sk[index]["name"] = util::toConstData(skill.name);
-			sk[index]["memo"] = util::toConstData(skill.memo);
-			sk[index]["target"] = skill.target;
-		}
-
-		sk["find"] = [this, currentIndex](sol::object oname, sol::this_state s)->sol::object
-			{
-				sol::state_view lua(s);
-				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-				if (gamedevice.worker.isNull())
-					return 0;
-
-				QString name = "";
-				if (oname.is<std::string>())
-					name = util::toQString(oname);
-
-				if (name.isEmpty())
-					return sol::lua_nil;
-
-				long long index = gamedevice.worker->getSkillIndexByName(name);
-				if (index == -1)
-					return sol::lua_nil;
-
-				sa::profession_skill_t _skill = gamedevice.worker->getSkill(index);
-
-				sol::table t = lua.create_table();
-
-				t["valid"] = _skill.valid;
-				t["index"] = index;
-				t["costmp"] = _skill.costmp;
-				t["modelid"] = _skill.icon;
-				t["type"] = _skill.kind;
-				t["lv"] = _skill.skill_level;
-				t["id"] = _skill.skillId;
-				t["name"] = util::toConstData(_skill.name);
-				t["memo"] = util::toConstData(_skill.memo);
-				t["target"] = _skill.target;
 
 				return t;
 			};

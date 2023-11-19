@@ -2083,6 +2083,8 @@ QString Worker::getBadStatusString(long long status)
 	return temp.join(" ");
 }
 
+std::string sa::battle_object_t::getStatus() const { return util::toConstData(Worker::getBadStatusString(status)); }
+
 //戰鬥場地屬性標誌位轉場地屬性字符串
 QString Worker::getFieldString(long long field)
 {
@@ -10702,7 +10704,7 @@ void Worker::lssproto_AB_recv(char* cdata)
 		}
 #endif
 	}
-	}
+}
 
 //名片數據
 void Worker::lssproto_ABI_recv(long long num, char* cdata)
@@ -13296,7 +13298,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-			}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13564,8 +13566,8 @@ void Worker::lssproto_C_recv(char* cdata)
 		}
 #endif
 #pragma endregion
-		}
 	}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Worker::lssproto_CA_recv(char* cdata)
@@ -14337,7 +14339,7 @@ void Worker::lssproto_S_recv(char* cdata)
 					}
 #endif
 				}
-				}
+			}
 
 
 			pet.power = (((static_cast<double>(pet.atk + pet.def + pet.agi) + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0);
@@ -14345,7 +14347,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-			}
+		}
 
 		sa::character_t pc = getCharacter();
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < sa::MAX_PET)
@@ -14403,7 +14405,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 		gamedevice.setUserData(util::kUserPetNames, petNames);
-		}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -14964,7 +14966,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-	}
+}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)

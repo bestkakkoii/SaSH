@@ -21,45 +21,35 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <gamedevice.h>
 #include "signaldispatcher.h"
 
-long long CLuaPet::setState(long long petIndex, long long state, sol::this_state s)
+sa::pet_t& CLuaPet::operator[](long long index)
 {
-	sol::state_view lua(s);
-	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
-	if (gamedevice.worker.isNull())
-		return FALSE;
+	--index;
 
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (!gamedevice.worker.isNull())
+	{
+		gamedevice.worker->updateItemByMemory();
+		QHash<long long, sa::pet_t> pets = gamedevice.worker->getPets();
+		if (pets_.contains(index))
+			pets_.insert(index, pets.value(index));
+	}
 
-	return gamedevice.worker->setPetState(--petIndex, static_cast<sa::PetState>(state));
+	if (!pets_.contains(index))
+		pets_.insert(index, sa::pet_t());
+
+	return pets_[index];
 }
 
-long long CLuaPet::drop(long long petIndex, sol::this_state s)
+long long CLuaPet::count()
 {
-	sol::state_view lua(s);
-	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
-	if (gamedevice.worker.isNull())
-		return FALSE;
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (!gamedevice.worker.isNull())
+	{
+		gamedevice.worker->updateItemByMemory();
+		return gamedevice.worker->getPetSize();
+	}
 
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	return gamedevice.worker->dropPet(--petIndex);
-}
-
-long long CLuaPet::rename(long long petIndex, std::string name, sol::this_state s)
-{
-	sol::state_view lua(s);
-	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
-	if (gamedevice.worker.isNull())
-		return FALSE;
-
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	QString qname = util::toQString(name);
-
-	return gamedevice.worker->setPetFreeName(--petIndex, qname);
+	return 0;
 }
 
 long long CLuaPet::learn(long long petIndex, long long fromSkillIndex, long long toSkillIndex, sol::object ounitid, sol::object odialogid, sol::this_state s)
@@ -95,43 +85,4 @@ long long CLuaPet::learn(long long petIndex, long long fromSkillIndex, long long
 		dialogid = odialogid.as<long long>();
 
 	return gamedevice.worker->learn(--petIndex, --fromSkillIndex, --toSkillIndex, dialogid, unitid);
-}
-
-long long CLuaPet::swap(long long petIndex, long long from, long long to, sol::this_state s)
-{
-	sol::state_view lua(s);
-	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
-	if (gamedevice.worker.isNull())
-		return FALSE;
-
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	return gamedevice.worker->petitemswap(--petIndex, --from, --to);
-}
-
-long long CLuaPet::deposit(long long petIndex, long long unitid, long long dialogid, sol::this_state s)
-{
-	sol::state_view lua(s);
-	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
-	if (gamedevice.worker.isNull())
-		return FALSE;
-
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	return gamedevice.worker->depositPet(--petIndex, dialogid, unitid);
-}
-
-long long CLuaPet::withdraw(long long petIndex, long long unitid, long long dialogid, sol::this_state s)
-{
-	sol::state_view lua(s);
-	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
-	if (gamedevice.worker.isNull())
-		return FALSE;
-
-	luadebug::checkOnlineThenWait(s);
-	luadebug::checkBattleThenWait(s);
-
-	return gamedevice.worker->withdrawPet(--petIndex, dialogid, unitid);
 }

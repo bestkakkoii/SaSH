@@ -31,13 +31,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
-    <EnableASAN>false</EnableASAN>
+    <EnableASAN>true</EnableASAN>
     <EnableFuzzer>false</EnableFuzzer>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
-    <EnableASAN>false</EnableASAN>
+    <EnableASAN>true</EnableASAN>
     <EnableFuzzer>false</EnableFuzzer>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -53,7 +53,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
-    <EnableASAN>false</EnableASAN>
+    <EnableASAN>true</EnableASAN>
     <EnableFuzzer>false</EnableFuzzer>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -146,7 +146,7 @@
       </WholeProgramOptimization>
       <SupportJustMyCode>true</SupportJustMyCode>
       <StructMemberAlignment>Default</StructMemberAlignment>
-      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerOutput>NoListing</AssemblerOutput>
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
       <LanguageStandard_C>Default</LanguageStandard_C>
@@ -165,8 +165,7 @@
       </GenerateMapFile>
       <MapExports>
       </MapExports>
-      <LargeAddressAware>
-      </LargeAddressAware>
+      <LargeAddressAware>true</LargeAddressAware>
       <AssemblyDebug>
       </AssemblyDebug>
       <SupportNobindOfDelayLoadedDLL>
@@ -219,7 +218,7 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat</Command>
       </WholeProgramOptimization>
       <AdditionalOptions>/bigobj /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>true</SupportJustMyCode>
-      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
       <LanguageStandard_C>Default</LanguageStandard_C>
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
@@ -273,7 +272,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <SupportJustMyCode>true</SupportJustMyCode>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <StructMemberAlignment>Default</StructMemberAlignment>
-      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion />
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
       <AdditionalOptions>/bigobj /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -287,8 +286,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       </MapExports>
       <AssemblyDebug>
       </AssemblyDebug>
-      <LargeAddressAware>
-      </LargeAddressAware>
+      <LargeAddressAware>true</LargeAddressAware>
       <FixedBaseAddress>true</FixedBaseAddress>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <BaseAddress>
@@ -320,7 +318,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <SupportJustMyCode>true</SupportJustMyCode>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
       <LanguageStandard_C>Default</LanguageStandard_C>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>

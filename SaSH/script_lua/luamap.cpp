@@ -22,6 +22,127 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "map/mapdevice.h"
 
+long long CLuaMap::x()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return -1;
+
+	QPoint p = gamedevice.worker->getPoint();
+	return p.x();
+
+}
+long long CLuaMap::y()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return -1;
+
+	QPoint p = gamedevice.worker->getPoint();
+	return p.y();
+}
+
+std::tuple<long long, long long> CLuaMap::xy()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return std::make_tuple(-1, -1);
+
+	QPoint p = gamedevice.worker->getPoint();
+	return std::make_tuple(p.x(), p.y());
+}
+
+long long CLuaMap::floor()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return -1;
+
+	return gamedevice.worker->getFloor();
+}
+
+std::string CLuaMap::getName()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return "";
+
+	return util::toConstData(gamedevice.worker->getFloorName());
+}
+
+std::string CLuaMap::getGround()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return "";
+
+	return util::toConstData(gamedevice.worker->getGround());
+}
+
+bool CLuaMap::isxy(long long x, long long y, sol::this_state s)
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
+		return false;
+
+	QPoint pos = gamedevice.worker->getPoint();
+	return pos == QPoint(x, y);
+}
+
+bool CLuaMap::isrect(long long x1, long long y1, long long x2, long long y2, sol::this_state s)
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
+		return false;
+	QPoint pos = gamedevice.worker->getPoint();
+	return pos.x() >= x1 && pos.x() <= x2 && pos.y() >= y1 && pos.y() <= y2;
+}
+
+bool CLuaMap::ismap(sol::object omap, sol::this_state s)
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
+		return false;
+
+	if (omap.is<long long>())
+	{
+		return gamedevice.worker->getFloor() == omap.as<long long>();
+	}
+
+	QString mapNames = util::toQString(omap);
+	QStringList mapNameList = mapNames.split(util::rexOR, Qt::SkipEmptyParts);
+	bool ok = false;
+	bool isExact = true;
+	long long floor = 0;
+	QString newName;
+	for (const QString& it : mapNameList)
+	{
+		floor = it.toLongLong(&ok);
+		if (ok && gamedevice.worker->getFloor() == floor)
+			return true;
+
+		newName = it;
+		if (newName.startsWith("?"))
+		{
+			newName = newName.mid(1);
+			isExact = false;
+		}
+
+		if (newName.isEmpty())
+			continue;
+
+		if (isExact && gamedevice.worker->getFloorName() == newName)
+			return true;
+		else if (gamedevice.worker->getFloorName().contains(newName))
+			return true;
+	}
+
+	return false;
+}
+
 long long CLuaMap::setdir(sol::object p1, sol::object p2, sol::this_state s)
 {
 	sol::state_view lua(s);

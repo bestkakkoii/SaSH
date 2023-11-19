@@ -591,8 +591,6 @@ private:
 	Interpreter* pinterpreter_ = nullptr;
 	Lexer lexer_;
 
-	QHash<unsigned long long, std::shared_ptr<util::timer>> timerMap_;
-
 	QString scriptFileName_;
 	bool isPrivate_ = false;
 
@@ -640,13 +638,13 @@ private:
 		"__THIS_PARSER", "__THIS", "_G",
 		"__print", "__require",
 		"TARGET",
-		"BattleClass", "CharClass", "InfoClass", "ItemClass", "MapClass", "PetClass", "SystemClass", "TARGET", "Timer", "_G", "ROWCOUNT",
+		"BattleClass", "CharClass", "InfoClass", "ItemClass", "MapClass", "PetClass", "SystemClass", "DialogClass", "timer", "TARGET", "_G", "ROWCOUNT",
 		"assert", "base",  "collectgarbage",
 		"contains", "copy", "coroutine", "dbclick", "debug", "dofile", "dragto", "error", "find", "format", "full", "getmetatable",
 		"half", "input", "io", "ipairs", "lclick", "load", "loadfile", "loadset", "lower", "math", "mkpath", "mktable", "dlg", "ocr", "findfiles",
 		"msg", "next", "os", "package", "pairs", "pcall",  "print", "printf", "rawequal",
 		"rawget", "rawlen", "rawset", "rclick", "regex", "replace", "require", "rex", "rexg", "rnd", "saveset", "select", "set", "setmetatable",
-		"skill", "sleep", "split", "string", "table", "tadd", "tback", "tfront", "timer", "tjoin", "tmerge", "todb", "toint", "tonumber", "tostr",
+		"skill", "sleep", "split", "string", "table", "tadd", "tback", "tfront", "tjoin", "tmerge", "todb", "toint", "tonumber", "tostr",
 		"tostring", "tpadd", "tpopback", "tpopfront", "trim", "trotate", "trsort", "tshuffle", "tsleft", "tsort", "tsright", "tswap", "tunique", "type",
 		"unit", "upper", "utf8", "warn", "xpcall"
 	};

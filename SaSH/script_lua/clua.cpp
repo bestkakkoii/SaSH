@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #define OPEN_HOOK
 
+#pragma region luadebug
 void __fastcall luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1, const QVariant& p2, const QVariant& p3, const QVariant& p4)
 {
 	std::ignore = p4;//reserved
@@ -663,6 +664,7 @@ bool luatool::checkRange(sol::object o, long long& min, long long& max, QVector<
 	}
 	return false;
 }
+#pragma endregion
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -835,7 +837,6 @@ private:
 	long long index_ = 0;
 };
 
-
 bool CLuaDialog::contains(std::string str, sol::this_state s)
 {
 	sol::state_view lua(s.lua_state());
@@ -865,6 +866,57 @@ bool CLuaDialog::contains(std::string str, sol::this_state s)
 
 	return false;
 }
+
+class CLuaChat
+{
+public:
+	CLuaChat(long long index) : index_(index) {}
+
+	std::string operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return "";
+
+		QString text = gamedevice.worker->getChatHistory(index);
+		return util::toConstData(text);
+	}
+
+	bool contains(std::string str, sol::this_state s) const
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return false;
+
+		if (str.empty())
+			return false;
+
+		QStringList list = util::toQString(str).split(util::rexOR, Qt::SkipEmptyParts);
+		QString text = util::toQString(str);
+		for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
+		{
+			QString cmptext = gamedevice.worker->getChatHistory(i);
+			if (cmptext.isEmpty())
+				continue;
+
+			for (const QString& it : list)
+			{
+				if (it.isEmpty())
+					continue;
+
+				if (cmptext.contains(it))
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+private:
+	long long index_ = 0;
+};
 
 //luasystem.cpp
 void CLua::open_syslibs(sol::state& lua)
@@ -1070,7 +1122,28 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.safe_script("dialog = DialogClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
 
+	lua.new_usertype<CLuaChat>("ChatClass",
+		sol::call_constructor,
+		sol::constructors<CLuaChat(long long)>(),
+		sol::meta_function::index, &CLuaChat::operator[],
+		"contains", &CLuaChat::contains
+	);
 
+	lua.safe_script("chat = ChatClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
+
+	lua.new_usertype<CLuaTimer>("timer",
+		sol::call_constructor,
+		sol::constructors<CLuaTimer()>(),
+
+		"restart", &CLuaTimer::restart,
+		"expired", &CLuaTimer::hasExpired,
+		"getstr", &CLuaTimer::toFormatedString,
+		"tostr", &CLuaTimer::toString,
+		"todb", &CLuaTimer::toDouble,
+		"msec", sol::property(&CLuaTimer::cost),
+		"sec", sol::property(&CLuaTimer::costSeconds)
+	);
 }
 
 void CLua::open_itemlibs(sol::state& lua)
@@ -1136,28 +1209,249 @@ void CLua::open_itemlibs(sol::state& lua)
 	lua.collect_garbage();
 }
 
+class CLuaSkill
+{
+public:
+	CLuaSkill(long long index) : index_(index) {}
+
+	sa::profession_skill_t operator[](long long index)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::profession_skill_t();
+
+		if (index < 0 || index >= sa::MAX_PROFESSION_SKILL)
+			return sa::profession_skill_t();
+
+		return gamedevice.worker->getSkill(index);
+	}
+
+	sa::profession_skill_t find(std::string sname)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::profession_skill_t();
+
+		QString name = util::toQString(sname);
+
+		if (name.isEmpty())
+			return sa::profession_skill_t();
+
+		bool isExist = false;
+		QString newName = name;
+		if (name.startsWith("?"))
+		{
+			newName = name.mid(1);
+			isExist = false;
+		}
+
+		QHash<long long, sa::profession_skill_t> skill = gamedevice.worker->getSkills();
+
+		for (auto it = skill.begin(); it != skill.end(); ++it)
+		{
+			QString skillname = it.value().name;
+			QString memo = it.value().memo;
+			if (skillname.isEmpty())
+				continue;
+
+			if (isExist && skillname == newName)
+				return it.value();
+			else if (!isExist && skillname.contains(newName))
+				return it.value();
+			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
+				return it.value();
+		}
+
+		return sa::profession_skill_t();
+	}
+
+private:
+	long long index_ = 0;
+	QHash<long long, sa::profession_skill_t> skills_;
+};
+
 void CLua::open_charlibs(sol::state& lua)
 {
 	lua.set_function("join", &CLuaChar::join, &luaChar_);
 	lua.set_function("leave", &CLuaChar::leave, &luaChar_);
 	lua.set_function("kick", &CLuaChar::kick, &luaChar_);
 	lua.set_function("skup", &CLuaChar::skup, &luaChar_);
+
+	lua.new_usertype<sa::character_t>("CharacterStruct",
+		"battlepet", sol::readonly(&sa::character_t::battlePetNo),
+		"mailpet", sol::readonly(&sa::character_t::mailPetNo),
+		"standbypet", sol::readonly(&sa::character_t::standbyPet),
+		"ridepet", sol::readonly(&sa::character_t::ridePetNo),
+		"modelid", sol::readonly(&sa::character_t::modelid),
+		"faceid", sol::readonly(&sa::character_t::faceid),
+		"unitid", sol::readonly(&sa::character_t::id),
+		"dir", sol::readonly(&sa::character_t::dir),
+		"hp", sol::readonly(&sa::character_t::hp),
+		"maxhp", sol::readonly(&sa::character_t::maxHp),
+		"hpp", sol::readonly(&sa::character_t::hpPercent),
+		"mp", sol::readonly(&sa::character_t::mp),
+		"maxmp", sol::readonly(&sa::character_t::maxMp),
+		"mpp", sol::readonly(&sa::character_t::mpPercent),
+		"vit", sol::readonly(&sa::character_t::vit),
+		"str", sol::readonly(&sa::character_t::str),
+		"tgh", sol::readonly(&sa::character_t::tgh),
+		"dex", sol::readonly(&sa::character_t::dex),
+		"exp", sol::readonly(&sa::character_t::exp),
+		"maxexp", sol::readonly(&sa::character_t::maxExp),
+		"lv", sol::readonly(&sa::character_t::level),
+		"atk", sol::readonly(&sa::character_t::atk),
+		"def", sol::readonly(&sa::character_t::def),
+		"agi", sol::readonly(&sa::character_t::agi),
+		"chasma", sol::readonly(&sa::character_t::chasma),
+		"luck", sol::readonly(&sa::character_t::luck),
+		"earth", sol::readonly(&sa::character_t::earth),
+		"water", sol::readonly(&sa::character_t::water),
+		"fire", sol::readonly(&sa::character_t::fire),
+		"wind", sol::readonly(&sa::character_t::wind),
+		"gold", sol::readonly(&sa::character_t::gold),
+		"fame", sol::readonly(&sa::character_t::fame),
+		"titleid", sol::readonly(&sa::character_t::titleNo),
+		"dp", sol::readonly(&sa::character_t::dp),
+		"namecolor", sol::readonly(&sa::character_t::nameColor),
+		"status", sol::readonly(&sa::character_t::status),
+		"etc", sol::readonly(&sa::character_t::etcFlag),
+		"battleid", sol::readonly(&sa::character_t::battleNo),
+		"side", sol::readonly(&sa::character_t::sideNo),
+		"ishelp", sol::readonly(&sa::character_t::helpMode),
+		"charnamecolor", sol::readonly(&sa::character_t::pcNameColor),
+		"turn", sol::readonly(&sa::character_t::transmigration),
+		"fmleader", sol::readonly(&sa::character_t::familyleader),
+		"channel", sol::readonly(&sa::character_t::channel),
+		"quickchannel", sol::readonly(&sa::character_t::quickChannel),
+		"bankgold", sol::readonly(&sa::character_t::personal_bankgold),
+		"learnride", sol::readonly(&sa::character_t::learnride),//學習騎乘
+		"lowsride", sol::readonly(&sa::character_t::lowsride),
+		"ridelv", sol::readonly(&sa::character_t::ridePetLevel),
+		"fmsprite", sol::readonly(&sa::character_t::familySprite),
+		"basemodelid", sol::readonly(&sa::character_t::baseGraNo),
+		"big4fm", sol::readonly(&sa::character_t::big4fm),
+		"tradestate", sol::readonly(&sa::character_t::trade_confirm),         // 1 -> 初始值
+		"professionclass", sol::readonly(&sa::character_t::profession_class),
+		"professionlv", sol::readonly(&sa::character_t::profession_level),
+		"professionexp", sol::readonly(&sa::character_t::profession_exp),
+		"professionpoint", sol::readonly(&sa::character_t::profession_skill_point),
+
+		"herofloor", sol::readonly(&sa::character_t::herofloor),// (不可開)排行榜NPC
+		"streetvendor", sol::readonly(&sa::character_t::iOnStreetVendor),		// 擺攤模式
+		"skywalker", sol::readonly(&sa::character_t::skywalker), // GM天行者
+		"theatermode", sol::readonly(&sa::character_t::iTheaterMode),		// 劇場模式
+		"scenertno", sol::readonly(&sa::character_t::iSceneryNumber),		// 記錄劇院背景圖號
+
+		"dancestate", sol::readonly(&sa::character_t::iDanceMode),			// 動一動模式
+		"newfame", sol::readonly(&sa::character_t::newfame), // 討伐魔軍積分
+		"ftype", sol::readonly(&sa::character_t::ftype),
+
+		//custom
+		"maxload", sol::readonly(&sa::character_t::maxload),
+		"point ", sol::readonly(&sa::character_t::point),
+
+		"name", sol::property(&sa::character_t::getName),
+		"fname", sol::property(&sa::character_t::getFreeName),
+		"proname", sol::property(&sa::character_t::getProfessionClassName),
+		"gmname", sol::property(&sa::character_t::getGmName),
+		"chatroomnum", sol::property(&sa::character_t::getChatRoomNum),
+		"chusheng", sol::property(&sa::character_t::getChusheng),
+		"family", sol::property(&sa::character_t::getFamily),
+		"ridepetname", sol::property(&sa::character_t::getRidePetName),
+		"hash", sol::property(&sa::character_t::getHash)
+	);
+
+
+	lua.new_usertype<CLuaChar>("CharacterClass",
+		sol::call_constructor,
+		sol::constructors<CLuaChar(long long)>(),
+		"data", sol::property(&CLuaChar::getCharacter)
+	);
+
+	lua.safe_script("char = CharacterClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
+
+	lua.new_usertype<sa::profession_skill_t>("SkillStruct",
+		"valid", sol::readonly(&sa::profession_skill_t::valid),
+		"skillid", sol::readonly(&sa::profession_skill_t::skillId),
+		"target", sol::readonly(&sa::profession_skill_t::target),
+		"kind", sol::readonly(&sa::profession_skill_t::kind),
+		"icon", sol::readonly(&sa::profession_skill_t::icon),
+		"costmp", sol::readonly(&sa::profession_skill_t::costmp),
+		"lv", sol::readonly(&sa::profession_skill_t::skill_level),
+		"cooltime", sol::readonly(&sa::profession_skill_t::cooltime),
+		"name", sol::property(&sa::profession_skill_t::getName),
+		"memo", sol::property(&sa::profession_skill_t::getMemo)
+	);
+
+	lua.new_usertype<CLuaSkill>("SkillClass",
+		sol::call_constructor,
+		sol::constructors<CLuaSkill(long long)>(),
+		sol::meta_function::index, &CLuaSkill::operator[],
+		"find", &CLuaSkill::find
+	);
+
+	lua.safe_script("skill = SkillClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
 }
 
 void CLua::open_petlibs(sol::state& lua)
 {
 	lua.set_function("learn", &CLuaPet::learn, &luaPet_);
+
+	lua.new_usertype <sa::pet_t>("PetStruct",
+		"valid", sol::readonly(&sa::pet_t::valid),
+		"state", sol::property(&sa::pet_t::getState),
+		"index", sol::readonly(&sa::pet_t::index),
+		"modelid", sol::readonly(&sa::pet_t::modelid),
+		"hp", sol::readonly(&sa::pet_t::hp),
+		"maxhp", sol::readonly(&sa::pet_t::maxHp),
+		"hpp", sol::readonly(&sa::pet_t::hpPercent),
+		"mp", sol::readonly(&sa::pet_t::mp),
+		"maxmp", sol::readonly(&sa::pet_t::maxMp),
+		"mpp", sol::readonly(&sa::pet_t::mpPercent),
+		"exp", sol::readonly(&sa::pet_t::exp),
+		"maxexp", sol::readonly(&sa::pet_t::maxExp),
+		"lv", sol::readonly(&sa::pet_t::level),
+		"atk", sol::readonly(&sa::pet_t::atk),
+		"def", sol::readonly(&sa::pet_t::def),
+		"agi", sol::readonly(&sa::pet_t::agi),
+		"loyal", sol::readonly(&sa::pet_t::loyal),
+		"earth", sol::readonly(&sa::pet_t::earth),
+		"water", sol::readonly(&sa::pet_t::water),
+		"fire", sol::readonly(&sa::pet_t::fire),
+		"wind", sol::readonly(&sa::pet_t::wind),
+		"maxskill", sol::readonly(&sa::pet_t::maxSkill),
+		"turn", sol::readonly(&sa::pet_t::transmigration),
+		"fusion", sol::readonly(&sa::pet_t::fusion),
+		"status", sol::readonly(&sa::pet_t::status),
+		"oldlv", sol::readonly(&sa::pet_t::oldlevel),
+		"oldhp", sol::readonly(&sa::pet_t::oldhp),
+		"oldatk", sol::readonly(&sa::pet_t::oldatk),
+		"oldagi", sol::readonly(&sa::pet_t::oldagi),
+		"olddef", sol::readonly(&sa::pet_t::olddef),
+		"rideflg", sol::readonly(&sa::pet_t::rideflg),
+		"blessflg", sol::readonly(&sa::pet_t::blessflg),
+		"blesshp", sol::readonly(&sa::pet_t::blesshp),
+		"blessatk", sol::readonly(&sa::pet_t::blessatk),
+		"blessquick", sol::readonly(&sa::pet_t::blessquick),
+		"blessdef", sol::readonly(&sa::pet_t::blessdef),
+		"changenameflag", sol::readonly(&sa::pet_t::changeNameFlag),
+		"name", sol::property(&sa::pet_t::getName),
+		"freename", sol::property(&sa::pet_t::getFreeName),
+		"power", sol::readonly(&sa::pet_t::power),
+		"growth", sol::readonly(&sa::pet_t::growth)
+	);
+
 	lua.new_usertype<CLuaPet>("PetClass",
 		sol::call_constructor,
 		sol::constructors<CLuaPet()>(),
-		"setState", &CLuaPet::setState,
-		"drop", &CLuaPet::drop,
-		"rename", &CLuaPet::rename,
-		"learn", &CLuaPet::learn,
-		"swap", &CLuaPet::swap,
-		"deposit", &CLuaPet::deposit,
-		"withdraw", &CLuaPet::withdraw
+		sol::meta_function::index, &CLuaPet::operator[],
+		"count", &CLuaPet::count
 	);
+
+	lua.safe_script("pet = PetClass();", sol::script_pass_on_error);
+	lua.collect_garbage();
 }
 
 void CLua::open_maplibs(sol::state& lua)
@@ -1170,6 +1464,23 @@ void CLua::open_maplibs(sol::state& lua)
 	lua.set_function("findnpc", &CLuaMap::findNPC, &luaMap_);
 	lua.set_function("dir", &CLuaMap::setdir, &luaMap_);
 	lua.set_function("walkpos", &CLuaMap::walkpos, &luaMap_);
+
+	lua.new_usertype<CLuaMap>("MapClass",
+		sol::call_constructor,
+		sol::constructors<CLuaMap(long long)>(),
+		"x", sol::property(&CLuaMap::x),
+		"y", sol::property(&CLuaMap::y),
+		"xy", &CLuaMap::xy,
+		"floor", sol::property(&CLuaMap::floor),
+		"name", sol::property(&CLuaMap::getName),
+		"ground", sol::property(&CLuaMap::getGround),
+		"ismap", &CLuaMap::ismap,
+		"isxy", &CLuaMap::isxy,
+		"isrect", &CLuaMap::isrect
+	);
+
+	lua.safe_script("map = MapClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
 }
 
 void CLua::open_battlelibs(sol::state& lua)
@@ -1190,6 +1501,46 @@ void CLua::open_battlelibs(sol::state& lua)
 	lua.set_function("bwn", &CLuaBattle::petNothing, &luaBattle_);
 	lua.set_function("bwait", &CLuaBattle::bwait, &luaBattle_);
 	lua.set_function("bend", &CLuaBattle::bend, &luaBattle_);
+
+	lua.new_usertype<sa::battle_object_t>("BattleStruct",
+		"ready", sol::readonly(&sa::battle_object_t::ready),
+		"pos", sol::readonly(&sa::battle_object_t::pos),
+		"modelid", sol::readonly(&sa::battle_object_t::modelid),
+		"level", sol::readonly(&sa::battle_object_t::level),
+		"hp", sol::readonly(&sa::battle_object_t::hp),
+		"maxhp", sol::readonly(&sa::battle_object_t::maxHp),
+		"hpp", sol::readonly(&sa::battle_object_t::hpPercent),
+		"rideflag", sol::readonly(&sa::battle_object_t::rideFlag),
+		"ridelevel", sol::readonly(&sa::battle_object_t::rideLevel),
+		"ridehp", sol::readonly(&sa::battle_object_t::rideHp),
+		"ridemaxhp", sol::readonly(&sa::battle_object_t::rideMaxHp),
+		"ridehpp", sol::readonly(&sa::battle_object_t::rideHpPercent),
+		"name", sol::property(&sa::battle_object_t::getName),
+		"freename", sol::property(&sa::battle_object_t::getFreeName),
+		"ridename", sol::property(&sa::battle_object_t::getRideName),
+		"status", sol::property(&sa::battle_object_t::getStatus)
+	);
+
+	lua.new_usertype<CLuaBattle>("BattleClass",
+		sol::call_constructor,
+		sol::constructors<CLuaBattle(long long)>(),
+		sol::meta_function::index, &CLuaBattle::operator[],
+		"count", sol::property(&CLuaBattle::count),
+		"dura", sol::property(&CLuaBattle::dura),
+		"time", sol::property(&CLuaBattle::time),
+		"cost", sol::property(&CLuaBattle::cost),
+		"round", sol::property(&CLuaBattle::round),
+		"field", sol::property(&CLuaBattle::field),
+		"charpos", sol::property(&CLuaBattle::charpos),
+		"petpos", sol::property(&CLuaBattle::petpos),
+		"size", sol::property(&CLuaBattle::size),
+		"enemycount", sol::property(&CLuaBattle::enemycount),
+		"alliecount", sol::property(&CLuaBattle::alliecount)
+	);
+
+	lua.safe_script("battle = BattleClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
+
 }
 
 void CLua::openlibs()

@@ -218,6 +218,55 @@ public:
 	bool waitsay(std::string sstr, sol::object otimeout, sol::this_state s);
 };
 
+class CLuaTimer
+{
+public:
+	CLuaTimer()
+	{
+		timer_.start();
+	}
+
+	long long cost() const
+	{
+		return timer_.elapsed();
+	}
+
+	long long costSeconds() const
+	{
+		return timer_.elapsed() / 1000;
+	}
+
+	bool hasExpired(long long milliseconds) const
+	{
+		return timer_.elapsed() >= milliseconds;
+	}
+
+	void restart()
+	{
+		timer_.restart();
+	}
+
+	std::string toFormatedString()
+	{
+		QString formated = util::formatMilliseconds(timer_.elapsed());
+		return util::toConstData(formated);
+	}
+
+	std::string toString()
+	{
+		QString str = util::toQString(timer_.elapsed());
+		return util::toConstData(str);
+	}
+
+	double toDouble()
+	{
+		return static_cast<double>(timer_.elapsed());
+	}
+
+private:
+	QElapsedTimer timer_;
+};
+
 class CLuaItem
 {
 public:
@@ -290,6 +339,7 @@ class CLuaChar
 public:
 	CLuaChar() = default;
 	~CLuaChar() = default;
+	CLuaChar(long long index) : index_(index) {}
 
 	long long rename(std::string sfname, sol::this_state s);
 	long long skup(sol::object otype, long long count, sol::this_state s);
@@ -297,27 +347,38 @@ public:
 	long long join(sol::this_state s);
 	long long leave(sol::this_state s);
 	long long kick(long long teammateIndex, sol::this_state s);
+
+	sa::character_t getCharacter() const;
+
+private:
+	long long index_ = -1;
 };
 
 class CLuaPet
 {
 public:
 	CLuaPet() = default;
+	CLuaPet(long long index) : index_(index) {}
 	~CLuaPet() = default;
 
-	long long setState(long long petIndex, long long state, sol::this_state s);
-	long long drop(long long petIndex, sol::this_state s);
-	long long rename(long long petIndex, std::string name, sol::this_state s);
+	sa::pet_t& operator[](long long index);
+
+	void insertPet(long long index, const sa::pet_t& pet) { pets_.insert(index, pet); }
+
+	long long count();
+
 	long long learn(long long petIndex, long long fromSkillIndex, long long toSkillIndex, sol::object ounitid, sol::object odialogid, sol::this_state s);
-	long long swap(long long petIndex, long long from, long long to, sol::this_state s);
-	long long deposit(long long petIndex, long long unitid, long long dialogid, sol::this_state s);
-	long long withdraw(long long petIndex, long long unitid, long long dialogid, sol::this_state s);
+
+private:
+	long long index_ = -1;
+	QHash<long long, sa::pet_t> pets_;
 };
 
 class CLuaMap
 {
 public:
 	CLuaMap() = default;
+	CLuaMap(long long index) : index_(index) {}
 	~CLuaMap() = default;
 
 	long long setdir(sol::object p1, sol::object p2, sol::this_state s);
@@ -329,13 +390,30 @@ public:
 	long long findPath(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object ofunction, sol::object jump, sol::this_state s);
 	long long downLoad(sol::object floor, sol::this_state s);
 	long long findNPC(sol::object p1, sol::object nicknames, long long x, long long y, sol::object otimeout, sol::object ostepcost, sol::object enableCrossWall, sol::this_state s);
+
+	long long x();
+	long long y();
+	std::tuple<long long, long long> xy();
+	long long floor();
+	std::string getName();
+	std::string getGround();
+	bool isxy(long long x, long long y, sol::this_state s);
+	bool isrect(long long x1, long long y1, long long x2, long long y2, sol::this_state s);
+	bool ismap(sol::object omap, sol::this_state s);
+
+private:
+	long long index_ = -1;
+
 };
 
 class CLuaBattle
 {
 public:
 	CLuaBattle() = default;
+	CLuaBattle(long long index) : index_(index) {}
 	~CLuaBattle() = default;
+
+	sa::battle_object_t& operator[](long long index);
 
 	long long charUseAttack(long long objIndex, sol::this_state s);//atk
 	long long charUseMagic(long long magicIndex, long long objIndex, sol::this_state s);//magic
@@ -350,6 +428,23 @@ public:
 	long long petNothing(sol::this_state s);//pet nothing
 	long long bend(sol::this_state s);
 	long long bwait(sol::object otimeout, sol::object jump, sol::this_state s);
+
+
+	long long count();
+	long long dura();
+	long long time();
+	long long cost();
+	long long round();
+	std::string field();
+	long long charpos();
+	long long petpos();
+	long long size();
+	long long enemycount();
+	long long alliecount();
+
+private:
+	long long index_ = -1;
+	QHash<long long, sa::battle_object_t> objs_;
 };
 
 class CLua : public QObject, public Indexer

@@ -108,7 +108,7 @@ public://actions
 	bool __fastcall clientLogin(const QString& userName, const QString& password);
 	bool __fastcall playerLogin(long long index);
 
-	QString __fastcall getBadStatusString(long long status);
+	static QString __fastcall getBadStatusString(long long status);
 
 	QString __fastcall getFieldString(long long field);
 

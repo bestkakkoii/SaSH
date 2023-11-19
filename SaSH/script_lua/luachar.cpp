@@ -21,6 +21,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <gamedevice.h>
 #include "signaldispatcher.h"
 
+sa::character_t CLuaChar::getCharacter() const
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return sa::character_t();
+
+	gamedevice.worker->updateDatasFromMemory();
+
+	return gamedevice.worker->getCharacter();
+}
+
 long long CLuaChar::rename(std::string sfname, sol::this_state s)
 {
 	sol::state_view lua(s);

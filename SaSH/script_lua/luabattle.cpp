@@ -21,6 +21,134 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <gamedevice.h>
 #include "signaldispatcher.h"
 
+long long CLuaBattle::count()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	return gamedevice.worker->battle_total.get();
+}
+
+long long CLuaBattle::dura()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	return gamedevice.worker->battleDurationTimer.cost() / 1000.0;
+}
+
+long long CLuaBattle::time()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	return gamedevice.worker->battle_total_time.get() / 1000.0 / 60.0;
+
+}
+
+long long CLuaBattle::cost()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	return gamedevice.worker->battle_one_round_time.get() / 1000.0;
+}
+
+long long CLuaBattle::round()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	return gamedevice.worker->battleCurrentRound.get() + 1;
+
+}
+
+std::string CLuaBattle::field()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	return util::toConstData(gamedevice.worker->getFieldString(gamedevice.worker->battleField.get()));
+}
+
+long long CLuaBattle::charpos()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	return static_cast<long long>(gamedevice.worker->battleCharCurrentPos.get() + 1);
+}
+
+long long CLuaBattle::petpos()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	long long petIndex = gamedevice.worker->battleCharCurrentPos.get() + 5;
+
+	sa::battle_object_t obj = gamedevice.worker->getBattleData().objects.value(petIndex);
+
+	return obj.level > 0 && obj.modelid > 0 ? petIndex + 1 : -1;
+}
+
+long long CLuaBattle::size()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	return gamedevice.worker->getBattleData().objects.size();
+}
+
+long long CLuaBattle::enemycount()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	return gamedevice.worker->getBattleData().enemies.size();
+}
+
+long long CLuaBattle::alliecount()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	return gamedevice.worker->getBattleData().allies.size();
+}
+
+sa::battle_object_t& CLuaBattle::operator[](long long index)
+{
+	--index;
+
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (!gamedevice.worker.isNull())
+	{
+		QVector<sa::battle_object_t> objs = gamedevice.worker->getBattleData().objects;
+		auto it = std::find_if(objs.begin(), objs.end(), [index](const sa::battle_object_t& obj)
+			{
+				return obj.pos == index;
+			});
+
+		if (it != objs.end())
+			objs_.insert(index, objs.value(index));
+	}
+
+	if (!objs_.contains(index))
+		objs_.insert(index, sa::battle_object_t());
+
+	return objs_[index];
+}
+
 long long CLuaBattle::charUseAttack(long long objIndex, sol::this_state s)//atk
 {
 	sol::state_view lua(s);

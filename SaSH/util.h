@@ -2346,6 +2346,11 @@ QGroupBox {
 			return timer_.elapsed();
 		}
 
+		long long costSeconds() const
+		{
+			return timer_.elapsed() / 1000;
+		}
+
 		bool hasExpired(long long milliseconds) const
 		{
 			return timer_.elapsed() >= milliseconds;
@@ -2354,6 +2359,23 @@ QGroupBox {
 		void restart()
 		{
 			timer_.restart();
+		}
+
+		std::string toFormatedString()
+		{
+			QString formated = util::formatMilliseconds(timer_.elapsed());
+			return util::toConstData(formated);
+		}
+
+		std::string toString()
+		{
+			QString str = util::toQString(timer_.elapsed());
+			return util::toConstData(str);
+		}
+
+		double toDouble()
+		{
+			return static_cast<double>(timer_.elapsed());
 		}
 
 	private:
