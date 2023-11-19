@@ -72,7 +72,7 @@ std::string CLuaBattle::field()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
-		return 0;
+		return "";
 
 	return util::toConstData(gamedevice.worker->getFieldString(gamedevice.worker->battleField.get()));
 }

@@ -1214,17 +1214,27 @@ class CLuaSkill
 public:
 	CLuaSkill(long long index) : index_(index) {}
 
-	sa::profession_skill_t operator[](long long index)
+	sa::profession_skill_t& operator[](long long index)
 	{
 		--index;
+		if (index >= 100)
+			index -= 100;
+		else if (index < 100)
+		{
+			index += sa::CHAR_EQUIPSLOT_COUNT;
+		}
+
 		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sa::profession_skill_t();
+		if (!gamedevice.worker.isNull())
+		{
+			sa::profession_skill_t skill = gamedevice.worker->getSkill(index);
+			skills_.insert(index, skill);
+		}
 
-		if (index < 0 || index >= sa::MAX_PROFESSION_SKILL)
-			return sa::profession_skill_t();
+		if (!skills_.contains(index))
+			skills_.insert(index, sa::profession_skill_t());
 
-		return gamedevice.worker->getSkill(index);
+		return skills_[index];
 	}
 
 	sa::profession_skill_t find(std::string sname)
@@ -1451,7 +1461,7 @@ void CLua::open_petlibs(sol::state& lua)
 
 	lua.new_usertype<CLuaPet>("PetClass",
 		sol::call_constructor,
-		sol::constructors<CLuaPet()>(),
+		sol::constructors<CLuaPet(long long)>(),
 		sol::meta_function::index, &CLuaPet::operator[],
 		"count", &CLuaPet::count
 	);
@@ -1793,14 +1803,14 @@ void CLua::proc()
 				}
 				tableStrs << ">";
 			}
-	}
+		}
 
 		luadebug::logExport(s, tableStrs, 0);
-} while (false);
+	} while (false);
 
-emit finished();
+	emit finished();
 
-long long currentIndex = getIndex();
-SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-emit signalDispatcher.scriptFinished();
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.scriptFinished();
 }

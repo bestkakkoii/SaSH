@@ -30,7 +30,7 @@ sa::pet_t& CLuaPet::operator[](long long index)
 	{
 		gamedevice.worker->updateItemByMemory();
 		QHash<long long, sa::pet_t> pets = gamedevice.worker->getPets();
-		if (pets_.contains(index))
+		if (pets.contains(index))
 			pets_.insert(index, pets.value(index));
 	}
 
