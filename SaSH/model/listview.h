@@ -46,6 +46,8 @@ public:
 
 	void swapRowDown(long long source);
 
+	void setMaxListCount(long long count) { MAX_LIST_COUNT = count; }
+
 protected:
 	int rowCount(const QModelIndex& parent = QModelIndex()) const override { return parent.isValid() ? 0 : m_list.size(); }
 
@@ -56,6 +58,7 @@ signals:
 private:
 	QVector<QString> m_list;
 	QVector<long long> m_colorlist;
+	long long MAX_LIST_COUNT = 512;
 
 	mutable QReadWriteLock m_stringlistLocker;
 

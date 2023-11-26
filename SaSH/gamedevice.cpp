@@ -647,6 +647,7 @@ void GameDevice::leftClick(long long x, long long y) const
 	//sendMessage(WM_LBUTTONUP, MK_LBUTTON, data);
 	//QThread::msleep(50);
 	mouseMove(x, y);
+	QThread::msleep(50);
 	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseClick, 1);
 }
 
@@ -658,6 +659,7 @@ void GameDevice::leftDoubleClick(long long x, long long y) const
 	//sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
 	//QThread::msleep(50);
 	mouseMove(x, y);
+	QThread::msleep(50);
 	LPARAM data = MAKELPARAM(x, y);
 	sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
 }
@@ -672,6 +674,7 @@ void GameDevice::rightClick(long long x, long long y) const
 	//sendMessage(WM_RBUTTONUP, MK_RBUTTON, data);
 	//QThread::msleep(50);
 	mouseMove(x, y);
+	QThread::msleep(50);
 	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseClick, 2);
 }
 

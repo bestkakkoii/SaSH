@@ -39,7 +39,7 @@ public:
 
 	virtual ~Socket();
 
-	QThread thread;
+	//QThread thread;
 
 private slots:
 	void onReadyRead();
@@ -48,7 +48,6 @@ private slots:
 private:
 	long long index_ = -1;
 	bool init = false;
-	QFuture<void> netFuture_;
 };
 
 class Worker : public QObject, public Indexer, public Lssproto
@@ -80,28 +79,29 @@ public slots:
 
 public:
 	void processRead(); //Async concurrent, DO NOT change calling convention
+	void handleData(QByteArray badata);
 
 private:
 	long long __fastcall dispatchMessage(const QByteArray& encoded);
 
 	bool __fastcall handleCustomMessage(const QByteArray& data);
 
-	void __fastcall handleData(const QByteArray& data);
+
 
 public://actions
 	void __fastcall clearNetBuffer();
 
-	QString __fastcall battleStringFormat(const sa::battle_object_t& obj, QString formatStr);
+	QString __fastcall battleStringFormat(const sa::battle_object_t& obj, QString formatStr) const;
 
-	[[nodiscard]] long long __fastcall getWorldStatus();
+	[[nodiscard]] long long __fastcall getWorldStatus() const;
 
-	[[nodiscard]] long long __fastcall getGameStatus();
+	[[nodiscard]] long long __fastcall getGameStatus() const;
 
-	[[nodiscard]] bool __fastcall checkWG(long long  w, long long g);
+	[[nodiscard]] bool __fastcall checkWG(long long  w, long long g) const;
 
 	[[nodiscard]] long long __fastcall getUnloginStatus();
-	void __fastcall setWorldStatus(long long w);
-	void __fastcall setGameStatus(long long g);
+	void __fastcall setWorldStatus(long long w) const;
+	void __fastcall setGameStatus(long long g) const;
 
 	bool __fastcall login(long long s);
 
@@ -120,7 +120,7 @@ public://actions
 
 	bool __fastcall move(const QPoint& p, const QString& dir);
 
-	bool __fastcall move(const QPoint& p);
+	bool __fastcall move(const QPoint& p) const;
 
 	bool __fastcall announce(const QString& msg, long long color = 4);
 
@@ -178,7 +178,7 @@ public://actions
 
 	bool __fastcall craft(sa::CraftType type, const QStringList& ingres);
 
-	bool __fastcall createRemoteDialog(unsigned long long type, unsigned long long button, const QString& text);
+	bool __fastcall createRemoteDialog(unsigned long long type, unsigned long long button, const QString& text) const;
 
 	bool __fastcall mail(const QVariant& card, const QString& text, long long petIndex, const QString& itemName, const QString& itemMemo);
 
@@ -234,7 +234,7 @@ public://actions
 	bool __fastcall tradeComplete(const QString& name);
 
 	bool __fastcall cleanChatHistory();
-	[[nodiscard]] QString __fastcall getChatHistory(long long index);
+	[[nodiscard]] QString __fastcall getChatHistory(long long index) const;
 
 	bool __fastcall findUnit(const QString& name, long long type, sa::map_unit_t* unit, const QString& freeName = "", long long modelid = -1);
 
@@ -260,16 +260,16 @@ public://actions
 	bool __fastcall getItemEmptySpotIndexs(QVector<long long>* pv);
 	void __fastcall clear();
 
-	[[nodiscard]] bool __fastcall checkCharMp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
-	[[nodiscard]] bool __fastcall checkCharHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
-	[[nodiscard]] bool __fastcall checkRideHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
-	[[nodiscard]] bool __fastcall checkPetHp(long long cmpvalue, long long* target = nullptr, bool useequal = false);
-	[[nodiscard]] bool __fastcall checkTeammateHp(long long cmpvalue, long long* target);
+	[[nodiscard]] bool __fastcall checkCharMp(long long cmpvalue, long long* target = nullptr, bool useequal = false) const;
+	[[nodiscard]] bool __fastcall checkCharHp(long long cmpvalue, long long* target = nullptr, bool useequal = false) const;
+	[[nodiscard]] bool __fastcall checkRideHp(long long cmpvalue, long long* target = nullptr, bool useequal = false) const;
+	[[nodiscard]] bool __fastcall checkPetHp(long long cmpvalue, long long* target = nullptr, bool useequal = false) const;
+	[[nodiscard]] bool __fastcall checkTeammateHp(long long cmpvalue, long long* target) const;
 
 	[[nodiscard]] bool __fastcall isPetSpotEmpty() const;
 	[[nodiscard]] long long __fastcall checkJobDailyState(const QString& missionName, long long timeout);
 
-	[[nodiscard]] bool __fastcall isDialogVisible();
+	[[nodiscard]] bool __fastcall isDialogVisible() const;
 
 	bool __fastcall setCharFreeName(const QString& name);
 	bool __fastcall setPetFreeName(long long petIndex, const QString& name);
@@ -354,17 +354,17 @@ public://actions
 	inline [[nodiscard]] sa::char_list_data_t __fastcall getCharListTable(long long index) const { return charListData_.value(index); }
 	inline [[nodiscard]] sa::mail_history_t __fastcall getMailHistory(long long index) const { return mailHistory_.value(index); }
 
-	[[nodiscard]] long long __fastcall findInjuriedAllie();
+	[[nodiscard]] long long __fastcall findInjuriedAllie() const;
 
 	void __fastcall refreshItemInfo();
 
-	void __fastcall updateComboBoxList();
+	void __fastcall updateComboBoxList() const;
 
 	bool __fastcall setWindowTitle(QString formatStr);
 
 	void addNetQueue(const QByteArray& data) { readQueue_.enqueue(data); }
 private:
-	bool __fastcall setCharModelDirection(long long dir);
+	bool __fastcall setCharModelDirection(long long dir) const;
 
 	void __fastcall refreshItemInfo(long long index);
 
@@ -420,8 +420,8 @@ private:
 	bool __fastcall fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget, long long* target) const;
 	bool __fastcall fixCharTargetByItemIndex(long long itemIndex, long long oldtarget, long long* target) const;
 	bool __fastcall fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget, long long* target) const;
-	void __fastcall updateCurrentSideRange(sa::battle_data_t* bt);
-	bool __fastcall checkFlagState(long long pos);
+	void __fastcall updateCurrentSideRange(sa::battle_data_t* bt) const;
+	bool __fastcall checkFlagState(long long pos) const;
 
 	inline void __fastcall setBattleData(const sa::battle_data_t& data) { battleData_.set(data); }
 
@@ -620,7 +620,6 @@ private:
 	QByteArray netReadBufferArray_;
 	QByteArray netRawBufferArray_;
 	safe::queue<QByteArray> readQueue_; //接收來自客戶端的數據隊列
-
 private://lssproto
 	long long __fastcall appendReadBuf(const QByteArray& data);
 	bool __fastcall splitLinesFromReadBuf(QByteArrayList& list);

@@ -1179,9 +1179,9 @@ MainForm::MainForm(long long index, QWidget* parent)
 
 	onResetControlTextLanguage();
 
-	RPC& rpc = RPC::getInstance();
-	QSharedPointer<sol::state> device = rpc.getDevice(getIndex());
-	device->set_function("print", &MainForm::print, this);
+	//RPC& rpc = RPC::getInstance();
+	//QSharedPointer<sol::state> device = rpc.getDevice(getIndex());
+	//device->set_function("print", &MainForm::print, this);
 }
 
 std::string MainForm::print(std::string str)

@@ -44,8 +44,8 @@ public:
 
 	void wait();
 
-	inline bool isRunning() { return thread_.isRunning(); }
-	inline bool isFinished() { return thread_.isFinished(); }
+	inline bool isRunning() { return future_.isRunning(); }
+	inline bool isFinished() { return future_.isFinished(); }
 	inline void appendArg(const QVariant& arg) { args_.append(arg); }
 	inline void appendArgs(const QVariantList& args) { args_.append(args); }
 
@@ -61,7 +61,7 @@ public:
 
 	void start();
 
-public slots:
+private:
 	void autoJoin();
 	void autoWalk();
 	void autoSortItem();
@@ -75,7 +75,8 @@ public slots:
 
 private:
 	long long type_ = 0;
-	QThread thread_;
+	QFuture<void> future_;
+	std::function<void()> func_;
 	QVariantList args_;
 	safe::flag isMissionInterruptionRequested_ = false;
 };
@@ -94,16 +95,16 @@ public slots:
 	void run();
 
 private:
-	long long __fastcall inGameInitialize();
+	long long __fastcall inGameInitialize() const;
 
 	void __fastcall mainProc();
 
-	void __fastcall updateAfkInfos();
+	void __fastcall updateAfkInfos() const;
 
 	long long __fastcall checkAndRunFunctions();
 
 	void __fastcall checkControl();
-	void __fastcall checkEtcFlag();
+	void __fastcall checkEtcFlag() const;
 	//void checkAutoAbility();
 
 public:

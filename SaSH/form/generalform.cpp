@@ -672,12 +672,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			ui.checkBox_autobattle->setChecked(!isChecked);
 		}
 
-		bool bOriginal = gamedevice.getEnableHash(util::kFastBattleEnable);
 		gamedevice.setEnableHash(util::kFastBattleEnable, isChecked);
-		if (!bOriginal && isChecked && !gamedevice.worker.isNull())
-		{
-			gamedevice.worker->doBattleWork(false);
-		}
 		return;
 	}
 
@@ -688,13 +683,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			ui.checkBox_fastbattle->setChecked(!isChecked);
 		}
 
-		bool bOriginal = gamedevice.getEnableHash(util::kAutoBattleEnable);
 		gamedevice.setEnableHash(util::kAutoBattleEnable, isChecked);
-		if (!bOriginal && isChecked && !gamedevice.worker.isNull())
-		{
-			gamedevice.worker->doBattleWork(false);
-		}
-
 		return;
 	}
 

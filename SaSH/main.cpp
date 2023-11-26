@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 
 //堆棧追蹤
-void printStackTrace()
+static void printStackTrace()
 {
 	util::TextStream out(stderr);
 	void* stack[100];
@@ -55,7 +55,7 @@ void printStackTrace()
 }
 
 #if 0
-void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+static void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
 	if (type != QtCriticalMsg && type != QtFatalMsg)
 	{
@@ -92,7 +92,7 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 #endif
 
 #if defined _M_X64 || defined _M_IX86
-LPTOP_LEVEL_EXCEPTION_FILTER WINAPI
+static LPTOP_LEVEL_EXCEPTION_FILTER WINAPI
 dummySetUnhandledExceptionFilter(
 	LPTOP_LEVEL_EXCEPTION_FILTER)
 {
@@ -102,7 +102,7 @@ dummySetUnhandledExceptionFilter(
 #error "This code works only for x86 and x64!"
 #endif
 
-BOOL preventSetUnhandledExceptionFilter()
+static BOOL preventSetUnhandledExceptionFilter()
 {
 	HMODULE hKernel32 = LoadLibraryW(L"kernel32.dll");
 	if (hKernel32 == nullptr)
@@ -156,7 +156,7 @@ BOOL preventSetUnhandledExceptionFilter()
 	return bRet;
 }
 
-LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
+static LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 {
 	do
 	{
@@ -268,7 +268,7 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-void fontInitialize(const QString& currentWorkPath)
+static void fontInitialize(const QString& currentWorkPath)
 {
 	QStringList fontPaths;
 	util::searchFiles(currentWorkPath, "", ".ttf", &fontPaths, false);
@@ -281,7 +281,7 @@ void fontInitialize(const QString& currentWorkPath)
 	qApp->setFont(font);
 }
 
-void registryInitialize()
+static void registryInitialize()
 {
 	QSettings settings("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System", QSettings::NativeFormat);
 	//ConsentPromptBehaviorAdmin
@@ -382,7 +382,12 @@ int main(int argc, char* argv[])
 	long long count = QThread::idealThreadCount();
 	QThreadPool* pool = QThreadPool::globalInstance();
 	if (pool != nullptr)
+	{
+		if (count < 16)
+			count = 16;
+
 		pool->setMaxThreadCount(count);
+	}
 
 	//必要目錄設置
 	QString currentWorkPath = util::applicationDirPath();
@@ -478,13 +483,13 @@ int main(int argc, char* argv[])
 
 	/* 實例化單個或多個主窗口 */
 
-	RPC::initialize(&a);
+	//RPC::initialize(&a);
 
-	RPC& rpc = RPC::getInstance();
-	if (rpc.listen(_getpid()))
-	{
-		qDebug() << "RPC server is listening.";
-	}
+	//RPC& rpc = RPC::getInstance();
+	//if (rpc.listen(_getpid()))
+	//{
+	//	qDebug() << "RPC server is listening.";
+	//}
 
 
 	// 解析啟動參數
@@ -532,6 +537,6 @@ int main(int argc, char* argv[])
 	}
 
 	int ret = a.exec();
-	rpc.close();
+	//rpc.close();
 	return ret;
 }

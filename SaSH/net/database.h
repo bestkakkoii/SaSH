@@ -41,7 +41,7 @@ namespace sa
 	constexpr long long ITEM_NAME2_LEN = 16;
 	constexpr long long ITEM_MEMO_LEN = 84;
 	constexpr long long PET_NAME_LEN = 16;
-	constexpr long long PET_FREENAME_LEN = 12;
+	constexpr long long PET_FREENAME_LEN = 16;
 	constexpr long long CHAR_FMNAME_LEN = 33;     // 家族名稱
 	constexpr long long FLOOR_NAME_LEN = 24;
 	constexpr long long PROFESSION_MEMO_LEN = 84;//人物職業

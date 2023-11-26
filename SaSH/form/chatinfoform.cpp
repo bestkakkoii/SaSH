@@ -82,6 +82,8 @@ ChatInfoForm::ChatInfoForm(long long index, QWidget* parent)
 
 	GameDevice& gamedevice = GameDevice::getInstance(index);
 
+	gamedevice.chatLogModel.setMaxListCount(256);
+
 	ui.listView_log->setModel(&gamedevice.chatLogModel);
 
 	delegate_ = q_check_ptr(new ColorDelegate(this));

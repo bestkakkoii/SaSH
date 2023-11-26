@@ -21,8 +21,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <listview.h>
 #include <qmath.h>
 
-constexpr long long MAX_LIST_COUNT = 1024;
-
 #pragma region StringListModel
 ///////////////////////////////////////////////////////////////////////////////////////////////
 StringListModel::StringListModel(QObject* parent)
@@ -394,7 +392,7 @@ public:
 		long long height = QStyledItemDelegate::sizeHint(option, index).height();
 		QString text = index.data(Qt::DisplayRole).toString();
 		QFontMetrics fm(option.font);
-		long long width = fm.horizontalAdvance(text) * 10;
+		long long width = fm.horizontalAdvance(text) * 5;
 		return QSize(width, height);
 	}
 

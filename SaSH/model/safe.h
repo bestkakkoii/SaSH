@@ -465,6 +465,10 @@ namespace safe
 		V dequeue()
 		{
 			std::unique_lock<std::shared_mutex> lock(mutex_);
+			if (queue_.isEmpty())
+			{
+				return V();
+			}
 			return std::move(queue_.dequeue());
 		}
 
@@ -493,7 +497,7 @@ namespace safe
 
 	private:
 		QQueue<V> queue_;
-		long long maxSize_ = 0;
+		long long maxSize_ = 4096;
 		mutable std::shared_mutex mutex_;
 	};;
 #pragma endregion

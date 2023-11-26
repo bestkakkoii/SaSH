@@ -1190,7 +1190,7 @@ long long CLuaSystem::chpetname(long long index, sol::object oname, sol::this_st
 	long long size = util::fromUnicode(name).size();
 	if (size > sa::PET_FREENAME_LEN)
 	{
-		luadebug::showErrorMsg(s, luadebug::WARN_LEVEL, QObject::tr("name length must below or equal %1 bytes, but got %2 bytes").arg(sa::CHAR_FREENAME_LEN).arg(size));
+		luadebug::showErrorMsg(s, luadebug::WARN_LEVEL, QObject::tr("name length must below or equal %1 bytes, but got %2 bytes").arg(sa::PET_FREENAME_LEN).arg(size));
 		return FALSE;
 	}
 
@@ -2193,14 +2193,10 @@ long long CLuaSystem::set(std::string enumStr,
 		if (type == util::kFastBattleEnable && ok)
 		{
 			gamedevice.setEnableHash(util::kAutoBattleEnable, !ok);
-			if (ok && !gamedevice.worker.isNull() && gamedevice.worker->getBattleFlag())
-				gamedevice.worker->doBattleWork(false);
 		}
 		else if (type == util::kAutoBattleEnable && ok)
 		{
 			gamedevice.setEnableHash(util::kFastBattleEnable, !ok);
-			if (ok && !gamedevice.worker.isNull() && gamedevice.worker->getBattleFlag())
-				gamedevice.worker->doBattleWork(false);
 		}
 		else if (type == util::kAutoWalkEnable && ok)
 		{

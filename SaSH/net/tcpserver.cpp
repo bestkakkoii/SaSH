@@ -271,8 +271,8 @@ void Server::incomingConnection(qintptr socketDescriptor)
 	connect(clientSocket, &Socket::disconnected, this, [this, clientSocket]()
 		{
 			clientSockets_.removeOne(clientSocket);
-			clientSocket->thread.quit();
-			clientSocket->thread.wait();
+			//clientSocket->thread.quit();
+			//clientSocket->thread.wait();
 			clientSocket->deleteLater();
 		});
 }
@@ -289,9 +289,9 @@ Socket::Socket(qintptr socketDescriptor, QObject* parent)
 	setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 0);
 	setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 0);
 	setSocketOption(QAbstractSocket::TypeOfServiceOption, 64);
-	connect(this, &Socket::readyRead, this, &Socket::onReadyRead, Qt::QueuedConnection);
-	moveToThread(&thread);
-	thread.start();
+	connect(this, &QIODevice::readyRead, this, &Socket::onReadyRead, Qt::DirectConnection);
+	//moveToThread(&thread);
+	//thread.start();
 }
 
 void Socket::onReadyRead()
@@ -306,15 +306,12 @@ void Socket::onReadyRead()
 		if (!gamedevice.worker.isNull())
 		{
 			//封包入隊列
-			gamedevice.worker->addNetQueue(std::move(badata));
-			if (netFuture_.isRunning())
-				return;
-			//通知處理
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-			netFuture_ = QtConcurrent::run(gamedevice.worker.get(), &Worker::processRead);
-#else
-			netFuture_ = QtConcurrent::run(&Worker::processRead, gamedevice.worker.get());
-#endif
+			/*gamedevice.worker->addNetQueue(std::move(badata));
+			gamedevice.worker->processRead();*/
+			GameDevice& gamedevice = GameDevice::getInstance(index_);
+
+			if (!gamedevice.isGameInterruptionRequested())
+				gamedevice.worker->handleData(std::move(badata));
 		}
 		return;
 	}
@@ -367,6 +364,7 @@ Worker::Worker(long long index, QObject* parent)
 	: Indexer(index)
 	, Lssproto(&GameDevice::getInstance(index).autil)
 	, chatQueue(sa::MAX_CHAT_HISTORY)
+	, readQueue_(24)
 	, petInfoLock_(QReadWriteLock::Recursive)
 	, itemInfoLock_(QReadWriteLock::Recursive)
 	, moveLock_(QMutex::Recursive)
@@ -471,8 +469,7 @@ void Worker::clear()
 //處理遊戲客戶端發來的數據
 void Worker::processRead()
 {
-	while (!readQueue_.isEmpty())
-		handleData(std::move(readQueue_.dequeue()));
+
 }
 
 bool Worker::handleCustomMessage(const QByteArray& badata)
@@ -492,7 +489,6 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 	if (preStr.startsWith("bpk|"))
 	{
 		isBattleDialogReady.on();
-		doBattleWork(true);
 		return true;
 	}
 
@@ -516,10 +512,12 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 }
 
 //異步處理數據
-void Worker::handleData(const QByteArray& badata)
+void Worker::handleData(QByteArray badata)
 {
 	if (handleCustomMessage(badata))
+	{
 		return;
+	}
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -530,14 +528,18 @@ void Worker::handleData(const QByteArray& badata)
 	appendReadBuf(badata);
 
 	if (netReadBufferArray_.isEmpty())
+	{
 		return;
+	}
 
 
 	QString key = mem::readString(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetPersonalKey, PERSONALKEYSIZE, true, true);
 	gamedevice.autil.setKey(util::toConstData(key));
 
 	if (!splitLinesFromReadBuf(netDataArrayList_))
+	{
 		return;
+	}
 
 	for (QByteArray& ba : netDataArrayList_)
 	{
@@ -1339,6 +1341,15 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!gamedevice.autil.util_Receive(netDataBuffer_, &x, &y, &z))
 			return kInvalidBuffer;
 
+		QString text = util::toUnicode(netDataBuffer_);
+
+		util::ScopedFile file("d:/data.txt");
+		if (file.openWriteAppend())
+		{
+			file.write(text.toUtf8().data());
+			file.write("\n");
+		}
+
 		break;
 	}
 	case sa::LSSPROTO_DENGON_RECV:/* 特殊公告 200*/
@@ -1479,7 +1490,7 @@ bool Worker::getOnlineFlag() const
 }
 
 //用於判斷畫面的狀態的數值 (9平時 10戰鬥 <8非登入)
-long long Worker::getWorldStatus()
+long long Worker::getWorldStatus() const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -1487,7 +1498,7 @@ long long Worker::getWorldStatus()
 }
 
 //用於判斷畫面或動畫狀態的數值 (平時一般是3 戰鬥中選擇面板是4 戰鬥動作中是5或6，平時還有很多其他狀態值)
-long long Worker::getGameStatus()
+long long Worker::getGameStatus() const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -1495,7 +1506,7 @@ long long Worker::getGameStatus()
 }
 
 //檢查W G 值是否匹配指定值
-bool Worker::checkWG(long long w, long long g)
+bool Worker::checkWG(long long w, long long g) const
 {
 	return getWorldStatus() == w && getGameStatus() == g;
 }
@@ -1646,7 +1657,21 @@ long long Worker::getUnloginStatus()
 		return util::kStatusUnknown;
 	}
 	else if (9 == W && 3 == G)
+	{
+		if (!getOnlineFlag())
+		{
+			setOnlineFlag(true);
+		}
 		return util::kStatusLogined;//已豋入(平時且無其他對話框或特殊場景)
+	}
+
+	if (10 == W)
+	{
+		if (!getOnlineFlag())
+		{
+			setOnlineFlag(true);
+		}
+	}
 
 	qDebug() << "getUnloginStatus: " << W << " " << G;
 	return util::kStatusUnknown;
@@ -1725,7 +1750,7 @@ long long Worker::getTeamSize()
 }
 
 //取對話紀錄
-QString Worker::getChatHistory(long long index)
+QString Worker::getChatHistory(long long index) const
 {
 	if (index < 0 || index >= sa::MAX_CHAT_HISTORY)
 		return "\0";
@@ -2418,7 +2443,7 @@ QString Worker::getGround()
 }
 
 //查找非滿血自己寵物或隊友的索引 (主要用於自動吃肉)
-long long Worker::findInjuriedAllie()
+long long Worker::findInjuriedAllie() const
 {
 	sa::character_t pc = getCharacter();
 	if (pc.hp < pc.maxHp)
@@ -2504,7 +2529,7 @@ long long Worker::getProfessionSkillIndexByName(const QString& names) const
 
 #pragma region SET
 //更新敵我索引範圍
-void Worker::updateCurrentSideRange(sa::battle_data_t* bt)
+void Worker::updateCurrentSideRange(sa::battle_data_t* bt) const
 {
 	if (nullptr == bt)
 		return;
@@ -2844,14 +2869,14 @@ void Worker::swapItemLocal(long long from, long long to)
 	item_ = items;
 }
 
-void Worker::setWorldStatus(long long w)
+void Worker::setWorldStatus(long long w) const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	mem::write<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetWorldStatus, w);
 }
 
-void Worker::setGameStatus(long long g)
+void Worker::setGameStatus(long long g) const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -3015,7 +3040,7 @@ bool Worker::cleanChatHistory()
 	return true;
 }
 
-void Worker::updateComboBoxList()
+void Worker::updateComboBoxList() const
 {
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -3042,7 +3067,10 @@ void Worker::updateComboBoxList()
 		QString shortText = QString(QObject::tr("(cost:%1)")).arg(magic.costmp);
 		long long shortcutWidth = fontMetrics.horizontalAdvance(shortText);
 		constexpr long long totalWidth = 120;
-		long long spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
+		const auto size = fontMetrics.horizontalAdvance(' ');
+		long long spaceCount = 1;
+		if (size > 0)
+			spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
 
 		QString alignedText = magic.name + QString(spaceCount, ' ') + shortText;
 
@@ -3286,7 +3314,7 @@ bool Worker::setSwitchers(long long flg)
 }
 
 //對話框是否存在
-bool Worker::isDialogVisible()
+bool Worker::isDialogVisible() const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -3927,7 +3955,7 @@ bool Worker::login(long long s)
 
 #pragma region WindowPacket
 //創建對話框
-bool Worker::createRemoteDialog(unsigned long long type, unsigned long long button, const QString& text)
+bool Worker::createRemoteDialog(unsigned long long type, unsigned long long button, const QString& text) const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -5229,17 +5257,17 @@ void Worker::checkAutoHeal()
 			ok = true;
 			target = 0;
 		}
-		else if (!ok && (petPercent > 0) && checkPetHp(petPercent))
+		if (!ok && (petPercent > 0) && checkPetHp(petPercent))
 		{
 			ok = true;
 			target = getCharacter().battlePetNo + 1;
 		}
-		else if (!ok && (petPercent > 0) && checkRideHp(petPercent))
+		if (!ok && (petPercent > 0) && checkRideHp(petPercent))
 		{
 			ok = true;
 			target = getCharacter().ridePetNo + 1;
 		}
-		else if (!ok && (alliePercent > 0) && checkTeammateHp(alliePercent, &target))
+		if (!ok && (alliePercent > 0) && checkTeammateHp(alliePercent, &target))
 		{
 			ok = true;
 			target += sa::MAX_PET;
@@ -5597,7 +5625,7 @@ bool Worker::move(const QPoint& p, const QString& dir)
 }
 
 //移動(記憶體)
-bool Worker::move(const QPoint& p)
+bool Worker::move(const QPoint& p) const
 {
 	QMutexLocker locker(&moveLock_);
 	long long currentIndex = getIndex();
@@ -5654,7 +5682,7 @@ long long Worker::setCharFaceToPoint(const QPoint& pos)
 }
 
 //人物模型轉向(本地)
-bool Worker::setCharModelDirection(long long dir)
+bool Worker::setCharModelDirection(long long dir) const
 {
 	//這裡是用來使遊戲動畫跟著轉向
 	long long currentIndex = getIndex();
@@ -6253,7 +6281,7 @@ void Worker::realTimeToSATime(sa::ls_time_t* lstime)
 	return;
 }
 //取SA時間區段
-sa::LSTimeSection getLSTime(sa::ls_time_t* lstime)
+static sa::LSTimeSection getLSTime(sa::ls_time_t* lstime)
 {
 	if (sa::NIGHT_TO_MORNING < lstime->hour && lstime->hour <= sa::MORNING_TO_NOON)
 	{
@@ -6321,7 +6349,7 @@ void Worker::setBattleEnd()
 }
 
 //戰鬥BA包標誌位檢查
-inline bool Worker::checkFlagState(long long pos)
+inline bool Worker::checkFlagState(long long pos) const
 {
 	if (pos < 0 || pos >= sa::MAX_ENEMY)
 		return false;
@@ -6331,12 +6359,12 @@ inline bool Worker::checkFlagState(long long pos)
 //異步處理自動/快速戰鬥邏輯和發送封包
 void Worker::doBattleWork(bool canDelay)
 {
+#if 0
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	if (canDelay)
 	{
 		//紀錄動作前的回合
 		long long recordedRound = battleCurrentRound.get();
-
-		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 		long long delay = gamedevice.getValueHash(util::kBattleActionDelayValue);
 		long long resendDelay = gamedevice.getValueHash(util::kBattleResendDelayValue);
 		if ((delay + resendDelay) >= 1000 && battleCurrentRound.get() > 0 && !battleBackupFuture_.isRunning() && gamedevice.worker->getBattleFlag())
@@ -6399,12 +6427,20 @@ void Worker::doBattleWork(bool canDelay)
 						battleCharAlreadyActed.off();
 					if (battlePetAlreadyActed.get())
 						battlePetAlreadyActed.off();
-					asyncBattleAction(false);
+
+					if (gamedevice.battleActionFuture.isRunning())
+						return;
+
+					gamedevice.battleActionFuture = QtConcurrent::run([this, canDelay]() { asyncBattleAction(canDelay); });
 				}, recordedRound);
 		}
 	}
 
-	QtConcurrent::run([this, canDelay]() { asyncBattleAction(canDelay); });
+	if (gamedevice.battleActionFuture.isRunning())
+		return;
+
+	gamedevice.battleActionFuture = QtConcurrent::run([this, canDelay]() { asyncBattleAction(canDelay); });
+#endif
 }
 
 //異步戰鬥動作處理
@@ -6421,12 +6457,11 @@ bool Worker::asyncBattleAction(bool canDelay)
 	if (!getBattleFlag())
 		return false;
 
-
 	//自動戰鬥打開 或 快速戰鬥打開且處於戰鬥場景
-	bool fastChecked = gamedevice.getEnableHash(util::kFastBattleEnable);
-	bool normalChecked = gamedevice.getEnableHash(util::kAutoBattleEnable);
-	bool fastEnabled = (getWorldStatus() == 9) && ((fastChecked) || (normalChecked));
-	bool normalEnabled = (getWorldStatus() == 10) && ((normalChecked) || (fastChecked));
+	bool fastChecked = gamedevice.getEnableHash(util::kFastBattleEnable);//快速戰鬥是否開啟
+	bool normalChecked = gamedevice.getEnableHash(util::kAutoBattleEnable);//自動戰鬥是否開啟
+	bool fastEnabled = (getWorldStatus() == 9) && ((fastChecked) || (normalChecked));//快速戰鬥開啟且不處於戰鬥畫面
+	bool normalEnabled = (getWorldStatus() == 10) && ((normalChecked) || (fastChecked));//自動戰鬥開啟且處於戰鬥畫面
 	if (normalEnabled && !checkWG(10, 4) || (!fastEnabled && !normalEnabled))
 	{
 		return false;
@@ -6585,7 +6620,7 @@ long long Worker::petDoBattleWork(const sa::battle_data_t& bt)
 }
 
 //檢查人物血量
-bool Worker::checkCharHp(long long cmpvalue, long long* target, bool useequal)
+bool Worker::checkCharHp(long long cmpvalue, long long* target, bool useequal) const
 {
 	sa::character_t pc = getCharacter();
 	if (useequal && (pc.hpPercent <= cmpvalue))
@@ -6605,7 +6640,7 @@ bool Worker::checkCharHp(long long cmpvalue, long long* target, bool useequal)
 };
 
 //檢查人物氣力
-bool Worker::checkCharMp(long long cmpvalue, long long* target, bool useequal)
+bool Worker::checkCharMp(long long cmpvalue, long long* target, bool useequal) const
 {
 	sa::character_t pc = getCharacter();
 	if (useequal && (pc.mpPercent <= cmpvalue))
@@ -6625,7 +6660,7 @@ bool Worker::checkCharMp(long long cmpvalue, long long* target, bool useequal)
 };
 
 //檢測戰寵血量
-bool Worker::checkPetHp(long long cmpvalue, long long* target, bool useequal)
+bool Worker::checkPetHp(long long cmpvalue, long long* target, bool useequal) const
 {
 	sa::character_t pc = getCharacter();
 
@@ -6652,7 +6687,7 @@ bool Worker::checkPetHp(long long cmpvalue, long long* target, bool useequal)
 };
 
 //檢測騎寵血量
-bool Worker::checkRideHp(long long cmpvalue, long long* target, bool useequal)
+bool Worker::checkRideHp(long long cmpvalue, long long* target, bool useequal) const
 {
 	sa::character_t pc = getCharacter();
 
@@ -6665,13 +6700,13 @@ bool Worker::checkRideHp(long long cmpvalue, long long* target, bool useequal)
 	if (useequal && (pet.hpPercent <= cmpvalue) && (pet.level > 0) && (pet.maxHp > 0))
 	{
 		if (target)
-			*target = battleCharCurrentPos.get() + 5;
+			*target = battleCharCurrentPos.get();
 		return true;
 	}
 	else if (!useequal && (pet.hpPercent < cmpvalue) && (pet.level > 0) && (pet.maxHp > 0))
 	{
 		if (target)
-			*target = battleCharCurrentPos.get() + 5;
+			*target = battleCharCurrentPos.get();
 		return true;
 	}
 
@@ -6679,7 +6714,7 @@ bool Worker::checkRideHp(long long cmpvalue, long long* target, bool useequal)
 };
 
 //檢測隊友血量
-bool Worker::checkTeammateHp(long long cmpvalue, long long* target)
+bool Worker::checkTeammateHp(long long cmpvalue, long long* target) const
 {
 	if (!target)
 		return false;
@@ -7448,6 +7483,17 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 					{
 						ok = true;
 					}
+					else if (!ok && bt.objects.value(battleCharCurrentPos.get()).rideMaxHp > 0)
+					{
+						if (bt.objects.value(battleCharCurrentPos.get()).rideHpPercent <= petPercent
+							&& bt.objects.value(battleCharCurrentPos.get()).rideHp > 0
+							&& !util::checkAND(bt.objects.value(battleCharCurrentPos.get()).status, sa::BC_FLG_DEAD)
+							&& !util::checkAND(bt.objects.value(battleCharCurrentPos.get()).status, sa::BC_FLG_HIDE))
+						{
+							tempTarget = battleCharCurrentPos.get();
+							ok = true;
+						}
+					}
 				}
 
 				if (util::checkAND(targetFlags, kSelectPet))
@@ -7463,7 +7509,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 							ok = true;
 						}
 					}
-					else if (!ok && bt.objects.value(battleCharCurrentPos.get()).maxHp > 0)
+					else if (!ok && bt.objects.value(battleCharCurrentPos.get()).rideMaxHp > 0)
 					{
 						if (bt.objects.value(battleCharCurrentPos.get()).rideHpPercent <= petPercent
 							&& bt.objects.value(battleCharCurrentPos.get()).rideHp > 0
@@ -9234,7 +9280,7 @@ bool Worker::isCharHpEnoughForSkill(long long magicIndex) const
 	return true;
 }
 
-bool compareBattleObjects(const sa::battle_object_t& a, const sa::battle_object_t& b)
+static bool compareBattleObjects(const sa::battle_object_t& a, const sa::battle_object_t& b)
 {
 	// 首先按照 hp 升序排序
 	if (a.hp != b.hp)
@@ -9314,7 +9360,7 @@ void Worker::sortBattleUnit(QVector<sa::battle_object_t>& v) const
 }
 
 //是否可直接接觸(如果目標為後排但前排還存活視為不可接觸)
-bool isTouchable(const QVector<sa::battle_object_t>& obj, long long index)
+static bool isTouchable(const QVector<sa::battle_object_t>& obj, long long index)
 {
 	const QHash<long long, long long> hash = {
 		{ 13, 18 },
@@ -10576,7 +10622,6 @@ void Worker::lssproto_PR_recv(long long request, long long result)
 	{
 		if (request == 0 && result == 1)
 		{
-			//QWriteLocker locker(&teamInfoLock_);
 			long long i;
 			QHash<long long, sa::team_t> team = team_.toHash();
 			for (i = 0; i < sa::MAX_TEAM; ++i)
@@ -10585,8 +10630,6 @@ void Worker::lssproto_PR_recv(long long request, long long result)
 				teamInfoList.append("");
 			}
 			team_ = team;
-
-			//pc.status &= (~kCharacterStatus_IsLeader);
 		}
 	}
 
@@ -11417,7 +11460,7 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 	}
 }
 
-QString Worker::battleStringFormat(const sa::battle_object_t& obj, QString formatStr)
+QString Worker::battleStringFormat(const sa::battle_object_t& obj, QString formatStr) const
 {
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	//"[%(pos)]%(self)%(name) LV:%(lv)(%(hp)|%(hpp))%(status)"
@@ -11978,7 +12021,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 		//切換標誌為可動作狀態
 		battleCharAlreadyActed.off();
 		battlePetAlreadyActed.off();
-		doBattleWork(true);
 		break;
 	}
 	case 'U':
@@ -15150,6 +15192,7 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSignning);
+
 	//重置登入計時
 	loginTimer.restart();
 
@@ -15172,26 +15215,11 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 		afkRecords[i].deadthcount = 0;
 	}
 
-	//讀取伺服器列表
-	QStringList list;
-	{
-		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
-		list = config.readArray<QString>("System", "Server", QString("List_%1").arg(gamedevice.currentServerListIndex.get()));
-	}
-
 	//重置對話框開啟標誌(客製)
 	mem::write<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetDialogValid, 0);
 
-	updateComboBoxList();
-	updateItemByMemory();
-	refreshItemInfo();
-
 	//顯示NPC列表
 	emit signalDispatcher.updateNpcList(getFloor());
-
-	emit signalDispatcher.applyHashSettingsToUI();
-
-	mem::freeUnuseMemory(gamedevice.getProcess());
 }
 
 //交易
@@ -15689,7 +15717,6 @@ void Worker::findPathAsync(const QPoint& dst)
 
 	emit findPathFinished();
 }
-
 
 #ifdef OCR_ENABLE
 #include "webauthenticator.h"

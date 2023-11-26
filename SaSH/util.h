@@ -96,7 +96,7 @@ namespace mem
 #ifndef _WIN64
 	[[nodiscard]] DWORD __fastcall getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
 #endif
-	void __fastcall freeUnuseMemory(HANDLE hProcess);
+	void __fastcall freeUnuseMemory(HANDLE hProcess = ::GetCurrentProcess());
 
 	typedef struct _IAT_EAT_INFO
 	{

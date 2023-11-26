@@ -154,12 +154,12 @@ void AStarDevice::percolate_up(long long& hole)
 			std::swap(open_list_[hole], open_list_[parent]);
 #endif
 			hole = parent;
-	}
+		}
 		else
 		{
 			return;
 		}
-}
+	}
 }
 
 #if defined(Chebyshev_distance)

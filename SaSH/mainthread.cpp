@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 QSharedMemory g_sharedMemory;
 
-void DNSInitialize()
+static void DNSInitialize()
 {
 	using DnsFlushResolverCacheFuncPtr = BOOL(WINAPI*)();
 	// Flush the DNS cache
@@ -46,6 +46,7 @@ void DNSInitialize()
 		FreeLibrary(dnsapi);
 	}
 }
+
 
 UniqueIdManager::~UniqueIdManager()
 {
@@ -454,6 +455,7 @@ void MainObject::mainProc()
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	util::timer freeMemTimer;
 
+	mem::freeUnuseMemory();
 	mem::freeUnuseMemory(gamedevice.getProcess());
 
 	bool nodelay = false;
@@ -496,6 +498,7 @@ void MainObject::mainProc()
 		if (freeMemTimer.hasExpired(5ll * 60ll * 1000ll))
 		{
 			freeMemTimer.restart();
+			mem::freeUnuseMemory();
 			mem::freeUnuseMemory(gamedevice.getProcess());
 		}
 		else
@@ -506,105 +509,7 @@ void MainObject::mainProc()
 
 		gamedevice.worker->setWindowTitle(gamedevice.getStringHash(util::kTitleFormatString));
 
-		//異步加速
-		value = gamedevice.getValueHash(util::kSpeedBoostValue);
-		if (flagSetBoostValue_ != value)
-		{
-			flagSetBoostValue_ = value;
-			gamedevice.postMessage(kSetBoostSpeed, true, flagSetBoostValue_);
-		}
-
 		checkControl();
-
-		//登出按下，異步登出
-		if (gamedevice.getEnableHash(util::kLogOutEnable))
-		{
-			gamedevice.setEnableHash(util::kLogOutEnable, false);
-			if (!gamedevice.worker.isNull())
-				gamedevice.worker->logOut();
-		}
-
-		//EO按下，異步發送EO
-		if (gamedevice.getEnableHash(util::kEchoEnable))
-		{
-			gamedevice.setEnableHash(util::kEchoEnable, false);
-			if (!gamedevice.worker.isNull())
-				gamedevice.worker->EO();
-		}
-
-		//回點按下，異步回點
-		if (gamedevice.getEnableHash(util::kLogBackEnable))
-		{
-			gamedevice.setEnableHash(util::kLogBackEnable, false);
-			if (!gamedevice.worker.isNull())
-				gamedevice.worker->logBack();
-		}
-
-		//異步快速走路
-		bChecked = gamedevice.getEnableHash(util::kFastWalkEnable);
-		if (flagFastWalkEnable_ != bChecked)
-		{
-			flagFastWalkEnable_ = bChecked;
-			gamedevice.postMessage(kEnableFastWalk, bChecked, NULL);
-		}
-
-		//異步橫衝直撞 (穿牆)
-		bChecked = gamedevice.getEnableHash(util::kPassWallEnable);
-		if (flagPassWallEnable_ != bChecked)
-		{
-			flagPassWallEnable_ = bChecked;
-			gamedevice.postMessage(kEnablePassWall, bChecked, NULL);
-		}
-
-		//異步鎖定畫面
-		bChecked = gamedevice.getEnableHash(util::kLockImageEnable);
-		if (flagLockImageEnable_ != bChecked)
-		{
-			flagLockImageEnable_ = bChecked;
-			gamedevice.postMessage(kEnableImageLock, bChecked, NULL);
-		}
-
-		//異步資源優化
-		bChecked = true;
-		if (flagOptimizeEnable_ != bChecked)
-		{
-			flagOptimizeEnable_ = bChecked;
-			gamedevice.postMessage(kEnableOptimize, bChecked, NULL);
-		}
-
-		//異步關閉特效
-		bChecked = gamedevice.getEnableHash(util::kCloseEffectEnable);
-		if (flagCloseEffectEnable_ != bChecked)
-		{
-			flagCloseEffectEnable_ = bChecked;
-			gamedevice.postMessage(kEnableEffect, !bChecked, NULL);
-		}
-
-		//異步鎖定時間
-		bChecked = gamedevice.getEnableHash(util::kLockTimeEnable);
-		value = gamedevice.getValueHash(util::kLockTimeValue);
-		if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
-		{
-			flagLockTimeEnable_ = bChecked;
-			flagLockTimeValue_ = value;
-			gamedevice.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
-		}
-
-		//隱藏人物按下，異步隱藏
-		bChecked = gamedevice.getEnableHash(util::kHideCharacterEnable);
-		if (flagHideCharacterEnable_ != bChecked)
-		{
-			flagHideCharacterEnable_ = bChecked;
-			gamedevice.postMessage(kEnableCharShow, !bChecked, NULL);
-		}
-
-		//異步戰鬥99秒
-		bChecked = gamedevice.getEnableHash(util::kBattleTimeExtendEnable);
-		if (flagBattleTimeExtendEnable_ != bChecked)
-		{
-			flagBattleTimeExtendEnable_ = bChecked;
-			gamedevice.postMessage(kBattleTimeExtend, bChecked, NULL);
-		}
 
 		//其他所有功能
 		status = checkAndRunFunctions();
@@ -663,7 +568,7 @@ void MainObject::mainProc()
 	}
 }
 
-long long MainObject::inGameInitialize()
+long long MainObject::inGameInitialize() const
 {
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	if (gamedevice.isGameInterruptionRequested())
@@ -752,8 +657,14 @@ long long MainObject::inGameInitialize()
 	gamedevice.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
 	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 	gamedevice.worker->echo();
+	gamedevice.worker->updateComboBoxList();
 	gamedevice.worker->updateDatasFromMemory();
 	gamedevice.worker->updateItemByMemory();
+	gamedevice.worker->refreshItemInfo();
+
+	emit signalDispatcher.applyHashSettingsToUI();
+
+	mem::freeUnuseMemory(gamedevice.getProcess());
 	return 1;
 }
 
@@ -886,11 +797,25 @@ long long MainObject::checkAndRunFunctions()
 		{
 			battle_run_once_flag_ = false;
 		}
+
+		if (gamedevice.battleActionFuture.isRunning())
+			return 3;
+
+		gamedevice.battleActionFuture = QtConcurrent::run([this]()->void {
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			if (gamedevice.worker.isNull())
+				return;
+
+			if (gamedevice.isGameInterruptionRequested())
+				return;
+
+			gamedevice.worker->asyncBattleAction(true);
+			});
 		return 3;
 	}
 }
 
-void MainObject::updateAfkInfos()
+void MainObject::updateAfkInfos() const
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
@@ -954,6 +879,104 @@ void MainObject::checkControl()
 	if (gamedevice.worker.isNull())
 		return;
 
+	//異步加速
+	long long value = gamedevice.getValueHash(util::kSpeedBoostValue);
+	if (flagSetBoostValue_ != value)
+	{
+		flagSetBoostValue_ = value;
+		gamedevice.postMessage(kSetBoostSpeed, true, flagSetBoostValue_);
+	}
+
+	//登出按下，異步登出
+	if (gamedevice.getEnableHash(util::kLogOutEnable))
+	{
+		gamedevice.setEnableHash(util::kLogOutEnable, false);
+		if (!gamedevice.worker.isNull())
+			gamedevice.worker->logOut();
+	}
+
+	//EO按下，異步發送EO
+	if (gamedevice.getEnableHash(util::kEchoEnable))
+	{
+		gamedevice.setEnableHash(util::kEchoEnable, false);
+		if (!gamedevice.worker.isNull())
+			gamedevice.worker->EO();
+	}
+
+	//回點按下，異步回點
+	if (gamedevice.getEnableHash(util::kLogBackEnable))
+	{
+		gamedevice.setEnableHash(util::kLogBackEnable, false);
+		if (!gamedevice.worker.isNull())
+			gamedevice.worker->logBack();
+	}
+
+	//異步快速走路
+	bool bChecked = gamedevice.getEnableHash(util::kFastWalkEnable);
+	if (flagFastWalkEnable_ != bChecked)
+	{
+		flagFastWalkEnable_ = bChecked;
+		gamedevice.postMessage(kEnableFastWalk, bChecked, NULL);
+	}
+
+	//異步橫衝直撞 (穿牆)
+	bChecked = gamedevice.getEnableHash(util::kPassWallEnable);
+	if (flagPassWallEnable_ != bChecked)
+	{
+		flagPassWallEnable_ = bChecked;
+		gamedevice.postMessage(kEnablePassWall, bChecked, NULL);
+	}
+
+	//異步鎖定畫面
+	bChecked = gamedevice.getEnableHash(util::kLockImageEnable);
+	if (flagLockImageEnable_ != bChecked)
+	{
+		flagLockImageEnable_ = bChecked;
+		gamedevice.postMessage(kEnableImageLock, bChecked, NULL);
+	}
+
+	//異步資源優化
+	bChecked = true;
+	if (flagOptimizeEnable_ != bChecked)
+	{
+		flagOptimizeEnable_ = bChecked;
+		gamedevice.postMessage(kEnableOptimize, bChecked, NULL);
+	}
+
+	//異步關閉特效
+	bChecked = gamedevice.getEnableHash(util::kCloseEffectEnable);
+	if (flagCloseEffectEnable_ != bChecked)
+	{
+		flagCloseEffectEnable_ = bChecked;
+		gamedevice.postMessage(kEnableEffect, !bChecked, NULL);
+	}
+
+	//異步鎖定時間
+	bChecked = gamedevice.getEnableHash(util::kLockTimeEnable);
+	value = gamedevice.getValueHash(util::kLockTimeValue);
+	if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
+	{
+		flagLockTimeEnable_ = bChecked;
+		flagLockTimeValue_ = value;
+		gamedevice.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
+	}
+
+	//隱藏人物按下，異步隱藏
+	bChecked = gamedevice.getEnableHash(util::kHideCharacterEnable);
+	if (flagHideCharacterEnable_ != bChecked)
+	{
+		flagHideCharacterEnable_ = bChecked;
+		gamedevice.postMessage(kEnableCharShow, !bChecked, NULL);
+	}
+
+	//異步戰鬥99秒
+	bChecked = gamedevice.getEnableHash(util::kBattleTimeExtendEnable);
+	if (flagBattleTimeExtendEnable_ != bChecked)
+	{
+		flagBattleTimeExtendEnable_ = bChecked;
+		gamedevice.postMessage(kBattleTimeExtend, bChecked, NULL);
+	}
+
 	if (!gamedevice.worker->getOnlineFlag())
 		return;
 
@@ -962,7 +985,7 @@ void MainObject::checkControl()
 		return;
 
 	//異步關閉聲音
-	bool bChecked = gamedevice.getEnableHash(util::kMuteEnable);
+	bChecked = gamedevice.getEnableHash(util::kMuteEnable);
 	if (flagMuteEnable_ != bChecked)
 	{
 		flagMuteEnable_ = bChecked;
@@ -971,7 +994,7 @@ void MainObject::checkControl()
 }
 
 //檢查開關 (隊伍、交易、名片...等等)
-void MainObject::checkEtcFlag()
+void MainObject::checkEtcFlag() const
 {
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	if (gamedevice.worker.isNull())
@@ -1085,38 +1108,38 @@ MissionThread::MissionThread(long long index, long long type, QObject* parent)
 	switch (type)
 	{
 	case kAutoJoin:
-		connect(&thread_, &QThread::started, this, &MissionThread::autoJoin, Qt::QueuedConnection);
+		func_ = std::bind(&MissionThread::autoJoin, this);
 		break;
 	case kAutoWalk:
-		connect(&thread_, &QThread::started, this, &MissionThread::autoWalk, Qt::QueuedConnection);
+		func_ = std::bind(&MissionThread::autoWalk, this);
 		break;
 	case kAutoSortItem:
-		connect(&thread_, &QThread::started, this, &MissionThread::autoSortItem, Qt::QueuedConnection);
+		func_ = std::bind(&MissionThread::autoSortItem, this);
 		break;
 	case kAutoRecordNPC:
-		connect(&thread_, &QThread::started, this, &MissionThread::autoRecordNPC, Qt::QueuedConnection);
+		func_ = std::bind(&MissionThread::autoRecordNPC, this);
 		break;
 	case kAsyncFindPath:
-		connect(&thread_, &QThread::started, this, &MissionThread::asyncFindPath, Qt::QueuedConnection);
+		func_ = std::bind(&MissionThread::asyncFindPath, this);
 		break;
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &MissionThread::requestMissionInterruption);
-	moveToThread(&thread_);
 }
 
 MissionThread::~MissionThread()
 {
-	qDebug() << "MissionThread::~MissionThread()";
+	//qDebug() << "MissionThread::~MissionThread()";
 }
 
 void MissionThread::wait()
 {
-	if (thread_.isRunning())
+	if (future_.isRunning())
 	{
 		requestMissionInterruption();
-		thread_.wait();
+		future_.cancel();
+		future_.waitForFinished();
 	}
 }
 
@@ -1155,8 +1178,10 @@ void MissionThread::start()
 		break;
 	}
 
-	if (!thread_.isRunning())
-		thread_.start();
+	if (future_.isRunning())
+		return;
+
+	future_ = QtConcurrent::run(func_);
 }
 
 void MissionThread::autoJoin()
@@ -1321,8 +1346,6 @@ void MissionThread::autoJoin()
 
 		gamedevice.worker->move(path.at(len));
 	}
-
-	thread_.quit();
 }
 
 void MissionThread::autoWalk()
@@ -1467,8 +1490,6 @@ void MissionThread::autoWalk()
 		}
 		QThread::msleep(walk_speed + 1);//避免太快無論如何都+15ms (太快並不會遇比較快)
 	}
-
-	thread_.quit();
 }
 
 void MissionThread::autoSortItem()
@@ -1507,8 +1528,6 @@ void MissionThread::autoSortItem()
 
 		gamedevice.worker->sortItem();
 	}
-
-	thread_.quit();
 }
 
 void MissionThread::autoRecordNPC()
@@ -1696,8 +1715,6 @@ void MissionThread::autoRecordNPC()
 			config.writeMapData(name, d);
 		}
 	}
-
-	thread_.quit();
 }
 
 void MissionThread::asyncFindPath()
@@ -1708,8 +1725,6 @@ void MissionThread::asyncFindPath()
 
 	QPoint dst = args_.value(0).toPoint();
 	gamedevice.worker->findPathAsync(dst);
-
-	thread_.quit();
 }
 
 #if 0
