@@ -126,27 +126,15 @@ long long CLuaBattle::alliecount()
 	return gamedevice.worker->getBattleData().allies.size();
 }
 
-sa::battle_object_t& CLuaBattle::operator[](long long index)
+sa::battle_object_t CLuaBattle::operator[](long long index)
 {
 	--index;
 
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
-	if (!gamedevice.worker.isNull())
-	{
-		QVector<sa::battle_object_t> objs = gamedevice.worker->getBattleData().objects;
-		auto it = std::find_if(objs.begin(), objs.end(), [index](const sa::battle_object_t& obj)
-			{
-				return obj.pos == index;
-			});
+	if (gamedevice.worker.isNull())
+		return sa::battle_object_t();
 
-		if (it != objs.end())
-			objs_.insert(index, objs.value(index));
-	}
-
-	if (!objs_.contains(index))
-		objs_.insert(index, sa::battle_object_t());
-
-	return objs_[index];
+	return gamedevice.worker->getBattleData().objects.value(index);
 }
 
 long long CLuaBattle::charUseAttack(long long objIndex, sol::this_state s)//atk

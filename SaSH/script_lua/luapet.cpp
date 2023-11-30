@@ -21,23 +21,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <gamedevice.h>
 #include "signaldispatcher.h"
 
-sa::pet_t& CLuaPet::operator[](long long index)
+sa::pet_t CLuaPet::operator[](long long index)
 {
 	--index;
 
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
-	if (!gamedevice.worker.isNull())
-	{
-		gamedevice.worker->updateItemByMemory();
-		QHash<long long, sa::pet_t> pets = gamedevice.worker->getPets();
-		if (pets.contains(index))
-			pets_.insert(index, pets.value(index));
-	}
+	if (gamedevice.worker.isNull())
+		return sa::pet_t();
 
-	if (!pets_.contains(index))
-		pets_.insert(index, sa::pet_t());
+	gamedevice.worker->updateItemByMemory();
 
-	return pets_[index];
+	return gamedevice.worker->getPet(index);
 }
 
 long long CLuaPet::count()

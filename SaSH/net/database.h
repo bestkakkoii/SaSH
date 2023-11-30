@@ -1273,6 +1273,8 @@ namespace sa
 	typedef struct team_s
 	{
 		bool valid = false;
+		long long controlIndex = -1;
+		long long index = -1;
 		long long id = 0;
 		long long level = 0;
 		long long maxHp = 0;
@@ -1281,12 +1283,14 @@ namespace sa
 		long long mp = 0;
 		QString name = "";
 		std::string getName() const { return util::toConstData(name); }
+		std::string getFreeName() const;
 	} team_t;
 
 	typedef struct address_bool_s
 	{
 		bool valid = false;
 		bool onlineFlag = false;
+		long long index = -1;
 		long long level = 0;
 		long long transmigration = 0i16;
 		long long dp = 0;

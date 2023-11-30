@@ -78,7 +78,6 @@ signals:
 public slots:
 
 public:
-	void processRead(); //Async concurrent, DO NOT change calling convention
 	void handleData(QByteArray badata);
 
 private:
@@ -502,11 +501,7 @@ private:
 	safe::data<QPoint> nowPoint_; //當前人物座標
 
 	QFuture<void> battleBackupFuture_; //戰鬥動作備用線程管理器
-	QFuture<void> autoLockPet_; //自動鎖寵線程管理器
-	QFuture<void> dropMeatFuture_; //自動丟肉線程管理器
 	QFuture<void> autoHealFuture_; //自動補血線程管理器
-	QFuture<void> autoAbilityFuture_; //自動加點線程管理器
-	QFuture<void> autoDropPetFuture_; //自動丟寵線程管理器
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal

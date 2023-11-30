@@ -381,19 +381,20 @@ long long CLuaSystem::sleep(long long t, sol::this_state s)
 		long long size = t / 1000;
 		for (; i < size; ++i)
 		{
-			QThread::msleep(1000UL);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 			if (luadebug::checkStopAndPause(s))
 				return FALSE;
 		}
 
 		if (i % 1000 > 0)
-			QThread::msleep(static_cast<DWORD>(i) % 1000UL);
+			std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<DWORD>(i) % 1000UL));
+
 		if (luadebug::checkStopAndPause(s))
 			return FALSE;
 	}
 	else if (t > 0)
 	{
-		QThread::msleep(static_cast<DWORD>(t));
+		std::this_thread::sleep_for(std::chrono::milliseconds(t));
 		if (luadebug::checkStopAndPause(s))
 			return FALSE;
 	}
@@ -746,7 +747,7 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 			if (!gamedevice.worker->isDialogVisible())
 				gamedevice.worker->setCharFaceToPoint(unit.p);
 			if (button == sa::kButtonNone && row == -1)
-				QThread::msleep(300);
+				std::this_thread::sleep_for(std::chrono::milliseconds(300));
 			unitid = unit.id;
 		}
 	}

@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <gamedevice.h>
 #include "signaldispatcher.h"
 
-sa::item_t& CLuaItem::operator[](long long index)
+sa::item_t CLuaItem::operator[](long long index)
 {
 	--index;
 	if (index >= 100)
@@ -32,18 +32,12 @@ sa::item_t& CLuaItem::operator[](long long index)
 	}
 
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
-	if (!gamedevice.worker.isNull())
-	{
-		gamedevice.worker->updateItemByMemory();
-		QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
-		if (items.contains(index))
-			items_.insert(index, items.value(index));
-	}
+	if (gamedevice.worker.isNull())
+		return sa::item_t();
 
-	if (!items_.contains(index))
-		items_.insert(index, sa::item_t());
+	gamedevice.worker->updateItemByMemory();
 
-	return items_[index];
+	return gamedevice.worker->getItem(index);
 }
 
 long long CLuaItem::swapitem(long long fromIndex, long long toIndex, sol::this_state s)
@@ -441,8 +435,6 @@ long long CLuaItem::sellpet(sol::object range, sol::this_state s)
 
 			if (bret)
 				break;
-
-			//QThread::msleep(300);
 		}
 	}
 

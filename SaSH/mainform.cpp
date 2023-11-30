@@ -1068,7 +1068,7 @@ MainForm* MainForm::createNewWindow(long long idToAllocate, long long* pId)
 
 		std::ignore = QtConcurrent::run([uniqueId]()
 			{
-				QThread::msleep(500);
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
 				QStringList paths;
 				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(uniqueId);
 				util::searchFiles(util::applicationDirPath(), "default", ".json", &paths, false);

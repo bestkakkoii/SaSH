@@ -47,7 +47,6 @@ static void DNSInitialize()
 	}
 }
 
-
 UniqueIdManager::~UniqueIdManager()
 {
 	if (g_sharedMemory.isAttached())
@@ -410,7 +409,7 @@ void MainObject::run()
 				remove_thread_reason = util::REASON_TCP_CONNECTION_TIMEOUT;
 				break;
 			}
-			QThread::msleep(100);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 		}
 
 		if (remove_thread_reason != util::REASON_NO_ERROR)
@@ -469,7 +468,7 @@ void MainObject::mainProc()
 	for (;;)
 	{
 		if (!nodelay)
-			QThread::msleep(50);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		else
 			nodelay = false;
 
@@ -490,7 +489,7 @@ void MainObject::mainProc()
 
 		if (gamedevice.worker.isNull())
 		{
-			QThread::yieldCurrentThread();
+			std::this_thread::yield();
 			continue;
 		}
 
@@ -517,7 +516,7 @@ void MainObject::mainProc()
 		//這裡是預留的暫時沒作用
 		if (status == 1)//非登入狀態
 		{
-			QThread::msleep(50);
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			nodelay = true;
 		}
 		else if (status == 2)//平時
@@ -564,7 +563,7 @@ void MainObject::mainProc()
 			break;
 		}
 
-		QThread::yieldCurrentThread();
+		std::this_thread::yield();
 	}
 }
 
@@ -628,7 +627,7 @@ long long MainObject::inGameInitialize() const
 		if (gamedevice.worker->checkWG(9, 3))
 			break;
 
-		QThread::msleep(100);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 	}
 
 	if (!gamedevice.worker->getBattleFlag())
@@ -1248,7 +1247,7 @@ void MissionThread::autoJoin()
 					break;
 
 				gamedevice.worker->setTeamState(false);
-				QThread::msleep(200);
+				std::this_thread::sleep_for(std::chrono::milliseconds(200));
 			}
 		}
 
@@ -1268,13 +1267,13 @@ void MissionThread::autoJoin()
 		//如果人物不在線上則自動退出
 		if (!gamedevice.worker->getOnlineFlag())
 		{
-			QThread::msleep(100);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 			continue;
 		}
 
 		if (gamedevice.worker->getBattleFlag())
 		{
-			QThread::msleep(100);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 			continue;
 		}
 
@@ -1303,7 +1302,7 @@ void MissionThread::autoJoin()
 		if (current_point == unit.p)
 		{
 			gamedevice.worker->move(current_point + util::fix_point.value(util::rnd::get(0, 7)));
-			QThread::msleep(100);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 			continue;
 		}
 
@@ -1383,7 +1382,7 @@ void MissionThread::autoWalk()
 		//如果人物不在線上則自動退出
 		if (!gamedevice.worker->getOnlineFlag())
 		{
-			QThread::msleep(500);
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			continue;
 		}
 
@@ -1391,7 +1390,7 @@ void MissionThread::autoWalk()
 		if (gamedevice.worker->getBattleFlag())
 		{
 			//先等一小段時間
-			QThread::msleep(500);
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 			//如果已經退出戰鬥就等待1.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
 			if (!gamedevice.worker->getBattleFlag())
@@ -1408,7 +1407,7 @@ void MissionThread::autoWalk()
 					if (isMissionInterruptionRequested())
 						break;
 
-					QThread::msleep(100);
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 				}
 			}
 			else
@@ -1488,7 +1487,8 @@ void MissionThread::autoWalk()
 		{
 			gamedevice.worker->move(QPoint(0, 0), "gcgc");
 		}
-		QThread::msleep(walk_speed + 1);//避免太快無論如何都+15ms (太快並不會遇比較快)
+		//避免太快無論如何都+15ms (太快並不會遇比較快)
+		std::this_thread::sleep_for(std::chrono::milliseconds(walk_speed + 1));
 	}
 }
 
@@ -1514,7 +1514,7 @@ void MissionThread::autoSortItem()
 			if (!gamedevice.getEnableHash(util::kAutoStackEnable))
 				break;
 
-			QThread::msleep(100);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 		}
 
 		if (!gamedevice.getEnableHash(util::kAutoStackEnable))
@@ -1538,7 +1538,7 @@ void MissionThread::autoRecordNPC()
 	{
 		for (long long i = 0; i < 50; ++i)
 		{
-			QThread::msleep(100);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 
 			if (gamedevice.isGameInterruptionRequested())
 				break;
@@ -1852,7 +1852,7 @@ void MainObject::checkAutoLockSchedule()
 				if (pet.hp <= 1)
 				{
 					gamedevice.worker->setPetState(rindex, kRest);
-					QThread::msleep(100);
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 				}
 
 				if (pet.state != kRide)
@@ -1865,7 +1865,7 @@ void MainObject::checkAutoLockSchedule()
 				if (pet.hp <= 1)
 				{
 					gamedevice.worker->setPetState(bindex, kRest);
-					QThread::msleep(100);
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 				}
 
 				if (pet.state != kBattle)

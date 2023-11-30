@@ -313,10 +313,10 @@ bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 			if (timer.hasExpired(180000))
 				break;
 
-			QThread::msleep(100);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 		}
 
-		QThread::msleep(1000UL);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 	return bret;
 }
@@ -345,10 +345,10 @@ bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 			if (timer.hasExpired(180000))
 				break;
 
-			QThread::msleep(100);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 		}
 
-		QThread::msleep(1000UL);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 	return bret;
 }
@@ -368,14 +368,14 @@ void __fastcall luadebug::processDelay(const sol::this_state& s)
 			if (checkStopAndPause(s))
 				return;
 
-			QThread::msleep(1000L);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		}
 		if (extraDelay % 1000ll > 0ll)
-			QThread::msleep(extraDelay % 1000ll);
+			std::this_thread::sleep_for(std::chrono::milliseconds(extraDelay % 1000ll));
 	}
 	else if (extraDelay > 0ll)
 	{
-		QThread::msleep(extraDelay);
+		std::this_thread::sleep_for(std::chrono::milliseconds(extraDelay));
 	}
 }
 
@@ -470,7 +470,7 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 			break;
 		}
 
-		QThread::msleep(100);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 	}
 	return bret;
 }
@@ -523,7 +523,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		processDelay(s);
 		if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
 		{
-			QThread::msleep(1);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 		else
 		{
@@ -918,6 +918,132 @@ private:
 	long long index_ = 0;
 };
 
+class CLuaCard
+{
+public:
+	CLuaCard(long long index) : index_(index) {}
+
+	sa::address_bool_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::address_bool_t();
+
+		sa::address_bool_t card = gamedevice.worker->getAddressBook(index);
+		return card;
+	}
+
+	bool contains(std::string str, sol::this_state s) const
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return false;
+
+		if (str.empty())
+			return false;
+
+		QStringList list = util::toQString(str).split(util::rexOR, Qt::SkipEmptyParts);
+		for (long long i = 0; i < sa::MAX_ADDRESS_BOOK; ++i)
+		{
+			sa::address_bool_t card = gamedevice.worker->getAddressBook(i);
+			if (card.name.isEmpty())
+				continue;
+
+			for (const QString& it : list)
+			{
+				if (it.isEmpty())
+					continue;
+
+				if (card.name.contains(it))
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+private:
+	long long index_ = 0;
+};
+
+std::string sa::team_t::getFreeName() const
+{
+	GameDevice& gamedevice = GameDevice::getInstance(controlIndex);
+	if (gamedevice.worker.isNull())
+		return "";
+
+	gamedevice.worker->updateDatasFromMemory();
+
+	return util::toConstData(gamedevice.worker->mapUnitHash.value(id).freeName);
+}
+
+class CLuaTeam
+{
+public:
+	CLuaTeam(long long index) : index_(index) {}
+
+	sa::team_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::team_t();
+
+		gamedevice.worker->updateDatasFromMemory();
+
+		sa::team_t team = gamedevice.worker->getTeam(index);
+		team.controlIndex = index_;
+		return team;
+	}
+
+	bool contains(std::string names, sol::this_state s) const
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return false;
+
+		QStringList list = util::toQString(names).split(util::rexOR, Qt::SkipEmptyParts);
+		QString cmpName = list.value(0);
+		QString cmpFreeName = list.value(1);
+
+		gamedevice.worker->updateDatasFromMemory();
+
+		for (long long i = 0; i < sa::MAX_TEAM; ++i)
+		{
+			sa::team_t team = gamedevice.worker->getTeam(i);
+			if (team.name.isEmpty())
+				continue;
+
+			QString freeName = gamedevice.worker->mapUnitHash.value(team.id).freeName;
+
+			if (!cmpFreeName.isEmpty() && freeName.contains(cmpFreeName) && !cmpName.isEmpty() && team.name == cmpName)
+				return true;
+			if (cmpFreeName.isEmpty() && !cmpName.isEmpty() && team.name == cmpName)
+				return true;
+		}
+
+		return false;
+	}
+
+	long long count()
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return 0;
+
+		gamedevice.worker->updateDatasFromMemory();
+
+		return gamedevice.worker->getTeamSize();
+	}
+
+private:
+	long long index_ = 0;
+
+};
+
 //luasystem.cpp
 void CLua::open_syslibs(sol::state& lua)
 {
@@ -1144,6 +1270,50 @@ void CLua::open_syslibs(sol::state& lua)
 		"msec", sol::property(&CLuaTimer::cost),
 		"sec", sol::property(&CLuaTimer::costSeconds)
 	);
+
+	lua.new_usertype<sa::address_bool_t>("CardStruct",
+		"valid", sol::readonly(&sa::address_bool_t::valid),
+		"index", sol::readonly(&sa::address_bool_t::index),
+		"name", sol::property(&sa::address_bool_t::getName),
+		"online", sol::readonly(&sa::address_bool_t::onlineFlag),
+		"turn", sol::readonly(&sa::address_bool_t::transmigration),
+		"dp", sol::readonly(&sa::address_bool_t::dp),
+		"lv", sol::readonly(&sa::address_bool_t::level)
+	);
+
+	lua.new_usertype<CLuaCard>("CardClass",
+		sol::call_constructor,
+		sol::constructors<CLuaCard(long long)>(),
+		sol::meta_function::index, &CLuaCard::operator[],
+		"contains", &CLuaCard::contains
+	);
+
+	lua.safe_script("card = CardClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
+
+	lua.new_usertype<sa::team_t>("TeamStruct",
+		"valid", sol::readonly(&sa::team_t::valid),
+		"index", sol::readonly(&sa::team_t::index),
+		"id", sol::readonly(&sa::team_t::id),
+		"name", sol::property(&sa::team_t::getName),
+		"fname", sol::property(&sa::team_t::getFreeName),
+		"lv", sol::readonly(&sa::team_t::level),
+		"hp", sol::readonly(&sa::team_t::hp),
+		"maxhp", sol::readonly(&sa::team_t::maxHp),
+		"hpp", sol::readonly(&sa::team_t::hpPercent),
+		"mp", sol::readonly(&sa::team_t::mp)
+	);
+
+	lua.new_usertype<CLuaTeam>("TeamClass",
+		sol::call_constructor,
+		sol::constructors<CLuaTeam(long long)>(),
+		sol::meta_function::index, &CLuaTeam::operator[],
+		"contains", &CLuaTeam::contains,
+		"count", sol::property(&CLuaTeam::count)
+	);
+
+	lua.safe_script("team = TeamClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
 }
 
 void CLua::open_itemlibs(sol::state& lua)
@@ -1214,27 +1384,16 @@ class CLuaSkill
 public:
 	CLuaSkill(long long index) : index_(index) {}
 
-	sa::profession_skill_t& operator[](long long index)
+	sa::profession_skill_t operator[](long long index)
 	{
 		--index;
-		if (index >= 100)
-			index -= 100;
-		else if (index < 100)
-		{
-			index += sa::CHAR_EQUIPSLOT_COUNT;
-		}
 
 		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (!gamedevice.worker.isNull())
-		{
-			sa::profession_skill_t skill = gamedevice.worker->getSkill(index);
-			skills_.insert(index, skill);
-		}
+		if (gamedevice.worker.isNull())
+			return sa::profession_skill_t();
 
-		if (!skills_.contains(index))
-			skills_.insert(index, sa::profession_skill_t());
 
-		return skills_[index];
+		return gamedevice.worker->getSkill(index);
 	}
 
 	sa::profession_skill_t find(std::string sname)
@@ -1281,7 +1440,6 @@ public:
 
 private:
 	long long index_ = 0;
-	QHash<long long, sa::profession_skill_t> skills_;
 };
 
 void CLua::open_charlibs(sol::state& lua)

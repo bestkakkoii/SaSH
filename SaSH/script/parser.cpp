@@ -286,8 +286,6 @@ void Parser::initialize(Parser* pparent)
 	sol::state& lua_ = pLua_->getLua();
 
 	makeTable(lua_, "unit", 2000);
-	makeTable(lua_, "card", sa::MAX_ADDRESS_BOOK);
-	makeTable(lua_, "team", sa::MAX_TEAM);
 	makeTable(lua_, "magic", sa::MAX_MAGIC);
 	makeTable(lua_, "petskill", sa::MAX_PET, sa::MAX_PET_SKILL);
 	makeTable(lua_, "petequip", sa::MAX_PET, sa::MAX_PET_ITEM);
@@ -555,7 +553,7 @@ void Parser::initialize(Parser* pparent)
 					bret = true;
 					break;
 				}
-				QThread::msleep(100);
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 			}
 			gamedevice.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.off();
 
@@ -3536,14 +3534,15 @@ void Parser::processDelay()
 		{
 			if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 				return;
-			QThread::msleep(1000L);
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		}
 		if (extraDelay % 1000ll > 0ll)
-			QThread::msleep(extraDelay % 1000ll);
+			std::this_thread::sleep_for(std::chrono::milliseconds(extraDelay % 1000ll));
 	}
 	else if (extraDelay > 0ll)
 	{
-		QThread::msleep(extraDelay);
+		std::this_thread::sleep_for(std::chrono::milliseconds(extraDelay));
 	}
 }
 
@@ -3916,7 +3915,7 @@ void Parser::processTokens()
 			processDelay();
 			if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get() && gamedevice.IS_SCRIPT_EDITOR_OPENED.get())
 			{
-				QThread::msleep(1);
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 
 			if (callBack_ != nullptr)
@@ -4267,75 +4266,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	/////////////////////////////////////////////////////////////////////////////////////
 	if (gamedevice.worker.isNull())
 		return;
-
-	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if (expr.contains("team") || expr.contains("team["))
-	{
-		sol::meta::unqualified_t<sol::table> team = lua_["team"];
-
-		team["count"] = static_cast<long long>(gamedevice.worker->getTeamSize());
-
-		sa::map_unit_t unit = {};
-		sa::team_t t = {};
-		long long index = -1;
-
-		gamedevice.worker->updateDatasFromMemory();
-
-		for (long long i = 0; i < sa::MAX_TEAM; ++i)
-		{
-			t = gamedevice.worker->getTeam(i);
-			index = i + 1;
-
-			team[index]["valid"] = t.valid;
-
-			team[index]["index"] = index;
-
-			team[index]["id"] = t.id;
-
-			team[index]["name"] = util::toConstData(t.name);
-
-			if (gamedevice.worker->mapUnitHash.contains(t.id))
-				team[index]["fname"] = util::toConstData(gamedevice.worker->mapUnitHash.value(t.id).freeName);
-			else
-				team[index]["fname"] = "";
-
-			team[index]["lv"] = t.level;
-
-			team[index]["hp"] = t.hp;
-
-			team[index]["maxhp"] = t.maxHp;
-
-			team[index]["hpp"] = t.hpPercent;
-
-			team[index]["mp"] = t.mp;
-		}
-	}
-
-	//card\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if (expr.contains("card") || expr.contains("card["))
-	{
-		sol::meta::unqualified_t<sol::table> card = lua_["card"];
-
-		for (long long i = 0; i < sa::MAX_ADDRESS_BOOK; ++i)
-		{
-			sa::address_bool_t addressBook = gamedevice.worker->getAddressBook(i);
-			long long index = i + 1;
-
-			card[index]["valid"] = addressBook.valid;
-
-			card[index]["index"] = index;
-
-			card[index]["name"] = util::toConstData(addressBook.name);
-
-			card[index]["online"] = addressBook.onlineFlag;
-
-			card[index]["turn"] = addressBook.transmigration;
-
-			card[index]["dp"] = addressBook.dp;
-
-			card[index]["lv"] = addressBook.level;
-		}
-	}
 
 	//unit\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("unit") || expr.contains("unit["))

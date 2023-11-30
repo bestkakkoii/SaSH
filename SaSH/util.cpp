@@ -496,7 +496,7 @@ bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hPr
 					return false;
 			}
 
-			QThread::msleep(10);
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 
 		if (phDllModule != nullptr)
@@ -610,7 +610,7 @@ bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProc
 					return false;
 			}
 
-			QThread::msleep(10);
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 	}
 
@@ -817,7 +817,7 @@ bool __fastcall mem::isProcessExist(long long pid)
 #pragma region Config
 QHash<QString, QMutex*> g_fileLockHash;
 
-void __fastcall tryLock(const QString& fileName)
+static void __fastcall tryLock(const QString& fileName)
 {
 	if (!g_fileLockHash.contains(fileName))
 	{
@@ -831,7 +831,7 @@ void __fastcall tryLock(const QString& fileName)
 	g_fileLockHash.value(fileName)->lock();
 }
 
-void __fastcall releaseLock(const QString& fileName)
+static void __fastcall releaseLock(const QString& fileName)
 {
 	if (g_fileLockHash.contains(fileName))
 	{
@@ -1434,7 +1434,7 @@ QFileInfoList __fastcall util::loadAllFileLists(
 	return file_list;
 }
 
-QStringList __fastcall searchFilesWorker(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, bool withcontent)
+static QStringList __fastcall searchFilesWorker(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, bool withcontent)
 {
 	QDir d(dir);
 	if (!d.exists())
@@ -1539,7 +1539,7 @@ void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePar
 		*presult = result;
 }
 
-QVector<QPair<QString, QString>> __fastcall enumAllFilesWorker(const QString dir, const QString suffix)
+static QVector<QPair<QString, QString>> __fastcall enumAllFilesWorker(const QString dir, const QString suffix)
 {
 	QDir directory(dir);
 

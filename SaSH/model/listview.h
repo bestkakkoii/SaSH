@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #if _MSVC_LANG > 201703L
 #include <ranges>
 #endif
+#include "safe.h"
+
 class StringListModel : public QAbstractListModel
 {
 	Q_OBJECT
@@ -32,7 +34,7 @@ public:
 
 	virtual~StringListModel() = default;
 
-	long long size() const { QReadLocker locker(&m_stringlistLocker); return m_list.size(); }
+	long long size() const { return list_.size(); }
 
 	void append(const QString& str, long long color = 0);
 
@@ -49,26 +51,24 @@ public:
 	void setMaxListCount(long long count) { MAX_LIST_COUNT = count; }
 
 protected:
-	int rowCount(const QModelIndex& parent = QModelIndex()) const override { return parent.isValid() ? 0 : m_list.size(); }
+	int rowCount(const QModelIndex& parent = QModelIndex()) const override { return parent.isValid() ? 0 : list_.size(); }
 
 signals:
 	void dataAppended();
 	void numberPopulated(int number);
 
 private:
-	QVector<QString> m_list;
-	QVector<long long> m_colorlist;
+	safe::vector<QString> list_;
+	safe::vector<long long> colorlist_;
 	long long MAX_LIST_COUNT = 512;
 
-	mutable QReadWriteLock m_stringlistLocker;
+	QVector<QString> getList() const { return list_.toVector(); }
+	void setList(const QVector<QString>& list) { list_ = list; }
+	QVector<long long>getColorList() const { return colorlist_.toVector(); }
+	void setColorList(const QVector<long long>& list) { colorlist_ = list; }
 
-	QVector<QString> getList() const { QReadLocker locker(&m_stringlistLocker); return m_list; }
-	void setList(const QVector<QString>& list) { QWriteLocker locker(&m_stringlistLocker); m_list = list; }
-	QVector<long long>getColorList() const { QReadLocker locker(&m_stringlistLocker); return m_colorlist; }
-	void setColorList(const QVector<long long>& list) { QWriteLocker locker(&m_stringlistLocker); m_colorlist = list; }
-
-	void getAllList(QVector<QString>& list, QVector<long long>& colorlist) const { QReadLocker locker(&m_stringlistLocker); list = m_list; colorlist = m_colorlist; }
-	void setAllList(const QVector<QString>& list, const QVector<long long>& colorlist) { QWriteLocker locker(&m_stringlistLocker); m_list = list; m_colorlist = colorlist; }
+	void getAllList(QVector<QString>& list, QVector<long long>& colorlist) const { list = list_.toVector(); colorlist = colorlist_.toVector(); }
+	void setAllList(const QVector<QString>& list, const QVector<long long>& colorlist) { list_ = list; colorlist_ = colorlist; }
 
 	QModelIndex sibling(int row, int column, const QModelIndex& idx) const override { std::ignore = idx; return createIndex(row, column); }
 

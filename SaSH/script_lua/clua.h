@@ -274,7 +274,7 @@ public:
 	CLuaItem(long long index) : index_(index) {}
 	~CLuaItem() = default;
 
-	sa::item_t& operator[](long long index);
+	sa::item_t operator[](long long index);
 
 	long long swapitem(long long fromIndex, long long toIndex, sol::this_state s);
 	long long cook(std::string singre, sol::this_state s);
@@ -301,8 +301,6 @@ public:
 	long long depositpet(sol::object oslots, sol::this_state s);
 	long long withdrawpet(std::string sname, sol::object olevel, sol::object omaxhp, sol::this_state s);
 
-	void insertItem(long long index, const sa::item_t& item) { items_.insert(index, item); }
-
 	long long getSpace();
 	bool getIsFull();
 
@@ -316,7 +314,6 @@ public:
 	bool isfull = false;
 
 private:
-	QHash<long long, sa::item_t> items_;
 	long long index_ = -1;
 };
 
@@ -361,9 +358,7 @@ public:
 	CLuaPet(long long index) : index_(index) {}
 	~CLuaPet() = default;
 
-	sa::pet_t& operator[](long long index);
-
-	void insertPet(long long index, const sa::pet_t& pet) { pets_.insert(index, pet); }
+	sa::pet_t operator[](long long index);
 
 	long long count();
 
@@ -371,7 +366,6 @@ public:
 
 private:
 	long long index_ = -1;
-	QHash<long long, sa::pet_t> pets_;
 };
 
 class CLuaMap
@@ -413,7 +407,7 @@ public:
 	CLuaBattle(long long index) : index_(index) {}
 	~CLuaBattle() = default;
 
-	sa::battle_object_t& operator[](long long index);
+	sa::battle_object_t operator[](long long index);
 
 	long long charUseAttack(long long objIndex, sol::this_state s);//atk
 	long long charUseMagic(long long magicIndex, long long objIndex, sol::this_state s);//magic
@@ -444,7 +438,6 @@ public:
 
 private:
 	long long index_ = -1;
-	QHash<long long, sa::battle_object_t> objs_;
 };
 
 class CLua : public QObject, public Indexer
