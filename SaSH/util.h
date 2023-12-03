@@ -1774,7 +1774,7 @@ QGroupBox {
 	void __fastcall searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot,
 		QStringList* result, bool withcontent = false, bool isExact = false);
 
-	bool __fastcall enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
+	bool __fastcall enumAllFiles(const QString& dir, const QString& suffix, QVector<QPair<QString, QString>>* result);
 
 	QString __fastcall findFileFromName(const QString& fileName, const QString& dirpath = util::applicationDirPath());
 

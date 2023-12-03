@@ -499,7 +499,7 @@ namespace safe
 		QQueue<V> queue_;
 		long long maxSize_ = 4096;
 		mutable std::shared_mutex mutex_;
-	};;
+	};
 #pragma endregion
 
 #pragma region Vector

@@ -627,7 +627,7 @@ long long MainObject::inGameInitialize() const
 		if (gamedevice.worker->checkWG(9, 3))
 			break;
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));;
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 
 	if (!gamedevice.worker->getBattleFlag())
@@ -2211,10 +2211,10 @@ void MainObject::checkAutoLockSchedule()
 					gamedevice.worker->setPetState(i, kRest);
 			}
 			return false;
-};
+		};
 
 	if (gamedevice.getEnableHash(util::kLockPetScheduleEnable) && !gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
 
-	}
+}
 #endif
