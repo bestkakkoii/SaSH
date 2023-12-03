@@ -1218,7 +1218,6 @@ void MissionThread::autoJoin()
 	long long index = getIndex();
 	QSet<QPoint> blockList;
 	GameDevice& gamedevice = GameDevice::getInstance(index);
-
 	constexpr long long MAX_SINGLE_STEP = 3;
 	sa::map_t map = {};
 	std::vector<QPoint> path;
@@ -1226,7 +1225,7 @@ void MissionThread::autoJoin()
 	QPoint newpoint;
 	sa::map_unit_t unit = {};
 	long long dir = -1;
-	long long floor = gamedevice.worker->getFloor();
+	long long floor = 0;
 	long long len = MAX_SINGLE_STEP;
 	long long size = 0;
 	AStarDevice astar;
@@ -1265,145 +1264,170 @@ void MissionThread::autoJoin()
 			continue;
 		}
 
-		if (!gamedevice.worker->mapDevice.getMapDataByFloor(floor, &map))
-		{
-			gamedevice.worker->mapDevice.readFromBinary(index, floor, gamedevice.worker->getFloorName(), false);
-		}
+		floor = gamedevice.worker->getFloor();
 
-		ch = gamedevice.worker->getCharacter();
-		actionType = gamedevice.getValueHash(util::kAutoFunTypeValue);
-		if (actionType == 0)
+		for (;;)
 		{
-			//檢查隊長是否正確
-			if (util::checkAND(ch.status, sa::kCharacterStatus_IsLeader))
+			if (gamedevice.isGameInterruptionRequested())
+				break;
+
+			//如果主線程關閉則自動退出
+			if (isMissionInterruptionRequested())
+				break;
+
+			if (gamedevice.worker.isNull())
+				break;
+
+			if (gamedevice.getEnableHash(util::kAutoWalkEnable) || gamedevice.getEnableHash(util::kFastAutoWalkEnable))
+				break;
+
+			if (!gamedevice.getEnableHash(util::kAutoJoinEnable))
+				break;
+
+			leader = gamedevice.getStringHash(util::kAutoFunNameString);
+			if (leader.isEmpty())
+				break;
+
+			if (!gamedevice.worker->mapDevice.getMapDataByFloor(floor, &map))
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(500));
-				continue;
+				gamedevice.worker->mapDevice.readFromBinary(index, floor, gamedevice.worker->getFloorName(), false);
 			}
 
-			if (util::checkAND(ch.status, sa::kCharacterStatus_HasTeam))
+			ch = gamedevice.worker->getCharacter();
+			actionType = gamedevice.getValueHash(util::kAutoFunTypeValue);
+			if (actionType == 0)
 			{
-				QString name = gamedevice.worker->getTeam(0).name;
-				if ((!name.isEmpty() && leader == name)
-					|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
+				//檢查隊長是否正確
+				if (util::checkAND(ch.status, sa::kCharacterStatus_IsLeader))
 				{
 					std::this_thread::sleep_for(std::chrono::milliseconds(500));
 					continue;
 				}
 
-				gamedevice.worker->setTeamState(false);
-				std::this_thread::sleep_for(std::chrono::milliseconds(200));
+				if (util::checkAND(ch.status, sa::kCharacterStatus_HasTeam))
+				{
+					QString name = gamedevice.worker->getTeam(0).name;
+					if ((!name.isEmpty() && leader == name)
+						|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
+					{
+						std::this_thread::sleep_for(std::chrono::milliseconds(500));
+						continue;
+					}
+
+					gamedevice.worker->setTeamState(false);
+					std::this_thread::sleep_for(std::chrono::milliseconds(200));
+				}
 			}
-		}
 
 
-		if (gamedevice.isGameInterruptionRequested())
-			break;
+			if (gamedevice.isGameInterruptionRequested())
+				break;
 
-		if (gamedevice.worker.isNull())
-			break;
+			if (gamedevice.worker.isNull())
+				break;
 
-		if (isMissionInterruptionRequested())
-			break;
+			if (isMissionInterruptionRequested())
+				break;
 
-		//如果人物不在線上則自動退出
-		if (!gamedevice.worker->getOnlineFlag())
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
-			continue;
-		}
-
-		if (gamedevice.worker->getBattleFlag())
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
-			continue;
-		}
-
-		ch = gamedevice.worker->getCharacter();
-
-		if (floor != gamedevice.worker->getFloor())
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			continue;
-		}
-
-		QString freeName = "";
-		if (leader.count("|") == 1)
-		{
-			QStringList list = leader.split(util::rexOR);
-			if (list.size() == 2)
+			//如果人物不在線上則自動退出
+			if (!gamedevice.worker->getOnlineFlag())
 			{
-				leader = list.value(0);
-				freeName = list.value(1);
-			}
-		}
-
-		//查找目標人物所在坐標
-		if (!gamedevice.worker->findUnit(leader, sa::kObjectHuman, &unit, freeName))
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			continue;
-		}
-
-		//如果和目標人物處於同一個坐標則向隨機方向移動一格
-		current_point = gamedevice.worker->getPoint();
-		if (current_point == unit.p)
-		{
-			gamedevice.worker->move(current_point + util::fix_point.value(util::rnd::get(0, 7)));
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
-			continue;
-		}
-
-		//計算最短離靠近目標人物的坐標和面相的方向
-		dir = gamedevice.worker->mapDevice.calcBestFollowPointByDstPoint(index, &astar, floor, current_point, unit.p, &newpoint, false, -1);
-		if (-1 == dir)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			continue;
-		}
-
-		if (current_point == newpoint)
-		{
-			actionType = gamedevice.getValueHash(util::kAutoFunTypeValue);
-			if (actionType == 0)
-			{
-				gamedevice.worker->setCharFaceDirection(dir, true);
-				gamedevice.worker->setTeamState(true);
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));;
 				continue;
 			}
+
+			if (gamedevice.worker->getBattleFlag())
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));;
+				continue;
+			}
+
+			ch = gamedevice.worker->getCharacter();
+
+			if (floor != gamedevice.worker->getFloor())
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+				continue;
+			}
+
+			QString freeName = "";
+			if (leader.count("|") == 1)
+			{
+				QStringList list = leader.split(util::rexOR);
+				if (list.size() == 2)
+				{
+					leader = list.value(0);
+					freeName = list.value(1);
+				}
+			}
+
+			//查找目標人物所在坐標
+			if (!gamedevice.worker->findUnit(leader, sa::kObjectHuman, &unit, freeName))
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+				continue;
+			}
+
+			//如果和目標人物處於同一個坐標則向隨機方向移動一格
+			current_point = gamedevice.worker->getPoint();
+			if (current_point == unit.p)
+			{
+				gamedevice.worker->move(current_point + util::fix_point.value(util::rnd::get(0, 7)));
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));;
+				continue;
+			}
+
+			//計算最短離靠近目標人物的坐標和面相的方向
+			dir = gamedevice.worker->mapDevice.calcBestFollowPointByDstPoint(index, &astar, floor, current_point, unit.p, &newpoint, false, -1);
+			if (-1 == dir)
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+				continue;
+			}
+
+			if (current_point == newpoint)
+			{
+				actionType = gamedevice.getValueHash(util::kAutoFunTypeValue);
+				if (actionType == 0)
+				{
+					gamedevice.worker->setCharFaceDirection(dir, true);
+					gamedevice.worker->setTeamState(true);
+					continue;
+				}
+			}
+
+			if (!gamedevice.worker->mapDevice.calcNewRoute(index, &astar, floor, current_point, newpoint, blockList, &path))
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+				continue;
+			}
+
+			len = MAX_SINGLE_STEP;
+			size = static_cast<long long>(path.size()) - 1;
+
+			//步長 如果path大小 小於步長 就遞減步長
+			for (;;)
+			{
+				if (!(size < len))
+					break;
+				--len;
+			}
+
+			//如果步長小於1 就不動
+			if (len < 0)
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+				continue;
+			}
+
+			if (len >= static_cast<long long>(path.size()))
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+				continue;
+			}
+
+			gamedevice.worker->move(path.at(len));
 		}
-
-		if (!gamedevice.worker->mapDevice.calcNewRoute(index, &astar, floor, current_point, newpoint, blockList, &path))
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			continue;
-		}
-
-		len = MAX_SINGLE_STEP;
-		size = static_cast<long long>(path.size()) - 1;
-
-		//步長 如果path大小 小於步長 就遞減步長
-		for (;;)
-		{
-			if (!(size < len))
-				break;
-			--len;
-		}
-
-		//如果步長小於1 就不動
-		if (len < 0)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			continue;
-		}
-
-		if (len >= static_cast<long long>(path.size()))
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			continue;
-		}
-
-		gamedevice.worker->move(path.at(len));
 	}
 }
 
@@ -2187,10 +2211,10 @@ void MainObject::checkAutoLockSchedule()
 					gamedevice.worker->setPetState(i, kRest);
 			}
 			return false;
-		};
+};
 
 	if (gamedevice.getEnableHash(util::kLockPetScheduleEnable) && !gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
 
-}
+	}
 #endif
