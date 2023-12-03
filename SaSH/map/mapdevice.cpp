@@ -1221,31 +1221,20 @@ bool MapDevice::readFromBinary(long long currentIndex, long long floor, const QS
 	//再隨後W * H * 2字節為地上物件 / 建築物數據，每2字節為1數據塊，表示該點上的物件 / 建築物地圖編號。
 	//再隨後 W * H * 2 字節為地圖標誌，每 2 字節為 1 數據塊，
 
-	QList<QFuture<std::vector<unsigned short>>> futures;
+	std::vector<unsigned short> vecGround;
+	std::vector<unsigned short> vecObject;
+	std::vector<unsigned short> vecLabel;
 
 	{
 		//多線程併發將內存中的數據分別讀到3個容器中
 		util::ScopedFile file(path);
 		if (file.openRead() && file.mmap(pFileMap, 0, file.size()))
 		{
-			QFutureSynchronizer<std::vector<unsigned short>> sync;
-			sync.addFuture(QtConcurrent::run(loadMapBlock, pFileMap, sectionOffset, 0));
-			sync.addFuture(QtConcurrent::run(loadMapBlock, pFileMap, sectionOffset, 1));
-			sync.addFuture(QtConcurrent::run(loadMapBlock, pFileMap, sectionOffset, 2));
-			sync.waitForFinished();
-			futures = sync.futures();
+			vecGround = loadMapBlock(pFileMap, sectionOffset, 0);
+			vecObject = loadMapBlock(pFileMap, sectionOffset, 1);
+			vecLabel = loadMapBlock(pFileMap, sectionOffset, 2);
 		}
 	}
-
-	if (futures.size() != 3)
-	{
-		qDebug() << "map data error" << futures.size();
-		return false;
-	}
-
-	const std::vector<unsigned short> vecGround = futures.value(0).result();
-	const std::vector<unsigned short> vecObject = futures.value(1).result();
-	const std::vector<unsigned short> vecLabel = futures.value(2).result();
 
 	//檢查數據塊大小是否一致
 	if (vecGround.size() != vecObject.size() || vecGround.size() != vecLabel.size())
