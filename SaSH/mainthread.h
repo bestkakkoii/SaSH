@@ -45,8 +45,8 @@ public:
 
 	void wait();
 
-	inline bool isRunning() { return future_.isRunning(); }
-	inline bool isFinished() { return future_.isFinished(); }
+	inline bool isRunning() const { return future_.isRunning(); }
+	inline bool isFinished() const { return future_.isFinished(); }
 	inline void appendArg(const QVariant& arg) { args_.append(arg); }
 	inline void appendArgs(const QVariantList& args) { args_.append(args); }
 

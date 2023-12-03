@@ -47,7 +47,7 @@ public:
 
 	[[nodiscard]] QPixmap __fastcall getPixmapByIndex(long long index) const;
 
-	bool __fastcall saveAsBinary(long long currentIndex, sa::map_t map, const QString& fileName);
+	bool __fastcall saveAsBinary(long long currentIndex, sa::map_t map, const QString& fileName) const;
 
 	long long __fastcall calcBestFollowPointByDstPoint(long long currentIndex, AStarDevice* pastar,
 		long long floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, long long npcdir);
@@ -138,7 +138,7 @@ public:
 
 private:
 	QString directory = "";
-	QMutex mutex_;
+	mutable QMutex mutex_;
 };
 
 #if 0

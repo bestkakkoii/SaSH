@@ -826,7 +826,7 @@ static const QSet<QPair<QPair<long long, long long >, QSet<unsigned short>>> ROC
 #pragma endregion
 
 //檢查地圖大小是否合法
-inline constexpr bool __fastcall checkSizeRange(long long w, long long h)
+static inline constexpr bool __fastcall checkSizeRange(long long w, long long h)
 {
 	if (w < 0 || h < 0 || w > 1500 || h > 1500)
 		return false;
@@ -835,7 +835,7 @@ inline constexpr bool __fastcall checkSizeRange(long long w, long long h)
 }
 
 //找大石頭(占用坐標超過1格)並設置標記
-void __fastcall checkAndSetRockEx(sa::map_t& map, const QPoint& p, unsigned short sObject)
+static void __fastcall checkAndSetRockEx(sa::map_t& map, const QPoint& p, unsigned short sObject)
 {
 	//    X = 12220 || 12222 為起點往右上畫6格長方形
 	// 
@@ -863,7 +863,7 @@ void __fastcall checkAndSetRockEx(sa::map_t& map, const QPoint& p, unsigned shor
 };
 
 //重複檢查大石頭
-void __fastcall reCheckAndRockEx(sa::map_t& map, const QPoint& point, unsigned short sObject)
+static void __fastcall reCheckAndRockEx(sa::map_t& map, const QPoint& point, unsigned short sObject)
 {
 	for (const QPair<QPair<long long, long long>, QSet<unsigned short>>& it : ROCKEX_SET)
 	{
@@ -876,7 +876,7 @@ void __fastcall reCheckAndRockEx(sa::map_t& map, const QPoint& point, unsigned s
 };
 
 //用於從映射到內存的數據中取出特定的數據塊
-std::vector<unsigned short> loadMapBlock(const unsigned char* pFileMap, long long sectionOffset, long long offest)
+static std::vector<unsigned short> __fastcall loadMapBlock(const unsigned char* pFileMap, long long sectionOffset, long long offest)
 {
 	std::vector<unsigned short> v = {};
 	do
@@ -1504,7 +1504,7 @@ bool MapDevice::loadFromBinary(long long currentIndex, long long floor, sa::map_
 }
 
 //保存自訂地圖數據到二進制文件
-bool MapDevice::saveAsBinary(long long currentIndex, sa::map_t map, const QString& fileName)
+bool MapDevice::saveAsBinary(long long currentIndex, sa::map_t map, const QString& fileName) const
 {
 	QMutexLocker locker(&mutex_);
 	if (!map.floor)

@@ -216,7 +216,6 @@ public://actions
 
 	void __fastcall updateItemByMemory();
 	void __fastcall updateDatasFromMemory();
-	void __fastcall setUserDatas();
 
 	void __fastcall doBattleWork(bool canDelay);
 	bool asyncBattleAction(bool canDelay);
@@ -283,7 +282,6 @@ public://actions
 	void __fastcall setPoint(const QPoint& pos);
 
 	[[nodiscard]] long long __fastcall getFloor();
-	void __fastcall setFloor(long long floor);
 
 	[[nodiscard]] QString __fastcall getFloorName();
 	//battle
@@ -425,13 +423,13 @@ private:
 	inline void __fastcall setBattleData(const sa::battle_data_t& data) { battleData_.set(data); }
 
 	//自動鎖寵
-	void checkAutoLockPet(); //Async concurrent, DO NOT change calling convention
+	void __fastcall checkAutoLockPet(); //Async concurrent, DO NOT change calling convention
 
 	//自動加點
-	void checkAutoAbility(); //Async concurrent, DO NOT change calling convention
+	void __fastcall checkAutoAbility(); //Async concurrent, DO NOT change calling convention
 
 	//檢查並自動吃肉、或丟肉
-	void checkAutoDropMeat(); //Async concurrent, DO NOT change calling convention
+	void __fastcall checkAutoDropMeat(); //Async concurrent, DO NOT change calling convention
 
 	//自動吃經驗加乘道具
 	void __fastcall checkAutoEatBoostExpItem();
