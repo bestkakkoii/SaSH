@@ -439,11 +439,8 @@ private:
 	//自動丟棄道具
 	void __fastcall checkAutoDropItems();
 
-	//自動補血、氣
-	void checkAutoHeal(); //Async concurrent, DO NOT change calling convention
-
 	//自動丟寵
-	void checkAutoDropPet(); //Async concurrent, DO NOT change calling convention
+	void __fastcall checkAutoDropPet(); //Async concurrent, DO NOT change calling convention
 #pragma endregion
 
 #pragma region SAClientOriginal
@@ -501,7 +498,6 @@ private:
 	safe::data<QPoint> nowPoint_; //當前人物座標
 
 	QFuture<void> battleBackupFuture_; //戰鬥動作備用線程管理器
-	QFuture<void> autoHealFuture_; //自動補血線程管理器
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal

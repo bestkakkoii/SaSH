@@ -3592,7 +3592,7 @@ bool Worker::login(long long s)
 		{
 			gamedevice.leftDoubleClick(315, 253);
 			config.writeArray<long long>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
-	}
+		}
 #endif
 		break;
 	}
@@ -3728,10 +3728,10 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1500))
 				break;
 
-	}
+		}
 #endif
 		break;
-}
+	}
 	case util::kStatusSelectSubServer:
 	{
 		if (!input())
@@ -3884,7 +3884,7 @@ bool Worker::login(long long s)
 					break;
 
 			}
-	}
+		}
 #endif
 		break;
 	}
@@ -5154,231 +5154,6 @@ void Worker::checkAutoDropItems()
 	}
 }
 
-//自動補血
-void Worker::checkAutoHeal()
-{
-	qDebug() << "checkAutoHeal";
-	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	if (!gamedevice.getEnableHash(util::kNormalItemHealMpEnable)
-		&& !gamedevice.getEnableHash(util::kNormalItemHealEnable)
-		&& !gamedevice.getEnableHash(util::kNormalMagicHealEnable))
-		return;
-
-	if (gamedevice.isGameInterruptionRequested())
-		return;
-
-	if (getBattleFlag())
-		return;
-
-	auto checkStatus = [this, &gamedevice]()->long long
-		{
-			//如果主線程關閉則自動退出
-			if (gamedevice.isGameInterruptionRequested())
-				return -1;
-
-			if (!getOnlineFlag())
-				return 0;
-
-			if (getBattleFlag())
-				return 0;
-
-			return 1;
-		};
-
-	long long state = checkStatus();
-	if (-1 == state)
-		return;
-	else if (0 == state)
-		return;
-
-	QStringList items;
-	long long itemIndex = -1;
-
-	//平時道具補氣
-	for (;;)
-	{
-		if (checkStatus() != 1)
-			break;
-
-		bool itemHealMpEnable = gamedevice.getEnableHash(util::kNormalItemHealMpEnable);
-		if (!itemHealMpEnable)
-			break;
-
-		long long cmpvalue = gamedevice.getValueHash(util::kNormalItemHealMpValue);
-		if (!checkCharMp(cmpvalue))
-			break;
-
-		QString text = gamedevice.getStringHash(util::kNormalItemHealMpItemString).simplified();
-		if (text.isEmpty())
-			break;
-
-		items = text.split(util::rexOR, Qt::SkipEmptyParts);
-		if (items.isEmpty())
-			break;
-
-		itemIndex = -1;
-		for (const QString& str : items)
-		{
-			itemIndex = getItemIndexByName(str);
-			if (itemIndex != -1)
-				break;
-		}
-
-		if (itemIndex == -1)
-			break;
-
-		useItem(itemIndex, 0);
-		std::this_thread::sleep_for(std::chrono::milliseconds(150));
-	}
-
-	//平時道具補血
-	for (;;)
-	{
-		if (checkStatus() != 1)
-			break;
-
-		bool itemHealHpEnable = gamedevice.getEnableHash(util::kNormalItemHealEnable);
-		if (!itemHealHpEnable)
-			break;
-
-		long long charPercent = gamedevice.getValueHash(util::kNormalItemHealCharValue);
-		long long petPercent = gamedevice.getValueHash(util::kNormalItemHealPetValue);
-		long long alliePercent = gamedevice.getValueHash(util::kNormalItemHealAllieValue);
-
-		if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
-			break;
-
-		long long target = -1;
-		bool ok = false;
-		if ((charPercent > 0) && checkCharHp(charPercent))
-		{
-			ok = true;
-			target = 0;
-		}
-		if (!ok && (petPercent > 0) && checkPetHp(petPercent))
-		{
-			ok = true;
-			target = getCharacter().battlePetNo + 1;
-		}
-		if (!ok && (petPercent > 0) && checkRideHp(petPercent))
-		{
-			ok = true;
-			target = getCharacter().ridePetNo + 1;
-		}
-		if (!ok && (alliePercent > 0) && checkTeammateHp(alliePercent, &target))
-		{
-			ok = true;
-			target += sa::MAX_PET;
-		}
-
-		if (!ok || target == -1)
-			break;
-
-		itemIndex = -1;
-		bool meatProiory = gamedevice.getEnableHash(util::kNormalItemHealMeatPriorityEnable);
-		if (meatProiory)
-		{
-			itemIndex = getItemIndexByName("?肉", false, "耐久力");
-		}
-
-		if (itemIndex == -1)
-		{
-			QString text = gamedevice.getStringHash(util::kNormalItemHealItemString).simplified();
-
-			items = text.split(util::rexOR, Qt::SkipEmptyParts);
-			for (const QString& str : items)
-			{
-				itemIndex = getItemIndexByName(str);
-				if (itemIndex != -1)
-					break;
-			}
-		}
-
-		if (itemIndex == -1)
-			break;
-
-		long long targetType = getItem(itemIndex).target;
-		if ((targetType != sa::ITEM_TARGET_MYSELF) && (targetType != sa::ITEM_TARGET_OTHER))
-			break;
-
-		if ((targetType == sa::ITEM_TARGET_MYSELF) && (target != 0))
-			break;
-
-		useItem(itemIndex, target);
-		std::this_thread::sleep_for(std::chrono::milliseconds(150));
-	}
-
-	//平時精靈補血
-	for (;;)
-	{
-		if (checkStatus() != 1)
-			break;
-
-		bool magicHealHpEnable = gamedevice.getEnableHash(util::kNormalMagicHealEnable);
-		if (!magicHealHpEnable)
-			break;
-
-		long long charPercent = gamedevice.getValueHash(util::kNormalMagicHealCharValue);
-		long long petPercent = gamedevice.getValueHash(util::kNormalMagicHealPetValue);
-		long long alliePercent = gamedevice.getValueHash(util::kNormalMagicHealAllieValue);
-
-		if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
-			break;
-
-
-		long long target = -1;
-		bool ok = false;
-		if ((charPercent > 0) && checkCharHp(charPercent))
-		{
-			ok = true;
-			target = 0;
-		}
-		else if (!ok && (petPercent > 0) && checkPetHp(petPercent))
-		{
-			ok = true;
-			target = getCharacter().battlePetNo + 1;
-		}
-		else if (!ok && (petPercent > 0) && checkRideHp(petPercent))
-		{
-			ok = true;
-			target = getCharacter().ridePetNo + 1;
-		}
-		else if (!ok && (alliePercent > 0) && checkTeammateHp(alliePercent, &target))
-		{
-			ok = true;
-			target += sa::MAX_PET;
-		}
-
-		if (!ok || target == -1)
-			break;
-
-		long long magicIndex = -1;
-		{
-			QString itemNames = gamedevice.getStringHash(util::kNormalMagicHealItemString).simplified();
-			QVector<long long> nitems;
-			if (getItemIndexsByName(itemNames, "", &nitems) && !nitems.isEmpty())
-				magicIndex = nitems.front();
-		}
-
-		if (magicIndex == -1)
-		{
-			magicIndex = gamedevice.getValueHash(util::kNormalMagicHealMagicValue);
-			if (magicIndex >= 0 && magicIndex < sa::CHAR_EQUIPSLOT_COUNT)
-			{
-				long long targetType = getMagic(magicIndex).target;
-				if ((targetType != sa::MAGIC_TARGET_MYSELF) && (targetType != sa::MAGIC_TARGET_OTHER))
-					break;
-
-				if ((targetType == sa::MAGIC_TARGET_MYSELF) && (target != 0))
-					break;
-			}
-		}
-
-		useMagic(magicIndex, target);
-		std::this_thread::sleep_for(std::chrono::milliseconds(150));
-	}
-}
-
 void Worker::checkAutoDropPet()
 {
 	qDebug() << "checkAutoDropPet";
@@ -6336,20 +6111,8 @@ void Worker::setBattleEnd()
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	bool enableLockRide = gamedevice.getEnableHash(util::kLockRideEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
 	bool enableLockPet = gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
-	bool enableHeal = gamedevice.getEnableHash(util::kNormalItemHealMpEnable)
-		|| gamedevice.getEnableHash(util::kNormalItemHealEnable)
-		|| gamedevice.getEnableHash(util::kNormalMagicHealEnable);
-
 	if ((enableLockRide || enableLockPet))
 		checkAutoLockPet();
-
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	if (!autoHealFuture_.isRunning() && enableHeal)
-		autoHealFuture_ = QtConcurrent::run(this, &Worker::checkAutoHeal);
-#else
-	if (!autoHealFuture_.isRunning() && enableHeal)
-		autoHealFuture_ = QtConcurrent::run(&Worker::checkAutoHeal, this);
-#endif
 }
 
 //戰鬥BA包標誌位檢查
@@ -10748,9 +10511,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-	}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -10809,7 +10572,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				break;
 			}
 		}
-}
+	}
 #endif
 }
 
@@ -11627,12 +11390,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-			}
+					}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-		}
-	}
+				}
+					}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11646,11 +11409,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-	}
+				}
 
 		setBattleData(bt);
 		break;
-}
+			}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12426,13 +12189,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-	}
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
+		}
 	}
-}
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
 void Worker::lssproto_PETST_recv(long long petarray, long long result)
@@ -12952,7 +12715,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -13002,7 +12765,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -13038,7 +12801,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-}
+		}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13307,9 +13070,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13340,7 +13103,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+				}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13447,7 +13210,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13605,7 +13368,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}
@@ -14389,7 +14152,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-		}
+					}
 
 		sa::character_t pc = getCharacter();
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < sa::MAX_PET)
@@ -14447,7 +14210,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 		gamedevice.setUserData(util::kUserPetNames, petNames);
-	}
+				}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -15008,7 +14771,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-}
+			}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)

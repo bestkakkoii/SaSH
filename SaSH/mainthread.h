@@ -33,6 +33,7 @@ public:
 	{
 		kAutoJoin = 0,
 		kAutoWalk,
+		kAutoHeal,
 		kAutoSortItem,
 		kAutoRecordNPC,
 		kMaxAutoMission,
@@ -66,6 +67,8 @@ private:
 	void autoWalk();
 	void autoSortItem();
 	void autoRecordNPC();
+	void autoHeal(); //Async concurrent, DO NOT change calling convention
+
 	void asyncFindPath();
 
 	void reset()

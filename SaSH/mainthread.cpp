@@ -800,15 +800,31 @@ long long MainObject::checkAndRunFunctions()
 		if (gamedevice.battleActionFuture.isRunning())
 			return 3;
 
-		gamedevice.battleActionFuture = QtConcurrent::run([this]()->void {
-			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-			if (gamedevice.worker.isNull())
-				return;
+		gamedevice.battleActionFuture = QtConcurrent::run([this]()->void
+			{
+				GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+				if (gamedevice.worker.isNull())
+					return;
 
-			if (gamedevice.isGameInterruptionRequested())
-				return;
+				if (gamedevice.isGameInterruptionRequested())
+					return;
 
-			gamedevice.worker->asyncBattleAction(true);
+				for (;;)
+				{
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+					if (gamedevice.isGameInterruptionRequested())
+						return;
+
+					if (!gamedevice.worker->getBattleFlag())
+						continue;
+
+					if (!gamedevice.worker->getOnlineFlag())
+						continue;
+
+					gamedevice.worker->asyncBattleAction(true);
+				}
+
 			});
 		return 3;
 	}
@@ -1115,6 +1131,9 @@ MissionThread::MissionThread(long long index, long long type, QObject* parent)
 	case kAutoSortItem:
 		func_ = std::bind(&MissionThread::autoSortItem, this);
 		break;
+	case kAutoHeal:
+		func_ = std::bind(&MissionThread::autoHeal, this);
+		break;
 	case kAutoRecordNPC:
 		func_ = std::bind(&MissionThread::autoRecordNPC, this);
 		break;
@@ -1129,7 +1148,7 @@ MissionThread::MissionThread(long long index, long long type, QObject* parent)
 
 MissionThread::~MissionThread()
 {
-	//qDebug() << "MissionThread::~MissionThread()";
+	qDebug() << "MissionThread::~MissionThread()";
 }
 
 void MissionThread::wait()
@@ -1144,38 +1163,49 @@ void MissionThread::wait()
 
 void MissionThread::start()
 {
-	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	switch (type_)
-	{
-	case kAutoJoin:
-	{
-		if (gamedevice.getEnableHash(util::kAutoWalkEnable) || gamedevice.getEnableHash(util::kFastAutoWalkEnable))
-			return;
+	//GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	//switch (type_)
+	//{
+	//case kAutoJoin:
+	//{
+	//	if (gamedevice.getEnableHash(util::kAutoWalkEnable) || gamedevice.getEnableHash(util::kFastAutoWalkEnable))
+	//		return;
 
-		if (!gamedevice.getEnableHash(util::kAutoJoinEnable))
-			return;
+	//	if (!gamedevice.getEnableHash(util::kAutoJoinEnable))
+	//		return;
 
-		break;
-	}
-	case kAutoWalk:
-	{
-		if (!gamedevice.getEnableHash(util::kAutoWalkEnable) && !gamedevice.getEnableHash(util::kFastAutoWalkEnable))
-			return;
+	//	break;
+	//}
+	//case kAutoWalk:
+	//{
+	//	if (!gamedevice.getEnableHash(util::kAutoWalkEnable) && !gamedevice.getEnableHash(util::kFastAutoWalkEnable))
+	//		return;
 
-		break;
-	}
-	case kAutoSortItem:
-	{
-		if (!gamedevice.getEnableHash(util::kAutoStackEnable))
-			return;
+	//	break;
+	//}
+	//case kAutoHeal:
+	//{
+	//	if (!gamedevice.getEnableHash(util::kNormalItemHealMpEnable)
+	//		&& !gamedevice.getEnableHash(util::kNormalItemHealEnable)
+	//		&& !gamedevice.getEnableHash(util::kNormalMagicHealEnable))
+	//	{
+	//		return;
+	//	}
 
-		break;
-	}
-	case kAutoRecordNPC:
-		break;
-	case kAsyncFindPath:
-		break;
-	}
+	//	break;
+	//}
+	//case kAutoSortItem:
+	//{
+	//	if (!gamedevice.getEnableHash(util::kAutoStackEnable))
+	//		return;
+
+	//	break;
+	//}
+	//case kAutoRecordNPC:
+	//	break;
+	//case kAsyncFindPath:
+	//	break;
+	//}
 
 	if (future_.isRunning())
 		return;
@@ -1217,14 +1247,23 @@ void MissionThread::autoJoin()
 			break;
 
 		if (gamedevice.getEnableHash(util::kAutoWalkEnable) || gamedevice.getEnableHash(util::kFastAutoWalkEnable))
-			break;
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 
 		if (!gamedevice.getEnableHash(util::kAutoJoinEnable))
-			break;
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 
 		leader = gamedevice.getStringHash(util::kAutoFunNameString);
 		if (leader.isEmpty())
-			break;
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 
 		if (!gamedevice.worker->mapDevice.getMapDataByFloor(floor, &map))
 		{
@@ -1237,23 +1276,26 @@ void MissionThread::autoJoin()
 		{
 			//檢查隊長是否正確
 			if (util::checkAND(ch.status, sa::kCharacterStatus_IsLeader))
-				break;
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+				continue;
+			}
 
 			if (util::checkAND(ch.status, sa::kCharacterStatus_HasTeam))
 			{
 				QString name = gamedevice.worker->getTeam(0).name;
 				if ((!name.isEmpty() && leader == name)
 					|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
-					break;
+				{
+					std::this_thread::sleep_for(std::chrono::milliseconds(500));
+					continue;
+				}
 
 				gamedevice.worker->setTeamState(false);
 				std::this_thread::sleep_for(std::chrono::milliseconds(200));
 			}
 		}
 
-		leader = gamedevice.getStringHash(util::kAutoFunNameString);
-		if (leader.isEmpty())
-			break;
 
 		if (gamedevice.isGameInterruptionRequested())
 			break;
@@ -1280,7 +1322,10 @@ void MissionThread::autoJoin()
 		ch = gamedevice.worker->getCharacter();
 
 		if (floor != gamedevice.worker->getFloor())
-			break;
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 
 		QString freeName = "";
 		if (leader.count("|") == 1)
@@ -1295,7 +1340,10 @@ void MissionThread::autoJoin()
 
 		//查找目標人物所在坐標
 		if (!gamedevice.worker->findUnit(leader, sa::kObjectHuman, &unit, freeName))
-			break;
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 
 		//如果和目標人物處於同一個坐標則向隨機方向移動一格
 		current_point = gamedevice.worker->getPoint();
@@ -1309,7 +1357,10 @@ void MissionThread::autoJoin()
 		//計算最短離靠近目標人物的坐標和面相的方向
 		dir = gamedevice.worker->mapDevice.calcBestFollowPointByDstPoint(index, &astar, floor, current_point, unit.p, &newpoint, false, -1);
 		if (-1 == dir)
-			break;
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 
 		if (current_point == newpoint)
 		{
@@ -1323,7 +1374,10 @@ void MissionThread::autoJoin()
 		}
 
 		if (!gamedevice.worker->mapDevice.calcNewRoute(index, &astar, floor, current_point, newpoint, blockList, &path))
-			break;
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 
 		len = MAX_SINGLE_STEP;
 		size = static_cast<long long>(path.size()) - 1;
@@ -1338,10 +1392,16 @@ void MissionThread::autoJoin()
 
 		//如果步長小於1 就不動
 		if (len < 0)
-			break;
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 
 		if (len >= static_cast<long long>(path.size()))
-			break;
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 
 		gamedevice.worker->move(path.at(len));
 	}
@@ -1372,7 +1432,8 @@ void MissionThread::autoWalk()
 		if (!enableAutoWalk && !enableFastAutoWalk)
 		{
 			current_pos = QPoint();
-			break;
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			continue;
 		}
 		else if (current_pos.isNull())
 		{
@@ -1518,7 +1579,10 @@ void MissionThread::autoSortItem()
 		}
 
 		if (!gamedevice.getEnableHash(util::kAutoStackEnable))
-			break;
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 
 		if (gamedevice.isGameInterruptionRequested())
 			break;
@@ -1529,6 +1593,241 @@ void MissionThread::autoSortItem()
 		gamedevice.worker->sortItem();
 	}
 }
+
+//自動補血
+void MissionThread::autoHeal()
+{
+	for (;;)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+
+		auto checkStatus = [this, &gamedevice]()->long long
+			{
+				//如果主線程關閉則自動退出
+				if (gamedevice.isGameInterruptionRequested())
+					return -1;
+
+				if (gamedevice.worker.isNull())
+					return -1;
+
+				if (!gamedevice.worker->getOnlineFlag())
+					return 0;
+
+				if (gamedevice.worker->getBattleFlag())
+					return 0;
+
+				if (!gamedevice.getEnableHash(util::kNormalItemHealMpEnable)
+					&& !gamedevice.getEnableHash(util::kNormalItemHealEnable)
+					&& !gamedevice.getEnableHash(util::kNormalMagicHealEnable))
+				{
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					return 0;
+				}
+
+				return 1;
+			};
+
+		long long state = checkStatus();
+		if (-1 == state)
+			break;
+		else if (0 == state)
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			continue;
+		}
+
+		QStringList items;
+		long long itemIndex = -1;
+
+		//平時道具補氣
+		for (;;)
+		{
+			if (checkStatus() != 1)
+				break;
+
+			bool itemHealMpEnable = gamedevice.getEnableHash(util::kNormalItemHealMpEnable);
+			if (!itemHealMpEnable)
+				break;
+
+			long long cmpvalue = gamedevice.getValueHash(util::kNormalItemHealMpValue);
+			if (!gamedevice.worker->checkCharMp(cmpvalue))
+				break;
+
+			QString text = gamedevice.getStringHash(util::kNormalItemHealMpItemString).simplified();
+			if (text.isEmpty())
+				break;
+
+			items = text.split(util::rexOR, Qt::SkipEmptyParts);
+			if (items.isEmpty())
+				break;
+
+			itemIndex = -1;
+			for (const QString& str : items)
+			{
+				itemIndex = gamedevice.worker->getItemIndexByName(str);
+				if (itemIndex != -1)
+					break;
+			}
+
+			if (itemIndex == -1)
+				break;
+
+			gamedevice.worker->useItem(itemIndex, 0);
+			std::this_thread::sleep_for(std::chrono::milliseconds(150));
+		}
+
+		//平時道具補血
+		for (;;)
+		{
+			if (checkStatus() != 1)
+				break;
+
+			bool itemHealHpEnable = gamedevice.getEnableHash(util::kNormalItemHealEnable);
+			if (!itemHealHpEnable)
+				break;
+
+			long long charPercent = gamedevice.getValueHash(util::kNormalItemHealCharValue);
+			long long petPercent = gamedevice.getValueHash(util::kNormalItemHealPetValue);
+			long long alliePercent = gamedevice.getValueHash(util::kNormalItemHealAllieValue);
+
+			if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
+				break;
+
+			long long target = -1;
+			bool ok = false;
+			if ((charPercent > 0) && gamedevice.worker->checkCharHp(charPercent))
+			{
+				ok = true;
+				target = 0;
+			}
+
+			if (!ok && (petPercent > 0) && gamedevice.worker->checkPetHp(petPercent))
+			{
+				ok = true;
+				target = gamedevice.worker->getCharacter().battlePetNo + 1;
+			}
+
+			if (!ok && (petPercent > 0) && gamedevice.worker->checkRideHp(petPercent))
+			{
+				ok = true;
+				target = gamedevice.worker->getCharacter().ridePetNo + 1;
+			}
+
+			if (!ok && (alliePercent > 0) && gamedevice.worker->checkTeammateHp(alliePercent, &target))
+			{
+				ok = true;
+				target += sa::MAX_PET;
+			}
+
+			if (!ok || target == -1)
+				break;
+
+			itemIndex = -1;
+			bool meatProiory = gamedevice.getEnableHash(util::kNormalItemHealMeatPriorityEnable);
+			if (meatProiory)
+			{
+				itemIndex = gamedevice.worker->getItemIndexByName("?肉", false, "耐久力");
+			}
+
+			if (itemIndex == -1)
+			{
+				QString text = gamedevice.getStringHash(util::kNormalItemHealItemString).simplified();
+
+				items = text.split(util::rexOR, Qt::SkipEmptyParts);
+				for (const QString& str : items)
+				{
+					itemIndex = gamedevice.worker->getItemIndexByName(str);
+					if (itemIndex != -1)
+						break;
+				}
+			}
+
+			if (itemIndex == -1)
+				break;
+
+			long long targetType = gamedevice.worker->getItem(itemIndex).target;
+			if ((targetType != sa::ITEM_TARGET_MYSELF) && (targetType != sa::ITEM_TARGET_OTHER))
+				break;
+
+			if ((targetType == sa::ITEM_TARGET_MYSELF) && (target != 0))
+				break;
+
+			gamedevice.worker->useItem(itemIndex, target);
+			std::this_thread::sleep_for(std::chrono::milliseconds(150));
+		}
+
+		//平時精靈補血
+		for (;;)
+		{
+			if (checkStatus() != 1)
+				break;
+
+			bool magicHealHpEnable = gamedevice.getEnableHash(util::kNormalMagicHealEnable);
+			if (!magicHealHpEnable)
+				break;
+
+			long long charPercent = gamedevice.getValueHash(util::kNormalMagicHealCharValue);
+			long long petPercent = gamedevice.getValueHash(util::kNormalMagicHealPetValue);
+			long long alliePercent = gamedevice.getValueHash(util::kNormalMagicHealAllieValue);
+
+			if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
+				break;
+
+
+			long long target = -1;
+			bool ok = false;
+			if ((charPercent > 0) && gamedevice.worker->checkCharHp(charPercent))
+			{
+				ok = true;
+				target = 0;
+			}
+			else if (!ok && (petPercent > 0) && gamedevice.worker->checkPetHp(petPercent))
+			{
+				ok = true;
+				target = gamedevice.worker->getCharacter().battlePetNo + 1;
+			}
+			else if (!ok && (petPercent > 0) && gamedevice.worker->checkRideHp(petPercent))
+			{
+				ok = true;
+				target = gamedevice.worker->getCharacter().ridePetNo + 1;
+			}
+			else if (!ok && (alliePercent > 0) && gamedevice.worker->checkTeammateHp(alliePercent, &target))
+			{
+				ok = true;
+				target += sa::MAX_PET;
+			}
+
+			if (!ok || target == -1)
+				break;
+
+			long long magicIndex = -1;
+			{
+				QString itemNames = gamedevice.getStringHash(util::kNormalMagicHealItemString).simplified();
+				QVector<long long> nitems;
+				if (gamedevice.worker->getItemIndexsByName(itemNames, "", &nitems) && !nitems.isEmpty())
+					magicIndex = nitems.front();
+			}
+
+			if (magicIndex == -1)
+			{
+				magicIndex = gamedevice.getValueHash(util::kNormalMagicHealMagicValue);
+				if (magicIndex >= 0 && magicIndex < sa::CHAR_EQUIPSLOT_COUNT)
+				{
+					long long targetType = gamedevice.worker->getMagic(magicIndex).target;
+					if ((targetType != sa::MAGIC_TARGET_MYSELF) && (targetType != sa::MAGIC_TARGET_OTHER))
+						break;
+
+					if ((targetType == sa::MAGIC_TARGET_MYSELF) && (target != 0))
+						break;
+				}
+			}
+
+			gamedevice.worker->useMagic(magicIndex, target);
+			std::this_thread::sleep_for(std::chrono::milliseconds(150));
+		}
+	}
+}
+
 
 void MissionThread::autoRecordNPC()
 {
@@ -1551,19 +1850,25 @@ void MissionThread::autoRecordNPC()
 		}
 
 		if (gamedevice.isGameInterruptionRequested())
-			break;
+			return;
 
 		if (gamedevice.worker.isNull())
 			return;
 
 		if (isMissionInterruptionRequested())
-			break;
+			return;
 
 		if (!gamedevice.worker->getOnlineFlag())
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			continue;
+		}
 
 		if (gamedevice.worker->getBattleFlag())
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			continue;
+		}
 
 		AStarDevice astar;
 

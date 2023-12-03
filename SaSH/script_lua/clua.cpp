@@ -1481,6 +1481,7 @@ void CLua::open_charlibs(sol::state& lua)
 		"fire", sol::readonly(&sa::character_t::fire),
 		"wind", sol::readonly(&sa::character_t::wind),
 		"gold", sol::readonly(&sa::character_t::gold),
+		"stone", sol::readonly(&sa::character_t::gold),
 		"fame", sol::readonly(&sa::character_t::fame),
 		"titleid", sol::readonly(&sa::character_t::titleNo),
 		"dp", sol::readonly(&sa::character_t::dp),
