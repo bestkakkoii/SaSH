@@ -1435,101 +1435,44 @@ QFileInfoList __fastcall util::loadAllFileLists(
 	return file_list;
 }
 
-static void traverseDirectory(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, bool withcontent, bool isExact, QStringList& result)
-{
-	QStack<QString> dirs;
-	dirs.reserve(1024);
-	dirs.push(dir);
-
-	while (!dirs.isEmpty())
-	{
-		QString currentDir = dirs.pop();
-		QDir d(currentDir);
-		if (!d.exists())
-			continue;
-
-		QFileInfoList list = d.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
-		for (const QFileInfo& fileInfo : list)
-		{
-			if (fileInfo.isFile())
-			{
-				if ((!isExact && !fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive))
-					|| (isExact && fileInfo.fileName() != fileNamePart)
-					|| (!suffixWithDot.isEmpty() && suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.mid(1).toLower())
-					|| (!suffixWithDot.isEmpty() && !suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.toLower()))
-					continue;
-
-				if (withcontent)
-				{
-					QString content;
-					if (!util::readFile(fileInfo.absoluteFilePath(), &content))
-						continue;
-
-					QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(content);
-					result.append(fileContent);
-				}
-				else
-				{
-					result.append(fileInfo.absoluteFilePath());
-				}
-			}
-			else if (fileInfo.isDir())
-			{
-				dirs.push(fileInfo.absoluteFilePath());
-			}
-		}
-	}
-}
-
 void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* presult, bool withcontent, bool isExact)
 {
-	QStringList result;
-	traverseDirectory(dir, fileNamePart, suffixWithDot, withcontent, isExact, result);
-	if (presult != nullptr)
-		*presult = result;
-}
+	QDir d(dir);
+	if (!d.exists())
+		return;
 
-static QVector<QPair<QString, QString>> __fastcall enumAllFilesWorker(const QString& dir, const QString& suffix)
-{
-	QVector<QPair<QString, QString>> result;
-	QStack<QString> dirs;
-	dirs.push(dir);
-
-	while (!dirs.isEmpty())
+	QFileInfoList list = d.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+	for (const QFileInfo& fileInfo : list)
 	{
-		QString currentDir = dirs.pop();
-		QDir directory(currentDir);
-
-		if (!directory.exists())
+		if (fileInfo.isFile())
 		{
-			continue; // Skip if directory does not exist
-		}
-
-		QFileInfoList fileList = directory.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
-		QFileInfoList dirList = directory.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
-
-		// Process files
-		for (const QFileInfo& fileInfo : fileList)
-		{
-			QString fileName = fileInfo.fileName();
-			QString filePath = fileInfo.filePath();
-
-			if (!suffix.isEmpty() && !fileName.endsWith(suffix, Qt::CaseInsensitive))
-			{
+			if ((!isExact && !fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive))
+				|| (isExact && fileInfo.fileName() != fileNamePart)
+				|| (!suffixWithDot.isEmpty() && suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.mid(1).toLower())
+				|| (!suffixWithDot.isEmpty() && !suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.toLower()))
 				continue;
+
+			if (withcontent)
+			{
+				QString content;
+				// Assuming readFile is a function that reads the file content
+				if (!util::readFile(fileInfo.absoluteFilePath(), &content))
+					continue;
+
+				QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(content);
+				presult->append(fileContent);
 			}
-
-			result.append(QPair<QString, QString>(fileName, filePath));
+			else
+			{
+				presult->append(fileInfo.absoluteFilePath());
+			}
 		}
-
-		// Add subdirectories to the stack
-		for (const QFileInfo& dirInfo : dirList)
+		else if (fileInfo.isDir())
 		{
-			dirs.push(dirInfo.filePath());
+			// Recursively search in subdirectories
+			searchFiles(fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, presult, withcontent, isExact);
 		}
 	}
-
-	return result;
 }
 
 bool __fastcall util::enumAllFiles(const QString& dir, const QString& suffix, QVector<QPair<QString, QString>>* result)
@@ -1539,44 +1482,38 @@ bool __fastcall util::enumAllFiles(const QString& dir, const QString& suffix, QV
 		return false;
 	}
 
-	QStack<QString> dirs;
-	dirs.push(dir);
-
-	while (!dirs.isEmpty())
+	QDir directory(dir);
+	if (!directory.exists())
 	{
-		QString currentDir = dirs.pop();
-		QDir directory(currentDir);
+		return false; // Skip if directory does not exist
+	}
 
-		if (!directory.exists())
-		{
-			continue; // Skip if directory does not exist
-		}
-
-		QFileInfoList fileList = directory.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
-		QFileInfoList dirList = directory.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
-
-		// Process files
-		for (const QFileInfo& fileInfo : fileList)
+	QFileInfoList fileInfoList = directory.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+	for (const QFileInfo& fileInfo : fileInfoList)
+	{
+		if (fileInfo.isFile())
 		{
 			QString fileName = fileInfo.fileName();
 			QString filePath = fileInfo.filePath();
 
 			if (!suffix.isEmpty() && !fileName.endsWith(suffix, Qt::CaseInsensitive))
 			{
-				continue;
+				continue; // Skip files that don't match the suffix
 			}
 
 			result->append(QPair<QString, QString>(fileName, filePath));
 		}
-
-		// Add subdirectories to the stack
-		for (const QFileInfo& dirInfo : dirList)
+		else if (fileInfo.isDir())
 		{
-			dirs.push(dirInfo.filePath());
+			// Recursively process subdirectories
+			if (!enumAllFiles(fileInfo.filePath(), suffix, result))
+			{
+				return false; // Return false if any subdirectory processing fails
+			}
 		}
 	}
 
-	return !result->isEmpty();
+	return true;
 }
 
 //自身進程目錄 遞歸遍查找指定文件

@@ -1186,21 +1186,20 @@ void Parser::initialize(Parser* pparent)
 	lua_.set_function("rnd", [this](sol::object omin, sol::object omax, sol::this_state s)->long long
 		{
 			long long result = 0;
-			if (omin == sol::lua_nil && omax == sol::lua_nil)
+			long long min = 0;
+			if (omin.is<long long>())
+				min = omin.as<long long>();
+
+			long long max = 0;
+			if (omax.is<long long>())
+				max = omax.as<long long>();
+
+			if (omin == sol::lua_nil && omax == sol::lua_nil || min == 0 && max == 0)
 			{
 				util::rnd::get(&result);
 				insertGlobalVar("vret", result);
 				return result;
 			}
-
-			long long min = 0;
-			if (omin.is<long long>())
-				min = omin.as<long long>();
-
-
-			long long max = 0;
-			if (omax.is<long long>())
-				max = omax.as<long long>();
 
 			if ((min > 0 && max == 0) || (min == max))
 			{

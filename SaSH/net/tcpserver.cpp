@@ -362,9 +362,6 @@ Worker::Worker(long long index, QObject* parent)
 	, Lssproto(&GameDevice::getInstance(index).autil)
 	, chatQueue(sa::MAX_CHAT_HISTORY)
 	, readQueue_(24)
-	, petInfoLock_(QReadWriteLock::NonRecursive)
-	, itemInfoLock_(QReadWriteLock::NonRecursive)
-	, moveLock_(QMutex::NonRecursive)
 	, mapDevice(index)
 {
 	std::ignore = parent;
@@ -3939,9 +3936,9 @@ bool Worker::login(long long s)
 	{
 		break;
 	}
-	}
+		}
 	return false;
-}
+	}
 
 #pragma endregion
 
@@ -11394,8 +11391,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-				}
 					}
+				}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11409,11 +11406,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-				}
+			}
 
 		setBattleData(bt);
 		break;
-			}
+		}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12194,7 +12191,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-		}
+	}
 	}
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
@@ -12728,7 +12725,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				}
 				return;
-			}
+		}
 			else
 			{
 				// 密語頻道
@@ -12765,7 +12762,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -12807,7 +12804,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
@@ -13372,7 +13369,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #pragma endregion
 	}
-}
+			}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Worker::lssproto_CA_recv(char* cdata)
