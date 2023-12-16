@@ -1441,15 +1441,19 @@ void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePar
 	if (!d.exists())
 		return;
 
-	QFileInfoList list = d.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+	QFileInfoList list = d.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
 	for (const QFileInfo& fileInfo : list)
 	{
 		if (fileInfo.isFile())
 		{
-			if ((!isExact && !fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive))
-				|| (isExact && fileInfo.fileName() != fileNamePart)
-				|| (!suffixWithDot.isEmpty() && suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.mid(1).toLower())
-				|| (!suffixWithDot.isEmpty() && !suffixWithDot.startsWith(".") && fileInfo.suffix().toLower() != suffixWithDot.toLower()))
+			// Simplified extension check
+			QString suffix = suffixWithDot.startsWith('.') ? suffixWithDot.mid(1).toLower() : suffixWithDot.toLower();
+			QString fileName = fileInfo.fileName().toLower();
+
+
+			if ((!fileName.isEmpty() && !isExact && !fileName.contains(fileNamePart, Qt::CaseInsensitive))
+				|| (!fileName.isEmpty() && isExact && fileName.toLower() != fileNamePart.toLower())
+				|| (!suffix.isEmpty() && fileInfo.suffix().toLower() != suffix))
 				continue;
 
 			if (withcontent)
@@ -1462,13 +1466,11 @@ void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePar
 				QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(content);
 				presult->append(fileContent);
 			}
-			else
-			{
+			else {
 				presult->append(fileInfo.absoluteFilePath());
 			}
 		}
-		else if (fileInfo.isDir())
-		{
+		else if (fileInfo.isDir()) {
 			// Recursively search in subdirectories
 			searchFiles(fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, presult, withcontent, isExact);
 		}
@@ -1485,10 +1487,10 @@ bool __fastcall util::enumAllFiles(const QString& dir, const QString& suffix, QV
 	QDir directory(dir);
 	if (!directory.exists())
 	{
-		return false; // Skip if directory does not exist
+		return false; // 目錄不存在時返回 false
 	}
 
-	QFileInfoList fileInfoList = directory.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+	QFileInfoList fileInfoList = directory.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot, QDir::DirsFirst);
 	for (const QFileInfo& fileInfo : fileInfoList)
 	{
 		if (fileInfo.isFile())
@@ -1498,18 +1500,15 @@ bool __fastcall util::enumAllFiles(const QString& dir, const QString& suffix, QV
 
 			if (!suffix.isEmpty() && !fileName.endsWith(suffix, Qt::CaseInsensitive))
 			{
-				continue; // Skip files that don't match the suffix
+				continue; // 跳過不匹配後綴的文件
 			}
 
-			result->append(QPair<QString, QString>(fileName, filePath));
+			result->append(qMakePair(fileName, filePath));
 		}
 		else if (fileInfo.isDir())
 		{
-			// Recursively process subdirectories
-			if (!enumAllFiles(fileInfo.filePath(), suffix, result))
-			{
-				return false; // Return false if any subdirectory processing fails
-			}
+			// 遞歸處理子目錄
+			enumAllFiles(fileInfo.filePath(), suffix, result); // 不檢查返回值
 		}
 	}
 
