@@ -145,7 +145,7 @@ public:
 	inline void setAutoClose(bool bAutoClose) { this->enableAutoClose_ = bAutoClose; }
 
 public:
-	static BOOL 	enablePrivilege(HANDLE hProcess, const wchar_t* SE = SE_DEBUG_NAME);
+	static BOOL enablePrivilege(HANDLE hProcess, const wchar_t* SE = SE_DEBUG_NAME);
 
 private:
 	void closeHandle();

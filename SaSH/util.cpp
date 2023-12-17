@@ -1449,11 +1449,19 @@ void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePar
 			// Simplified extension check
 			QString suffix = suffixWithDot.startsWith('.') ? suffixWithDot.mid(1).toLower() : suffixWithDot.toLower();
 			QString fileName = fileInfo.fileName().toLower();
+			//remove suffix from fileName
+			if (fileName.endsWith(suffix))
+			{
+				fileName = fileName.left(fileName.length() - suffix.length());
+				if (fileName.endsWith('.'))
+					fileName = fileName.left(fileName.length() - 1);
+			}
 
+			if (!suffix.isEmpty() && fileInfo.suffix().toLower() != suffix)
+				continue;
 
 			if ((!fileName.isEmpty() && !isExact && !fileName.contains(fileNamePart, Qt::CaseInsensitive))
-				|| (!fileName.isEmpty() && isExact && fileName.toLower() != fileNamePart.toLower())
-				|| (!suffix.isEmpty() && fileInfo.suffix().toLower() != suffix))
+				|| (!fileName.isEmpty() && isExact && fileName.toLower() != fileNamePart.toLower()))
 				continue;
 
 			if (withcontent)
@@ -1466,11 +1474,13 @@ void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePar
 				QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(content);
 				presult->append(fileContent);
 			}
-			else {
+			else
+			{
 				presult->append(fileInfo.absoluteFilePath());
 			}
 		}
-		else if (fileInfo.isDir()) {
+		else if (fileInfo.isDir())
+		{
 			// Recursively search in subdirectories
 			searchFiles(fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, presult, withcontent, isExact);
 		}
