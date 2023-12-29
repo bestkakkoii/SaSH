@@ -382,7 +382,7 @@ bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigne
 			break;
 		}
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		QThread::msleep(10);
 	}
 
 	return dwResult != 0;
@@ -462,7 +462,7 @@ bool GameDevice::injectLibrary(GameDevice::process_information_t& pi, unsigned s
 				break;
 			}
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			QThread::msleep(10);
 		}
 
 		if (nullptr == pi.hWnd)
@@ -516,7 +516,7 @@ bool GameDevice::injectLibrary(GameDevice::process_information_t& pi, unsigned s
 			if (timer.hasExpired(sa::MAX_TIMEOUT))
 				break;
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			QThread::msleep(10);
 		}
 
 		timer.restart();
@@ -641,13 +641,13 @@ void GameDevice::leftClick(long long x, long long y) const
 {
 	//LPARAM data = MAKELPARAM(x, y);
 	//sendMessage(WM_MOUSEMOVE, NULL, data);
-	//std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	//QThread::msleep(50);
 	//sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, data);
-	//std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	//QThread::msleep(50);
 	//sendMessage(WM_LBUTTONUP, MK_LBUTTON, data);
-	//std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	//QThread::msleep(50);
 	mouseMove(x, y);
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	QThread::msleep(50);
 	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseClick, 1);
 }
 
@@ -655,11 +655,11 @@ void GameDevice::leftDoubleClick(long long x, long long y) const
 {
 	//LPARAM data = MAKELPARAM(x, y);
 	//sendMessage(WM_MOUSEMOVE, NULL, data);
-	//std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	//QThread::msleep(50);
 	//sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
-	//std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	//QThread::msleep(50);
 	mouseMove(x, y);
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	QThread::msleep(50);
 	LPARAM data = MAKELPARAM(x, y);
 	sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
 }
@@ -668,13 +668,13 @@ void GameDevice::rightClick(long long x, long long y) const
 {
 	//LPARAM data = MAKELPARAM(x, y);
 	//sendMessage(WM_MOUSEMOVE, NULL, data);
-	//std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	//QThread::msleep(50);
 	//sendMessage(WM_RBUTTONDOWN, MK_RBUTTON, data);
-	//std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	//QThread::msleep(50);
 	//sendMessage(WM_RBUTTONUP, MK_RBUTTON, data);
-	//std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	//QThread::msleep(50);
 	mouseMove(x, y);
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	QThread::msleep(50);
 	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseClick, 2);
 }
 
@@ -683,13 +683,13 @@ void GameDevice::dragto(long long x1, long long y1, long long x2, long long y2) 
 	LPARAM datafrom = MAKELPARAM(x1, y1);
 	LPARAM datato = MAKELPARAM(x2, y2);
 	sendMessage(WM_MOUSEMOVE, NULL, datafrom);
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	QThread::msleep(50);
 	sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, datafrom);
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	QThread::msleep(50);
 	sendMessage(WM_MOUSEMOVE, NULL, datato);
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	QThread::msleep(50);
 	sendMessage(WM_LBUTTONUP, MK_LBUTTON, datato);
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	QThread::msleep(50);
 }
 
 void GameDevice::hide(long long mode)

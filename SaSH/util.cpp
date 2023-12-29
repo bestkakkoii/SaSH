@@ -496,7 +496,7 @@ bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hPr
 					return false;
 			}
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			QThread::msleep(10);
 		}
 
 		if (phDllModule != nullptr)
@@ -610,7 +610,7 @@ bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProc
 					return false;
 			}
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			QThread::msleep(10);
 		}
 	}
 

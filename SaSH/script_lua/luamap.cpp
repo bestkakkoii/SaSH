@@ -213,7 +213,7 @@ long long CLuaMap::walkpos(long long x, long long y, sol::object otimeout, sol::
 	if (!gamedevice.worker->move(p))
 		return FALSE;
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	QThread::msleep(1);
 
 	bool bret = luadebug::waitfor(s, timeout, [&s, this, &gamedevice, &p]()->bool
 		{
@@ -263,7 +263,7 @@ long long CLuaMap::move(sol::object obj, long long y, sol::this_state s)
 	if (!gamedevice.worker->move(p))
 		return FALSE;
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(100));;
+	QThread::msleep(100);;
 	return TRUE;
 }
 
@@ -486,7 +486,7 @@ bool __fastcall findPathProcess(
 
 			lastTryPoint = point;
 			if (step_cost > 0)
-				std::this_thread::sleep_for(std::chrono::milliseconds(step_cost));
+				QThread::msleep(step_cost);
 		}
 
 		if (!luadebug::checkBattleThenWait(s))
@@ -497,7 +497,7 @@ bool __fastcall findPathProcess(
 				cost = timer.cost();
 				if (cost > 5000)
 				{
-					std::this_thread::sleep_for(std::chrono::milliseconds(500));
+					QThread::msleep(500);
 
 					if (luadebug::checkStopAndPause(s))
 						return false;
@@ -521,7 +521,7 @@ bool __fastcall findPathProcess(
 					if (src.isNull() || src != dst)
 						continue;
 
-					std::this_thread::sleep_for(std::chrono::milliseconds(500));
+					QThread::msleep(500);
 
 					if (luadebug::checkStopAndPause(s))
 						return false;
@@ -545,7 +545,7 @@ bool __fastcall findPathProcess(
 
 				gamedevice.worker->move(dst);
 
-				std::this_thread::sleep_for(std::chrono::milliseconds(200));
+				QThread::msleep(200);
 				src = getPos();
 				if (src.isNull() || src != dst)
 					continue;
@@ -598,7 +598,7 @@ bool __fastcall findPathProcess(
 			}
 
 			gamedevice.worker->EO();
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			QThread::msleep(500);
 			if (luadebug::checkStopAndPause(s))
 				return false;
 
@@ -626,7 +626,7 @@ bool __fastcall findPathProcess(
 				gamedevice.setEnableHash(util::kKNPCEnable, true);
 				emit signalDispatcher.applyHashSettingsToUI();
 				gamedevice.worker->move(blockPoint);
-				std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+				QThread::msleep(2000);
 				luadebug::checkBattleThenWait(s);
 				blockDetectTimer.restart();
 				gamedevice.setEnableHash(util::kAutoEscapeEnable, isAutoEscape);
@@ -699,7 +699,7 @@ bool __fastcall findPathProcess(
 
 		if (callback != nullptr)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(callback_step_cost));
+			QThread::msleep(callback_step_cost);
 			long long r = callback(dst);
 			if (r == 1)
 				callback = nullptr;

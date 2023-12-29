@@ -4108,7 +4108,7 @@
                <number>3</number>
               </property>
               <property name="maximum">
-               <number>30000</number>
+               <number>99999</number>
               </property>
               <property name="value">
                <number>3</number>

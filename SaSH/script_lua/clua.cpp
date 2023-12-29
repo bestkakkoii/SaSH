@@ -313,10 +313,10 @@ bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 			if (timer.hasExpired(180000))
 				break;
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
+			QThread::msleep(100);;
 		}
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		QThread::msleep(1000);
 	}
 	return bret;
 }
@@ -345,10 +345,10 @@ bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 			if (timer.hasExpired(180000))
 				break;
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));;
+			QThread::msleep(100);;
 		}
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		QThread::msleep(1000);
 	}
 	return bret;
 }
@@ -368,14 +368,14 @@ void __fastcall luadebug::processDelay(const sol::this_state& s)
 			if (checkStopAndPause(s))
 				return;
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			QThread::msleep(1000);
 		}
 		if (extraDelay % 1000ll > 0ll)
-			std::this_thread::sleep_for(std::chrono::milliseconds(extraDelay % 1000ll));
+			QThread::msleep(extraDelay % 1000ll);
 	}
 	else if (extraDelay > 0ll)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(extraDelay));
+		QThread::msleep(extraDelay);
 	}
 }
 
@@ -470,7 +470,7 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 			break;
 		}
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));;
+		QThread::msleep(100);;
 	}
 	return bret;
 }
@@ -523,7 +523,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		processDelay(s);
 		if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			QThread::msleep(1);
 		}
 		else
 		{

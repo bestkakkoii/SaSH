@@ -121,15 +121,16 @@ private:
 	QHash<QString, QAction*> menu_action_hash_;
 
 	GeneralForm pGeneralForm_;
+#ifndef LEAK_TEST
 	MapForm pMapForm_;
 	OtherForm pOtherForm_;
 	ScriptForm pScriptForm_;
+	InfoForm pInfoForm_;
+	ScriptEditor pScriptEditor_;
+	MapWidget mapWidget_;
+#endif
 
 	long long interfaceCount_ = 0;
-
-	InfoForm pInfoForm_;
-	MapWidget mapWidget_;
-	ScriptEditor pScriptEditor_;
 
 	Downloader downloader_;
 

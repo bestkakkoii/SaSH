@@ -36,6 +36,7 @@ public:
 		kAutoHeal,
 		kAutoSortItem,
 		kAutoRecordNPC,
+		kAutoBattle,
 		kMaxAutoMission,
 		kAsyncFindPath
 	};
@@ -45,8 +46,8 @@ public:
 
 	void wait();
 
-	inline bool isRunning() const { return future_.isRunning(); }
-	inline bool isFinished() const { return future_.isFinished(); }
+	inline bool isRunning() const { return thread_ != nullptr && thread_->isRunning(); }
+	inline bool isFinished() const { return thread_ != nullptr && thread_->isFinished(); }
 	inline void appendArg(const QVariant& arg) { args_.append(arg); }
 	inline void appendArgs(const QVariantList& args) { args_.append(args); }
 
@@ -62,12 +63,17 @@ public:
 
 	void start();
 
+signals:
+	void finished();
+
 private:
 	void autoJoin();
 	void autoWalk();
 	void autoSortItem();
 	void autoRecordNPC();
 	void autoHeal(); //Async concurrent, DO NOT change calling convention
+
+	void autoBattle();
 
 	void asyncFindPath();
 
@@ -78,8 +84,7 @@ private:
 
 private:
 	long long type_ = 0;
-	QFuture<void> future_;
-	std::function<void()> func_;
+	QThread* thread_ = nullptr;
 	QVariantList args_;
 	safe::flag isMissionInterruptionRequested_ = false;
 };
@@ -165,7 +170,9 @@ private:
 	bool flagSwitcherJobEnable_ = false;
 	bool flagSwitcherWorldEnable_ = false;
 
+#ifndef LEAK_TEST
 	safe::vector<MissionThread*> autoThreads_;
+#endif
 };
 
 class ThreadManager : public QObject

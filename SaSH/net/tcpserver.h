@@ -426,7 +426,7 @@ private:
 	void __fastcall checkAutoLockPet(); //Async concurrent, DO NOT change calling convention
 
 	//自動加點
-	void __fastcall checkAutoAbility(); //Async concurrent, DO NOT change calling convention
+	void checkAutoAbility(); //Async concurrent, DO NOT change calling convention
 
 	//檢查並自動吃肉、或丟肉
 	void __fastcall checkAutoDropMeat(); //Async concurrent, DO NOT change calling convention

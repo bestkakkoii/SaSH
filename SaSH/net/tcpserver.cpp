@@ -511,7 +511,7 @@ void Worker::handleData(QByteArray badata)
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	long long delay = gamedevice.getValueHash(util::UserSetting::kTcpDelayValue);
 	if (delay > 0)
-		std::this_thread::sleep_for(std::chrono::milliseconds(delay));//avoid too fast
+		QThread::msleep(delay);//avoid too fast
 
 	appendReadBuf(badata);
 
@@ -2252,7 +2252,7 @@ long long Worker::checkJobDailyState(const QString& missionName, long long timeo
 		if (!IS_WAITFOR_missionInfo_FLAG.get())
 			break;
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		QThread::msleep(100);
 	}
 
 	if (newMissionName.startsWith("?"))
@@ -3172,7 +3172,7 @@ bool Worker::talk(const QString& text, long long color, sa::TalkMode mode)
 		{
 			newflg |= sa::PC_ETCFLAG_TEAM_CHAT;
 			setSwitchers(newflg);
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			QThread::msleep(500);
 		}
 	}
 
@@ -3624,7 +3624,7 @@ bool Worker::login(long long s)
 			if (gamedevice.isGameInterruptionRequested())
 				return false;
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			QThread::msleep(100);
 		}
 
 		//sa_8001.exe+206F1 - 0F85 1A020000         - jne sa_8001.exe+20911
@@ -3661,7 +3661,7 @@ bool Worker::login(long long s)
 			if (gamedevice.isGameInterruptionRequested())
 				return false;
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			QThread::msleep(100);
 		}
 
 		/*
@@ -3797,7 +3797,7 @@ bool Worker::login(long long s)
 			if (gamedevice.isGameInterruptionRequested())
 				return false;
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			QThread::msleep(100);
 		}
 
 		/*
@@ -3897,7 +3897,7 @@ bool Worker::login(long long s)
 				//playerLogin(position);
 				//setGameStatus(1);
 				//setWorldStatus(5);
-				//std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+				//QThread::msleep(1000);
 		//#else
 		long long x = 100 + (position * 300);
 		long long y = 340;
@@ -3936,9 +3936,9 @@ bool Worker::login(long long s)
 	{
 		break;
 	}
-		}
-	return false;
 	}
+	return false;
+}
 
 #pragma endregion
 
@@ -5856,7 +5856,7 @@ bool Worker::tradeStart(const QString& name, long long timeout)
 		if (IS_TRADING.get())
 			break;
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		QThread::msleep(100);
 	}
 
 	return opp_name == name;
@@ -6138,7 +6138,7 @@ void Worker::doBattleWork(bool canDelay)
 					GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 					for (long long i = 0; i < 50; ++i)
 					{
-						std::this_thread::sleep_for(std::chrono::milliseconds(100));
+						QThread::msleep(100);
 						if (gamedevice.isGameInterruptionRequested())
 							return;
 
@@ -6184,7 +6184,7 @@ void Worker::doBattleWork(bool canDelay)
 							break;
 						}
 
-						std::this_thread::sleep_for(std::chrono::milliseconds(100));
+						QThread::msleep(100);
 					}
 
 					if (battleCharAlreadyActed.get())
@@ -6243,7 +6243,7 @@ bool Worker::asyncBattleAction(bool canDelay)
 				long long maxDelaySize = delay / 1000;
 				for (long long i = 0; i < maxDelaySize; ++i)
 				{
-					std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+					QThread::msleep(1000);
 					if (gamedevice.isGameInterruptionRequested())
 						return;
 
@@ -6252,10 +6252,10 @@ bool Worker::asyncBattleAction(bool canDelay)
 				}
 
 				if (delay % 1000 > 0)
-					std::this_thread::sleep_for(std::chrono::milliseconds(delay % 1000));
+					QThread::msleep(delay % 1000);
 			}
 			else
-				std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+				QThread::msleep(delay);
 		};
 
 	auto setCurrentRoundEnd = [this, &gamedevice, normalEnabled]()
@@ -10713,7 +10713,13 @@ void Worker::lssproto_RS_recv(char* cdata)
 	if (gamedevice.getEnableHash(util::kAutoDropMeatEnable))
 		checkAutoDropMeat();
 	if (gamedevice.getEnableHash(util::kAutoAbilityEnable))
-		checkAutoAbility();
+	{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+		std::ignore = QtConcurrent::run(&Worker::checkAutoAbility, this);
+#else
+		std::ignore = QtConcurrent::run(this, &Worker::checkAutoAbility);
+#endif
+	}
 	if (gamedevice.getEnableHash(util::kDropPetEnable))
 		checkAutoDropPet();
 }
@@ -11391,8 +11397,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-					}
 				}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11406,11 +11412,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-			}
+		}
 
 		setBattleData(bt);
 		break;
-		}
+	}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12192,7 +12198,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 		break;
 	}
 	}
-	}
+}
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
 void Worker::lssproto_PETST_recv(long long petarray, long long result)
@@ -12725,7 +12731,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				}
 				return;
-		}
+			}
 			else
 			{
 				// 密語頻道
@@ -12762,7 +12768,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -12804,7 +12810,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
@@ -13100,7 +13106,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-				}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13369,7 +13375,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #pragma endregion
 	}
-			}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Worker::lssproto_CA_recv(char* cdata)
@@ -14149,7 +14155,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-					}
+		}
 
 		sa::character_t pc = getCharacter();
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < sa::MAX_PET)
@@ -14207,7 +14213,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 		gamedevice.setUserData(util::kUserPetNames, petNames);
-				}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -14768,7 +14774,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-			}
+}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)
@@ -15011,6 +15017,7 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 		else if (trade_command.startsWith("1"))
 		{
 			myitem_tradeList.clear();
+			mypet_tradeList.clear();
 			mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 			mygoldtrade = 0;
 
@@ -15186,6 +15193,7 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 		tradeStatus = 2;
 		IS_TRADING.off();
 		myitem_tradeList.clear();
+		mypet_tradeList.clear();
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
@@ -15194,6 +15202,7 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 	{//取消交易
 		IS_TRADING.off();
 		myitem_tradeList.clear();
+		mypet_tradeList.clear();
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
@@ -15460,10 +15469,10 @@ void Worker::findPathAsync(const QPoint& dst)
 				if (stimer.hasExpired(180000))
 					break;
 
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				QThread::msleep(100);
 			}
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			QThread::msleep(1000);
 		}
 
 		src = getPoint();

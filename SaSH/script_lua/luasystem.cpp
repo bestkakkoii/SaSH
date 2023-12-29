@@ -381,20 +381,20 @@ long long CLuaSystem::sleep(long long t, sol::this_state s)
 		long long size = t / 1000;
 		for (; i < size; ++i)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			QThread::msleep(1000);
 			if (luadebug::checkStopAndPause(s))
 				return FALSE;
 		}
 
 		if (i % 1000 > 0)
-			std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<DWORD>(i) % 1000UL));
+			QThread::msleep(static_cast<DWORD>(i) % 1000UL);
 
 		if (luadebug::checkStopAndPause(s))
 			return FALSE;
 	}
 	else if (t > 0)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(t));
+		QThread::msleep(t);
 		if (luadebug::checkStopAndPause(s))
 			return FALSE;
 	}
@@ -747,7 +747,7 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 			if (!gamedevice.worker->isDialogVisible())
 				gamedevice.worker->setCharFaceToPoint(unit.p);
 			if (button == sa::kButtonNone && row == -1)
-				std::this_thread::sleep_for(std::chrono::milliseconds(300));
+				QThread::msleep(300);
 			unitid = unit.id;
 		}
 	}
@@ -1413,8 +1413,8 @@ bool CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object otim
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	long long min = 0;
-	long long max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT);
+	long long min = sa::CHAR_EQUIPSLOT_COUNT;
+	long long max = sa::MAX_ITEM;
 
 	QString itemName;
 	if (oname.is<std::string>())
@@ -1440,14 +1440,28 @@ bool CLuaSystem::waititem(sol::object oname, sol::object omemo, sol::object otim
 
 	gamedevice.worker->updateItemByMemory();
 
-	bool bret = luadebug::waitfor(s, timeout, [&gamedevice, &itemNames, &itemMemos, min, max]()->bool
+	bool bret = luadebug::waitfor(s, timeout, [itemName, &gamedevice, &itemNames, &itemMemos, min, max]()->bool
 		{
+			if (sa::equipMap.contains(itemName))
+			{
+				long long index = sa::equipMap.value(itemName);
+				if (index >= 0 && index < sa::CHAR_EQUIPSLOT_COUNT)
+				{
+					if (gamedevice.worker->getItemIndexByName(itemName, true, "", index, index + 1))
+						return true;
+				}
+
+				return false;
+			}
+
 			QVector<long long> vec;
 			long long size = 0;
 			if (itemNames.size() >= itemMemos.size())
 				size = itemNames.size();
 			else
 				size = itemMemos.size();
+
+
 
 			for (long long i = 0; i < size; ++i)
 			{
@@ -2343,7 +2357,7 @@ long long CLuaSystem::set(std::string enumStr,
 		else if (type == util::kBattleCatchTargetMaxHpEnable && ok)
 			gamedevice.setValueHash(util::kBattleCatchTargetMaxHpValue, value1 + 1);
 		else if (type == util::kBattleCatchPetSkillEnable && ok)
-			gamedevice.setValueHash(util::kBattleCatchPetSkillValue, value1 + 1);
+			gamedevice.setValueHash(util::kBattleCatchPetSkillValue, value1);
 		else if (type == util::kBattleSkillMpEnable)
 			gamedevice.setValueHash(util::kBattleSkillMpValue, value1 + 1);
 

@@ -240,7 +240,7 @@ bool compress(Downloader* d, const QString& source, const QString& destination)
 		d->progressDialog_->setValue(currentSize);
 		QApplication::processEvents();
 		++currentSize;
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		QThread::msleep(1);
 	}
 
 	zipper::CloseZipZ(hz);
@@ -307,7 +307,7 @@ bool uncompress(Downloader* d, const QString& source, const QString& destination
 		d->progressDialog_->setValue(currentSize);
 		QApplication::processEvents();
 		++currentSize;
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		QThread::msleep(1);
 	}
 
 	zipper::CloseZipU(hz);
@@ -810,7 +810,7 @@ void Downloader::overwriteCurrentExecutable()
 				progressDialog_->setValue(currentSize);
 			}
 			++currentSize;
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			QThread::msleep(1);
 		}
 
 		QString szBackup7zFileName = QString(kBackupfileName1).arg(buildDateTime());
@@ -820,7 +820,7 @@ void Downloader::overwriteCurrentExecutable()
 		while (QFile::exists(szBackup7zNewFilePath)) //_2 _3 _4..increase until name is not duplicate
 		{
 			szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(QString(kBackupfileName2).arg(buildDateTime()).arg(++n));
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			QThread::msleep(1);
 		}
 
 		progressDialog_->onProgressReset(0);
@@ -834,7 +834,7 @@ void Downloader::overwriteCurrentExecutable()
 			{
 				while (!QFile::rename(szBackup7zFilePath, szBackup7zNewFilePath))
 				{
-					std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+					QThread::msleep(1000);
 					if (timer.hasExpired(30000))
 					{
 						break;
@@ -866,7 +866,7 @@ void Downloader::overwriteCurrentExecutable()
 					progressDialog_->setLabelText(QString("close process that has %1.dll module, pid: %2").arg(SASH_INJECT_DLLNAME).arg(pid));
 					progressDialog_->setValue(currentSize);
 					++currentSize;
-					std::this_thread::sleep_for(std::chrono::milliseconds(1));
+					QThread::msleep(1);
 				}
 			}
 		}
@@ -922,7 +922,7 @@ void Downloader::overwriteCurrentExecutable()
 	{
 		progressDialog_->setLabelText(QString("restart SaSH.exe in %1 seconds...").arg(i));
 		progressDialog_->setValue(5 - i);
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		QThread::msleep(1000);
 	}
 	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }

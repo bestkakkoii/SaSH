@@ -312,8 +312,6 @@ public:
 
 	safe::data<QStringList> subServerNameList;
 
-	QFuture<void> battleActionFuture;
-
 	unsigned long long scriptThreadId = 0;
 
 	static Server server;//與遊戲TCP通信專用，所有實例共用Server，但分派不同線程給Client socket

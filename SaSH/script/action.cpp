@@ -529,7 +529,10 @@ long long Interpreter::trade(long long currentIndex, long long currentLine, cons
 		if (itemListStr.toLower() == "all")
 		{
 			for (long long i = 1; i <= sa::MAX_PET; ++i)
-				petIndexList.append(util::toQString(i));
+			{
+				if (gamedevice.worker->getPet(i - 1).valid)
+					petIndexList.append(util::toQString(i));
+			}
 		}
 		else if (itemListStr.count("-") == 1)
 		{

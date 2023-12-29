@@ -553,7 +553,7 @@ void Parser::initialize(Parser* pparent)
 					bret = true;
 					break;
 				}
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));;
+				QThread::msleep(100);;
 			}
 			gamedevice.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.off();
 
@@ -3534,14 +3534,14 @@ void Parser::processDelay()
 			if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 				return;
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			QThread::msleep(1000);
 		}
 		if (extraDelay % 1000ll > 0ll)
-			std::this_thread::sleep_for(std::chrono::milliseconds(extraDelay % 1000ll));
+			QThread::msleep(extraDelay % 1000);
 	}
 	else if (extraDelay > 0ll)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(extraDelay));
+		QThread::msleep(extraDelay);
 	}
 }
 
@@ -3914,7 +3914,7 @@ void Parser::processTokens()
 			processDelay();
 			if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get() && gamedevice.IS_SCRIPT_EDITOR_OPENED.get())
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				QThread::msleep(1);
 			}
 
 			if (callBack_ != nullptr)
