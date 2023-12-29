@@ -27,7 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <DbgHelp.h>
 #pragma comment(lib, "dbghelp.lib")
 
-
 //堆棧追蹤
 static void printStackTrace()
 {

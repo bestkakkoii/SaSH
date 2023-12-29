@@ -230,6 +230,8 @@
 #include <QGraphicsSceneEvent>
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 3rd parties
+#include <VLD/vld.h>
+
 #ifndef SOL_ALL_SAFETIES_ON
 #define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
