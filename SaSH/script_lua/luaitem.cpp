@@ -1168,6 +1168,216 @@ long long CLuaItem::withdrawpet(std::string sname, sol::object olevel, sol::obje
 	return TRUE;
 }
 
+long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet, sol::object ogold, sol::object oitemout, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString name = util::toQString(sname);
+
+	if (name.isEmpty())
+		return FALSE;
+
+	QString itemListStr = "";
+	if (oitem.is<std::string>())
+		itemListStr = util::toQString(oitem.as<std::string>());
+	long long itemPos = -1;
+	if (oitem.is<long long>() && oitem.as<long long>() > 0)
+		itemPos = oitem.as<long long>() - 1;
+
+	QString petListStr = "";
+	if (opet.is<std::string>())
+		petListStr = util::toQString(opet.as<std::string>());
+	long long petPos = -1;
+	if (opet.is<long long>() && opet.as<long long>() > 0)
+		petPos = opet.as<long long>() - 1;
+
+	long long gold = 0;
+	if (ogold.is<long long>())
+		gold = ogold.as<long long>();
+	else if (ogold.is<std::string>())
+	{
+		QString qgold = util::toQString(ogold.as<std::string>());
+		if (qgold == "all")
+			gold = gamedevice.worker->getCharacter().gold;
+		else
+			return FALSE;
+	}
+
+	long long timeout = 5000;
+	if (oitemout.is<long long>())
+		timeout = oitemout.as<long long>();
+
+	sa::map_unit_t unit;
+	if (!gamedevice.worker->findUnit(name, sa::kObjectHuman, &unit))
+		return FALSE;
+
+	QPoint dst;
+	AStarDevice astar;
+	long long dir = gamedevice.worker->mapDevice.calcBestFollowPointByDstPoint(
+		currentIndex, &astar, gamedevice.worker->getFloor(), gamedevice.worker->getPoint(), unit.p, &dst, true, unit.dir);
+	if (dir == -1)
+		return FALSE;
+
+	gamedevice.worker->setCharFaceDirection(dir);
+
+	if (!gamedevice.worker->tradeStart(name, timeout))
+		return FALSE;
+
+	//bool ok = false;
+	if (!itemListStr.isEmpty())
+	{
+		QStringList itemIndexList = itemListStr.split(util::rexOR, Qt::SkipEmptyParts);
+		if (itemListStr.toLower() == "all")
+		{
+			for (long long i = 1; i <= (sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT); ++i)
+			{
+				if (gamedevice.worker->getItem(i).valid)
+					itemIndexList.append(util::toQString(i));
+			}
+		}
+		else if (itemListStr.count("-") == 1 || itemListStr.count("-") == 0)
+		{
+			long long min = 1;
+			long long max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT);
+
+			if (!luatool::checkRange(oitem, min, max, nullptr))
+				return FALSE;
+
+			for (long long i = min; i <= max; ++i)
+				itemIndexList.append(util::toQString(i));
+		}
+
+		QVector<long long> itemIndexVec;
+		for (const QString& itemIndex : itemIndexList)
+		{
+			bool bret = false;
+			long long index = itemIndex.toLongLong(&bret);
+			--index;
+			index += sa::CHAR_EQUIPSLOT_COUNT;
+			QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
+			if (bret && index >= sa::CHAR_EQUIPSLOT_COUNT && index < sa::MAX_ITEM)
+			{
+				if (items.value(index).valid)
+					itemIndexVec.append(index);
+			}
+		}
+
+		if (!itemIndexVec.isEmpty())
+		{
+			std::sort(itemIndexVec.begin(), itemIndexVec.end());
+			auto it = std::unique(itemIndexVec.begin(), itemIndexVec.end());
+			itemIndexVec.erase(it, itemIndexVec.end());
+		}
+
+		if (!itemIndexVec.isEmpty())
+		{
+			gamedevice.worker->tradeAppendItems(name, itemIndexVec);
+			//ok = true;
+		}
+		else
+			return FALSE;
+	}
+	else if (itemPos >= 0)
+	{
+		QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
+		if (items.value(itemPos).valid)
+		{
+			gamedevice.worker->tradeAppendItems(name, QVector<long long>() << itemPos);
+		}
+		else
+			return FALSE;
+	}
+
+	if (!petListStr.isEmpty())
+	{
+		QStringList petIndexList = petListStr.split(util::rexOR, Qt::SkipEmptyParts);
+		if (itemListStr.toLower() == "all")
+		{
+			for (long long i = 1; i <= sa::MAX_PET; ++i)
+			{
+				if (gamedevice.worker->getPet(i - 1).valid)
+					petIndexList.append(util::toQString(i));
+			}
+		}
+		else if (itemListStr.count("-") == 1 || itemListStr.count("-") == 0)
+		{
+			long long min = 1;
+			long long max = sa::MAX_PET;
+			if (!luatool::checkRange(oitem, min, max, nullptr))
+				return FALSE;
+
+			for (long long i = min; i <= max; ++i)
+				petIndexList.append(util::toQString(i));
+		}
+		else if (petPos >= 0)
+		{
+			petIndexList.append(util::toQString(petPos + 1));
+		}
+
+		QVector<long long> petIndexVec;
+		for (const QString& petIndex : petIndexList)
+		{
+			bool bret = false;
+			long long index = petIndex.toLongLong(&bret);
+			--index;
+
+			if (bret && index >= 0 && index < sa::MAX_PET)
+			{
+				sa::pet_t pet = gamedevice.worker->getPet(index);
+				if (pet.valid)
+					petIndexVec.append(index);
+			}
+		}
+
+		std::sort(petIndexVec.begin(), petIndexVec.end());
+		auto it = std::unique(petIndexVec.begin(), petIndexVec.end());
+		petIndexVec.erase(it, petIndexVec.end());
+
+		if (!petIndexVec.isEmpty())
+		{
+			gamedevice.worker->tradeAppendPets(name, petIndexVec);
+			//ok = true;
+		}
+		else
+			return FALSE;
+	}
+
+	if (gold > 0 && gold <= gamedevice.worker->getCharacter().gold)
+	{
+		gamedevice.worker->tradeAppendGold(name, gold);
+		//ok = true;
+	}
+
+	gamedevice.worker->tradeComfirm(name);
+
+	bool ret = luadebug::waitfor(s, timeout, [&gamedevice]()
+		{
+			return gamedevice.worker->getCharacter().trade_confirm >= 3;
+		});
+
+	if (!ret)
+	{
+		gamedevice.worker->tradeCancel();
+		return FALSE;
+	}
+
+	gamedevice.worker->tradeComplete(name);
+
+	ret = luadebug::waitfor(s, timeout, [&gamedevice]()
+		{
+			return !gamedevice.worker->IS_TRADING.get();
+		});
+
+	return ret ? TRUE : FALSE;
+}
+
 long long CLuaItem::getSpace()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);

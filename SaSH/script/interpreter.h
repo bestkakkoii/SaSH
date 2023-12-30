@@ -96,8 +96,6 @@ private: //註冊給Parser的函數
 	long long useitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long dropitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 
-	long long trade(long long currentIndex, long long currentLine, const TokenMap& TK);
-
 private:
 	enum
 	{

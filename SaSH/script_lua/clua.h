@@ -301,6 +301,8 @@ public:
 	long long depositpet(sol::object oslots, sol::this_state s);
 	long long withdrawpet(std::string sname, sol::object olevel, sol::object omaxhp, sol::this_state s);
 
+	long long trade(std::string sname, sol::object oitem, sol::object opet, sol::object ogold, sol::object oitemout, sol::this_state s);
+
 	long long getSpace();
 	bool getIsFull();
 

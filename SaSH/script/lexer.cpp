@@ -57,7 +57,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ "usemagic", TK_CMD },
 	{ "useitem", TK_CMD },
 	{ "doffitem", TK_CMD },
-	{ "trade", TK_CMD },
 	{ "mail", TK_CMD },
 };
 #pragma endregion

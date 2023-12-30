@@ -528,6 +528,40 @@ private:
 	QStringList myitem_tradeList;
 	QStringList mypet_tradeList = { "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 	long long mygoldtrade = 0;
+
+	void __fastcall clearTradeData()
+	{
+		opp_showindex = 0;
+		opp_sockfd.clear();
+		opp_name.clear();
+		opp_goldmount.clear();
+		tradeWndDropGoldGet = 0;
+		opp_itemgraph.clear();
+		opp_itemname.clear();
+		opp_itemeffect.clear();
+		opp_itemindex.clear();
+		opp_itemdamage.clear();
+		trade_kind.clear();
+		trade_command.clear();
+		tradeStatus = 0;
+		tradePetIndex = -1;
+		for (long long i = 0; i < 2; ++i)
+			tradePet[i] = {};
+
+		for (long long i = 0; i < sa::MAX_MAXHAVEITEM; ++i)
+			opp_item[i] = {};
+
+		for (long long i = 0; i < sa::MAX_PET; ++i)
+			opp_pet[i] = {};
+
+		myitem_tradeList.clear();
+		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
+		mygoldtrade = 0;
+
+		sa::character_t pc = getCharacter();
+		pc.trade_confirm = 1;
+		setCharacter(pc);
+	}
 #pragma endregion
 
 public:

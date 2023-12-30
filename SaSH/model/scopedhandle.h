@@ -146,6 +146,7 @@ public:
 
 public:
 	static BOOL enablePrivilege(HANDLE hProcess, const wchar_t* SE = SE_DEBUG_NAME);
+	static BOOL enablePrivilege();
 
 private:
 	void closeHandle();

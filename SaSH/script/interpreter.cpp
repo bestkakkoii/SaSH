@@ -332,7 +332,6 @@ void Interpreter::openLibs()
 	registerFunction("useitem", &Interpreter::useitem);
 	registerFunction("doffitem", &Interpreter::dropitem);
 	registerFunction("usemagic", &Interpreter::usemagic);
-	registerFunction("trade", &Interpreter::trade);
 	registerFunction("mail", &Interpreter::mail);
 }
 

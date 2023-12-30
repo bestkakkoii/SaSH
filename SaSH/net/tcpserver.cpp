@@ -2919,6 +2919,7 @@ void Worker::setOnlineFlag(bool enable)
 	if (!enable)
 	{
 		setBattleEnd();
+		IS_TRADING.off();
 	}
 
 	isOnline_.set(enable);
@@ -5824,11 +5825,7 @@ bool Worker::tradeCancel()
 	if (!lssproto_TD_send(const_cast<char*>(scmd.c_str())))
 		return false;
 
-	sa::character_t pc = getCharacter();
-	pc.trade_confirm = 1;
-	setCharacter(pc);
-	tradeStatus = 0;
-
+	clearTradeData();
 	return true;
 }
 
@@ -15017,7 +15014,6 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 		else if (trade_command.startsWith("1"))
 		{
 			myitem_tradeList.clear();
-			mypet_tradeList.clear();
 			mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 			mygoldtrade = 0;
 
@@ -15193,16 +15189,15 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 		tradeStatus = 2;
 		IS_TRADING.off();
 		myitem_tradeList.clear();
-		mypet_tradeList.clear();
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
 
 	else if (Head.startsWith("W"))
-	{//取消交易
+	{
+		//取消交易
 		IS_TRADING.off();
 		myitem_tradeList.clear();
-		mypet_tradeList.clear();
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}

@@ -70,7 +70,7 @@ ScopedHandle::ScopedHandle(long long dwProcess, bool bAutoClose)
 ScopedHandle::ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument)
 	: enableAutoClose_(true)
 {
-	enablePrivilege(::GetCurrentProcess());
+	enablePrivilege();
 	if (h == CREATE_REMOTE_THREAD)
 		createThreadEx(ProcessHandle, StartRoutine, Argument);
 }
@@ -78,7 +78,7 @@ ScopedHandle::ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRouti
 ScopedHandle::ScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions)
 	: enableAutoClose_(true)
 {
-	enablePrivilege(::GetCurrentProcess());
+	enablePrivilege();
 	if (h == DUPLICATE_HANDLE)
 		duplicateHandle(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, dwOptions);
 }
@@ -92,7 +92,7 @@ ScopedHandle::~ScopedHandle()
 void ScopedHandle::closeHandle()
 {
 	QWriteLocker locker(&lock_);
-	enablePrivilege(::GetCurrentProcess());
+	enablePrivilege();
 	HANDLE h = handle_;
 	if (!h
 		|| ((h) == INVALID_HANDLE_VALUE)
@@ -144,7 +144,7 @@ HANDLE ScopedHandle::ZwOpenProcess(DWORD dwProcess)
 void ScopedHandle::openProcess(DWORD dwProcess)
 {
 	QWriteLocker locker(&lock_);
-	enablePrivilege(::GetCurrentProcess());
+	enablePrivilege();
 	HANDLE hprocess = NtOpenProcess(dwProcess);
 	if (!hprocess || ((hprocess) == INVALID_HANDLE_VALUE))
 	{
@@ -173,7 +173,7 @@ void ScopedHandle::openProcess(DWORD dwProcess)
 void ScopedHandle::createToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID)
 {
 	QWriteLocker locker(&lock_);
-	enablePrivilege(::GetCurrentProcess());
+	enablePrivilege();
 	HANDLE hSnapshot = ::CreateToolhelp32Snapshot(dwFlags, th32ProcessID);
 	if (hSnapshot && ((hSnapshot) != INVALID_HANDLE_VALUE))
 	{
@@ -188,7 +188,7 @@ void ScopedHandle::createToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID)
 void ScopedHandle::createThreadEx(HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument)
 {
 	QWriteLocker locker(&lock_);
-	enablePrivilege(::GetCurrentProcess());
+	enablePrivilege();
 	HANDLE hThread = nullptr;
 	BOOL ret = NT_SUCCESS(MINT::NtCreateThreadEx(&hThread, THREAD_ALL_ACCESS, nullptr, ProcessHandle, StartRoutine, Argument, FALSE, NULL, NULL, NULL, nullptr));
 	if (ret && hThread && ((hThread) != INVALID_HANDLE_VALUE))
@@ -207,7 +207,7 @@ void ScopedHandle::createThreadEx(HANDLE ProcessHandle, PVOID StartRoutine, PVOI
 void ScopedHandle::duplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions)
 {
 	QWriteLocker locker(&lock_);
-	enablePrivilege(::GetCurrentProcess());
+	enablePrivilege();
 	HANDLE hTargetHandle = nullptr;
 	//BOOL ret = ::DuplicateHandle(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, &hTargetHandle, 0, FALSE, dwOptions);
 	BOOL ret = NT_SUCCESS(MINT::NtDuplicateObject(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, &hTargetHandle, 0, FALSE, dwOptions));
@@ -224,7 +224,7 @@ void ScopedHandle::duplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHa
 void ScopedHandle::createEvent()
 {
 	QWriteLocker locker(&lock_);
-	enablePrivilege(::GetCurrentProcess());
+	enablePrivilege();
 	HANDLE hEvent = ::CreateEventW(nullptr, FALSE, FALSE, nullptr);
 	if (hEvent && ((hEvent) != INVALID_HANDLE_VALUE))
 	{
@@ -251,7 +251,9 @@ HANDLE ScopedHandle::openProcessToken(HANDLE ProcessHandle, ACCESS_MASK DesiredA
 // 提權函數：提升為DEBUG權限
 BOOL ScopedHandle::enablePrivilege(HANDLE hProcess, const wchar_t* SE)
 {
-	if (!hProcess) return FALSE;
+	if (!hProcess)
+		return FALSE;
+
 	BOOL fOk = FALSE;
 	do
 	{
@@ -269,6 +271,16 @@ BOOL ScopedHandle::enablePrivilege(HANDLE hProcess, const wchar_t* SE)
 		MINT::NtAdjustPrivilegesToken(hToken, FALSE, &tp, sizeof(tp), nullptr, nullptr);
 
 		fOk = (::GetLastError() == ERROR_SUCCESS);
+
+		MINT::NtClose(hToken);
 	} while (false);
 	return fOk;
+}
+
+BOOL ScopedHandle::enablePrivilege()
+{
+	BOOLEAN bEnabled = FALSE;
+	BOOL ret = NT_SUCCESS(MINT::RtlAdjustPrivilege(SE_DEBUG_PRIVILEGE, TRUE, FALSE, &bEnabled));
+
+	return ret;
 }

@@ -35,7 +35,7 @@ bool __fastcall mem::read(HANDLE hProcess, unsigned long long desiredAccess, uns
 	if (!desiredAccess)
 		return false;
 
-	ScopedHandle::enablePrivilege(::GetCurrentProcess());
+	ScopedHandle::enablePrivilege();
 
 	//ULONG oldProtect = NULL;
 	//VirtualProtectEx(m_pi.hProcess, buffer, size, PAGE_EXECUTE_READWRITE, &oldProtect);
@@ -123,7 +123,7 @@ bool __fastcall mem::write(HANDLE hProcess, unsigned long long baseAddress, PVOI
 
 	ULONG oldProtect = NULL;
 
-	ScopedHandle::enablePrivilege(::GetCurrentProcess());
+	ScopedHandle::enablePrivilege();
 
 	VirtualProtectEx(hProcess, (LPVOID)baseAddress, dwSize, PAGE_EXECUTE_READWRITE, &oldProtect);
 	BOOL ret = WriteProcessMemory(hProcess, reinterpret_cast<PVOID>(baseAddress), buffer, dwSize, NULL);

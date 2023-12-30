@@ -1340,6 +1340,8 @@ void CLua::open_itemlibs(sol::state& lua)
 	lua.set_function("pequip", &CLuaItem::petequip, &luaItem_);
 	lua.set_function("puequip", &CLuaItem::petunequip, &luaItem_);
 
+	lua.set_function("trade", &CLuaItem::trade, &luaItem_);
+
 	lua.new_usertype<sa::item_t>("ItemStruct",
 		"valid", sol::readonly(&sa::item_t::valid),
 		"color", sol::readonly(&sa::item_t::color),
