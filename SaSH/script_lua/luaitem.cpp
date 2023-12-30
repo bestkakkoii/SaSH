@@ -1182,14 +1182,17 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 	QString name = util::toQString(sname);
 
 	if (name.isEmpty())
+	{
+		qDebug() << "trade name is empty";
 		return FALSE;
+	}
 
 	QString itemListStr = "";
 	if (oitem.is<std::string>())
 		itemListStr = util::toQString(oitem.as<std::string>());
 	long long itemPos = -1;
 	if (oitem.is<long long>() && oitem.as<long long>() > 0)
-		itemPos = oitem.as<long long>() - 1;
+		itemPos = oitem.as<long long>() - 1 + sa::CHAR_EQUIPSLOT_COUNT;
 
 	QString petListStr = "";
 	if (opet.is<std::string>())
@@ -1207,7 +1210,10 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 		if (qgold == "all")
 			gold = gamedevice.worker->getCharacter().gold;
 		else
+		{
+			qDebug() << "you input a string type of value for gold but it only allowed 'all'";
 			return FALSE;
+		}
 	}
 
 	long long timeout = 5000;
@@ -1216,14 +1222,20 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 
 	sa::map_unit_t unit;
 	if (!gamedevice.worker->findUnit(name, sa::kObjectHuman, &unit))
+	{
+		qDebug() << "can not find unit:" << name;
 		return FALSE;
+	}
 
 	QPoint dst;
 	AStarDevice astar;
 	long long dir = gamedevice.worker->mapDevice.calcBestFollowPointByDstPoint(
 		currentIndex, &astar, gamedevice.worker->getFloor(), gamedevice.worker->getPoint(), unit.p, &dst, true, unit.dir);
 	if (dir == -1)
+	{
+		qDebug() << "can not find path to unit:" << name;
 		return FALSE;
+	}
 
 	gamedevice.worker->setCharFaceDirection(dir);
 
@@ -1233,13 +1245,12 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 	//bool ok = false;
 	if (!itemListStr.isEmpty())
 	{
-		QStringList itemIndexList = itemListStr.split(util::rexOR, Qt::SkipEmptyParts);
+		QStringList itemIndexList;
 		if (itemListStr.toLower() == "all")
 		{
 			for (long long i = 1; i <= (sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT); ++i)
 			{
-				if (gamedevice.worker->getItem(i).valid)
-					itemIndexList.append(util::toQString(i));
+				itemIndexList.append(util::toQString(i));
 			}
 		}
 		else if (itemListStr.count("-") == 1 || itemListStr.count("-") == 0)
@@ -1248,10 +1259,24 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 			long long max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT);
 
 			if (!luatool::checkRange(oitem, min, max, nullptr))
+			{
+				qDebug() << "not a valid range string for itemList";
 				return FALSE;
+			}
 
 			for (long long i = min; i <= max; ++i)
 				itemIndexList.append(util::toQString(i));
+		}
+		else if (itemListStr.count("|") > 0)
+		{
+			QStringList itemIndexList2 = itemListStr.split("|", Qt::SkipEmptyParts);
+			for (const QString& itemIndex : itemIndexList2)
+			{
+				bool ok = false;
+				long long index = itemIndex.toLongLong(&ok);
+				if (ok && index >= 1 && index <= (sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT))
+					itemIndexList.append(util::toQString(index));
+			}
 		}
 
 		QVector<long long> itemIndexVec;
@@ -1278,47 +1303,78 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 
 		if (!itemIndexVec.isEmpty())
 		{
-			gamedevice.worker->tradeAppendItems(name, itemIndexVec);
-			//ok = true;
+			if (gamedevice.worker->tradeAppendItems(name, itemIndexVec) == -1)
+			{
+				gamedevice.worker->tradeCancel();
+				qDebug() << "tradeAppendItems failed";
+				return FALSE;
+			}
 		}
 		else
+		{
+			gamedevice.worker->tradeCancel();
+			qDebug() << "itemIndexVec is empty";
 			return FALSE;
+		}
 	}
 	else if (itemPos >= 0)
 	{
 		QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
 		if (items.value(itemPos).valid)
 		{
-			gamedevice.worker->tradeAppendItems(name, QVector<long long>() << itemPos);
+			if (gamedevice.worker->tradeAppendItems(name, QVector<long long>() << itemPos) == -1)
+			{
+				gamedevice.worker->tradeCancel();
+				qDebug() << "tradeAppendItems failed";
+				return FALSE;
+			}
 		}
 		else
+		{
+			gamedevice.worker->tradeCancel();
+			qDebug() << "itemPos is invalid";
 			return FALSE;
+		}
 	}
 
 	if (!petListStr.isEmpty())
 	{
-		QStringList petIndexList = petListStr.split(util::rexOR, Qt::SkipEmptyParts);
-		if (itemListStr.toLower() == "all")
+		QStringList petIndexList;
+		if (petListStr.toLower() == "all")
 		{
 			for (long long i = 1; i <= sa::MAX_PET; ++i)
 			{
-				if (gamedevice.worker->getPet(i - 1).valid)
-					petIndexList.append(util::toQString(i));
+				petIndexList.append(util::toQString(i));
 			}
 		}
-		else if (itemListStr.count("-") == 1 || itemListStr.count("-") == 0)
+		else if (petListStr.count("-") == 1 || petListStr.count("-") == 0)
 		{
 			long long min = 1;
 			long long max = sa::MAX_PET;
 			if (!luatool::checkRange(oitem, min, max, nullptr))
+			{
+				gamedevice.worker->tradeCancel();
+				qDebug() << "not a valid range string for petList";
 				return FALSE;
+			}
 
 			for (long long i = min; i <= max; ++i)
+			{
 				petIndexList.append(util::toQString(i));
+			}
 		}
-		else if (petPos >= 0)
+		else if (petListStr.count("|") > 0)
 		{
-			petIndexList.append(util::toQString(petPos + 1));
+			QStringList petIndexList2 = petListStr.split(util::rexOR, Qt::SkipEmptyParts);
+			for (const QString& petIndex : petIndexList2)
+			{
+				bool ok = false;
+				long long index = petIndex.toLongLong(&ok);
+				if (ok && index >= 1 && index <= sa::MAX_PET)
+				{
+					petIndexList.append(util::toQString(index));
+				}
+			}
 		}
 
 		QVector<long long> petIndexVec;
@@ -1342,20 +1398,54 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 
 		if (!petIndexVec.isEmpty())
 		{
-			gamedevice.worker->tradeAppendPets(name, petIndexVec);
-			//ok = true;
+			if (gamedevice.worker->tradeAppendPets(name, petIndexVec) == -1)
+			{
+				gamedevice.worker->tradeCancel();
+				qDebug() << "tradeAppendPets failed";
+				return FALSE;
+			}
 		}
 		else
+		{
+			gamedevice.worker->tradeCancel();
+			qDebug() << "petIndexVec is empty";
 			return FALSE;
+		}
+	}
+	else if (petPos >= 0)
+	{
+		sa::pet_t pet = gamedevice.worker->getPet(petPos);
+		if (!pet.valid)
+		{
+			gamedevice.worker->tradeCancel();
+			qDebug() << "petPos is invalid";
+			return FALSE;
+		}
+
+		if (gamedevice.worker->tradeAppendPets(name, QVector<long long>() << petPos) == -1)
+		{
+			gamedevice.worker->tradeCancel();
+			qDebug() << "tradeAppendPets failed";
+			return FALSE;
+		}
 	}
 
 	if (gold > 0 && gold <= gamedevice.worker->getCharacter().gold)
 	{
-		gamedevice.worker->tradeAppendGold(name, gold);
-		//ok = true;
+		if (!gamedevice.worker->tradeAppendGold(name, gold))
+		{
+			gamedevice.worker->tradeCancel();
+			qDebug() << "tradeAppendGold failed";
+			return FALSE;
+		}
 	}
 
-	gamedevice.worker->tradeComfirm(name);
+	if (!gamedevice.worker->tradeComfirm(name))
+	{
+		gamedevice.worker->tradeCancel();
+		qDebug() << "tradeComfirm failed";
+		return FALSE;
+	}
 
 	bool ret = luadebug::waitfor(s, timeout, [&gamedevice]()
 		{
@@ -1365,15 +1455,28 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 	if (!ret)
 	{
 		gamedevice.worker->tradeCancel();
+		qDebug() << "tradeComfirm failed2";
 		return FALSE;
 	}
 
-	gamedevice.worker->tradeComplete(name);
+	if (!gamedevice.worker->tradeComplete(name))
+	{
+		gamedevice.worker->tradeCancel();
+		qDebug() << "tradeComplete failed";
+		return FALSE;
+	}
 
 	ret = luadebug::waitfor(s, timeout, [&gamedevice]()
 		{
 			return !gamedevice.worker->IS_TRADING.get();
 		});
+
+	if (!ret)
+	{
+		gamedevice.worker->tradeCancel();
+		qDebug() << "tradeComplete failed2";
+		return FALSE;
+	}
 
 	return ret ? TRUE : FALSE;
 }

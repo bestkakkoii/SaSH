@@ -226,9 +226,9 @@ public://actions
 	bool __fastcall tradeStart(const QString& name, long long timeout);
 	bool __fastcall tradeComfirm(const QString& name);
 	bool __fastcall tradeCancel();
-	bool __fastcall tradeAppendItems(const QString& name, const QVector<long long>& itemIndexs);
-	bool __fastcall tradeAppendGold(const QString& name, long long gold);
-	bool __fastcall tradeAppendPets(const QString& name, const QVector<long long>& petIndex);
+	long long __fastcall tradeAppendItems(const QString& name, const QVector<long long>& itemIndexs);
+	long long __fastcall tradeAppendGold(const QString& name, long long gold);
+	long long __fastcall tradeAppendPets(const QString& name, const QVector<long long>& petIndex);
 	bool __fastcall tradeComplete(const QString& name);
 
 	bool __fastcall cleanChatHistory();
@@ -557,10 +557,6 @@ private:
 		myitem_tradeList.clear();
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
-
-		sa::character_t pc = getCharacter();
-		pc.trade_confirm = 1;
-		setCharacter(pc);
 	}
 #pragma endregion
 

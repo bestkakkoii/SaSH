@@ -5833,10 +5833,16 @@ bool Worker::tradeCancel()
 bool Worker::tradeStart(const QString& name, long long timeout)
 {
 	if (IS_TRADING.get())
+	{
+		qDebug() << "is not trading";
 		return false;
+	}
 
 	if (!lssproto_TD_send(const_cast<char*>("D|D")))
+	{
+		qDebug() << "lssproto_TD_send fail";
 		return false;
+	}
 
 	util::timer timer;
 	for (;;)
@@ -5856,36 +5862,56 @@ bool Worker::tradeStart(const QString& name, long long timeout)
 		QThread::msleep(100);
 	}
 
-	return opp_name == name;
+	bool bret = opp_name == name;
+	if (!bret)
+	{
+		qDebug() << "opp_name != name";
+	}
+	return bret;
 }
 
 //批量添加交易物品
-bool Worker::tradeAppendItems(const QString& name, const QVector<long long>& itemIndexs)
+long long Worker::tradeAppendItems(const QString& name, const QVector<long long>& itemIndexs)
 {
 	if (!IS_TRADING.get())
-		return false;
+	{
+		qDebug() << "is not trading";
+		return -1;
+	}
 
 	if (itemIndexs.isEmpty())
-		return false;
+	{
+		qDebug() << "itemIndexs is empty";
+		return -1;
+	}
 
 	if (name != opp_name)
 	{
-		tradeCancel();
-		return false;
+		qDebug() << "name != opp_name";
+		return -1;
 	}
 
+	myitem_tradeList.clear();
+
+	long long count = 0;
 	QHash< long long, sa::item_t> items = getItems();
 	for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
 	{
 		bool bret = false;
 		long long stack = items.value(i).stack;
+		if (!itemIndexs.contains(i))
+			continue;
+
 		for (long long j = 0; j < stack; ++j)
 		{
 			QString cmd = QString("T|%1|%2|I|1|%3").arg(opp_sockfd).arg(opp_name).arg(i);
 			std::string scmd = util::fromUnicode(cmd);
 
 			if (!lssproto_TD_send(const_cast<char*>(scmd.c_str())))
-				return false;
+			{
+				qDebug() << "lssproto_TD_send fail";
+				return -1;
+			}
 
 			bret = true;
 		}
@@ -5898,59 +5924,77 @@ bool Worker::tradeAppendItems(const QString& name, const QVector<long long>& ite
 		{
 			myitem_tradeList.append("I|-1");
 		}
+
+		++count;
 	}
 
-	return !myitem_tradeList.isEmpty();
+	return count;
 }
 
 //添加交易石幣
-bool Worker::tradeAppendGold(const QString& name, long long gold)
+long long Worker::tradeAppendGold(const QString& name, long long gold)
 {
 	if (!IS_TRADING.get())
-		return false;
+	{
+		qDebug() << "is not trading";
+		return -1;
+	}
 
 	sa::character_t pc = getCharacter();
 	if (gold < 0 || gold > pc.gold)
-		return false;
+	{
+		qDebug() << "gold value" << gold << "is out of range:" << pc.gold;
+		return -1;
+	}
 
 	if (name != opp_name)
 	{
-		tradeCancel();
-		return false;
+		qDebug() << "name != opp_name";
+		return -1;
 	}
 
-	if (mygoldtrade != 0)
-		return false;
+	mygoldtrade = 0;
 
 	QString cmd = QString("T|%1|%2|G|%3|%4").arg(opp_sockfd).arg(opp_name).arg(3).arg(gold);
 	std::string scmd = util::fromUnicode(cmd);
 
 	if (!lssproto_TD_send(const_cast<char*>(scmd.c_str())))
+	{
+		qDebug() << "lssproto_TD_send fail";
 		return false;
+	}
 
 	mygoldtrade = gold;
 
-	return true;
+	return mygoldtrade;
 }
 
 //批量添加交易寵物
-bool Worker::tradeAppendPets(const QString& name, const QVector<long long>& petIndexs)
+long long Worker::tradeAppendPets(const QString& name, const QVector<long long>& petIndexs)
 {
 	if (!IS_TRADING.get())
-		return false;
+	{
+		qDebug() << "is not trading";
+		return -1;
+	}
 
 	if (petIndexs.isEmpty())
-		return false;
+	{
+		qDebug() << "petIndexs is empty";
+		return -1;
+	}
 
 	if (name != opp_name)
 	{
-		tradeCancel();
-		return false;
+		qDebug() << "name != opp_name";
+		return -1;
 	}
 
 	//T|87| 02020202|P|3| 3 |  攻击|忠犬|料理|||||乌力斯坦|嘿嘿嘿嘿
 	//T|%s| %s      |P|3| %d | %s
-	QStringList tradelist = mypet_tradeList;
+	mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
+
+	long long count = 0;
 	for (const long long index : petIndexs)
 	{
 		if (index < 0 || index >= sa::MAX_PET)
@@ -5976,24 +6020,30 @@ bool Worker::tradeAppendPets(const QString& name, const QVector<long long>& petI
 		std::string scmd = util::fromUnicode(cmd);
 
 		if (!lssproto_TD_send(const_cast<char*>(scmd.c_str())))
+		{
+			qDebug() << "lssproto_TD_send fail";
 			return false;
+		}
 
-		tradelist[index] = QString("P|%1").arg(index);
+		mypet_tradeList[index] = QString("P|%1").arg(index);
+		++count;
 	}
-	mypet_tradeList = tradelist;
 
-	return !mypet_tradeList.isEmpty();
+	return count;
 }
 
 //完成交易
 bool Worker::tradeComplete(const QString& name)
 {
 	if (!IS_TRADING.get())
+	{
+		qDebug() << "is not trading";
 		return false;
+	}
 
 	if (name != opp_name)
 	{
-		tradeCancel();
+		qDebug() << "name != opp_name";
 		return false;
 	}
 
@@ -10503,12 +10553,12 @@ void Worker::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
-				}
-			}
-		}
-#endif
 	}
 }
+}
+#endif
+	}
+	}
 
 //名片數據
 void Worker::lssproto_ABI_recv(long long num, char* cdata)
@@ -10564,8 +10614,8 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
-			}
-		}
+}
+}
 	}
 #endif
 }
@@ -11394,8 +11444,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-				}
 			}
+		}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11409,7 +11459,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-		}
+	}
 
 		setBattleData(bt);
 		break;
@@ -12187,13 +12237,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 					++i;
 				++i;
 				break;
-			}
-			}
 		}
+	}
+}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
-	}
+}
 	}
 }
 
@@ -12799,9 +12849,9 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				StockChatBufferLine(tmpMsg, color);
 				sprintf_s(msg, "");
 				sprintf_s(secretName, "%s ", tellName);
-			}
+	}
 			else StockChatBufferLine(msg, color);
-		}
+}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13072,7 +13122,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					setNpcNotice(ptAct, noticeNo);
 				}
 #endif
-			}
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13366,13 +13416,13 @@ void Worker::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
-				}
-			}
 		}
-#endif
-#pragma endregion
 	}
 }
+#endif
+#pragma endregion
+		}
+	}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Worker::lssproto_CA_recv(char* cdata)
@@ -15002,35 +15052,42 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 	// 交易开启资料初始化
 	if (Head.startsWith("C"))
 	{
+		QString fd;
+		QString name;
+		QString command;
+		getStringToken(data, "|", 2, fd);
+		getStringToken(data, "|", 3, name);
+		getStringToken(data, "|", 4, command);
 
-		getStringToken(data, "|", 2, opp_sockfd);
-		getStringToken(data, "|", 3, opp_name);
-		getStringToken(data, "|", 4, trade_command);
-
-		if (trade_command.startsWith("0"))
+		if (command.startsWith("0"))
 		{
 			return;
 		}
-		else if (trade_command.startsWith("1"))
+		else if (command.startsWith("1"))
 		{
-			myitem_tradeList.clear();
-			mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
-			mygoldtrade = 0;
+			clearTradeData();
+			opp_sockfd = fd;
+			opp_name = name;
+			trade_command = command;
 
+			sa::character_t pc = getCharacter();
+			pc.trade_confirm = 1;
+			setCharacter(pc);
 			IS_TRADING.on();
-			sa::character_t pc = getCharacter();
-			pc.trade_confirm = 1;
-			setCharacter(pc);
 		}
-		else if (trade_command.startsWith("2"))
+		else if (command.startsWith("2"))
 		{
+			opp_sockfd = fd;
+			opp_name = name;
+			trade_command = command;
+
 			tradeStatus = 1;
-			//MenuToggleFlag = JOY_CTRL_T;
 			sa::character_t pc = getCharacter();
 			pc.trade_confirm = 1;
 			setCharacter(pc);
-			//tradeWndNo = 1;
 		}
+
+		return;
 	}
 	//处理物品交易资讯传递
 	else if (Head.startsWith("T"))
@@ -15078,6 +15135,7 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 					showindex[3] = 3;
 				}
 			}
+
 			return;
 		}
 
@@ -15123,9 +15181,8 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 					tradeWndDropGoldGet = 0;
 				}
 			}
-			else return;
 
-
+			return;
 		}
 
 		if (trade_kind.startsWith("I"))
@@ -15141,66 +15198,66 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 			getStringToken(data, "|", 10, opp_itemindex);
 			getStringToken(data, "|", 11, opp_itemdamage);// 显示物品耐久度
 			getStringToken(data, "|", 12, pilenum);//pilenum
+
+			return;
 		}
-	}
 
-	if (trade_kind.startsWith("P"))
-	{
-		long long iItemNo = 0;
-		QString	szData;
-		long long index = -1;
-
-		for (long long i = 0;; ++i)
+		if (trade_kind.startsWith("P"))
 		{
-			if (getStringToken(data, "|", 26 + i * 6, szData))
-				break;
-			iItemNo = szData.toLongLong();
-			if (index >= 0 && index < sa::MAX_PET && iItemNo >= 0 && iItemNo < sa::MAX_PET_ITEM)
+			long long iItemNo = 0;
+			QString	szData;
+			long long index = -1;
+
+			for (long long i = 0;; ++i)
 			{
-				getStringToken(data, "|", 27 + i * 6, opp_pet[index].oPetItemInfo[iItemNo].name);
-				getStringToken(data, "|", 28 + i * 6, opp_pet[index].oPetItemInfo[iItemNo].memo);
-				getStringToken(data, "|", 29 + i * 6, opp_pet[index].oPetItemInfo[iItemNo].damage);
-				getStringToken(data, "|", 30 + i * 6, szData);
-				opp_pet[index].oPetItemInfo[iItemNo].color = szData.toLongLong();
-				getStringToken(data, "|", 31 + i * 6, szData);
-				opp_pet[index].oPetItemInfo[iItemNo].bmpNo = szData.toLongLong();
+				if (getStringToken(data, "|", 26 + i * 6, szData))
+					break;
+				iItemNo = szData.toLongLong();
+				if (index >= 0 && index < sa::MAX_PET && iItemNo >= 0 && iItemNo < sa::MAX_PET_ITEM)
+				{
+					getStringToken(data, "|", 27 + i * 6, opp_pet[index].oPetItemInfo[iItemNo].name);
+					getStringToken(data, "|", 28 + i * 6, opp_pet[index].oPetItemInfo[iItemNo].memo);
+					getStringToken(data, "|", 29 + i * 6, opp_pet[index].oPetItemInfo[iItemNo].damage);
+					getStringToken(data, "|", 30 + i * 6, szData);
+					opp_pet[index].oPetItemInfo[iItemNo].color = szData.toLongLong();
+					getStringToken(data, "|", 31 + i * 6, szData);
+					opp_pet[index].oPetItemInfo[iItemNo].bmpNo = szData.toLongLong();
+				}
 			}
+			return;
 		}
-	}
 
-	if (trade_kind.startsWith("C"))
-	{
-		sa::character_t pc = getCharacter();
-		if (pc.trade_confirm == 1)
-			pc.trade_confirm = 3;
-		if (pc.trade_confirm == 2)
-			pc.trade_confirm = 4;
-		if (pc.trade_confirm == 3)
+		if (trade_kind.startsWith("C"))
 		{
-			//我方已點確認後，收到對方點確認
+			sa::character_t pc = getCharacter();
+			if (pc.trade_confirm == 1)
+				pc.trade_confirm = 3;
+			if (pc.trade_confirm == 2)
+				pc.trade_confirm = 4;
+			if (pc.trade_confirm == 3)
+			{
+				//我方已點確認後，收到對方點確認
+			}
+
+			setCharacter(pc);
+			return;
 		}
 
-		setCharacter(pc);
+		// end
+		if (trade_kind.startsWith("A"))
+		{
+			tradeStatus = 2;
+		}
+
+		else if (Head.startsWith("W"))
+		{
+			//取消交易
+			tradeStatus = 0;
+		}
 	}
 
-	// end
-	if (trade_kind.startsWith("A"))
-	{
-		tradeStatus = 2;
-		IS_TRADING.off();
-		myitem_tradeList.clear();
-		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
-		mygoldtrade = 0;
-	}
-
-	else if (Head.startsWith("W"))
-	{
-		//取消交易
-		IS_TRADING.off();
-		myitem_tradeList.clear();
-		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
-		mygoldtrade = 0;
-	}
+	clearTradeData();
+	IS_TRADING.off();
 }
 
 void Worker::lssproto_CHAREFFECT_recv(char*)
