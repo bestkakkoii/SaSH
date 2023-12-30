@@ -634,7 +634,7 @@ private:
 
 	//不輸出到列表也不做更動的全局變量名稱
 	QStringList g_lua_exception_var_list = {
-		"__THIS_CLUA", "__THIS_PARENT", "__HOOKFORSTOP", "__INDEX", "__HOOKFORSTOP",
+		"__THIS_CLUA", "__THIS_PARENT", "__HOOKFORSTOP", "__INDEX", "__HOOKFORSTOP", "__HOOKFORBATTLE",
 		"__THIS_PARSER", "__THIS", "_G",
 		"__print", "__require",
 		"TARGET",

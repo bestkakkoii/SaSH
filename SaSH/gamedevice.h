@@ -523,6 +523,7 @@ private:
 		{ util::kWindowDockEnable, false },
 		{ util::kBattleAutoSwitchEnable, true },
 		{ util::kBattleAutoEOEnable, true },
+		{ util::kBattleLuaModeEnable, false },
 
 		//switcher
 		{ util::kSwitcherTeamEnable, false },

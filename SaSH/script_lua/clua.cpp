@@ -506,6 +506,18 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	}
 	case LUA_HOOKLINE:
 	{
+		if (lua["__HOOKFORBATTLE"].is<bool>() && lua["__HOOKFORBATTLE"].get<bool>())
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+			if (gamedevice.worker.isNull() || !gamedevice.worker->getOnlineFlag() || !gamedevice.worker->getBattleFlag())
+			{
+				tryPopCustomErrorMsg(s, ERROR_FLAG_DETECT_STOP);
+				break;
+			}
+
+			break;
+		}
+
 		if (lua["__HOOKFORSTOP"].is<bool>() && lua["__HOOKFORSTOP"].get<bool>())
 		{
 			luadebug::checkStopAndPause(s);
@@ -666,6 +678,91 @@ bool luatool::checkRange(sol::object o, long long& min, long long& max, QVector<
 }
 #pragma endregion
 
+#pragma region luatool
+static std::vector<std::string> Unique(const std::vector<std::string>& v)
+{
+	std::vector<std::string> result = v;
+#if _MSVC_LANG > 201703L
+	std::ranges::stable_sort(result, std::less<std::string>());
+#else
+	std::sort(result.begin(), result.end(), std::less<std::string>());
+#endif
+	result.erase(std::unique(result.begin(), result.end()), result.end());
+	return result;
+}
+
+static std::vector<long long> Unique(const std::vector<long long>& v)
+{
+	std::vector<long long> result = v;
+#if _MSVC_LANG > 201703L
+	std::ranges::stable_sort(result, std::less<long long>());
+#else
+	std::sort(result.begin(), result.end(), std::less<long long>());
+#endif
+	result.erase(std::unique(result.begin(), result.end()), result.end());
+	return result;
+}
+
+template<typename T>
+std::vector<T> ShiftLeft(const std::vector<T>& v, long long i)
+{
+	std::vector<T> result = v;
+#if _MSVC_LANG > 201703L
+	std::ranges::shift_left(result, i);
+#else
+	std::rotate(result.begin(), result.begin() + i, result.end());
+#endif
+	return result;
+
+}
+
+template<typename T>
+std::vector<T> ShiftRight(const std::vector<T>& v, long long i)
+{
+	std::vector<T> result = v;
+#if _MSVC_LANG > 201703L
+	std::ranges::shift_right(result, i);
+#else
+	std::rotate(result.begin(), result.end() - i, result.end());
+#endif
+	return result;
+}
+
+template<typename T>
+std::vector<T> Shuffle(const std::vector<T>& v)
+{
+	std::vector<T> result = v;
+	std::random_device rd;
+	std::mt19937_64 gen(rd());
+#if _MSVC_LANG > 201703L
+	std::ranges::shuffle(result, gen);
+#else
+	std::shuffle(result.begin(), result.end(), gen);
+#endif
+	return result;
+}
+
+template<typename T>
+std::vector<T> Rotate(const std::vector<T>& v, long long len)//true = right, false = left
+{
+	std::vector<T> result = v;
+	if (len >= 0)
+#if _MSVC_LANG > 201703L
+		std::ranges::rotate(result, result.begin() + len);
+#else
+		std::rotate(result.begin(), result.begin() + len, result.end());
+#endif
+	else
+#if _MSVC_LANG > 201703L
+		std::ranges::rotate(result, result.end() + len);
+#else
+		std::rotate(result.begin(), result.end() + len, result.end());
+#endif
+	return result;
+}
+#pragma endregion
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CLua::CLua(long long index, QObject* parent)
@@ -792,7 +889,662 @@ void CLua::open_testlibs()
 
 void CLua::open_utillibs(sol::state&)
 {
+	lua_.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->long long
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			QString mission = util::toQString(smisson);
 
+			long long timeout = 5000;
+			if (otimeout.is<long long>())
+				timeout = otimeout.as<long long>();
+
+			if (!gamedevice.worker.isNull())
+				return gamedevice.worker->checkJobDailyState(mission, timeout);
+			else
+				return -1;
+		});
+
+
+	lua_.set_function("getgamestate", [this](long long id)->long long
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
+
+			return sender.GetGameState(id);
+		});
+
+
+	lua_.set_function("setlogin", [this](long long id, long long server, long long subserver, long long position, std::string account, std::string password)->long long
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
+
+			QString acc = util::toQString(account);
+			QString pwd = util::toQString(password);
+
+			return sender.SetAutoLogin(id, server - 1, subserver - 1, position - 1, acc, pwd);
+		});
+
+	lua_.set_function("contains", [this](sol::object data, sol::object ocmp_data, sol::this_state s)->bool
+		{
+			auto toVariant = [](const sol::object& o)->QVariant
+				{
+					QVariant out;
+					if (o.is<std::string>())
+						out = util::toQString(o).simplified();
+					else if (o.is<long long>())
+						out = o.as<long long>();
+					else if (o.is<double>())
+						out = o.as<double>();
+					else if (o.is<bool>())
+						out = o.as<bool>();
+
+					return out;
+				};
+
+			if (data.is<sol::table>() && ocmp_data.is<sol::table>())
+			{
+				sol::table table = data.as<sol::table>();
+				sol::table table2 = ocmp_data.as<sol::table>();
+				QStringList a;
+				QStringList b;
+
+				for (const std::pair<sol::object, sol::object>& pair : table)
+					a.append(toVariant(pair.second).toString().simplified());
+
+				for (const std::pair<sol::object, sol::object>& pair : table2)
+					b.append(toVariant(pair.second).toString().simplified());
+
+				return QSet<QString>(a.begin(), a.end()).contains(QSet<QString>(b.begin(), b.end())) || QSet<QString>(b.begin(), b.end()).contains(QSet<QString>(a.begin(), a.end()));
+			}
+			else if (data.is<sol::table>() && !ocmp_data.is<sol::table>())
+			{
+				QStringList a;
+				QString b = toVariant(ocmp_data).toString().simplified();
+				sol::table table = data.as<sol::table>();
+				for (const std::pair<sol::object, sol::object>& pair : table)
+					a.append(toVariant(pair.second).toString().simplified());
+
+				if (b.isEmpty())
+					return false;
+
+				return a.contains(b);
+			}
+
+			QString qcmp_data;
+			QVariant adata = toVariant(ocmp_data);
+			QVariant bdata = toVariant(data);
+
+			if (adata.type() == QVariant::Type::String)
+				qcmp_data = adata.toString().simplified();
+			else if (adata.type() == QVariant::Type::LongLong)
+				qcmp_data = util::toQString(adata.toLongLong());
+			else if (adata.type() == QVariant::Type::Double)
+				qcmp_data = util::toQString(adata.toDouble());
+			else if (adata.type() == QVariant::Type::Bool)
+				qcmp_data = util::toQString(adata.toBool());
+			else
+				return false;
+
+			if (adata.toString().isEmpty() && !bdata.toString().isEmpty())
+				return false;
+			else if (!adata.toString().isEmpty() && bdata.toString().isEmpty())
+				return false;
+
+			if (bdata.type() == QVariant::Type::String)
+				return bdata.toString().simplified().contains(qcmp_data) || qcmp_data.contains(bdata.toString().simplified());
+			else if (bdata.type() == QVariant::Type::LongLong)
+				return util::toQString(bdata.toLongLong()).contains(qcmp_data) || qcmp_data.contains(util::toQString(bdata.toLongLong()));
+			else if (bdata.type() == QVariant::Type::Double)
+				return util::toQString(bdata.toDouble()).contains(qcmp_data) || qcmp_data.contains(util::toQString(bdata.toDouble()));
+			else if (bdata.type() == QVariant::Type::Bool)
+				return util::toQString(bdata.toBool()).contains(qcmp_data) || qcmp_data.contains(util::toQString(bdata.toBool()));
+			else
+				return false;
+
+			return false;
+
+		}
+	);
+
+	lua_["mkpath"] = [](std::string sfilename, sol::object osuffix, sol::object obj, sol::this_state s)->std::string
+		{
+			QString retstring = "\0";
+			QString fileName = util::toQString(sfilename);
+			fileName.replace("\\", "/");
+
+			QFileInfo fileinfo(fileName);
+			QString suffix = fileinfo.suffix();
+
+			if (suffix.isEmpty() && osuffix.is<std::string>())
+			{
+				suffix = util::toQString(osuffix);
+				if (!suffix.startsWith("."))
+					suffix.prepend(".");
+				fileName.append(suffix);
+			}
+			else if (suffix.isEmpty())
+				fileName += ".txt";
+
+			if (obj == sol::lua_nil)
+			{
+				retstring = util::findFileFromName(fileName);
+			}
+			else if (obj.is<std::string>())
+			{
+				QString dir = util::toQString(obj);
+				dir.replace("\\", "/");
+				if (dir.endsWith("/"))
+					dir.chop(1);
+				retstring = util::findFileFromName(fileName, util::toQString(obj));
+			}
+
+			return util::toConstData(retstring);
+		};
+
+	lua_["findfiles"] = [](std::string sname, sol::object osuffix, sol::object obasedir, sol::this_state s)->sol::table
+		{
+			sol::state_view lua(s);
+			QString name = util::toQString(sname);
+			name.replace("\\", "/");
+
+			sol::table result = lua.create_table();
+			QStringList paths;
+
+			QString basedir = util::applicationDirPath();
+			if (obasedir.is<std::string>())
+				basedir = util::toQString(obasedir);
+
+			basedir.replace("\\", "/");
+			if (basedir.endsWith("/"))
+				basedir.chop(1);
+
+			QString suffix;
+			if (osuffix.is<std::string>())
+			{
+				suffix = util::toQString(osuffix);
+				if (!suffix.startsWith("."))
+					suffix.prepend(".");
+			}
+
+			util::searchFiles(basedir, name, suffix, &paths, false);
+
+			for (long long i = 0; i < paths.size(); ++i)
+			{
+				result[i + 1] = util::toConstData(paths.at(i));
+			}
+
+			return result;
+		};
+
+
+	lua_["mktable"] = [](long long a, sol::object ob, sol::this_state s)->sol::object
+		{
+			sol::state_view lua(s);
+
+			sol::table t = lua.create_table();
+
+			if (ob.is<long long>() && a > ob.as<long long>())
+			{
+				for (long long i = ob.as<long long>(); i < (a + 1); ++i)
+				{
+					t.add(i);
+				}
+			}
+			else if (ob.is<long long>() && a < ob.as<long long>())
+			{
+				for (long long i = a; i < (ob.as<long long>() + 1); ++i)
+				{
+					t.add(i);
+				}
+			}
+			else if (ob.is<long long>() && a == ob.as<long long>())
+			{
+				t.add(a);
+			}
+			else if (ob == sol::lua_nil && a >= 0)
+			{
+				for (long long i = 1; i < a + 1; ++i)
+				{
+					t.add(i);
+				}
+			}
+			else if (ob == sol::lua_nil && a < 0)
+			{
+				for (long long i = a; i < 2; ++i)
+				{
+					t.add(i);
+				}
+			}
+			else
+				t.add(a);
+
+			return t;
+		};
+
+	static const auto Is_1DTable = [](sol::table t)->bool
+		{
+			for (const std::pair<sol::object, sol::object>& i : t)
+			{
+				if (i.second.is<sol::table>())
+				{
+					return false;
+				}
+			}
+			return true;
+		};
+
+	lua_["tshuffle"] = [](sol::object t, sol::this_state s)->sol::object
+		{
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+			//檢查是否為1維
+			sol::table test = t.as<sol::table>();
+			if (test.size() == 0)
+				return sol::lua_nil;
+			if (!Is_1DTable(test))
+				return sol::lua_nil;
+
+			sol::state_view lua(s);
+			std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+			std::vector<sol::object> v2 = Shuffle(v);
+			sol::table t2 = lua.create_table();
+			for (const sol::object& i : v2) { t2.add(i); }
+			auto copy = [&t](sol::table src)
+				{
+					//清空原表
+					t.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& i : src)
+					{
+						t.as<sol::table>().add(i.second);
+					}
+				};
+			copy(t2);
+			return t2;
+		};
+
+	lua_["trotate"] = [](sol::object t, sol::object oside, sol::this_state s)->sol::object
+		{
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+
+			long long len = 1;
+			if (oside == sol::lua_nil)
+				len = 1;
+			else if (oside.is<long long>())
+				len = oside.as<long long>();
+			else
+				return sol::lua_nil;
+
+			sol::table test = t.as<sol::table>();
+			if (test.size() == 0)
+				return sol::lua_nil;
+			if (!Is_1DTable(test))
+				return sol::lua_nil;
+
+			sol::state_view lua(s);
+			std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+			std::vector<sol::object> v2 = Rotate(v, len);
+			sol::table t2 = lua.create_table();
+			for (const sol::object& i : v2) { t2.add(i); }
+			auto copy = [&t](sol::table src)
+				{
+					//清空原表
+					t.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& i : src)
+					{
+						t.as<sol::table>().add(i.second);
+					}
+				};
+			copy(t2);
+			return t2;
+		};
+
+	lua_["tsleft"] = [](sol::object t, long long i, sol::this_state s)->sol::object
+		{
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+			if (i < 0)
+				return sol::lua_nil;
+
+			sol::table test = t.as<sol::table>();
+			if (test.size() == 0)
+				return sol::lua_nil;
+			if (!Is_1DTable(test))
+				return sol::lua_nil;
+
+			sol::state_view lua(s);
+			std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+			std::vector<sol::object> v2 = ShiftLeft(v, i);
+			sol::table t2 = lua.create_table();
+			for (const sol::object& it : v2) { t2.add(it); }
+			auto copy = [&t](sol::table src)
+				{
+					//清空原表
+					t.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& i : src)
+					{
+						t.as<sol::table>().add(i.second);
+					}
+				};
+			copy(t2);
+			return t2;
+		};
+
+	lua_["tsright"] = [](sol::object t, long long i, sol::this_state s)->sol::object
+		{
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+			if (i < 0)
+				return sol::lua_nil;
+
+			sol::table test = t.as<sol::table>();
+			if (test.size() == 0)
+				return sol::lua_nil;
+			if (!Is_1DTable(test))
+				return sol::lua_nil;
+
+			sol::state_view lua(s);
+			std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+			std::vector<sol::object> v2 = ShiftRight(v, i);
+			sol::table t2 = lua.create_table();
+			for (const sol::object& o : v2) { t2.add(o); }
+			auto copy = [&t](sol::table src)
+				{
+					//清空原表
+					t.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& o : src)
+					{
+						t.as<sol::table>().add(o.second);
+					}
+				};
+			copy(t2);
+			return t2;
+		};
+
+	lua_["tunique"] = [](sol::object t, sol::this_state s)->sol::object
+		{
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+
+			sol::table test = t.as<sol::table>();
+			if (test.size() == 0)
+				return sol::lua_nil;
+
+			auto isIntTable = [&test]()->bool
+				{
+					for (const std::pair<sol::object, sol::object>& i : test)
+					{
+						if (!i.second.is<long long>())
+							return false;
+					}
+					return true;
+				};
+
+			auto isStringTable = [&test]()->bool
+				{
+					for (const std::pair<sol::object, sol::object>& i : test)
+					{
+						if (!i.second.is<std::string>())
+							return false;
+					}
+					return true;
+				};
+
+			auto copy = [&t](sol::table src)
+				{
+					//清空原表
+					t.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& i : src)
+					{
+						t.as<sol::table>().add(i.second);
+					}
+				};
+
+			sol::state_view lua(s);
+			sol::table t2 = lua.create_table();
+			if (isIntTable())
+			{
+				std::vector<long long> v = t.as<std::vector<long long>>();
+				std::vector<long long> v2 = Unique(v);
+				for (const long long& i : v2) { t2.add(i); }
+				copy(t2);
+				return t2;
+			}
+			else if (isStringTable())
+			{
+				std::vector<std::string> v = t.as<std::vector<std::string>>();
+				std::vector<std::string> v2 = Unique(v);
+				for (const std::string& i : v2) { t2.add(i); }
+				copy(t2);
+				return t2;
+			}
+			else
+				return sol::lua_nil;
+		};
+
+	lua_["tsort"] = [](sol::object t, sol::this_state s)->sol::object
+		{
+			sol::state_view lua(s);
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+
+			sol::protected_function sort = lua["table"]["sort"];
+			if (sort.valid())
+			{
+				sort(t);
+			}
+			return t;
+		};
+
+	lua_.safe_script(R"(
+		trsort = function(t)
+			local function reverseSort(a, b)
+				if type(a) == "string" and type(b) == "string" then
+					return utf8.codepoint(a) > utf8.codepoint(b)
+				elseif type(a) == "number" and type(b) == "number" then
+					return a > b
+				elseif type(a) == "boolean" and type(b) == "boolean" then
+					return a > b
+				elseif type(a) == "table" and type(b) == "table" then
+					return #a > #b
+				end
+
+				return a > b
+			end
+
+			table.sort(t, reverseSort)
+			return t
+		end
+
+	)", sol::script_pass_on_error);
+
+#pragma region _copyfunstr
+	std::string _copyfunstr = R"(
+		function copy(object)
+			local lookup_table = {};
+			local function _copy(object)
+				if (type(object) ~= ("table")) then
+					
+					return object;
+				elseif (lookup_table[object]) then
+					return lookup_table[object];
+				end
+				local newObject = {};
+				lookup_table[object] = newObject;
+				for key, value in pairs(object) do
+					newObject[_copy(key)] = _copy(value);
+				end
+				return setmetatable(newObject, getmetatable(object));
+			end
+
+			local ret = _copy(object);
+			return ret;
+		end
+	)";
+
+	sol::load_result lr = lua_.load(_copyfunstr);
+	if (lr.valid())
+	{
+		sol::protected_function target = lr.get<sol::protected_function>();
+		sol::bytecode target_bc = target.dump();
+		lua_.safe_script(target_bc.as_string_view(), sol::script_pass_on_error);
+		lua_.collect_garbage();
+	}
+#pragma endregion
+
+	//表合併
+	lua_["tmerge"] = [](sol::object t1, sol::object t2, sol::this_state s)->sol::object
+		{
+			if (!t1.is<sol::table>() || !t2.is<sol::table>())
+				return sol::lua_nil;
+
+			sol::state_view lua(s);
+			sol::table t3 = lua.create_table();
+			sol::table lookup_table_1 = lua.create_table();
+			sol::table lookup_table_2 = lua.create_table();
+			//sol::protected_function _copy = lua["copy"];
+			sol::table test1 = t1.as<sol::table>();//_copy(t1, lookup_table_1, lua);
+			sol::table test2 = t2.as<sol::table>();//_copy(t2, lookup_table_2, lua);
+			if (!test1.valid() || !test2.valid())
+				return sol::lua_nil;
+			for (const std::pair<sol::object, sol::object>& i : test1)
+			{
+				t3.add(i.second);
+			}
+			for (const std::pair<sol::object, sol::object>& i : test2)
+			{
+				t3.add(i.second);
+			}
+			auto copy = [&t1](sol::table src)
+				{
+					//清空原表
+					t1.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& i : src)
+					{
+						t1.as<sol::table>().add(i.second);
+					}
+				};
+			copy(t3);
+			return t3;
+		};
+
+	lua_.set_function("split", [](std::string src, std::string del, sol::object skipEmpty, sol::object orex, sol::this_state s)->sol::object
+		{
+			sol::state_view lua(s);
+			sol::table t = lua.create_table();
+			QString qsrc = util::toQString(src);
+			QString qdel = util::toQString(del);
+			QStringList v;
+			bool useRex = false;
+			if (orex.is<bool>())
+				useRex = orex.as<bool>();
+			else if (orex.is<long long>())
+				useRex = orex.as<long long>() > 0;
+			else if (orex.is<double>())
+				useRex = orex.as<double>() > 0.0;
+
+			bool skip = true;
+			if (skipEmpty.is<bool>())
+				skip = skipEmpty.as<bool>();
+			else if (skipEmpty.is<long long>())
+				skip = skipEmpty.as<long long>() > 0;
+			else if (skipEmpty.is<double>())
+				skip = skipEmpty.as<double>() > 0.0;
+
+			if (useRex)
+			{
+				const QRegularExpression re(qdel);
+				v = qsrc.split(re, skip ? Qt::SkipEmptyParts : Qt::KeepEmptyParts);
+			}
+			else
+				v = qsrc.split(qdel, skip ? Qt::SkipEmptyParts : Qt::KeepEmptyParts);
+
+			if (v.size() > 1)
+			{
+				for (const QString& i : v)
+				{
+					t.add(util::toConstData(i));
+				}
+				return t;
+			}
+			else
+				return sol::lua_nil;
+		});
+
+	//根據key交換表中的兩個元素
+	lua_["tswap"] = [](sol::table t, sol::object key1, sol::object key2, sol::this_state s)->sol::object
+		{
+			if (!t.valid())
+				return sol::lua_nil;
+			if (!t[key1].valid() || !t[key2].valid())
+				return sol::lua_nil;
+			sol::object temp = t[key1];
+			t[key1] = t[key2];
+			t[key2] = temp;
+			return t;
+		};
+
+	lua_["tadd"] = [](sol::table t, sol::object value, sol::this_state s)->sol::object
+		{
+			if (!t.valid())
+				return sol::lua_nil;
+			t.add(value);
+			return t;
+		};
+
+	lua_["tpadd"] = [](sol::table t, sol::object value, sol::this_state s)->sol::object
+		{
+			sol::state_view lua(s);
+			if (!t.valid())
+				return sol::lua_nil;
+			sol::function insert = lua["table"]["insert"];
+			insert(t, 1, value);
+			return t;
+		};
+
+	lua_["tpopback"] = [](sol::table t, sol::this_state s)->sol::object
+		{
+			sol::state_view lua(s);
+			if (!t.valid())
+				return sol::lua_nil;
+			sol::function remove = lua["table"]["remove"];
+			sol::object temp = t[t.size()];
+			remove(t, t.size());
+			return t;
+		};
+
+	lua_["tpopfront"] = [](sol::table t, sol::this_state s)->sol::object
+		{
+			sol::state_view lua(s);
+			if (!t.valid())
+				return sol::lua_nil;
+			sol::function remove = lua["table"]["remove"];
+			sol::object temp = t[1];
+			remove(t, 1);
+			return t;
+		};
+
+	lua_["tfront"] = [](sol::table t, sol::this_state s)->sol::object
+		{
+			if (!t.valid())
+				return sol::lua_nil;
+			return t[1];
+		};
+
+	lua_["tback"] = [](sol::table t, sol::this_state s)->sol::object
+		{
+			if (!t.valid())
+				return sol::lua_nil;
+			return t[t.size()];
+		};
+#pragma endregion
 }
 
 class CLuaDialog
@@ -1665,19 +2417,19 @@ void CLua::open_battlelibs(sol::state& lua)
 	//registerFunction("bwait", &Interpreter::bwait);
 	//registerFunction("bend", &Interpreter::bend);
 
-	lua.set_function("bh", &CLuaBattle::charUseAttack, &luaBattle_);
-	lua.set_function("bj", &CLuaBattle::charUseMagic, &luaBattle_);
-	lua.set_function("bp", &CLuaBattle::charUseSkill, &luaBattle_);
-	lua.set_function("bs", &CLuaBattle::switchPet, &luaBattle_);
-	lua.set_function("be", &CLuaBattle::escape, &luaBattle_);
-	lua.set_function("bd", &CLuaBattle::defense, &luaBattle_);
-	lua.set_function("bi", &CLuaBattle::useItem, &luaBattle_);
-	lua.set_function("bt", &CLuaBattle::catchPet, &luaBattle_);
-	lua.set_function("bn", &CLuaBattle::nothing, &luaBattle_);
-	lua.set_function("bw", &CLuaBattle::petUseSkill, &luaBattle_);
-	lua.set_function("bwn", &CLuaBattle::petNothing, &luaBattle_);
-	lua.set_function("bwait", &CLuaBattle::bwait, &luaBattle_);
-	lua.set_function("bend", &CLuaBattle::bend, &luaBattle_);
+	//lua.set_function("bh", &CLuaBattle::charUseAttack, &luaBattle_);
+	//lua.set_function("bj", &CLuaBattle::charUseMagic, &luaBattle_);
+	//lua.set_function("bp", &CLuaBattle::charUseSkill, &luaBattle_);
+	//lua.set_function("bs", &CLuaBattle::switchPet, &luaBattle_);
+	//lua.set_function("be", &CLuaBattle::escape, &luaBattle_);
+	//lua.set_function("bd", &CLuaBattle::defense, &luaBattle_);
+	//lua.set_function("bi", &CLuaBattle::useItem, &luaBattle_);
+	//lua.set_function("bt", &CLuaBattle::catchPet, &luaBattle_);
+	//lua.set_function("bn", &CLuaBattle::nothing, &luaBattle_);
+	//lua.set_function("bw", &CLuaBattle::petUseSkill, &luaBattle_);
+	//lua.set_function("bwn", &CLuaBattle::petNothing, &luaBattle_);
+	//lua.set_function("bwait", &CLuaBattle::bwait, &luaBattle_);
+	//lua.set_function("bend", &CLuaBattle::bend, &luaBattle_);
 
 	lua.new_usertype<sa::battle_object_t>("BattleStruct",
 		"ready", sol::readonly(&sa::battle_object_t::ready),
@@ -1712,7 +2464,34 @@ void CLua::open_battlelibs(sol::state& lua)
 		"petpos", sol::property(&CLuaBattle::petpos),
 		"size", sol::property(&CLuaBattle::size),
 		"enemycount", sol::property(&CLuaBattle::enemycount),
-		"alliecount", sol::property(&CLuaBattle::alliecount)
+		"alliecount", sol::property(&CLuaBattle::alliecount),
+		"h", &CLuaBattle::charUseAttack,
+		"j", sol::overload(
+			sol::resolve< long long(long long, long long, sol::this_state)>(&CLuaBattle::charUseMagic),
+			sol::resolve< long long(std::string, long long, sol::this_state)>(&CLuaBattle::charUseMagic)
+		),
+		"p", sol::overload(
+			sol::resolve< long long(long long, long long, sol::this_state)>(&CLuaBattle::charUseSkill),
+			sol::resolve< long long(std::string, long long, sol::this_state)>(&CLuaBattle::charUseSkill)
+		),
+		"s", &CLuaBattle::switchPet,
+		"e", &CLuaBattle::escape,
+		"d", &CLuaBattle::defense,
+		"i", sol::overload(
+			sol::resolve< long long(long long, long long, sol::this_state)>(&CLuaBattle::useItem),
+			sol::resolve< long long(std::string, long long, sol::this_state)>(&CLuaBattle::useItem)
+		),
+		"t", sol::overload(
+			sol::resolve< long long(long long, sol::this_state)>(&CLuaBattle::catchPet),
+			sol::resolve< long long(std::string, sol::object, sol::object, sol::object, sol::this_state)>(&CLuaBattle::catchPet)
+		),
+		"n", &CLuaBattle::nothing,
+		"w", sol::overload(
+			sol::resolve< long long(long long, long long, sol::this_state)>(&CLuaBattle::petUseSkill),
+			sol::resolve< long long(std::string, long long, sol::this_state)>(&CLuaBattle::petUseSkill)
+		),
+		"wn", &CLuaBattle::petNothing,
+		"wait", &CLuaBattle::bwait
 	);
 
 	lua.safe_script("battle = BattleClass(__INDEX);", sol::script_pass_on_error);
@@ -1757,6 +2536,56 @@ void CLua::openlibs()
 	open_petlibs(lua_);
 	open_maplibs(lua_);
 	open_battlelibs(lua_);
+
+	lua_.set("SCRIPTDIR", util::toConstData(QString("%1/script").arg(util::applicationDirPath())));
+
+	lua_.set("SETTINGDIR", util::toConstData(QString("%1/settings").arg(util::applicationDirPath())));
+
+	lua_.set("CURRENTDIR", util::toConstData(util::applicationDirPath()));
+
+	lua_.set("PID", static_cast<long long>(_getpid()));
+
+	lua_.set("THREADID", reinterpret_cast<long long>(QThread::currentThreadId()));
+
+	lua_.set("INFINITE", std::numeric_limits<long long>::max());
+
+	lua_.set("MAXTHREAD", SASH_MAX_THREAD);
+
+	lua_.set("MAXCHAR", sa::MAX_CHARACTER);
+
+	lua_.set("MAXDIR", sa::MAX_DIR);
+
+	lua_.set("MAXITEM", sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT);
+
+	lua_.set("MAXEQUIP", sa::CHAR_EQUIPSLOT_COUNT);
+
+	lua_.set("MAXCARD", sa::MAX_ADDRESS_BOOK);
+
+	lua_.set("MAXMAGIC", sa::MAX_MAGIC);
+
+	lua_.set("MAXSKILL", sa::MAX_PROFESSION_SKILL);
+
+	lua_.set("MAXPET", sa::MAX_PET);
+
+	lua_.set("MAXPETSKILL", sa::MAX_PET_SKILL);
+
+	lua_.set("MAXCHAT", sa::MAX_CHAT_HISTORY);
+
+	lua_.set("MAXDLG", sa::MAX_DIALOG_LINE);
+
+	lua_.set("MAXENEMY", sa::MAX_ENEMY);
+
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+
+	lua_.set("HWND", reinterpret_cast<long long>(gamedevice.getParentWidget()));
+
+	lua_.set("GAMEPID", gamedevice.getProcessId());
+
+	lua_.set("GAMEPID", reinterpret_cast<long long>(gamedevice.getProcessWindow()));
+
+	lua_.set("GAMEHANDLE", reinterpret_cast<long long>(gamedevice.getProcess()));
+
+	lua_.set("INDEX", gamedevice.getIndex());
 
 	//執行短腳本
 	lua_.safe_script(R"(

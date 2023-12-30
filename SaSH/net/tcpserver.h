@@ -50,6 +50,7 @@ private:
 	bool init = false;
 };
 
+class CLua;
 class Worker : public QObject, public Indexer, public Lssproto
 {
 	Q_OBJECT
@@ -375,6 +376,8 @@ private:
 	[[nodiscard]] long long __fastcall getProfessionSkillIndexByName(const QString& names) const;
 
 #pragma region BattleFunctions
+	bool __fastcall runBattleLua(const QString& name);
+
 	long long __fastcall playerDoBattleWork(const sa::battle_data_t& bt);
 	bool __fastcall handleCharBattleLogics(const sa::battle_data_t& bt);
 	long long __fastcall petDoBattleWork(const sa::battle_data_t& bt);
@@ -570,6 +573,7 @@ public:
 	safe::flag battleCharEscapeFlag = 0; //戰鬥人物退戰標誌
 	safe::integer battleCharCurrentMp = 0; //戰鬥人物當前MP
 	safe::integer battleCurrentAnimeFlag = 0; //戰鬥當前動畫標誌
+	CLua* battleLua = nullptr; //戰鬥Lua腳本
 
 	//custom
 	safe::flag IS_TRADING = false;

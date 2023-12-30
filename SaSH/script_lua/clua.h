@@ -412,16 +412,32 @@ public:
 	sa::battle_object_t operator[](long long index);
 
 	long long charUseAttack(long long objIndex, sol::this_state s);//atk
+
 	long long charUseMagic(long long magicIndex, long long objIndex, sol::this_state s);//magic
+	long long charUseMagic(std::string smagig, long long objIndex, sol::this_state s);//magic
+
 	long long charUseSkill(long long skillIndex, long long objIndex, sol::this_state s);//skill
+	long long charUseSkill(std::string sskill, long long objIndex, sol::this_state s);//skill
+
 	long long switchPet(long long petIndex, sol::this_state s);//switch
+
 	long long escape(sol::this_state s);//escape
+
 	long long defense(sol::this_state s);//defense
+
 	long long useItem(long long itemIndex, long long objIndex, sol::this_state s);//item
+	long long useItem(std::string sitem, long long objIndex, sol::this_state s);//item
+
 	long long catchPet(long long objIndex, sol::this_state s);//catch
+	long long catchPet(std::string sname, sol::object olevel, sol::object omaxhp, sol::object omodelid, sol::this_state s);//catch
+
 	long long nothing(sol::this_state s);//nothing
+
 	long long petUseSkill(long long petSkillIndex, long long objIndex, sol::this_state s);//petskill
+	long long petUseSkill(std::string spetskill, long long objIndex, sol::this_state s);//petskill
+
 	long long petNothing(sol::this_state s);//pet nothing
+
 	long long bend(sol::this_state s);
 	long long bwait(sol::object otimeout, sol::object jump, sol::this_state s);
 
@@ -467,6 +483,7 @@ public:
 	void __fastcall setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
 	void __fastcall setHookForStop(bool isHookForStop) { lua_["__HOOKFORSTOP"] = isHookForStop; }
 	void __fastcall setHookEnabled(bool isHookEnabled) { isHookEnabled_ = isHookEnabled; }
+	void __fastcall setHookForBattlle(bool isHookForBattlle) { lua_["__HOOKFORBATTLE"] = isHookForBattlle; }
 private:
 	void __fastcall open_enumlibs();
 	void __fastcall open_testlibs();

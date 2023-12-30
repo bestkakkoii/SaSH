@@ -144,7 +144,7 @@ long long CLuaBattle::charUseAttack(long long objIndex, sol::this_state s)//atk
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharAttackAct(--objIndex);
+	return gamedevice.worker->sendBattleCharAttackAct(--objIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::charUseMagic(long long magicIndex, long long objIndex, sol::this_state s)//magic
@@ -154,7 +154,21 @@ long long CLuaBattle::charUseMagic(long long magicIndex, long long objIndex, sol
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharMagicAct(--magicIndex, --objIndex);
+	return gamedevice.worker->sendBattleCharMagicAct(--magicIndex, --objIndex) ? TRUE : FALSE;
+}
+
+long long CLuaBattle::charUseMagic(std::string smagig, long long objIndex, sol::this_state s)//magic
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
+		return FALSE;
+
+	long long index = gamedevice.worker->getMagicIndexByName(util::toQString(smagig));
+	if (index < 0)
+		return FALSE;
+
+	return gamedevice.worker->sendBattleCharMagicAct(index, --objIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::charUseSkill(long long skillIndex, long long objIndex, sol::this_state s)//skill
@@ -164,7 +178,21 @@ long long CLuaBattle::charUseSkill(long long skillIndex, long long objIndex, sol
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharJobSkillAct(--skillIndex, --objIndex);
+	return gamedevice.worker->sendBattleCharJobSkillAct(--skillIndex, --objIndex) ? TRUE : FALSE;
+}
+
+long long CLuaBattle::charUseSkill(std::string sskill, long long objIndex, sol::this_state s)//skill
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull() || !gamedevice.worker->getBattleFlag())
+		return FALSE;
+
+	long long index = gamedevice.worker->getSkillIndexByName(util::toQString(sskill));
+	if (index < 0)
+		return FALSE;
+
+	return gamedevice.worker->sendBattleCharJobSkillAct(index, --objIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::switchPet(long long petIndex, sol::this_state s)//switch
@@ -174,7 +202,7 @@ long long CLuaBattle::switchPet(long long petIndex, sol::this_state s)//switch
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharSwitchPetAct(--petIndex);
+	return gamedevice.worker->sendBattleCharSwitchPetAct(--petIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::escape(sol::this_state s)//escape
@@ -184,7 +212,7 @@ long long CLuaBattle::escape(sol::this_state s)//escape
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharEscapeAct();
+	return gamedevice.worker->sendBattleCharEscapeAct() ? TRUE : FALSE;
 }
 
 long long CLuaBattle::defense(sol::this_state s)//defense
@@ -194,7 +222,7 @@ long long CLuaBattle::defense(sol::this_state s)//defense
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharDefenseAct();
+	return gamedevice.worker->sendBattleCharDefenseAct() ? TRUE : FALSE;
 }
 
 long long CLuaBattle::useItem(long long itemIndex, long long objIndex, sol::this_state s)//item
@@ -204,7 +232,21 @@ long long CLuaBattle::useItem(long long itemIndex, long long objIndex, sol::this
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharItemAct(--itemIndex, --objIndex);
+	return gamedevice.worker->sendBattleCharItemAct(--itemIndex, --objIndex) ? TRUE : FALSE;
+}
+
+long long CLuaBattle::useItem(std::string sitem, long long objIndex, sol::this_state s)//item
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull() || !gamedevice.worker->getBattleFlag())
+		return FALSE;
+
+	long long index = gamedevice.worker->getItemIndexByName(util::toQString(sitem));
+	if (index < 0)
+		return FALSE;
+
+	return gamedevice.worker->sendBattleCharItemAct(index, --objIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::catchPet(long long objIndex, sol::this_state s)//catch
@@ -214,7 +256,51 @@ long long CLuaBattle::catchPet(long long objIndex, sol::this_state s)//catch
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharCatchPetAct(--objIndex);
+	return gamedevice.worker->sendBattleCharCatchPetAct(--objIndex) ? TRUE : FALSE;
+}
+
+long long CLuaBattle::catchPet(std::string sname, sol::object olevel, sol::object omaxhp, sol::object omodelid, sol::this_state s)//catch
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
+		return FALSE;
+
+
+	QString name = util::toQString(sname);
+
+	long long maxhp = -1;
+	if (omaxhp.is<long long>())
+		maxhp = omaxhp.as<long long>();
+
+	long long modelid = -1;
+	if (omodelid.is<long long>())
+		modelid = omodelid.as<long long>();
+
+	long long level = -1;
+	if (olevel.is<long long>())
+		level = olevel.as<long long>();
+
+	QVector<sa::battle_object_t> battleObjects = gamedevice.worker->getBattleData().enemies;
+	sa::battle_object_t obj = {};
+	for (const sa::battle_object_t& obj : battleObjects)
+	{
+		if (!name.isEmpty() && obj.name != name)
+			continue;
+
+		if (level > 0 && obj.level != level)
+			continue;
+
+		if (maxhp > 0 && obj.maxHp != maxhp)
+			continue;
+
+		if (modelid > 0 && obj.modelid != modelid)
+			continue;
+
+		return gamedevice.worker->sendBattleCharCatchPetAct(obj.pos) ? TRUE : FALSE;
+	}
+
+	return FALSE;
 }
 
 long long CLuaBattle::nothing(sol::this_state s)//nothing
@@ -224,7 +310,7 @@ long long CLuaBattle::nothing(sol::this_state s)//nothing
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharDoNothing();
+	return gamedevice.worker->sendBattleCharDoNothing() ? TRUE : FALSE;
 }
 
 long long CLuaBattle::petUseSkill(long long petSkillIndex, long long objIndex, sol::this_state s)//petskill
@@ -234,7 +320,26 @@ long long CLuaBattle::petUseSkill(long long petSkillIndex, long long objIndex, s
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattlePetSkillAct(--petSkillIndex, --objIndex);
+	return gamedevice.worker->sendBattlePetSkillAct(--petSkillIndex, --objIndex) ? TRUE : FALSE;
+}
+
+long long CLuaBattle::petUseSkill(std::string spetskill, long long objIndex, sol::this_state s)//petskill
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (!gamedevice.worker.isNull() && gamedevice.worker->getBattleFlag())
+	{
+		long long petIndex = gamedevice.worker->getCharacter().battlePetNo;
+		if (-1 == petIndex)
+			return FALSE;
+
+		long long index = gamedevice.worker->getPetSkillIndexByName(petIndex, util::toQString(spetskill));
+		if (index < 0)
+			return FALSE;
+
+		return gamedevice.worker->sendBattlePetSkillAct(index, --objIndex) ? TRUE : FALSE;
+	}
+	return FALSE;
 }
 
 long long CLuaBattle::petNothing(sol::this_state s)//pet nothing
@@ -244,7 +349,7 @@ long long CLuaBattle::petNothing(sol::this_state s)//pet nothing
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattlePetDoNothing();
+	return gamedevice.worker->sendBattlePetDoNothing() ? TRUE : FALSE;
 }
 
 long long CLuaBattle::bwait(sol::object otimeout, sol::object jump, sol::this_state s)
@@ -280,7 +385,7 @@ long long CLuaBattle::bwait(sol::object otimeout, sol::object jump, sol::this_st
 	else
 		bret = false;
 
-	return bret;
+	return bret ? TRUE : FALSE;
 }
 
 long long CLuaBattle::bend(sol::this_state s)

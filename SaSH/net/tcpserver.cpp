@@ -6816,6 +6816,56 @@ bool Worker::conditionMatchTarget(QVector<sa::battle_object_t> btobjs, const QSt
 	return bret;
 }
 
+bool Worker::runBattleLua(const QString& name)
+{
+	long long currentIndex = getIndex();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+
+	do
+	{
+		if (!gamedevice.getEnableHash(util::kBattleLuaModeEnable))
+			return false;
+
+		QStringList battleLuaFiles;
+		util::searchFiles(util::applicationDirPath(), name, "lua", &battleLuaFiles);
+		if (battleLuaFiles.isEmpty())
+			break;
+
+		QString fileName = battleLuaFiles.first();
+		if (fileName.isEmpty())
+			break;
+
+		std::string sfileName = util::toConstData(fileName);
+
+		if (nullptr == battleLua)
+		{
+			battleLua = new CLua(getIndex());
+			if (nullptr == battleLua)
+			{
+				break;
+			}
+
+			battleLua->setHookEnabled(true);
+			battleLua->setHookForBattlle(true);
+			battleLua->openlibs();
+		}
+
+		sol::state& lua = battleLua->getLua();
+		sol::protected_function_result loaded_chunk = lua.safe_script_file(sfileName, sol::script_pass_on_error);
+		if (!loaded_chunk.valid())
+		{
+			sol::error err = loaded_chunk;
+			qDebug() << err.what();
+			break;
+		}
+
+		return true;
+
+	} while (false);
+
+	return false;
+}
+
 //人物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
 bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 {
@@ -6825,6 +6875,9 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 
 	tempCatchPetTargetIndex_.set(-1);
 	petEnableEscapeForTemp_.off(); //用於在必要的時候切換戰寵動作為逃跑模式
+
+	if (runBattleLua("battle_char.lua"))
+		return true;
 
 	QStringList items;
 
@@ -8256,6 +8309,9 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 //寵物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
 bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 {
+	if (runBattleLua("battle_pet.lua"))
+		return true;
+
 	using namespace util;
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -10553,12 +10609,12 @@ void Worker::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
+				}
+			}
 	}
-}
-}
 #endif
-	}
-	}
+}
+}
 
 //名片數據
 void Worker::lssproto_ABI_recv(long long num, char* cdata)
@@ -10614,9 +10670,9 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
+			}
+		}
 }
-}
-	}
 #endif
 }
 
@@ -10766,7 +10822,7 @@ void Worker::lssproto_RS_recv(char* cdata)
 #else
 		std::ignore = QtConcurrent::run(this, &Worker::checkAutoAbility);
 #endif
-	}
+}
 	if (gamedevice.getEnableHash(util::kDropPetEnable))
 		checkAutoDropPet();
 }
@@ -11440,12 +11496,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
+			}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-			}
 		}
+	}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11463,7 +11519,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		setBattleData(bt);
 		break;
-	}
+}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12237,13 +12293,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 					++i;
 				++i;
 				break;
-		}
+			}
+			}
 	}
-}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
-}
+	}
 	}
 }
 
@@ -12765,7 +12821,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12815,7 +12871,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -12849,7 +12905,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				StockChatBufferLine(tmpMsg, color);
 				sprintf_s(msg, "");
 				sprintf_s(secretName, "%s ", tellName);
-	}
+			}
 			else StockChatBufferLine(msg, color);
 }
 #endif
@@ -13120,7 +13176,7 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+			}
 #endif
 		}
 
@@ -13260,7 +13316,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13416,13 +13472,13 @@ void Worker::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
-		}
-	}
+				}
+			}
 }
 #endif
 #pragma endregion
-		}
 	}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Worker::lssproto_CA_recv(char* cdata)

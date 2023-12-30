@@ -28,7 +28,7 @@ constexpr long long kRemoteGlobalSharedMemorySize = 6553600;  // Shared memory s
 
 static QSharedMemory g_remoteGlobalSharedMemory(kRemoteGlobalSharedMemoryKey);
 
-bool initializeSharedMemory()
+static bool initializeSharedMemory()
 {
 	if (g_remoteGlobalSharedMemory.isAttached())
 		return true;
@@ -46,7 +46,7 @@ bool initializeSharedMemory()
 	return true;
 }
 
-bool setRemoteGlobal(const std::string& varname, const QVariant& value)
+static bool setRemoteGlobal(const std::string& varname, const QVariant& value)
 {
 	QSystemSemaphore semaphore(kRemoteGlobalSemaphoreKey, 1, QSystemSemaphore::Open);
 	semaphore.acquire();
@@ -156,7 +156,7 @@ QVariant getRemoteGlobal(const std::string& varname)
 	return returnValue;
 }
 
-bool clearRemoteGlobal()
+static bool clearRemoteGlobal()
 {
 	QSystemSemaphore semaphore(kRemoteGlobalSemaphoreKey, 1, QSystemSemaphore::Open);
 	semaphore.acquire();
@@ -1761,6 +1761,7 @@ long long CLuaSystem::set(std::string enumStr,
 			{ "窗口吸附", util::kWindowDockEnable },
 			{ "自動換寵", util::kBattleAutoSwitchEnable },
 			{ "自動EO", util::kBattleAutoEOEnable },
+			{ "lua戰鬥託管", util::kBattleLuaModeEnable },
 
 			{ "隊伍開關", util::kSwitcherTeamEnable },
 			{ "PK開關", util::kSwitcherPKEnable },
@@ -1897,6 +1898,7 @@ long long CLuaSystem::set(std::string enumStr,
 			{ "窗口吸附", util::kWindowDockEnable },
 			{ "自动换宠", util::kBattleAutoSwitchEnable },
 			{ "自动EO", util::kBattleAutoEOEnable },
+			{ "lua战斗託管", util::kBattleLuaModeEnable },
 
 			{ "队伍开关", util::kSwitcherTeamEnable },
 			{ "PK开关", util::kSwitcherPKEnable },
@@ -2177,6 +2179,7 @@ long long CLuaSystem::set(std::string enumStr,
 	case util::kWindowDockEnable:
 	case util::kBattleAutoSwitchEnable:
 	case util::kBattleAutoEOEnable:
+	case util::kBattleLuaModeEnable:
 
 		//switcher
 	case util::kSwitcherTeamEnable:

@@ -314,12 +314,6 @@ void AfkForm::onButtonClicked()
 		return;
 	}
 
-	if (name == "pushButton_itemhealmp_select")
-	{
-		fillItem(ui.lineEdit_itemhealmp_normal, util::kNormalItemHealMpItemString);
-		return;
-	}
-
 	if (name == "pushButton_itemheal_select")
 	{
 		fillItem(ui.lineEdit_itemheal, util::kBattleItemHealItemString);

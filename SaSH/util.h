@@ -594,6 +594,7 @@ namespace util
 		kWindowDockEnable,
 		kBattleAutoSwitchEnable,
 		kBattleAutoEOEnable,
+		kBattleLuaModeEnable,
 
 		//switcher
 		kSwitcherTeamEnable,
@@ -881,6 +882,7 @@ namespace util
 		{ kWindowDockEnable, "WindowDockEnable" },
 		{ kBattleAutoSwitchEnable, "BattleAutoSwitchEnable" },
 		{ kBattleAutoEOEnable ,"BattleAutoEOEnable" },
+		{ kBattleLuaModeEnable ,"BattleLuaModeEnable" },
 
 		{ kSettingMaxEnable, "SettingMaxEnable" },
 
