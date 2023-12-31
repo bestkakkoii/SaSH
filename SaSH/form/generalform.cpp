@@ -108,6 +108,8 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 		ui.comboBox_setting->setCurrentIndex(defaultIndex);
 
 	ui.comboBox_setting->blockSignals(false);
+
+	ui.pushButton_afksetting->setShortcut(QKeySequence(Qt::Key_F6));
 }
 
 GeneralForm::~GeneralForm()

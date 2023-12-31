@@ -212,9 +212,9 @@ public:
 		return image.save(fileName, "PNG");
 	}
 
-	void __fastcall hide(long long mode = 0);
+	void __fastcall hide(long long mode = 0) const;
 
-	void __fastcall show();
+	void __fastcall show() const;
 
 	QString __fastcall getPointFileName();
 

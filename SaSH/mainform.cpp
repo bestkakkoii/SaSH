@@ -1046,7 +1046,7 @@ MainForm* MainForm::createNewWindow(long long idToAllocate, long long* pId)
 			MainForm* pMainForm = g_mainFormHash.value(uniqueId, nullptr);
 			if (pMainForm != nullptr)
 			{
-				pMainForm->trayIcon_.show();
+				pMainForm->trayIcon_.hide();
 				pMainForm->show();
 				pMainForm->markAsClose_ = false;
 				if (pId != nullptr)
@@ -1181,6 +1181,7 @@ MainForm::MainForm(long long index, QWidget* parent)
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
 
+	trayIcon_.hide();
 
 	onUpdateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 
@@ -1285,6 +1286,7 @@ void MainForm::createTrayIcon()
 				{
 					hide();
 					show();
+					trayIcon_.hide();
 				}
 			});
 
@@ -1333,9 +1335,14 @@ void MainForm::onMenuActionTriggered()
 		}
 		else
 		{
+			trayIcon_.show();
 			trayIcon_.setToolTip(windowTitle());
 			//trayIcon_.showMessage(windowTitle(), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
 			hide();
+			GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+			gamedevice.hide();
+			gamedevice.setEnableHash(util::kHideWindowEnable, true);
+			emit SignalDispatcher::getInstance(currentIndex).applyHashSettingsToUI();
 		}
 		return;
 	}
@@ -2034,6 +2041,6 @@ bool MainForm::createWinapiFileDialog(const QString& startDir, QStringList filte
 	else
 	{
 		return false; // 用戶取消了操作或發生錯誤
-	}
+}
 }
 #endif

@@ -871,6 +871,17 @@ void MainObject::checkControl()
 	if (gamedevice.worker.isNull())
 		return;
 
+	if (gamedevice.getEnableHash(util::kHideWindowEnable) && !flagHideWindowEnable_)
+	{
+		flagHideWindowEnable_ = true;
+		gamedevice.hide();
+	}
+	else if (!gamedevice.getEnableHash(util::kHideWindowEnable) && flagHideWindowEnable_)
+	{
+		flagHideWindowEnable_ = false;
+		gamedevice.show();
+	}
+
 	//異步加速
 	long long value = gamedevice.getValueHash(util::kSpeedBoostValue);
 	if (flagSetBoostValue_ != value)

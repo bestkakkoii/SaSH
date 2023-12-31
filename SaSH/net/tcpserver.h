@@ -573,7 +573,7 @@ public:
 	safe::flag battleCharEscapeFlag = 0; //戰鬥人物退戰標誌
 	safe::integer battleCharCurrentMp = 0; //戰鬥人物當前MP
 	safe::integer battleCurrentAnimeFlag = 0; //戰鬥當前動畫標誌
-	CLua* battleLua = nullptr; //戰鬥Lua腳本
+	std::unique_ptr<CLua> battleLua = nullptr; //戰鬥Lua腳本
 
 	//custom
 	safe::flag IS_TRADING = false;

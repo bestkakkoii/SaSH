@@ -692,7 +692,7 @@ void GameDevice::dragto(long long x1, long long y1, long long x2, long long y2) 
 	QThread::msleep(50);
 }
 
-void GameDevice::hide(long long mode)
+void GameDevice::hide(long long mode) const
 {
 	HWND hWnd = getProcessWindow();
 	if (hWnd == nullptr)
@@ -744,7 +744,7 @@ void GameDevice::hide(long long mode)
 	mem::freeUnuseMemory(getProcess());
 }
 
-void GameDevice::show()
+void GameDevice::show() const
 {
 	HWND hWnd = getProcessWindow();
 	if (hWnd == nullptr)

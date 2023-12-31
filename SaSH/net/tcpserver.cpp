@@ -375,6 +375,11 @@ Worker::Worker(long long index, QObject* parent)
 
 Worker::~Worker()
 {
+	if (battleLua != nullptr)
+	{
+		luaL_error(battleLua->getLua().lua_state(), "");
+		battleLua.reset();
+	}
 	qDebug() << "Worker is distroyed!!";
 }
 
@@ -459,12 +464,10 @@ void Worker::clear()
 	skupFuture_.cancel();
 	skupFuture_.waitForFinished();
 
-
 	if (battleLua != nullptr)
 	{
 		luaL_error(battleLua->getLua().lua_state(), "");
-		delete battleLua;
-		battleLua = nullptr;
+		battleLua.reset();
 	}
 }
 
@@ -6847,7 +6850,8 @@ bool Worker::runBattleLua(const QString& name)
 
 		if (nullptr == battleLua)
 		{
-			battleLua = new CLua(getIndex());
+			battleLua.reset(new CLua(getIndex()));
+			sash_assume(battleLua != nullptr);
 			if (nullptr == battleLua)
 			{
 				break;
@@ -10833,7 +10837,7 @@ void Worker::lssproto_RS_recv(char* cdata)
 	}
 	if (gamedevice.getEnableHash(util::kDropPetEnable))
 		checkAutoDropPet();
-}
+	}
 
 //戰後積分改變
 void Worker::lssproto_RD_recv(char*)
@@ -11509,7 +11513,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
 				}
-			}
+					}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11523,11 +11527,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-		}
+				}
 
 		setBattleData(bt);
 		break;
-	}
+			}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12308,8 +12312,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
+		}
 	}
-}
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
 void Worker::lssproto_PETST_recv(long long petarray, long long result)
@@ -13217,7 +13221,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+				}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -14266,7 +14270,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-		}
+					}
 
 		sa::character_t pc = getCharacter();
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < sa::MAX_PET)
@@ -14324,7 +14328,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 		gamedevice.setUserData(util::kUserPetNames, petNames);
-	}
+				}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -14885,7 +14889,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-}
+			}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)
