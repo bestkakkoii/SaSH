@@ -47,7 +47,7 @@
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -539,9 +539,9 @@
               <number>1</number>
              </property>
              <item>
-              <widget class="QCheckBox" name="checkBox_31">
+              <widget class="QCheckBox" name="checkBox_groupwhitelist">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="text">
                 <string>white list</string>
@@ -549,16 +549,16 @@
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="lineEdit_4">
+              <widget class="QLineEdit" name="lineEdit_groupwhitelist">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="PushButton" name="pushButton_14">
+              <widget class="PushButton" name="pushButton_groupwhitelist">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="maximumSize">
                 <size>
@@ -591,9 +591,9 @@
               <number>1</number>
              </property>
              <item>
-              <widget class="QCheckBox" name="checkBox_32">
+              <widget class="QCheckBox" name="checkBox_groupblacklist">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="text">
                 <string>black list</string>
@@ -601,16 +601,16 @@
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="lineEdit_5">
+              <widget class="QLineEdit" name="lineEdit_groupblacklist">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="PushButton" name="pushButton_15">
+              <widget class="PushButton" name="pushButton_groupblacklist">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="maximumSize">
                 <size>
@@ -753,9 +753,9 @@ QScrollBar::handle:pressed:vertical {
               <number>1</number>
              </property>
              <item>
-              <widget class="QCheckBox" name="checkBox_34">
+              <widget class="QCheckBox" name="checkBox_groupautokick">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="text">
                 <string>auto kick teammate if later then</string>
@@ -763,9 +763,9 @@ QScrollBar::handle:pressed:vertical {
               </widget>
              </item>
              <item>
-              <widget class="QSpinBox" name="spinBox_30">
+              <widget class="QSpinBox" name="spinBox_groupautokick">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
               </widget>
              </item>

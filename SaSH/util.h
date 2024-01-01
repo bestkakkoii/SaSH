@@ -541,6 +541,7 @@ namespace util
 
 		//other->group
 		kAutoFunTypeValue,
+		kGroupAutoKickTimeoutValue,
 
 		//lockpet
 		kLockPetValue,
@@ -641,6 +642,10 @@ namespace util
 		kDropPetHpEnable,
 		kDropPetAggregateEnable,
 
+		//other->group
+		kGroupWhiteListEnable,
+		kGroupBlackListEnable,
+		kGroupAutoKickEnable,
 
 		//lockpet
 		kLockPetEnable,
@@ -683,6 +688,8 @@ namespace util
 
 		//other->group
 		kAutoFunNameString,
+		kGroupWhiteListString,
+		kGroupBlackListString,
 
 		//other->lockpet
 		kLockPetScheduleString,
@@ -831,6 +838,7 @@ namespace util
 
 		//other->group
 		{ kAutoFunTypeValue, "AutoFunTypeValue" },
+		{ kGroupAutoKickTimeoutValue, "GroupAutoKickTimeoutValue" },
 
 		//lockpet
 		{ kLockPetValue, "LockPetValue" },
@@ -932,6 +940,11 @@ namespace util
 		{ kLockRideEnable, "LockRideEnable" },
 		{ kBattleNoEscapeWhileLockPetEnable , "BattleNoEscapeWhileLockPetEnable" },
 
+		//other->group
+		{ kGroupWhiteListEnable, "GroupWhiteListEnable" },
+		{ kGroupBlackListEnable, "GroupBlackListEnable" },
+		{ kGroupAutoKickEnable, "GroupAutoKickEnable" },
+
 		{ kAutoAbilityEnable, "AutoAbilityEnable" },
 
 		{ kAutoEncodeEnable, "AutoEncodeEnable" },
@@ -960,6 +973,8 @@ namespace util
 
 		//other->group
 		{ kAutoFunNameString, "AutoFunNameString" },
+		{ kGroupWhiteListString, "GroupWhiteListString" },
+		{ kGroupBlackListString, "GroupBlackListString" },
 
 		//other->lockpet
 		{ kLockPetScheduleString, "LockPetScheduleString" },
@@ -1796,7 +1811,7 @@ QGroupBox {
 
 	bool __fastcall readFile(const QString& fileName, QString* pcontent, bool* isPrivate = nullptr, QString* originalData = nullptr);
 
-	bool __fastcall writeFile(const QString& fileName, const QString& content);
+	bool __fastcall writeFile(const QString& fileName, const QString& content, bool useUTF16 = false);
 
 	void __fastcall sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 

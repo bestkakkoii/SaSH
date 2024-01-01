@@ -485,7 +485,6 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <ClCompile Include="net\macchanger.cpp" />
     <ClCompile Include="net\rpc.cpp" />
     <ClCompile Include="net\tcpserver.cpp" />
-    <ClCompile Include="script\action.cpp" />
     <ClCompile Include="script\crypto.cpp" />
     <ClCompile Include="script\interpreter.cpp" />
     <ClCompile Include="script\lexer.cpp" />

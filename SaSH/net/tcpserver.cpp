@@ -2124,7 +2124,7 @@ QString Worker::getFieldString(long long field)
 	case 4:
 		return QObject::tr("wind");
 	default:
-		return QString();
+		return QObject::tr("none");
 	}
 }
 
@@ -2847,8 +2847,7 @@ void Worker::updateBattleTimeInfo()
 		battle_time_text += " " + QObject::tr("(normal)");
 
 	field = battleField.get();
-	if (field != 0)
-		battle_time_text += QString(" [%1]").arg(getFieldString(field));
+	battle_time_text += QString(QObject::tr(" field[%1]")).arg(getFieldString(field));
 
 	timeLabelContents.set(battle_time_text);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
@@ -2983,7 +2982,7 @@ bool Worker::setWindowTitle(QString formatStr)
 	if (formatStr.contains("%(floor)", Qt::CaseInsensitive))
 		formatStr.replace("%(floor)", util::toQString(getFloor()), Qt::CaseInsensitive);
 	if (formatStr.contains("%(map)", Qt::CaseInsensitive))
-		formatStr.replace("%(map)", util::toQString(getFloorName()), Qt::CaseInsensitive);
+		formatStr.replace("%(map)", getFloorName(), Qt::CaseInsensitive);
 
 	if (formatStr.contains("%(x)", Qt::CaseInsensitive) || formatStr.contains("%(y)", Qt::CaseInsensitive))
 	{
@@ -10487,11 +10486,12 @@ void Worker::lssproto_PR_recv(long long request, long long result)
 		QHash<long long, sa::team_t> team = team_.toHash();
 		for (long long i = 0; i < sa::MAX_TEAM; ++i)
 		{
-			if (team.value(i).name.isEmpty() || (!team.value(i).valid) || (team.value(i).maxHp <= 0))
+			if ((!team.value(i).valid) || (team.value(i).maxHp <= 0))
 			{
 				teamInfoList.append("");
 				continue;
 			}
+
 			QString text = QString("%1 LV:%2 HP:%3/%4 MP:%5").arg(team.value(i).name).arg(team.value(i).level)
 				.arg(team.value(i).hp).arg(team.value(i).maxHp).arg(team.value(i).hpPercent);
 			teamInfoList.append(text);
@@ -10837,7 +10837,7 @@ void Worker::lssproto_RS_recv(char* cdata)
 	}
 	if (gamedevice.getEnableHash(util::kDropPetEnable))
 		checkAutoDropPet();
-	}
+}
 
 //戰後積分改變
 void Worker::lssproto_RD_recv(char*)
@@ -11348,6 +11348,72 @@ QString Worker::battleStringFormat(const sa::battle_object_t& obj, QString forma
 	formatStr.replace("%(pos)", util::toQString(obj.pos), Qt::CaseInsensitive);
 
 	bool isself = obj.pos == battleCharCurrentPos.get();
+	if ((obj.hp > 0) && (isself || (obj.pos == (battleCharCurrentPos.get() + 5))))
+	{
+		// Divide by 10 to get the real element values
+		long long earth = 0;
+		long long water = 0;
+		long long fire = 0;
+		long long wind = 0;
+
+		sa::character_t pc = getCharacter();
+		if (isself)
+		{
+			earth = pc.earth / 10;
+			water = pc.water / 10;
+			fire = pc.fire / 10;
+			wind = pc.wind / 10;
+		}
+		else
+		{
+			sa::pet_t pet = getPet(pc.battlePetNo);
+			earth = pet.earth / 10;
+			water = pet.water / 10;
+			fire = pet.fire / 10;
+			wind = pet.wind / 10;
+		}
+
+		bool isReverse = util::checkAND(obj.status, sa::BC_FLG_REVERSE);
+
+		QString elementStr;
+
+		if (isself && isReverse)
+		{
+			// Reverse the elements
+			std::swap(fire, water);
+			std::swap(earth, wind);
+		}
+
+		// Append non-zero elements to the string
+		if (fire > 0)
+		{
+			elementStr += QObject::tr("fire") + util::toQString(fire);
+		}
+		if (water > 0)
+		{
+			elementStr += QObject::tr("water") + util::toQString(water);
+		}
+		if (earth > 0)
+		{
+			elementStr += QObject::tr("earth") + util::toQString(earth);
+		}
+		if (wind > 0)
+		{
+			elementStr += QObject::tr("wind") + util::toQString(wind);
+		}
+
+		if (isself)
+		{
+			formatStr.replace("%(pele)", "", Qt::CaseInsensitive);
+			formatStr.replace("%(ele)", elementStr, Qt::CaseInsensitive);
+		}
+		else
+		{
+			formatStr.replace("%(pele)", elementStr, Qt::CaseInsensitive);
+			formatStr.replace("%(ele)", "", Qt::CaseInsensitive);
+		}
+	}
+
 	formatStr.replace("%(self)", isself ? gamedevice.getStringHash(util::kBattleSelfMarkString) : "", Qt::CaseInsensitive);
 	formatStr.replace("%(name)", obj.name, Qt::CaseInsensitive);
 	formatStr.replace("%(fname)", obj.freeName, Qt::CaseInsensitive);
@@ -11513,7 +11579,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
 				}
-					}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11527,11 +11593,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-				}
+		}
 
 		setBattleData(bt);
 		break;
-			}
+	}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12312,8 +12378,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-		}
 	}
+}
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
 void Worker::lssproto_PETST_recv(long long petarray, long long result)
@@ -13221,7 +13287,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-				}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -14270,7 +14336,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-					}
+		}
 
 		sa::character_t pc = getCharacter();
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < sa::MAX_PET)
@@ -14328,7 +14394,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 		gamedevice.setUserData(util::kUserPetNames, petNames);
-				}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -14390,19 +14456,73 @@ void Worker::lssproto_S_recv(char* cdata)
 	{
 		//QWriteLocker locker(&teamInfoLock_);
 
-		auto updateTeamInfo = [this, &signalDispatcher]()
+		auto checkList = [this](util::UserSetting enableElement, const QString& cmpName)->long long
+			{
+				GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+				if (!gamedevice.getEnableHash(enableElement))
+					return -1;
+
+				QString preListStr;
+				if (util::kGroupWhiteListEnable == enableElement)
+				{
+					preListStr = gamedevice.getStringHash(util::kGroupWhiteListString);
+				}
+				else
+				{
+					preListStr = gamedevice.getStringHash(util::kGroupBlackListString);
+				}
+
+				if (preListStr.isEmpty())
+					return 0;
+
+				QStringList preList = preListStr.split(util::rexOR, Qt::SkipEmptyParts);
+				if (preList.isEmpty())
+					return 0;
+
+				QString newName;
+				for (const QString& pre : preList)
+				{
+					newName = pre;
+					if (newName.isEmpty())
+						continue;
+
+					if (newName.startsWith("?"))
+					{
+						newName = newName.mid(1);
+						if (cmpName.contains(newName))
+							return 1;
+					}
+					else if (newName == cmpName)
+					{
+						return 1;
+					}
+				}
+
+				return 0;
+			};
+
+		auto updateTeamInfo = [this, &signalDispatcher, &checkList]()
 			{
 				QStringList teamInfoList;
 				for (long long i = 0; i < sa::MAX_TEAM; ++i)
 				{
 					sa::team_t team = team_.value(i);
-					if (team.name.isEmpty() || (!team.valid) || (team.maxHp <= 0))
+					long long whiteListState = checkList(util::kGroupWhiteListEnable, team.name);
+
+					//打開白名單且不在白名單內或位於黑名單
+					bool kickEnable = (whiteListState != -1 && whiteListState != 1) || (checkList(util::kGroupBlackListEnable, team.name) == 1);
+
+					if ((!team.valid) || (team.maxHp <= 0) || kickEnable)
 					{
 						if (team_.contains(i))
 							team_.remove(i);
 						teamInfoList.append("");
+
+						if (kickEnable && i > 0)//非隊長
+							kickteam(i);
 						continue;
 					}
+
 					QString text = QString("%1 LV:%2 HP:%3/%4 MP:%5").arg(team.name).arg(team.level)
 						.arg(team.hp).arg(team.maxHp).arg(team.hpPercent);
 					teamInfoList.append(text);
@@ -14430,7 +14550,7 @@ void Worker::lssproto_S_recv(char* cdata)
 		{
 			team_.remove(no);
 
-			if (team_.size() == 1)
+			if (team_.size() == 1)//只剩自己
 				team_.clear();
 			updateTeamInfo();
 			return;
@@ -14889,7 +15009,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-			}
+}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)
@@ -15500,7 +15620,7 @@ void Worker::lssproto_DENGON_recv(char* data, long long colors, long long nums)
 }
 #pragma endregion
 
-void Worker::findPathAsync(const QPoint& dst)
+void Worker::findPathAsync(const QPoint& dst, const std::function<bool()>& func)
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -15531,6 +15651,12 @@ void Worker::findPathAsync(const QPoint& dst)
 	{
 		if (gamedevice.isGameInterruptionRequested())
 			break;
+
+		if (func)
+		{
+			if (func())
+				break;
+		}
 
 		if (!getOnlineFlag())
 			break;
@@ -15575,6 +15701,15 @@ void Worker::findPathAsync(const QPoint& dst)
 				{
 					emit findPathFinished();
 					return;
+				}
+
+				if (func)
+				{
+					if (func())
+					{
+						emit findPathFinished();
+						break;
+					}
 				}
 
 				if (!gamedevice.IS_FINDINGPATH.get())

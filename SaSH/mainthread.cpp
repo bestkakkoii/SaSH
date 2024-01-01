@@ -1137,7 +1137,7 @@ MissionThread::MissionThread(long long index, long long type, QObject* parent)
 		connect(thread_, &QThread::started, this, &MissionThread::autoBattle);
 		break;
 	case kAsyncFindPath:
-		connect(thread_, &QThread::started, this, &MissionThread::start);
+		connect(thread_, &QThread::started, this, &MissionThread::asyncFindPath);
 		break;
 	}
 
@@ -1204,20 +1204,20 @@ void MissionThread::autoJoin()
 
 		if (gamedevice.getEnableHash(util::kAutoWalkEnable) || gamedevice.getEnableHash(util::kFastAutoWalkEnable))
 		{
-			QThread::msleep(500);
+			QThread::msleep(100);
 			continue;
 		}
 
 		if (!gamedevice.getEnableHash(util::kAutoJoinEnable))
 		{
-			QThread::msleep(500);
+			QThread::msleep(100);
 			continue;
 		}
 
 		leader = gamedevice.getStringHash(util::kAutoFunNameString);
 		if (leader.isEmpty())
 		{
-			QThread::msleep(500);
+			QThread::msleep(100);
 			continue;
 		}
 
@@ -1257,8 +1257,8 @@ void MissionThread::autoJoin()
 				//檢查隊長是否正確
 				if (util::checkAND(ch.status, sa::kCharacterStatus_IsLeader))
 				{
-					QThread::msleep(500);
-					continue;
+					QThread::msleep(100);
+					break;
 				}
 
 				if (util::checkAND(ch.status, sa::kCharacterStatus_HasTeam))
@@ -1267,12 +1267,13 @@ void MissionThread::autoJoin()
 					if ((!name.isEmpty() && leader == name)
 						|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
 					{
-						QThread::msleep(500);
-						continue;
+						QThread::msleep(100);
+						break;
 					}
 
 					gamedevice.worker->setTeamState(false);
-					QThread::msleep(200);
+					QThread::msleep(100);
+					break;
 				}
 			}
 
@@ -1289,22 +1290,22 @@ void MissionThread::autoJoin()
 			//如果人物不在線上則自動退出
 			if (!gamedevice.worker->getOnlineFlag())
 			{
-				QThread::msleep(100);;
-				continue;
+				QThread::msleep(100);
+				break;
 			}
 
 			if (gamedevice.worker->getBattleFlag())
 			{
 				QThread::msleep(100);;
-				continue;
+				break;
 			}
 
 			ch = gamedevice.worker->getCharacter();
 
 			if (floor != gamedevice.worker->getFloor())
 			{
-				QThread::msleep(500);
-				continue;
+				QThread::msleep(100);
+				break;
 			}
 
 			QString freeName = "";
@@ -1321,8 +1322,8 @@ void MissionThread::autoJoin()
 			//查找目標人物所在坐標
 			if (!gamedevice.worker->findUnit(leader, sa::kObjectHuman, &unit, freeName))
 			{
-				QThread::msleep(500);
-				continue;
+				QThread::msleep(100);
+				break;
 			}
 
 			//如果和目標人物處於同一個坐標則向隨機方向移動一格
@@ -1331,15 +1332,15 @@ void MissionThread::autoJoin()
 			{
 				gamedevice.worker->move(current_point + util::fix_point.value(util::rnd::get(0, 7)));
 				QThread::msleep(100);;
-				continue;
+				break;
 			}
 
 			//計算最短離靠近目標人物的坐標和面相的方向
 			dir = gamedevice.worker->mapDevice.calcBestFollowPointByDstPoint(index, &astar, floor, current_point, unit.p, &newpoint, false, -1);
 			if (-1 == dir)
 			{
-				QThread::msleep(500);
-				continue;
+				QThread::msleep(100);
+				break;
 			}
 
 			if (current_point == newpoint)
@@ -1355,7 +1356,7 @@ void MissionThread::autoJoin()
 
 			if (!gamedevice.worker->mapDevice.calcNewRoute(index, &astar, floor, current_point, newpoint, blockList, &path))
 			{
-				QThread::msleep(500);
+				QThread::msleep(100);
 				continue;
 			}
 
@@ -1373,14 +1374,14 @@ void MissionThread::autoJoin()
 			//如果步長小於1 就不動
 			if (len < 0)
 			{
-				QThread::msleep(500);
-				continue;
+				QThread::msleep(100);
+				break;
 			}
 
 			if (len >= static_cast<long long>(path.size()))
 			{
-				QThread::msleep(500);
-				continue;
+				QThread::msleep(100);
+				break;
 			}
 
 			gamedevice.worker->move(path.at(len));
@@ -2072,7 +2073,9 @@ void MissionThread::asyncFindPath()
 		return;
 
 	QPoint dst = args_.value(0).toPoint();
-	gamedevice.worker->findPathAsync(dst);
+
+	std::function<bool()> fun = std::bind(&MissionThread::isMissionInterruptionRequested, this);
+	gamedevice.worker->findPathAsync(dst, fun);
 
 	emit finished();
 }

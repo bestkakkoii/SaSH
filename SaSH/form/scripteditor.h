@@ -41,6 +41,8 @@ protected:
 
 	virtual void closeEvent(QCloseEvent* e) override;
 
+	virtual void hideEvent(QHideEvent* e) override;
+
 private:
 	void __fastcall fileSave(QString content);
 

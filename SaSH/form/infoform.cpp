@@ -84,6 +84,13 @@ InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 	blockSignals(true);
 }
 
+void InfoForm::hideEvent(QHideEvent* e)
+{
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.saveSettings();
+	QWidget::hideEvent(e);
+}
+
 void InfoForm::onTabWidgetCurrentChanged(int index)
 {
 	if (ui.tabWidget->currentIndex() != 0)
@@ -123,7 +130,11 @@ void InfoForm::showEvent(QShowEvent* e)
 		timer.start(10);
 	setUpdatesEnabled(true);
 	blockSignals(false);
+
+	util::FormSettingManager formManager(this);
+	formManager.loadSettings();
 	update();
+
 	setAttribute(Qt::WA_Mapped);
 	QWidget::showEvent(e);
 }

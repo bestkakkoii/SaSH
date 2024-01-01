@@ -59,6 +59,7 @@ private slots:
 protected:
 	virtual void showEvent(QShowEvent* e) override;
 	virtual void closeEvent(QCloseEvent* e) override;
+	virtual void InfoForm::hideEvent(QHideEvent* e) override;
 
 private:
 	Ui::InfoFormClass ui;

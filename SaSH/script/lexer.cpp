@@ -48,16 +48,6 @@ static const QHash<QString, RESERVE> keywords = {
 	//system 系統命令 交由interpreter處理
 	{ "run", TK_CMD },
 	{ "dostr", TK_CMD },
-
-	//上方不做更改
-
-	//以下待轉移到lua 目前暫時由interpreter處理
-
-	//actions
-	{ "usemagic", TK_CMD },
-	{ "useitem", TK_CMD },
-	{ "doffitem", TK_CMD },
-	{ "mail", TK_CMD },
 };
 #pragma endregion
 

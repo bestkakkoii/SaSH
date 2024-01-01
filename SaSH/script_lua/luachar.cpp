@@ -141,3 +141,153 @@ long long CLuaChar::kick(long long teammateIndex, sol::this_state s)
 
 	return gamedevice.worker->kickteam(--teammateIndex);
 }
+
+long long CLuaChar::mail(sol::object oaddrIndex, sol::object omessage, sol::object opetindex, sol::object sitemname, sol::object sitemmemo, sol::this_state s)
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QVariant card;
+
+	long long addrIndex = -1;
+	if (oaddrIndex.is<long long>())
+	{
+		if (addrIndex <= 0 || addrIndex >= sa::MAX_ADDRESS_BOOK)
+			return FALSE;
+		--addrIndex;
+
+		card = addrIndex;
+	}
+	else if (oaddrIndex.is<std::string>())
+	{
+		card = util::toQString(oaddrIndex.as<std::string>());
+	}
+	else
+		return FALSE;
+
+	QString text = util::toQString(omessage);
+
+	long long petIndex = -1;
+	if (opetindex.is<long long>())
+	{
+		petIndex = opetindex.as<long long>();
+		--petIndex;
+		if (petIndex < 0 || petIndex >= sa::MAX_PET)
+			return FALSE;
+	}
+
+	if (petIndex != -1)
+	{
+		--petIndex;
+		if (petIndex < 0 || petIndex >= sa::MAX_PET)
+			return FALSE;
+	}
+
+	QString itemName;
+	if (sitemname.is<std::string>())
+		itemName = util::toQString(sitemname);
+
+	QString itemMemo;
+	if (sitemmemo.is<std::string>())
+		itemMemo = util::toQString(sitemmemo);
+
+	if (petIndex != -1 && itemMemo.isEmpty() && !itemName.isEmpty())
+		return FALSE;
+
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+
+	gamedevice.worker->mail(card, text, petIndex, itemName, itemMemo);
+
+	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return bret;
+}
+
+long long CLuaChar::usemagic(sol::object omagic, sol::object otarget, sol::this_state s)
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+	if (gamedevice.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	long long magicIndex = -1;
+	QString magicName = "";
+	if (omagic.is<long long>())
+		magicIndex = omagic.as<long long>();
+	else if (omagic.is<std::string>())
+		magicName = util::toQString(omagic.as<std::string>());
+
+	if (-1 == magicIndex && magicName.isEmpty())
+		return FALSE;
+
+	long long target = -1;
+	if (otarget.is <long long>())
+		target = otarget.as<long long>();
+
+	if (target < 0)
+	{
+		QString targetTypeName;
+		if (otarget.is<std::string>())
+			util::toQString(otarget.as<std::string>());
+
+		if (targetTypeName.isEmpty())
+		{
+			target = 0;
+
+		}
+		else
+		{
+			QHash<QString, long long> hash = {
+				{ "自己", 0},
+				{ "戰寵", gamedevice.worker->getCharacter().battlePetNo},
+				{ "騎寵", gamedevice.worker->getCharacter().ridePetNo},
+				{ "隊長", 6},
+
+				{ "自己", 0},
+				{ "战宠", gamedevice.worker->getCharacter().battlePetNo},
+				{ "骑宠", gamedevice.worker->getCharacter().ridePetNo},
+				{ "队长", 6},
+
+				{ "self", 0},
+				{ "battlepet", gamedevice.worker->getCharacter().battlePetNo},
+				{ "ride", gamedevice.worker->getCharacter().ridePetNo},
+				{ "leader", 6},
+			};
+
+			for (long long i = 0; i < sa::MAX_PET; ++i)
+			{
+				hash.insert("寵物" + util::toQString(i + 1), i + 1);
+				hash.insert("宠物" + util::toQString(i + 1), i + 1);
+				hash.insert("pet" + util::toQString(i + 1), i + 1);
+			}
+
+			for (long long i = 1; i < sa::MAX_TEAM; ++i)
+			{
+				hash.insert("隊員" + util::toQString(i), i + 1 + sa::MAX_PET);
+				hash.insert("队员" + util::toQString(i), i + 1 + sa::MAX_PET);
+				hash.insert("teammate" + util::toQString(i), i + 1 + sa::MAX_PET);
+			}
+
+			if (!hash.contains(targetTypeName))
+				return FALSE;
+
+			target = hash.value(targetTypeName, -1);
+			if (target < 0)
+				return FALSE;
+		}
+	}
+
+	magicIndex = gamedevice.worker->getMagicIndexByName(magicName);
+	if (magicIndex < 0)
+		return FALSE;
+
+	return gamedevice.worker->useMagic(magicIndex, target);
+}

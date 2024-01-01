@@ -62,8 +62,11 @@ protected:
 
 	virtual bool eventFilter(QObject* obj, QEvent* eve) override;
 
+	virtual void hideEvent(QHideEvent* event) override;
+
 private:
 	void updateTargetButtonText();
+
 
 private:
 	Ui::AfkFormClass ui;

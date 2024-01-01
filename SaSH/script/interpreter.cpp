@@ -278,7 +278,7 @@ bool Interpreter::checkRelationalOperator(const TokenMap& TK, long long idx, RES
 }
 
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
-bool Interpreter::waitfor(long long timeout, std::function<bool()> exprfun)
+bool Interpreter::waitfor(long long timeout, std::function<bool()> exprfun) const
 {
 	if (nullptr == exprfun)
 		return false;
@@ -327,12 +327,6 @@ void Interpreter::openLibs()
 	//system
 	registerFunction("run", &Interpreter::run);
 	registerFunction("dostr", &Interpreter::dostr);
-
-	//action
-	registerFunction("useitem", &Interpreter::useitem);
-	registerFunction("doffitem", &Interpreter::dropitem);
-	registerFunction("usemagic", &Interpreter::usemagic);
-	registerFunction("mail", &Interpreter::mail);
 }
 
 long long Interpreter::scriptCallBack(long long currentIndex, long long currentLine, const TokenMap& TK)

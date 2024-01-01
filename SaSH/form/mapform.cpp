@@ -69,8 +69,7 @@ MapForm::~MapForm()
 	if (missionThread_ != nullptr)
 	{
 		missionThread_->wait();
-		missionThread_->deleteLater();
-		missionThread_ = nullptr;
+		missionThread_.reset();
 	}
 
 	long long currentIndex = getIndex();
@@ -86,6 +85,11 @@ void MapForm::showEvent(QShowEvent* e)
 
 void MapForm::onFindPathFinished()
 {
+	if (missionThread_ != nullptr)
+	{
+		missionThread_->wait();
+		missionThread_.reset();
+	}
 	ui.pushButton_findpath_stop->setEnabled(false);
 	ui.pushButton_findpath_start->setEnabled(true);
 }
@@ -129,8 +133,7 @@ void MapForm::onButtonClicked()
 		if (missionThread_ != nullptr)
 		{
 			missionThread_->wait();
-			missionThread_->deleteLater();
-			missionThread_ = nullptr;
+			missionThread_.reset();
 		}
 
 		connect(gamedevice.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
@@ -139,7 +142,7 @@ void MapForm::onButtonClicked()
 		long long y = ui.spinBox_findpath_y->value();
 
 		QPoint point(x, y);
-		missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+		missionThread_.reset(q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath)));
 		sash_assume(missionThread_ != nullptr);
 		if (missionThread_ == nullptr)
 			return;
@@ -248,14 +251,13 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	if (missionThread_ != nullptr)
 	{
 		missionThread_->wait();
-		missionThread_->deleteLater();
-		missionThread_ = nullptr;
+		missionThread_.reset();
 	}
 
 	connect(gamedevice.worker.get(), &Worker::findPathFinished, this, &MapForm::onFindPathFinished, Qt::UniqueConnection);
 
 	QPoint point = npc_hash_.value(row);
-	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+	missionThread_.reset(q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath)));
 	sash_assume(missionThread_ != nullptr);
 	if (missionThread_ == nullptr)
 		return;

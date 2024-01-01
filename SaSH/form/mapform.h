@@ -55,5 +55,5 @@ private:
 	static QHash<long long, QHash<QPoint, QString>> entrances_;
 
 	QMutex missionThreadMutex_;
-	MissionThread* missionThread_ = nullptr;
+	std::unique_ptr<MissionThread> missionThread_ = nullptr;
 };

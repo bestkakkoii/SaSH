@@ -575,7 +575,7 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 	return FALSE;
 }
 
-long long CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_state s)
+std::string CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["__INDEX"].get<long long>();
@@ -601,10 +601,10 @@ long long CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_
 	emit signalDispatcher.messageBoxShow(text, type, "", &nret);
 	if (nret != QMessageBox::StandardButton::NoButton)
 	{
-		return nret;
+		return nret == QMessageBox::StandardButton::Yes ? "yes" : "no";
 	}
 
-	return 0;
+	return "";
 }
 
 long long CLuaSystem::talk(sol::object ostr, sol::object ocolor, sol::object omode, sol::this_state s)
@@ -1790,6 +1790,9 @@ long long CLuaSystem::set(std::string enumStr,
 			{ "鎖定攻擊", util::kLockAttackEnable },//{ "鎖定攻擊名單", util::kLockAttackString },
 			{ "鎖定逃跑", util::kLockEscapeEnable },//{ "鎖定逃跑名單", util::kLockEscapeString },
 			{ "非鎖不逃", util::kBattleNoEscapeWhileLockPetEnable },
+			{ "組隊白名單", util::kGroupWhiteListEnable },
+			{ "組隊黑名單", util::kGroupWhiteListEnable },
+			{ "組隊超時", util::kGroupAutoKickEnable },
 
 			{ "道具補氣", util::kNormalItemHealMpEnable },//{ "ItemHealMpNormalValue", util::kNormalItemHealMpValue },{ "平時道具補氣", util::kNormalItemHealMpItemString },
 			{ "戰鬥道具補氣", util::kBattleItemHealMpEnable },//{ "戰鬥道具補氣人物", util::kBattleItemHealMpValue },{ "戰鬥道具補氣 ", util::kBattleItemHealMpItemString },
@@ -1927,6 +1930,9 @@ long long CLuaSystem::set(std::string enumStr,
 			{ "锁定攻击", util::kLockAttackEnable },//{ "锁定攻击名单", util::kLockAttackString },
 			{ "锁定逃跑", util::kLockEscapeEnable },//{ "锁定逃跑名单", util::kLockEscapeString },
 			{ "非锁不逃", util::kBattleNoEscapeWhileLockPetEnable },
+			{ "组队白名单", util::kGroupWhiteListEnable },
+			{ "组队黑名单", util::kGroupWhiteListEnable },
+			{ "组队超时", util::kGroupAutoKickEnable },
 
 			{ "道具补气", util::kNormalItemHealMpEnable },//{ "ItemHealMpNormalValue", util::kNormalItemHealMpValue },{ "平时道具补气", util::kNormalItemHealMpItemString },
 			{ "战斗道具补气", util::kBattleItemHealMpEnable },//{ "战斗道具补气人物", util::kBattleItemHealMpValue },{ "战斗道具补气 ", util::kBattleItemHealMpItemString },
@@ -2281,6 +2287,14 @@ long long CLuaSystem::set(std::string enumStr,
 			gamedevice.setEnableHash(util::kFastAutoWalkEnable, false);
 
 		}
+		else if (type == util::kGroupWhiteListEnable && ok)
+		{
+			gamedevice.setStringHash(util::kGroupWhiteListString, text);
+		}
+		else if (type == util::kGroupBlackListEnable && ok)
+		{
+			gamedevice.setStringHash(util::kGroupBlackListString, text);
+		}
 		else if (type == util::kLockAttackEnable && ok)
 			gamedevice.setStringHash(util::kLockAttackString, text);
 		else if (type == util::kLockEscapeEnable && ok)
@@ -2324,6 +2338,7 @@ long long CLuaSystem::set(std::string enumStr,
 	case util::kLockTimeEnable:
 	case util::kLockPetEnable:
 	case util::kLockRideEnable:
+	case util::kGroupAutoKickEnable:
 	{
 		if (!p1.is<long long>() && !p1.is<bool>())
 		{
@@ -2363,7 +2378,8 @@ long long CLuaSystem::set(std::string enumStr,
 			gamedevice.setValueHash(util::kBattleCatchPetSkillValue, value1);
 		else if (type == util::kBattleSkillMpEnable)
 			gamedevice.setValueHash(util::kBattleSkillMpValue, value1 + 1);
-
+		else if (type == util::kGroupAutoKickEnable)
+			gamedevice.setValueHash(util::kGroupAutoKickTimeoutValue, value1 + 1);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
 	}

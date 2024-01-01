@@ -317,6 +317,304 @@ long long CLuaItem::sell(std::string sname, sol::object ounit, sol::object odial
 	return bret;
 }
 
+long long CLuaItem::useitem(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QHash<QString, long long> hash = {
+		{ "自己", 0},
+		{ "戰寵", gamedevice.worker->getCharacter().battlePetNo},
+		{ "騎寵", gamedevice.worker->getCharacter().ridePetNo},
+		{ "隊長", 6},
+
+		{ "自己", 0},
+		{ "战宠", gamedevice.worker->getCharacter().battlePetNo},
+		{ "骑宠", gamedevice.worker->getCharacter().ridePetNo},
+		{ "队长", 6},
+
+		{ "self", 0},
+		{ "battlepet", gamedevice.worker->getCharacter().battlePetNo},
+		{ "ride", gamedevice.worker->getCharacter().ridePetNo},
+		{ "leader", 6},
+	};
+
+	for (long long i = 0; i < sa::MAX_PET; ++i)
+	{
+		hash.insert("寵物" + util::toQString(i + 1), i + 1);
+		hash.insert("宠物" + util::toQString(i + 1), i + 1);
+		hash.insert("pet" + util::toQString(i + 1), i + 1);
+	}
+
+	for (long long i = 1; i < sa::MAX_TEAM; ++i)
+	{
+		hash.insert("隊員" + util::toQString(i), i + 1 + sa::MAX_PET);
+		hash.insert("队员" + util::toQString(i), i + 1 + sa::MAX_PET);
+		hash.insert("teammate" + util::toQString(i), i + 1 + sa::MAX_PET);
+	}
+
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+
+	QString itemName;
+	QString itemMemo;
+	QStringList itemNames;
+	QStringList itemMemos;
+
+	long long target = 0;
+	long long totalUse = 1;
+
+	long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT - 1);
+	QVector<long long> indexs;
+	if (!luatool::checkRange(p1, min, max, &indexs))
+	{
+		if (p1.is<std::string>())
+			itemName = util::toQString(p1.as<std::string>());
+
+		if (p2.is<std::string>())
+			itemMemo = util::toQString(p2.as<std::string>());
+
+		if (itemName.isEmpty() && itemMemo.isEmpty())
+			return FALSE;
+
+		itemNames = itemName.split(util::rexOR);
+		itemMemos = itemMemo.split(util::rexOR);
+
+		target = -2;
+		if (p3.is<long long>())
+			target = p3.as<long long>();
+
+		if (target == -2)
+		{
+			QString targetTypeName;
+			if (p3.is<std::string>())
+				targetTypeName = util::toQString(p3.as<std::string>());
+
+			if (targetTypeName.isEmpty())
+				target = 0;
+			else
+			{
+				if (!hash.contains(targetTypeName))
+					return FALSE;
+
+				target = hash.value(targetTypeName, -1);
+				if (target < 0)
+					return FALSE;
+			}
+		}
+
+		if (p4.is<long long>())
+			totalUse = p4.as<long long>();
+
+		if (totalUse <= 0)
+			return FALSE;
+	}
+	else
+	{
+		min += sa::CHAR_EQUIPSLOT_COUNT;
+		max += sa::CHAR_EQUIPSLOT_COUNT;
+
+		target = -2;
+		if (p2.is<long long>())
+			target = p2.as<long long>();
+
+		if (target == -2)
+		{
+			QString targetTypeName;
+			if (p2.is<std::string>())
+				targetTypeName = util::toQString(p2.as<std::string>());
+
+			if (targetTypeName.isEmpty())
+				target = 0;
+			else
+			{
+				if (!hash.contains(targetTypeName))
+					return FALSE;
+
+				target = hash.value(targetTypeName, -1);
+				if (target < 0)
+					return FALSE;
+			}
+		}
+
+		if (p3.is<std::string>())
+			itemName = util::toQString(p3.as<std::string>());
+
+		if (p4.is<std::string>())
+			itemMemo = util::toQString(p4.as<std::string>());
+
+		if (itemName.isEmpty() && itemMemo.isEmpty())
+			return FALSE;
+
+		itemNames = itemName.split(util::rexOR);
+		itemMemos = itemMemo.split(util::rexOR);
+	}
+
+	if (target > 100 || target == -1)
+	{
+		if (itemNames.size() >= itemMemos.size())
+		{
+			for (const QString& name : itemNames)
+			{
+				QString memo;
+				if (itemMemos.size() > 0)
+					memo = itemMemos.takeFirst();
+
+				QVector<long long> v;
+				if (!gamedevice.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
+					continue;
+
+				totalUse = target - 100;
+
+				bool ok = false;
+				QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
+				for (const long long& it : v)
+				{
+					sa::item_t item = items.value(it);
+					long long size = item.stack;
+					for (long long i = 0; i < size; ++i)
+					{
+						gamedevice.worker->useItem(it, 0);
+						if (target != -1)
+						{
+							--totalUse;
+							if (totalUse <= 0)
+							{
+								ok = true;
+								break;
+							}
+						}
+					}
+
+					if (ok)
+						break;
+				}
+			}
+		}
+		else
+		{
+			for (const QString& memo : itemMemos)
+			{
+				QString name;
+				if (itemNames.size() > 0)
+					name = itemNames.takeFirst();
+
+				QVector<long long> v;
+				if (!gamedevice.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
+					continue;
+
+				totalUse = target - 100;
+
+				bool ok = false;
+				QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
+				for (const long long& it : v)
+				{
+					sa::item_t item = items.value(it);
+					long long size = item.stack;
+					for (long long i = 0; i < size; ++i)
+					{
+						gamedevice.worker->useItem(it, 0);
+						if (target != -1)
+						{
+							--totalUse;
+							if (totalUse <= 0)
+							{
+								ok = true;
+								break;
+							}
+						}
+					}
+
+					if (ok)
+						break;
+				}
+			}
+		}
+
+		return FALSE;
+	}
+
+	if (itemNames.size() >= itemMemos.size())
+	{
+		for (const QString& name : itemNames)
+		{
+			QString memo;
+			if (itemMemos.size() > 0)
+				memo = itemMemos.takeFirst();
+
+			QVector<long long> v;
+			if (!gamedevice.worker->getItemIndexsByName(name, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
+				continue;
+
+			if (totalUse == 1)
+			{
+				long long itemIndex = v.front();
+				gamedevice.worker->useItem(itemIndex, target);
+				break;
+			}
+
+			long long n = totalUse;
+			for (;;)
+			{
+				if (totalUse != -1 && n <= 0)
+					break;
+
+				if (v.size() == 0)
+					break;
+
+				long long itemIndex = v.takeFirst();
+				gamedevice.worker->useItem(itemIndex, target);
+				--n;
+			}
+		}
+	}
+	else
+	{
+		for (const QString& memo : itemMemos)
+		{
+			QString name;
+			if (itemNames.size() > 0)
+				name = itemNames.takeFirst();
+
+			QVector<long long> v;
+			if (!gamedevice.worker->getItemIndexsByName(itemName, memo, &v, sa::CHAR_EQUIPSLOT_COUNT))
+				continue;
+
+			if (totalUse == 1)
+			{
+				long long itemIndex = v.front();
+				gamedevice.worker->useItem(itemIndex, target);
+				gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+				break;
+			}
+
+			long long n = totalUse;
+			for (;;)
+			{
+				if (totalUse != -1 && n <= 0)
+					break;
+
+				if (v.size() == 0)
+					break;
+
+				long long itemIndex = v.takeFirst();
+				gamedevice.worker->useItem(itemIndex, target);
+				gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
+				--n;
+			}
+		}
+	}
+
+	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return bret;
+}
+
 long long CLuaItem::pickitem(sol::object odir, sol::this_state s)
 {
 	sol::state_view lua(s);
@@ -358,6 +656,128 @@ long long CLuaItem::pickitem(sol::object odir, sol::this_state s)
 		return FALSE;
 
 	return gamedevice.worker->pickItem(type);
+}
+
+long long CLuaItem::doffitem(sol::object oitem, sol::object p1, sol::object p2, sol::this_state s)
+{
+	sol::state_view lua(s);
+	long long currentIndex = lua["__INDEX"].get<long long>();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (gamedevice.worker.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	QString tempName;
+	QString memo;
+	long long itemIndex = -1;
+	if (oitem.is<std::string>())
+		tempName = util::toQString(oitem.as<std::string>());
+	else if (oitem.is<long long>())
+		itemIndex = oitem.as<long long>();
+
+	if (p1.is<std::string>())
+		memo = util::toQString(p1.as<std::string>());
+	if (tempName.isEmpty() && memo.isEmpty() && itemIndex == -1)
+	{
+		gamedevice.worker->dropItem(-1);
+		return FALSE;
+	}
+
+	if (tempName == "?")
+	{
+		for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
+			gamedevice.worker->dropItem(i);
+	}
+
+	if (tempName.isEmpty() && memo.isEmpty()
+		&& ((itemIndex >= 1 && itemIndex <= (sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT))
+			|| (itemIndex >= 101 && itemIndex <= static_cast<long long>(sa::CHAR_EQUIPSLOT_COUNT + 100))))
+	{
+		if (itemIndex < 100)
+		{
+			--itemIndex;
+			itemIndex += sa::CHAR_EQUIPSLOT_COUNT;
+		}
+		else
+			itemIndex -= 100;
+
+		gamedevice.worker->dropItem(itemIndex);
+		return FALSE;
+	}
+
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+
+	//指定丟棄白名單，位於白名單的物品不丟棄
+	if (tempName == QString("非"))
+	{
+		long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT - 1);
+		QVector<long long> indexs;
+		if (!luatool::checkRange(p1, min, max, &indexs))
+			return FALSE;
+
+		min += sa::CHAR_EQUIPSLOT_COUNT;
+		max += sa::CHAR_EQUIPSLOT_COUNT;
+
+		QString itemNames = p2.is<std::string>() ? util::toQString(p2.as<std::string>()) : "";
+		if (itemNames.isEmpty())
+			return FALSE;
+
+		indexs.clear();
+		if (gamedevice.worker->getItemIndexsByName(itemNames, "", &indexs, min, max))
+		{
+			//排除掉所有包含在indexs的
+			for (long long i = min; i <= max; ++i)
+			{
+				if (!indexs.contains(i))
+				{
+					gamedevice.worker->dropItem(i);
+				}
+			}
+		}
+	}
+	else
+	{
+		bool bOnlyOne = false;
+		if (oitem.is<long long>())
+			bOnlyOne = oitem.as<long long>() > 0;
+		else if (oitem.is<bool>())
+			bOnlyOne = oitem.as<bool>();
+
+		QString itemNames = tempName;
+
+		QStringList itemNameList = itemNames.split(util::rexOR, Qt::SkipEmptyParts);
+		if (itemNameList.isEmpty())
+			return FALSE;
+
+		//long long size = itemNameList.size();
+		for (const QString& name : itemNameList)
+		{
+			QVector<long long> indexs;
+			bool ok = false;
+			if (gamedevice.worker->getItemIndexsByName(name, memo, &indexs))
+			{
+				for (const long long it : indexs)
+				{
+					gamedevice.worker->dropItem(it);
+					if (bOnlyOne)
+					{
+						ok = true;
+						break;
+					}
+				}
+			}
+
+			if (ok)
+				break;
+		}
+
+	}
+
+	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+	return bret;
 }
 
 long long CLuaItem::sellpet(sol::object range, sol::this_state s)
@@ -1505,7 +1925,7 @@ bool CLuaItem::getIsFull()
 	return itemIndexs.isEmpty();
 }
 
-QVector<long long> itemGetIndexs(long long currentIndex, sol::object oitemnames, sol::object oitemmemos, bool includeEequip, sol::object ostartFrom)
+static QVector<long long> itemGetIndexs(long long currentIndex, sol::object oitemnames, sol::object oitemmemos, bool includeEequip, sol::object ostartFrom)
 {
 	QVector<long long> itemIndexs;
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);

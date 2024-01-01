@@ -42,8 +42,11 @@ private:
 
 	Q_INVOKABLE void startGameAsync();
 
+public:
+	AfkForm pAfkForm_;
+
 private:
 	Ui::GeneralFormClass ui;
-	AfkForm pAfkForm_;
+
 	QHash<long long, QHash<QString, QStringList>> serverList;
 };

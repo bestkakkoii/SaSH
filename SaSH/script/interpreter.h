@@ -69,7 +69,7 @@ private:
 	bool __fastcall checkBattleThenWait();
 	bool __fastcall checkOnlineThenWait();
 
-	bool __fastcall waitfor(long long timeout, std::function<bool()> exprfun);
+	bool __fastcall waitfor(long long timeout, std::function<bool()> exprfun) const;
 	bool __fastcall checkString(const TokenMap& TK, long long idx, QString* ret);
 	bool __fastcall checkInteger(const TokenMap& TK, long long idx, long long* ret);
 
@@ -88,13 +88,6 @@ private: //註冊給Parser的函數
 	//system
 	long long run(long long currentIndex, long long currentLine, const TokenMap& TK);
 	long long dostr(long long currentIndex, long long currentLine, const TokenMap& TK);
-
-	long long usemagic(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long mail(long long currentIndex, long long currentLine, const TokenMap& TK);
-
-	//action
-	long long useitem(long long currentIndex, long long currentLine, const TokenMap& TK);
-	long long dropitem(long long currentIndex, long long currentLine, const TokenMap& TK);
 
 private:
 	enum

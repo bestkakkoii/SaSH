@@ -169,7 +169,7 @@ public:
 	long long sleep(long long value, sol::this_state s);//ok
 	long long openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s);
 	long long print(sol::object ostr, sol::object ocolor, sol::this_state s);//ok
-	long long messagebox(sol::object ostr, sol::object otype, sol::this_state s);//ok
+	std::string messagebox(sol::object ostr, sol::object otype, sol::this_state s);//ok
 	long long savesetting(const std::string& fileName, sol::this_state s);//ok
 	long long loadsetting(const std::string& fileName, sol::this_state s);//ok
 	long long chname(sol::object oname, sol::this_state s);
@@ -287,7 +287,9 @@ public:
 
 	long long dropgold(long long goldamount, sol::this_state s);
 
+	long long useitem(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::this_state s);
 	long long pickitem(sol::object odir, sol::this_state s);
+	long long doffitem(sol::object oitem, sol::object p1, sol::object p2, sol::this_state s);
 	long long sellpet(sol::object range, sol::this_state s);
 	long long droppet(sol::object oname, sol::this_state s);
 
@@ -346,7 +348,8 @@ public:
 	long long join(sol::this_state s);
 	long long leave(sol::this_state s);
 	long long kick(long long teammateIndex, sol::this_state s);
-
+	long long mail(sol::object oaddrIndex, sol::object omessage, sol::object opetindex, sol::object sitemname, sol::object sitemmemo, sol::this_state s);
+	long long usemagic(sol::object omagic, sol::object otarget, sol::this_state s);
 	sa::character_t getCharacter() const;
 
 private:

@@ -141,6 +141,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 
 	const QVector<std::tuple<QString, QString, KeyType>> systemTable = {
 		{ QObject::tr("hide"), "actionHide", Qt::Key_F9},
+		{ QObject::tr("hidegame"), "actionHideGame", Qt::Key_F10},
 		{ "^" + QObject::tr("hidebar"), "actionHideBar", Qt::Key_unknown},
 		{ "^" + QObject::tr("hidecontrol"), "actionHideControl", Qt::Key_unknown},
 		{ "","" , Qt::Key_unknown},
@@ -155,6 +156,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 
 	const QVector<std::tuple<QString, QString, KeyType>> otherTable = {
 		{ QObject::tr("otherinfo"), "actionOtherInfo", Qt::Key_F5 },
+		{ QObject::tr("afksetting"), "actionAfkSetting", Qt::Key_F6 },
 		{ QObject::tr("scripteditor"), "actionScriptEditor", Qt::Key_F7 },
 		{ "","", Qt::Key_unknown },
 		{ QObject::tr("map"), "actionMap", Qt::Key_F8 },
@@ -190,7 +192,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 	create(fileTable, _pMenuFile);
 }
 
-bool isValidChar(const char* charPtr)
+static bool isValidChar(const char* charPtr)
 {
 	try
 	{
@@ -1287,6 +1289,8 @@ void MainForm::createTrayIcon()
 					hide();
 					show();
 					trayIcon_.hide();
+					GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+					gamedevice.show();
 				}
 			});
 
@@ -1341,8 +1345,29 @@ void MainForm::onMenuActionTriggered()
 			hide();
 			GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 			gamedevice.hide();
+		}
+		return;
+	}
+
+	if (actionName == "actionHideGame")
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		if (gamedevice.worker.isNull())
+			return;
+
+		if (gamedevice.getEnableHash(util::kHideWindowEnable))
+		{
+			gamedevice.hide();
+			gamedevice.setEnableHash(util::kHideWindowEnable, false);
+			emit SignalDispatcher::getInstance(currentIndex).applyHashSettingsToUI();
+			setFocus();
+		}
+		else
+		{
+			gamedevice.show();
 			gamedevice.setEnableHash(util::kHideWindowEnable, true);
 			emit SignalDispatcher::getInstance(currentIndex).applyHashSettingsToUI();
+			setFocus();
 		}
 		return;
 	}
@@ -1442,8 +1467,21 @@ void MainForm::onMenuActionTriggered()
 
 		pInfoForm_.hide();
 		pInfoForm_.show();
+		setFocus();
 #endif
 		return;
+	}
+
+	if (actionName == "actionAfkSetting")
+	{
+		if (pGeneralForm_.pAfkForm_.isVisible())
+		{
+			pGeneralForm_.pAfkForm_.hide();
+			return;
+		}
+
+		pGeneralForm_.pAfkForm_.show();
+		setFocus();
 	}
 
 	if (actionName == "actionMap")
@@ -1457,6 +1495,7 @@ void MainForm::onMenuActionTriggered()
 
 		mapWidget_.hide();
 		mapWidget_.show();
+		setFocus();
 #endif
 		return;
 	}
@@ -1471,6 +1510,7 @@ void MainForm::onMenuActionTriggered()
 		}
 		pScriptEditor_.hide();
 		pScriptEditor_.show();
+		setFocus();
 #endif
 		return;
 	}
@@ -2041,6 +2081,6 @@ bool MainForm::createWinapiFileDialog(const QString& startDir, QStringList filte
 	else
 	{
 		return false; // 用戶取消了操作或發生錯誤
-}
+	}
 }
 #endif

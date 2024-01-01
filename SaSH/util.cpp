@@ -1835,9 +1835,17 @@ QFont __fastcall util::getFont()
 
 void __fastcall util::asyncRunBat(const QString& path, QString data)
 {
-	const QString batfile = QString("%1/%2.bat").arg(path).arg(QDateTime::currentDateTime().toString("sash_yyyyMMdd"));
-	if (util::writeFile(batfile, data))
+	QDateTime dt = QDateTime::currentDateTime();
+	//to number only datetime string
+	const QString batfile = QString("%1/sash_%2.bat").arg(path).arg(QDateTime::currentDateTime().toString("yyyyMMdd"));
+	if (QFile::exists(batfile))
+		QFile::remove(batfile);
+
+	qDebug() << "asyncRunBat: " << batfile;
+	if (util::writeFile(batfile, data, false))
 		ShellExecuteW(NULL, L"open", (LPCWSTR)batfile.utf16(), NULL, NULL, SW_HIDE);
+	else
+		qDebug() << "asyncRunBat error: " << batfile;
 }
 
 QString __fastcall util::applicationFilePath()
@@ -1993,16 +2001,42 @@ bool __fastcall util::readFile(const QString& fileName, QString* pcontent, bool*
 	return false;
 }
 
-bool __fastcall util::writeFile(const QString& fileName, const QString& content)
+bool __fastcall util::writeFile(const QString& fileName, const QString& content, bool isLocal)
 {
-	util::ScopedFile f(fileName);
-	if (!f.openWriteNew())
-		return false;
+	{
+		util::ScopedFile f(fileName);
+		if (!f.openWriteNew())
+			return false;
 
-	QByteArray ba = content.toUtf8();
-	f.write(ba);
-	f.flush();
-	return true;
+		if (!isLocal)
+		{
+			QByteArray ba = content.toUtf8();
+			f.write(ba);
+			f.flush();
+		}
+		else
+		{
+			QTextStream stream(&f);
+			UINT acp = GetACP();
+			if (acp == 950)
+				stream.setCodec("Big5");
+			else if (acp == 936)
+				stream.setCodec("GBK");
+			else
+				stream.setCodec("UTF-8");
+
+			stream << content;
+			stream.flush();
+		}
+
+		if (f.error() != QFile::NoError)
+		{
+			qDebug() << "writeFile error: " << f.errorString();
+			return false;
+		}
+	}
+
+	return QFileInfo::exists(fileName);
 }
 
 // 將二進制數據轉換為16進制字符串

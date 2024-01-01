@@ -17,6 +17,11 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 	, pAfkForm_(index, this)
 {
 	ui.setupUi(this);
+	ui.checkBox_autoanswer->hide();
+	ui.checkBox_battletimeextend->hide();
+	ui.checkBox_hidechar->hide();
+	ui.checkBox_lockimage->hide();
+
 	setFont(util::getFont());
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
@@ -108,8 +113,6 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 		ui.comboBox_setting->setCurrentIndex(defaultIndex);
 
 	ui.comboBox_setting->blockSignals(false);
-
-	ui.pushButton_afksetting->setShortcut(QKeySequence(Qt::Key_F6));
 }
 
 GeneralForm::~GeneralForm()
@@ -770,7 +773,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 	if (name == "checkBox_battletimeextend")
 	{
-		gamedevice.setEnableHash(util::kBattleTimeExtendEnable, isChecked);
+		gamedevice.setEnableHash(util::kBattleTimeExtendEnable, true);
 		return;
 	}
 
@@ -1040,7 +1043,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 	ui.checkBox_lockattck->setChecked(enableHash.value(util::kLockAttackEnable));
 	ui.checkBox_autoescape->setChecked(enableHash.value(util::kAutoEscapeEnable));
 	ui.checkBox_lockescape->setChecked(enableHash.value(util::kLockEscapeEnable));
-	ui.checkBox_battletimeextend->setChecked(enableHash.value(util::kBattleTimeExtendEnable));
+	ui.checkBox_battletimeextend->setChecked(true);//enableHash.value(util::kBattleTimeExtendEnable)
 	ui.checkBox_falldownescape->setChecked(enableHash.value(util::kFallDownEscapeEnable));
 	ui.checkBox_autoswitch->setChecked(enableHash.value(util::kBattleAutoSwitchEnable));
 	ui.checkBox_battleautoeo->setChecked(enableHash.value(util::kBattleAutoEOEnable));

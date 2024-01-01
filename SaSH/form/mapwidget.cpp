@@ -137,6 +137,13 @@ MapWidget::~MapWidget()
 	onClear();
 }
 
+void MapWidget::hideEvent(QHideEvent* e)
+{
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.saveSettings();
+	QMainWindow::hideEvent(e);
+}
+
 void MapWidget::showEvent(QShowEvent*)
 {
 	setUpdatesEnabled(true);
@@ -159,12 +166,16 @@ void MapWidget::showEvent(QShowEvent*)
 
 void MapWidget::onFindPathFinished()
 {
+	if (missionThread_ != nullptr)
+	{
+		missionThread_->wait();
+		missionThread_.reset();
+	}
 	ui.pushButton_findPath->setEnabled(true);
 }
 
 void MapWidget::closeEvent(QCloseEvent*)
 {
-	QMutexLocker lock(&missionThreadMutex_);
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	if (gamedevice.IS_FINDINGPATH.get())
 	{
@@ -174,8 +185,7 @@ void MapWidget::closeEvent(QCloseEvent*)
 	if (missionThread_ != nullptr)
 	{
 		missionThread_->wait();
-		missionThread_->deleteLater();
-		missionThread_ = nullptr;
+		missionThread_.reset();
 	}
 
 	setUpdatesEnabled(false);
@@ -552,7 +562,6 @@ void MapWidget::on_openGLWidget_notifyRightClick()
 
 void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 {
-	QMutexLocker lock(&missionThreadMutex_);
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
@@ -586,7 +595,7 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	long long y = dst.y();
 
 	QPoint point(x, y);
-	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+	missionThread_.reset(q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath)));
 	sash_assume(missionThread_ != nullptr);
 	if (missionThread_ == nullptr)
 		return;
@@ -752,7 +761,6 @@ void MapWidget::on_pushButton_returnBase_clicked()
 
 void MapWidget::on_pushButton_findPath_clicked()
 {
-	QMutexLocker lock(&missionThreadMutex_);
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	if (!gamedevice.isValid())
@@ -778,8 +786,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (missionThread_ != nullptr)
 	{
 		missionThread_->wait();
-		missionThread_->deleteLater();
-		missionThread_ = nullptr;
+		missionThread_.reset();
 	}
 
 	connect(gamedevice.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
@@ -790,7 +797,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 		return;
 
 	QPoint point(x, y);
-	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+	missionThread_.reset(q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath)));
 	sash_assume(missionThread_ != nullptr);
 	if (missionThread_ == nullptr)
 		return;
@@ -853,7 +860,6 @@ void MapWidget::updateNpcListAllContents(const QVariant& d)
 
 void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 {
-	QMutexLocker lock(&missionThreadMutex_);
 	QTableWidgetItem* item = ui.tableWidget_NPCList->item(row, 1);
 	QTableWidgetItem* item_name = ui.tableWidget_NPCList->item(row, 0);
 
@@ -878,8 +884,6 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 
 	if (!gamedevice.worker->getOnlineFlag())
 		return;
-
-	connect(gamedevice.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
 
 	QString name(item_name->text());
 	QString text(item->text());
@@ -935,12 +939,13 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		if (missionThread_ != nullptr)
 		{
 			missionThread_->wait();
-			missionThread_->deleteLater();
-			missionThread_ = nullptr;
+			missionThread_.reset();
 		}
 
+		connect(gamedevice.worker.get(), &Worker::findPathFinished, this, &MapWidget::onFindPathFinished, Qt::UniqueConnection);
+
 		QPoint point(x, y);
-		missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+		missionThread_.reset(q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath)));
 		sash_assume(missionThread_ != nullptr);
 		if (missionThread_ == nullptr)
 			return;
@@ -1004,12 +1009,11 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (missionThread_ != nullptr)
 	{
 		missionThread_->wait();
-		missionThread_->deleteLater();
-		missionThread_ = nullptr;
+		missionThread_.reset();
 	}
 
 	point = QPoint(x, y);
-	missionThread_ = q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath));
+	missionThread_.reset(q_check_ptr(new MissionThread(currentIndex, MissionThread::kAsyncFindPath)));
 	sash_assume(missionThread_ != nullptr);
 	if (missionThread_ == nullptr)
 		return;

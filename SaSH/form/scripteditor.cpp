@@ -325,6 +325,13 @@ ScriptEditor::~ScriptEditor()
 	gamedevice.IS_SCRIPT_EDITOR_OPENED.off();
 }
 
+void ScriptEditor::hideEvent(QHideEvent* e)
+{
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.saveSettings();
+	QMainWindow::hideEvent(e);
+}
+
 void ScriptEditor::showEvent(QShowEvent* e)
 {
 	setUpdatesEnabled(true);

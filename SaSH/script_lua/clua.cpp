@@ -1545,6 +1545,650 @@ void CLua::open_utillibs(sol::state&)
 			return t[t.size()];
 		};
 #pragma endregion
+
+	lua_.set_function("rungame", [this](long long id)->long long
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
+
+			return sender.RunGame(id);
+		});
+
+	lua_.set_function("closegame", [this](long long id)->long long
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
+
+			return sender.CloseGame(id);
+		});
+
+	lua_.set_function("openwindow", [this](long long id)->long long
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
+
+			return sender.OpenNewWindow(id);
+		});
+
+	lua_.set_function("runex", [this](long long id, std::string path)->long long
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
+
+			return sender.RunFile(id, util::toQString(path));
+		});
+
+	lua_.set_function("stoprunex", [this](long long id)->long long
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
+
+			return sender.StopFile(id);
+		});
+
+	lua_.set_function("dostrex", [this](long long id, std::string content)->long long
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
+
+			return sender.RunScript(id, util::toQString(content));
+		});
+
+	lua_.set_function("loadsetex", [this](long long id, std::string content)->long long
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			InterfaceSender sender(gamedevice.getParentWidget());
+
+			return sender.LoadSettings(id, util::toQString(content));
+		});
+
+#if 0
+	lua_.set_function("msg", [this](sol::object otext, sol::object otitle, sol::object otype, sol::this_state s)->std::string
+		{
+			QString text;
+			if (otext.is<std::string>())
+				text = util::toQString(otext);
+			else if (otext.is<long long>())
+				text = util::toQString(otext.as<long long>());
+			else if (otext.is<double>())
+				text = util::toQString(otext.as<double>());
+			else if (otext.is<bool>())
+				text = util::toQString(otext.as<bool>());
+			else if (otext.is<sol::table>())
+			{
+				long long depth = kMaxLuaTableDepth;
+				text = getLuaTableString(otext.as<sol::table>(), depth);
+			}
+
+			QString title;
+			if (otitle.is<std::string>())
+				title = util::toQString(otitle);
+			else if (otitle.is<long long>())
+				title = util::toQString(otitle.as<long long>());
+			else if (otitle.is<double>())
+				title = util::toQString(otitle.as<double>());
+			else if (otitle.is<bool>())
+				title = util::toQString(otitle.as<bool>());
+			else if (otitle.is<sol::table>())
+			{
+				long long depth = kMaxLuaTableDepth;
+				title = getLuaTableString(otitle.as<sol::table>(), depth);
+			}
+
+			long long type = 1;
+			if (otype.is<long long>())
+				type = otype.as<long long>();
+
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+			long long nret = QMessageBox::StandardButton::NoButton;
+			emit signalDispatcher.messageBoxShow(text, type, title, &nret);
+			return nret == QMessageBox::StandardButton::Yes ? "yes" : "no";
+		});
+#endif
+
+	lua_.set_function("dlg", [this](std::string buttonstr, std::string stext, sol::object otype, sol::object otimeout, sol::this_state s)->sol::object
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			sol::state_view lua_(s);
+
+			if (gamedevice.worker.isNull())
+				return sol::lua_nil;
+
+			QString buttonStrs = util::toQString(buttonstr);
+
+			QString text = util::toQString(stext);
+
+			long long timeout = 5000;
+			if (otype.is<long long>())
+				timeout = otype.as<long long>();
+
+			if (otimeout.is<long long>())
+				timeout = otimeout.as<long long>();
+
+			unsigned long long type = 2;
+			if (otype.is<unsigned long long>())
+				type = otype.as<unsigned long long>();
+
+
+			luadebug::checkOnlineThenWait(s);
+			luadebug::checkBattleThenWait(s);
+
+			buttonStrs = buttonStrs.toUpper();
+			QStringList buttonStrList = buttonStrs.split(util::rexOR, Qt::SkipEmptyParts);
+			safe::vector<long long> buttonVec;
+			unsigned long long buttonFlag = 0;
+			for (const QString& str : buttonStrList)
+			{
+				if (!sa::buttonMap.contains(str))
+				{
+					luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("invalid button string: %1").arg(str));
+					return sol::lua_nil;
+				}
+				unsigned long long value = sa::buttonMap.value(str);
+				buttonFlag |= value;
+			}
+
+			gamedevice.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.on();
+			gamedevice.worker->createRemoteDialog(type, buttonFlag, text);
+			bool bret = false;
+			util::timer timer;
+			for (;;)
+			{
+				if (gamedevice.IS_SCRIPT_INTERRUPT.get())
+					return sol::lua_nil;
+				if (timer.hasExpired(timeout))
+					break;
+
+				if (!gamedevice.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.get())
+				{
+					bret = true;
+					break;
+				}
+				QThread::msleep(100);;
+			}
+			gamedevice.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.off();
+
+			if (!bret)
+			{
+				return sol::lua_nil;
+			}
+
+			QHash<QString, sa::ButtonType> big5 = {
+				{ "OK", sa::kButtonOk},
+				{ "CANCEL", sa::kButtonCancel },
+				{ "CLOSE",sa::kButtonClose },
+				{ "關閉",sa::kButtonClose },
+				//big5
+				{ "確定", sa::kButtonYes },
+				{ "取消", sa::kButtonNo },
+				{ "上一頁",sa::kButtonPrevious },
+				{ "下一頁",sa::kButtonNext },
+				{ "取消",sa::kButtonNo },
+			};
+
+			QHash<QString, sa::ButtonType> gb2312 = {
+				{ "OK",sa::kButtonOk},
+				{ "CANCEL",sa::kButtonCancel },
+				{ "关闭", sa::kButtonClose },
+				//gb2312
+				{ "确定", sa::kButtonYes },
+				{ "取消", sa::kButtonNo },
+				{ "上一页",sa::kButtonPrevious },
+				{ "下一页", sa::kButtonNext },
+			};
+
+			sa::custom_dialog_t dialog = gamedevice.worker->customDialog.get();
+
+			QString sbtype;
+			sbtype = big5.key(dialog.button, "");
+			if (sbtype.isEmpty())
+				sbtype = gb2312.key(dialog.button, "");
+
+			if (sbtype.isEmpty())
+				sbtype = "0x" + util::toQString(static_cast<long long>(dialog.rawbutton), 16);
+
+			sol::table t = lua_.create_table();
+
+			t["row"] = dialog.row;
+
+			t["button"] = util::toConstData(sbtype);
+
+			t["data"] = util::toConstData(dialog.rawdata);
+
+			return t;
+		});
+
+	lua_.set_function("input", [this](sol::object oargs, sol::this_state s)->sol::object
+		{
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+
+			std::string sargs = "";
+			if (oargs.is<std::string>())
+				sargs = oargs.as<std::string>();
+
+			QString args = util::toQString(sargs);
+
+			QStringList argList = args.split(util::rexOR, Qt::SkipEmptyParts);
+			long long type = QInputDialog::InputMode::TextInput;
+			QString msg;
+			QVariant var;
+			bool ok = false;
+			if (argList.size() > 0)
+			{
+				type = argList.front().toLongLong(&ok) - 1ll;
+				if (type < 0 || type > 2)
+					type = QInputDialog::InputMode::TextInput;
+			}
+
+			if (argList.size() > 1)
+			{
+				msg = argList.value(1);
+			}
+
+			if (argList.size() > 2)
+			{
+				if (type == QInputDialog::IntInput)
+					var = QVariant(argList.value(2).toLongLong(&ok));
+				else if (type == QInputDialog::DoubleInput)
+					var = QVariant(argList.value(2).toDouble(&ok));
+				else
+					var = QVariant(argList.value(2));
+			}
+
+			emit signalDispatcher.inputBoxShow(msg, type, &var);
+
+			if (var.toLongLong() == 987654321ll)
+			{
+				luadebug::showErrorMsg(s, luadebug::WARN_LEVEL, QObject::tr("force stop by user input stop code"));
+				GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+				gamedevice.stopScript();
+				return sol::lua_nil;
+			}
+
+			if (type == QInputDialog::IntInput)
+			{
+				return sol::make_object(s, var.toLongLong());
+			}
+			else if (type == QInputDialog::DoubleInput)
+			{
+				return sol::make_object(s, var.toDouble());
+			}
+			else
+			{
+				QString str = var.toString();
+				if (str.toLower() == "true" || str.toLower() == "false" || str.toLower() == "真" || str.toLower() == "假")
+					return sol::make_object(s, var.toBool());
+
+				return sol::make_object(s, util::toConstData(var.toString()));
+			}
+		});
+
+	lua_.set_function("half", [this](std::string sstr, sol::this_state s)->std::string
+		{
+			const QString FullWidth = "０１２３４５６７８９"
+				"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
+				"ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ"
+				"、～！＠＃＄％︿＆＊（）＿－＝＋［］｛｝＼｜；：’＂，＜．＞／？【】《》　";
+			const QString HalfWidth = "0123456789"
+				"abcdefghijklmnopqrstuvwxyz"
+				"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+				"'~!@#$%^&*()_-+=[]{}\\|;:'\",<.>/? []<>";
+
+			if (sstr.empty())
+				return sstr;
+
+			QString result = util::toQString(sstr);
+			long long size = FullWidth.size();
+			for (long long i = 0; i < size; ++i)
+			{
+				result.replace(FullWidth.at(i), HalfWidth.at(i));
+			}
+
+			return util::toConstData(result);
+		});
+
+	lua_.set_function("full", [this](std::string sstr, sol::this_state s)->std::string
+		{
+			const QString FullWidth = "０１２３４５６７８９"
+				"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
+				"ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ"
+				"、～！＠＃＄％︿＆＊（）＿－＝＋［］｛｝＼｜；：’＂，＜．＞／？【】《》　";
+			const QString HalfWidth = "0123456789"
+				"abcdefghijklmnopqrstuvwxyz"
+				"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+				"'~!@#$%^&*()_-+=[]{}\\|;:'\",<.>/?[]<> ";
+
+			if (sstr.empty())
+				return sstr;
+
+			QString result = util::toQString(sstr);
+			long long size = FullWidth.size();
+			for (long long i = 0; i < size; ++i)
+			{
+				result.replace(HalfWidth.at(i), FullWidth.at(i));
+			}
+
+			return util::toConstData(result);
+		});
+
+	lua_.set_function("lower", [this](std::string sstr, sol::this_state s)->std::string
+		{
+			QString result = util::toQString(sstr).toLower();
+
+			return util::toConstData(result);
+		});
+
+	lua_.set_function("upper", [this](std::string sstr, sol::this_state s)->std::string
+		{
+			QString result = util::toQString(sstr).toUpper();
+
+			return util::toConstData(result);
+		});
+
+	lua_.set_function("trim", [this](std::string sstr, sol::object oisSimplified, sol::this_state s)->std::string
+		{
+			bool isSimplified = false;
+
+			if (oisSimplified.is<bool>())
+				isSimplified = oisSimplified.as<bool>();
+			else if (oisSimplified.is<long long>())
+				isSimplified = oisSimplified.as<long long>() > 0;
+			else if (oisSimplified.is<double>())
+				isSimplified = oisSimplified.as<double>() > 0.0;
+
+			QString result = util::toQString(sstr).trimmed();
+
+			if (isSimplified)
+				result = result.simplified();
+
+			return util::toConstData(result);
+		});
+
+	lua_.set_function("todb", [this](sol::object ovalue, sol::object len, sol::this_state s)->double
+		{
+			double result = 0.0;
+			if (ovalue.is<std::string>())
+				result = util::toQString(ovalue).toDouble();
+			else if (ovalue.is<long long>())
+				result = static_cast<double>(ovalue.as<long long>() * 1.0);
+			else if (ovalue.is<double>())
+				result = ovalue.as<double>();
+
+			if (len.is<long long>() && len.as<long long>() >= 0 && len.as<long long>() <= 16)
+			{
+				QString str = QString::number(result, 'f', len.as<long long>());
+				result = str.toDouble();
+			}
+
+			return result;
+		});
+
+	lua_.set_function("tostr", [this](sol::object ovalue, sol::this_state s)->std::string
+		{
+			QString result = "";
+			if (ovalue.is<std::string>())
+				result = util::toQString(ovalue);
+			else if (ovalue.is<long long>())
+				result = util::toQString(ovalue.as<long long>());
+			else if (ovalue.is<double>())
+			{
+				result = util::toQString(ovalue.as<double>());
+				while (!result.isEmpty() && result.back() == '0')
+					result.chop(1);
+			}
+
+			return util::toConstData(result);
+		});
+
+	lua_.set_function("toint", [this](sol::object ovalue, sol::this_state s)->long long
+		{
+			long long result = 0.0;
+			if (ovalue.is<std::string>())
+				result = util::toQString(ovalue).toLongLong();
+			else if (ovalue.is<long long>())
+				result = ovalue.as<long long>();
+			else if (ovalue.is<double>())
+				result = static_cast<long long>(qFloor(ovalue.as<double>()));
+
+			return result;
+		});
+
+	lua_.set_function("replace", [this](std::string ssrc, std::string sfrom, std::string sto, sol::object oisRex, sol::this_state s)->std::string
+		{
+			QString src = util::toQString(ssrc);
+			QString from = util::toQString(sfrom);
+			QString to = util::toQString(sto);
+
+			bool isRex = false;
+			if (oisRex.is<bool>())
+				isRex = oisRex.as<bool>();
+			else if (oisRex.is<long long>())
+				isRex = oisRex.as<long long>() > 0;
+			else if (oisRex.is<double>())
+				isRex = oisRex.as<double>() > 0.0;
+
+			QString result;
+			if (!isRex)
+				result = src.replace(from, to);
+			else
+			{
+				const QRegularExpression regex(from);
+				result = src.replace(regex, to);
+			}
+
+			return util::toConstData(result);
+		});
+
+	lua_.set_function("find", [this](std::string ssrc, std::string sfrom, sol::object osto, sol::this_state s)->std::string
+		{
+			QString varValue = util::toQString(ssrc);
+			QString text1 = util::toQString(sfrom);
+			QString text2 = "";
+			if (osto.is<std::string>())
+				text2 = util::toQString(osto);
+
+			QString result = varValue;
+
+			//查找 src 中 text1 到 text2 之间的文本 如果 text2 为空 则查找 text1 到行尾的文本
+
+			long long pos1 = varValue.indexOf(text1);
+			if (pos1 < 0)
+				pos1 = 0;
+
+			long long pos2 = -1;
+			if (text2.isEmpty())
+				pos2 = varValue.length();
+			else
+			{
+				pos2 = static_cast<long long>(varValue.indexOf(text2, pos1 + text1.length()));
+				if (pos2 < 0)
+					pos2 = varValue.length();
+			}
+
+			result = varValue.mid(pos1 + text1.length(), pos2 - pos1 - text1.length());
+
+			return util::toConstData(result);
+		});
+
+	//参数1:字符串内容, 参数2:正则表达式, 参数3(选填):第几个匹配项, 参数4(选填):是否为全局匹配, 参数5(选填):第几组
+	lua_.set_function("regex", [this](std::string ssrc, std::string rexstr, sol::object oidx, sol::object oisglobal, sol::object ogidx, sol::this_state s)->std::string
+		{
+			QString varValue = util::toQString(ssrc);
+
+			QString result = varValue;
+
+			QString text = util::toQString(rexstr);
+
+			long long capture = 1;
+			if (oidx.is<long long>())
+				capture = oidx.as<long long>();
+
+			bool isGlobal = false;
+			if (oisglobal.is<long long>())
+				isGlobal = oisglobal.as<long long>() > 0;
+			else if (oisglobal.is<bool>())
+				isGlobal = oisglobal.as<bool>();
+
+			long long maxCapture = 0;
+			if (ogidx.is<long long>())
+				maxCapture = ogidx.as<long long>();
+
+			const QRegularExpression regex(text);
+
+			if (!isGlobal)
+			{
+				QRegularExpressionMatch match = regex.match(varValue);
+				if (match.hasMatch())
+				{
+					if (capture < 0 || capture > match.lastCapturedIndex())
+					{
+
+						return util::toConstData(result);
+					}
+
+					result = match.captured(capture);
+				}
+			}
+			else
+			{
+				QRegularExpressionMatchIterator matchs = regex.globalMatch(varValue);
+				long long n = 0;
+				while (matchs.hasNext())
+				{
+					QRegularExpressionMatch match = matchs.next();
+					if (++n != maxCapture)
+						continue;
+
+					if (capture < 0 || capture > match.lastCapturedIndex())
+						continue;
+
+					result = match.captured(capture);
+					break;
+				}
+			}
+
+			return util::toConstData(result);
+		});
+
+	//rex 参数1:来源字符串, 参数2:正则表达式
+	lua_.set_function("rex", [this](std::string ssrc, std::string rexstr, sol::this_state s)->sol::table
+		{
+			QString src = util::toQString(ssrc);
+			sol::state_view lua(s);
+			sol::table result = lua.create_table();
+
+			QString expr = util::toQString(rexstr);
+
+			const QRegularExpression regex(expr);
+
+			QRegularExpressionMatch match = regex.match(src);
+
+			long long n = 1;
+			if (match.hasMatch())
+			{
+				for (long long i = 0; i <= match.lastCapturedIndex(); ++i)
+				{
+					result[n] = util::toConstData(match.captured(i));
+				}
+			}
+
+			long long maxdepth = kMaxLuaTableDepth;
+
+			return result;
+		});
+
+	lua_.set_function("rexg", [this](std::string ssrc, std::string rexstr, sol::this_state s)->sol::table
+		{
+			QString src = util::toQString(ssrc);
+			sol::state_view lua(s);
+			sol::table result = lua.create_table();
+
+			QString expr = util::toQString(rexstr);
+
+			const QRegularExpression regex(expr);
+
+			QRegularExpressionMatchIterator matchs = regex.globalMatch(src);
+
+			long long n = 1;
+			while (matchs.hasNext())
+			{
+				QRegularExpressionMatch match = matchs.next();
+
+				if (!match.hasMatch())
+					continue;
+
+				for (const auto& capture : match.capturedTexts())
+				{
+					result[n] = util::toConstData(capture);
+					++n;
+				}
+			}
+
+			long long maxdepth = kMaxLuaTableDepth;
+
+			return result;
+		});
+
+	lua_.set_function("rnd", [this](sol::object omin, sol::object omax, sol::this_state s)->long long
+		{
+			long long result = 0;
+			long long min = 0;
+			if (omin.is<long long>())
+				min = omin.as<long long>();
+
+			long long max = 0;
+			if (omax.is<long long>())
+				max = omax.as<long long>();
+
+			if (omin == sol::lua_nil && omax == sol::lua_nil || min == 0 && max == 0)
+			{
+				util::rnd::get(&result);
+
+				return result;
+			}
+
+			if ((min > 0 && max == 0) || (min == max))
+			{
+				util::rnd::get(&result, 0LL, min);
+			}
+			else if (min > max)
+			{
+				util::rnd::get(&result, max, min);
+			}
+			else
+			{
+				util::rnd::get(&result, min, max);
+			}
+
+			return result;
+		});
+
+	lua_["tjoin"] = [this](sol::table t, std::string del, sol::this_state s)->std::string
+		{
+			QStringList l = {};
+			for (const std::pair<sol::object, sol::object>& i : t)
+			{
+				if (i.second.is<long long>())
+				{
+					l.append(util::toQString(i.second.as<long long>()));
+				}
+				else if (i.second.is<double>())
+				{
+					l.append(util::toQString(i.second.as<double>()));
+				}
+				else if (i.second.is<bool>())
+				{
+					l.append(util::toQString(i.second.as<bool>()));
+				}
+				else if (i.second.is<std::string>())
+				{
+					l.append(util::toQString(i.second));
+				}
+			}
+			QString result = l.join(util::toQString(del));
+
+			return  util::toConstData(result);
+		};
 }
 
 class CLuaDialog
@@ -1860,15 +2504,6 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("delch", &CLuaSystem::delch, &luaSystem_);
 	lua.set_function("menu", &CLuaSystem::menu, &luaSystem_);
 
-	lua.new_usertype<util::timer>("Timer",
-		sol::call_constructor,
-		sol::constructors<util::timer()>(),
-
-		"restart", &util::timer::restart,
-		"expired", &util::timer::hasExpired,
-		"get", &util::timer::cost
-	);
-
 	lua.set_function("say", &CLuaSystem::talk, &luaSystem_);
 	lua.set_function("cls", &CLuaSystem::cleanchat, &luaSystem_);
 	lua.set_function("logout", &CLuaSystem::logout, &luaSystem_);
@@ -2010,6 +2645,7 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.safe_script("chat = ChatClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
 
+
 	lua.new_usertype<CLuaTimer>("timer",
 		sol::call_constructor,
 		sol::constructors<CLuaTimer()>(),
@@ -2021,6 +2657,18 @@ void CLua::open_syslibs(sol::state& lua)
 		"todb", &CLuaTimer::toDouble,
 		"msec", sol::property(&CLuaTimer::cost),
 		"sec", sol::property(&CLuaTimer::costSeconds)
+	);
+
+	lua.new_usertype<CLuaTimer>("计时器",
+		sol::call_constructor,
+		sol::constructors<CLuaTimer()>(),
+		"重置", &CLuaTimer::restart,
+		"超时", &CLuaTimer::hasExpired,
+		"取格式", &CLuaTimer::toFormatedString,
+		"到字符串", &CLuaTimer::toString,
+		"到浮点数", &CLuaTimer::toDouble,
+		"毫秒", sol::property(&CLuaTimer::cost),
+		"秒", sol::property(&CLuaTimer::costSeconds)
 	);
 
 	lua.new_usertype<sa::address_bool_t>("CardStruct",
@@ -2081,6 +2729,8 @@ void CLua::open_itemlibs(sol::state& lua)
 	lua.set_function("sellpet", &CLuaItem::sellpet, &luaItem_);
 	lua.set_function("doffpet", &CLuaItem::droppet, &luaItem_);
 
+	lua.set_function("useitem", &CLuaItem::useitem, &luaItem_);
+	lua.set_function("doffitem", &CLuaItem::doffitem, &luaItem_);
 	lua.set_function("pickup", &CLuaItem::pickitem, &luaItem_);
 	lua.set_function("putitem", &CLuaItem::deposititem, &luaItem_);
 	lua.set_function("getitem", &CLuaItem::withdrawitem, &luaItem_);
@@ -2202,6 +2852,8 @@ void CLua::open_charlibs(sol::state& lua)
 	lua.set_function("leave", &CLuaChar::leave, &luaChar_);
 	lua.set_function("kick", &CLuaChar::kick, &luaChar_);
 	lua.set_function("skup", &CLuaChar::skup, &luaChar_);
+	lua.set_function("mail", &CLuaChar::mail, &luaChar_);
+	lua.set_function("usemagic", &CLuaChar::usemagic, &luaChar_);
 
 	lua.new_usertype<sa::character_t>("CharacterStruct",
 		"battlepet", sol::readonly(&sa::character_t::battlePetNo),
@@ -2292,7 +2944,8 @@ void CLua::open_charlibs(sol::state& lua)
 	lua.new_usertype<CLuaChar>("CharacterClass",
 		sol::call_constructor,
 		sol::constructors<CLuaChar(long long)>(),
-		"data", sol::property(&CLuaChar::getCharacter)
+		"data", sol::property(&CLuaChar::getCharacter),
+		"数据", sol::property(&CLuaChar::getCharacter)
 	);
 
 	lua.safe_script("char = CharacterClass(__INDEX);", sol::script_pass_on_error);
@@ -2316,7 +2969,8 @@ void CLua::open_charlibs(sol::state& lua)
 		sol::call_constructor,
 		sol::constructors<CLuaSkill(long long)>(),
 		sol::meta_function::index, &CLuaSkill::operator[],
-		"find", &CLuaSkill::find
+		"find", &CLuaSkill::find,
+		"查找", &CLuaSkill::find
 	);
 
 	lua.safe_script("skill = SkillClass(__INDEX);", sol::script_pass_on_error);
@@ -2545,7 +3199,7 @@ void CLua::openlibs()
 
 	lua_.set("PID", static_cast<long long>(_getpid()));
 
-	lua_.set("THREADID", reinterpret_cast<long long>(QThread::currentThreadId()));
+	lua_.set("TID", reinterpret_cast<long long>(QThread::currentThreadId()));
 
 	lua_.set("INFINITE", std::numeric_limits<long long>::max());
 
@@ -2573,7 +3227,7 @@ void CLua::openlibs()
 
 	lua_.set("MAXDLG", sa::MAX_DIALOG_LINE);
 
-	lua_.set("MAXENEMY", sa::MAX_ENEMY);
+	lua_.set("MAXENEMY", sa::MAX_ENEMY / 2);
 
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
@@ -2581,7 +3235,7 @@ void CLua::openlibs()
 
 	lua_.set("GAMEPID", gamedevice.getProcessId());
 
-	lua_.set("GAMEPID", reinterpret_cast<long long>(gamedevice.getProcessWindow()));
+	lua_.set("GAMEHWND", reinterpret_cast<long long>(gamedevice.getProcessWindow()));
 
 	lua_.set("GAMEHANDLE", reinterpret_cast<long long>(gamedevice.getProcess()));
 
@@ -2608,6 +3262,10 @@ collectgarbage("step", 1024);
 	}
 
 	lua_["package"]["path"] = std::string(util::toConstData(paths.join(";")));
+
+	lua_.safe_script(R"(
+		require('translations');
+	)", sol::script_pass_on_error);
 
 	if (isHookEnabled_)
 	{

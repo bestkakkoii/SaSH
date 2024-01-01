@@ -206,7 +206,7 @@ public://actions
 	bool __fastcall captchaOCR(QString* pmsg);
 #endif
 
-	void findPathAsync(const QPoint& pos);
+	void __fastcall findPathAsync(const QPoint& dst, const std::function<bool()>& func);
 
 	bool __fastcall setAllPetState();
 	bool __fastcall setPetState(long long petIndex, sa::PetState state);

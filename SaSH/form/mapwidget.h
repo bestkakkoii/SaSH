@@ -49,6 +49,8 @@ protected:
 
 	virtual void showEvent(QShowEvent* e) override;
 
+	virtual void hideEvent(QHideEvent* e) override;
+
 private slots:
 	void onFindPathFinished();
 
@@ -114,8 +116,7 @@ private:
 
 	static QHash<long long, QHash<QPoint, QString>> entrances_;
 
-	QMutex missionThreadMutex_;
-	MissionThread* missionThread_ = nullptr;
+	std::unique_ptr<MissionThread> missionThread_ = nullptr;
 
 	long long counter_ = 10;
 

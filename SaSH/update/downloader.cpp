@@ -38,7 +38,7 @@ static const QStringList preBackupFileNames = { util::applicationName(), QString
 QString g_etag;
 constexpr long long UPDATE_TIME_MIN = 5 * 60;
 
-void setHeader(QNetworkRequest* prequest)
+static void setHeader(QNetworkRequest* prequest)
 {
 	if (prequest == nullptr)
 		return;
@@ -67,12 +67,13 @@ void setHeader(QNetworkRequest* prequest)
 }
 
 //(源文件目錄路徑，目的文件目錄，文件存在是否覆蓋)
-bool copyDirectory(const QString& srcPath, const QString& dstPath, bool coverFileIfExist)
+static bool copyDirectory(const QString& srcPath, const QString& dstPath, bool coverFileIfExist)
 {
 	QDir srcDir(srcPath);
 	QDir dstDir(dstPath);
 	if (!dstDir.exists())
-	{ //目的文件目錄不存在則創建文件目錄
+	{
+		//目的文件目錄不存在則創建文件目錄
 		if (!dstDir.mkdir(dstDir.absolutePath()))
 			return false;
 	}
@@ -83,12 +84,14 @@ bool copyDirectory(const QString& srcPath, const QString& dstPath, bool coverFil
 			continue;
 
 		if (fileInfo.isDir())
-		{    // 當為目錄時，遞歸的進行copy 
+		{
+			// 當為目錄時，遞歸的進行copy 
 			if (!copyDirectory(fileInfo.filePath(), dstDir.filePath(fileInfo.fileName()), coverFileIfExist))
 				return false;
 		}
 		else
-		{            //當允許覆蓋操作時，將舊文件進行刪除操作 
+		{
+			//當允許覆蓋操作時，將舊文件進行刪除操作 
 			if (coverFileIfExist && dstDir.exists(fileInfo.fileName()))
 			{
 				dstDir.remove(fileInfo.fileName());
@@ -104,7 +107,7 @@ bool copyDirectory(const QString& srcPath, const QString& dstPath, bool coverFil
 }
 
 //(源文件文件路徑，目的文件路徑，文件存在是否覆蓋)
-bool copyFile(const QString& qsrcPath, const QString& qdstPath, bool coverFileIfExist)
+static bool copyFile(const QString& qsrcPath, const QString& qdstPath, bool coverFileIfExist)
 {
 	QString srcPath = qsrcPath;
 	QString dstPath = qdstPath;
@@ -135,7 +138,7 @@ bool copyFile(const QString& qsrcPath, const QString& qdstPath, bool coverFileIf
 	return true;
 }
 
-void deleteFile(const QString& targetDir, const QString& file)
+static void deleteFile(const QString& targetDir, const QString& file)
 {
 	QDir target(targetDir);
 	QStringList targetFiles = target.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
@@ -156,7 +159,7 @@ void deleteFile(const QString& targetDir, const QString& file)
 	}
 }
 
-bool enumAllFile(QStringList* pfilePaths, const QString& directory)
+static bool enumAllFile(QStringList* pfilePaths, const QString& directory)
 {
 	QDir dir(directory);
 	if (!dir.exists())
@@ -186,7 +189,26 @@ bool enumAllFile(QStringList* pfilePaths, const QString& directory)
 		}
 		else
 		{
+			QTextCodec* pCodecGBK = QTextCodec::codecForName("GBK");
+			QTextCodec* pCodecBIG5 = QTextCodec::codecForName("big5");
+			QTextCodec* pCodecUTF8 = QTextCodec::codecForName("UTF-8");
+			//record 3 type of encoding
+			QByteArray baGBK = pCodecGBK->fromUnicode(fileInfo.filePath());
+			QByteArray baBIG5 = pCodecBIG5->fromUnicode(fileInfo.filePath());
+			QByteArray baUTF8 = pCodecUTF8->fromUnicode(fileInfo.filePath());
+
+			//convert to QString
+			QString szGBK = pCodecGBK->toUnicode(baGBK);
+			QString szBIG5 = pCodecBIG5->toUnicode(baBIG5);
+			QString szUTF8 = pCodecUTF8->toUnicode(baUTF8);
+
+			pfilePaths->append(szGBK);
+			pfilePaths->append(szBIG5);
+			pfilePaths->append(szUTF8);
 			pfilePaths->append(fileInfo.filePath());
+
+			//remove duplicate
+			pfilePaths->removeDuplicates();
 		}
 
 		i++;
@@ -195,7 +217,7 @@ bool enumAllFile(QStringList* pfilePaths, const QString& directory)
 	return true;
 }
 
-bool compress(Downloader* d, const QString& source, const QString& destination)
+static bool compress(Downloader* d, const QString& source, const QString& destination)
 {
 	QVector<QPair<QString, QString>> list;
 	if (!util::enumAllFiles(source, "", &list))
@@ -248,7 +270,7 @@ bool compress(Downloader* d, const QString& source, const QString& destination)
 	return true;
 }
 
-bool uncompress(Downloader* d, const QString& source, const QString& destination)
+static bool uncompress(Downloader* d, const QString& source, const QString& destination)
 {
 	QString newSource = source;
 	newSource.replace("/", "\\");
@@ -315,7 +337,7 @@ bool uncompress(Downloader* d, const QString& source, const QString& destination
 	return true;
 }
 
-QString Sha3_512(const QString& fileNamePath)
+static QString Sha3_512(const QString& fileNamePath)
 {
 	util::ScopedFile theFile(fileNamePath);
 	if (!theFile.exists())
@@ -814,8 +836,12 @@ void Downloader::overwriteCurrentExecutable()
 		}
 
 		QString szBackup7zFileName = QString(kBackupfileName1).arg(buildDateTime());
+		qDebug() << "szBackup7zFileName:" << szBackup7zFileName;
 		QString szBackup7zFilePath = QString("%1%2").arg(rcPath_).arg(szBackup7zFileName);
+		qDebug() << "szBackup7zFilePath:" << szBackup7zFilePath;
 		QString szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(szBackup7zFileName);
+		qDebug() << "szBackup7zNewFilePath:" << szBackup7zNewFilePath;
+
 		long long n = 0;
 		while (QFile::exists(szBackup7zNewFilePath)) //_2 _3 _4..increase until name is not duplicate
 		{
@@ -848,6 +874,7 @@ void Downloader::overwriteCurrentExecutable()
 	progressDialog_->onProgressReset(0);
 	progressDialog_->setLabelText(QString("rename %1 to %2").arg(szCurrentDotExe_).arg(szCurrentDotExeAsDotTmp_));
 	QFile::rename(szCurrentDotExe_, szCurrentDotExeAsDotTmp_);
+	qDebug() << "rename:" << szCurrentDotExe_ << "to" << szCurrentDotExeAsDotTmp_;
 
 	{
 		//close all .exe that has sadll.dll module
@@ -879,6 +906,8 @@ void Downloader::overwriteCurrentExecutable()
 	progressDialog_->setLabelText(QString("uncompress %1 to %2").arg(rcPath_ + szDownloadedFileName_).arg(szCurrentDirectory_));
 	uncompress(this, rcPath_ + szDownloadedFileName_, szCurrentDirectory_.chopped(1));
 
+	qDebug() << "uncompress:" << rcPath_ + szDownloadedFileName_ << "to" << szCurrentDirectory_.chopped(1);
+
 	progressDialog_->setLabelText("congratulations! the update is complete!");
 	QApplication::processEvents();
 
@@ -893,8 +922,8 @@ void Downloader::overwriteCurrentExecutable()
 		progressDialog_->setLabelText("setting up restart process...");
 		// rcpath/date.bat
 		QString bat;
-		bat += "@echo off\r\n";
-		bat = QString("SET pid=%1\r\n:loop\r\n").arg(pid_);
+		bat += "chcp 65001\r\n"; //set utf8
+		bat += QString("SET pid=%1\r\n:loop\r\n").arg(pid_);
 		bat += "tasklist /nh /fi \"pid eq %pid%\"|find /i \"%pid%\" > nul\r\n";
 		bat += "if %errorlevel%==0 (\r\n";
 		bat += "ping -n 2 127.0.0.1 > nul\r\n";
@@ -905,8 +934,8 @@ void Downloader::overwriteCurrentExecutable()
 		bat += "del /f /q ./*.tmp\r\n"; //刪除.tmp
 		bat += "start " + szCurrentDotExe_ + "\r\n";
 		bat += QString("Rd /s /q \"%1\"\r\n").arg(rcPath_);
-		bat += "del %0";
-		bat += "exit\r\n";
+		bat += "del %0\r\n";
+		bat += "exit";
 		util::asyncRunBat(szSysTmpDir_, bat);
 	}
 
@@ -918,7 +947,7 @@ void Downloader::overwriteCurrentExecutable()
 
 	progressDialog_->onProgressReset(0);
 	progressDialog_->setMaximum(5);
-	for (long long i = 5; i > 0; --i)
+	for (long long i = 3; i > 0; --i)
 	{
 		progressDialog_->setLabelText(QString("restart SaSH.exe in %1 seconds...").arg(i));
 		progressDialog_->setValue(5 - i);

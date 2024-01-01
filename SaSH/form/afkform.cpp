@@ -141,6 +141,13 @@ AfkForm::~AfkForm()
 
 }
 
+void AfkForm::hideEvent(QHideEvent* e)
+{
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.saveSettings();
+	QWidget::hideEvent(e);
+}
+
 void AfkForm::showEvent(QShowEvent* e)
 {
 	setAttribute(Qt::WA_Mapped);
