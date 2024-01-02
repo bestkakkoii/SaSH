@@ -109,6 +109,8 @@ SelectTargetForm::~SelectTargetForm()
 
 void SelectTargetForm::showEvent(QShowEvent* e)
 {
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.loadSettings();
 	setAttribute(Qt::WA_Mapped);
 	QDialog::showEvent(e);
 }

@@ -1759,12 +1759,14 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 
 	if (!petListStr.isEmpty())
 	{
-		QStringList petIndexList;
+		QVector<long long> petIndexVec;
 		if (petListStr.toLower() == "all")
 		{
-			for (long long i = 1; i <= sa::MAX_PET; ++i)
+			for (long long i = 0; i < sa::MAX_PET; ++i)
 			{
-				petIndexList.append(util::toQString(i));
+				sa::pet_t pet = gamedevice.worker->getPet(i);
+				if (pet.valid)
+					petIndexVec.append(i);
 			}
 		}
 		else if (petListStr.count("-") == 1 || petListStr.count("-") == 0)
@@ -1780,35 +1782,25 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 
 			for (long long i = min; i <= max; ++i)
 			{
-				petIndexList.append(util::toQString(i));
+				sa::pet_t pet = gamedevice.worker->getPet(i - 1);
+				if (pet.valid)
+					petIndexVec.append(i - 1);
 			}
 		}
 		else if (petListStr.count("|") > 0)
 		{
-			QStringList petIndexList2 = petListStr.split(util::rexOR, Qt::SkipEmptyParts);
-			for (const QString& petIndex : petIndexList2)
+			QStringList petIndexList = petListStr.split(util::rexOR, Qt::SkipEmptyParts);
+			for (const QString& petIndex : petIndexList)
 			{
 				bool ok = false;
 				long long index = petIndex.toLongLong(&ok);
-				if (ok && index >= 1 && index <= sa::MAX_PET)
+				--index;
+				if (ok && index >= 0 && index < sa::MAX_PET)
 				{
-					petIndexList.append(util::toQString(index));
+					sa::pet_t pet = gamedevice.worker->getPet(index);
+					if (pet.valid)
+						petIndexVec.append(index);
 				}
-			}
-		}
-
-		QVector<long long> petIndexVec;
-		for (const QString& petIndex : petIndexList)
-		{
-			bool bret = false;
-			long long index = petIndex.toLongLong(&bret);
-			--index;
-
-			if (bret && index >= 0 && index < sa::MAX_PET)
-			{
-				sa::pet_t pet = gamedevice.worker->getPet(index);
-				if (pet.valid)
-					petIndexVec.append(index);
 			}
 		}
 

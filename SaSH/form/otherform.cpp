@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <util.h>
 #include <gamedevice.h>
 #include "signaldispatcher.h"
+#include "selectobjectform.h"
 
 OtherForm::OtherForm(long long index, QWidget* parent)
 	: QWidget(parent)
@@ -318,6 +319,65 @@ void OtherForm::onButtonClicked()
 			break;
 		}
 	}
+
+	QStringList srcSelectList;
+	QStringList srcList;
+	QStringList dstList;
+	if (name == "pushButton_groupwhitelist")
+	{
+		if (!gamedevice.worker.isNull())
+		{
+			srcSelectList = gamedevice.worker->getJoinableUnitList();
+		}
+
+		QString src = ui.lineEdit_groupwhitelist->text();
+		if (src.isEmpty())
+		{
+			src = gamedevice.getStringHash(util::kGroupWhiteListString);
+		}
+
+		if (!src.isEmpty())
+		{
+			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
+		}
+
+		if (!createSelectObjectForm(SelectObjectForm::kWhiteList, srcSelectList, srcList, &dstList, this))
+			return;
+
+		QString dst = dstList.join("|");
+		gamedevice.setStringHash(util::kGroupWhiteListString, dst);
+		ui.lineEdit_groupwhitelist->setText(dst);
+		return;
+	}
+
+	if (name == "pushButton_groupblacklist")
+	{
+		if (!gamedevice.worker.isNull())
+		{
+			//下拉框可選列表
+			srcSelectList = gamedevice.worker->getJoinableUnitList();
+		}
+
+		QString src = ui.lineEdit_groupblacklist->text();
+		if (src.isEmpty())
+		{
+			src = gamedevice.getStringHash(util::kGroupBlackListString);
+		}
+
+		if (!src.isEmpty())
+		{
+			//用戶保存的已選列表
+			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
+		}
+
+		if (!createSelectObjectForm(SelectObjectForm::kBlackList, srcSelectList, srcList, &dstList, this))
+			return;
+
+		QString dst = dstList.join("|");
+		gamedevice.setStringHash(util::kGroupBlackListString, dst);
+		ui.lineEdit_groupblacklist->setText(dst);
+		return;
+	}
 }
 
 void OtherForm::onCheckBoxStateChanged(int state)
@@ -563,6 +623,18 @@ void OtherForm::onLineEditTextChanged(const QString& text)
 	if (name == "lineEdit_battleinfo_space")
 	{
 		gamedevice.setStringHash(util::kBattleSpaceMarkString, text);
+		return;
+	}
+
+	if (name == "lineEdit_groupwhitelist")
+	{
+		gamedevice.setStringHash(util::kGroupWhiteListString, text);
+		return;
+	}
+
+	if (name == "lineEdit_groupblacklist")
+	{
+		gamedevice.setStringHash(util::kGroupBlackListString, text);
 		return;
 	}
 }

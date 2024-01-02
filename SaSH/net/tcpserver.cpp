@@ -15249,6 +15249,9 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 
 		if (command.startsWith("0"))
 		{
+			sa::character_t pc = getCharacter();
+			pc.trade_confirm = 0;
+			setCharacter(pc);
 			return;
 		}
 		else if (command.startsWith("1"))
@@ -15271,7 +15274,7 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 
 			tradeStatus = 1;
 			sa::character_t pc = getCharacter();
-			pc.trade_confirm = 1;
+			pc.trade_confirm = 2;
 			setCharacter(pc);
 		}
 
@@ -15338,7 +15341,6 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 
 		if (trade_kind.startsWith("G"))
 		{
-
 			getStringToken(data, "|", 6, opp_goldmount);
 			long long mount = opp_goldmount.toLongLong();
 
@@ -15425,6 +15427,7 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 			if (pc.trade_confirm == 3)
 			{
 				//我方已點確認後，收到對方點確認
+				pc.trade_confirm = 5;
 			}
 
 			setCharacter(pc);
@@ -15434,13 +15437,17 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 		// end
 		if (trade_kind.startsWith("A"))
 		{
-			tradeStatus = 2;
+			sa::character_t pc = getCharacter();
+			pc.trade_confirm = 0;
+			setCharacter(pc);
 		}
 
 		else if (Head.startsWith("W"))
 		{
 			//取消交易
-			tradeStatus = 0;
+			sa::character_t pc = getCharacter();
+			pc.trade_confirm = 0;
+			setCharacter(pc);
 		}
 	}
 
@@ -15789,10 +15796,10 @@ bool Worker::captchaOCR(QString* pmsg)
 		*pmsg = gifCode;
 		announce("<ocr>success! result is:" + gifCode);
 		return true;
-	}
+		}
 	else
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return false;
-}
+	}
 #endif
