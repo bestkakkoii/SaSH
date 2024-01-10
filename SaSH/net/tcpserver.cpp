@@ -375,17 +375,23 @@ Worker::Worker(long long index, QObject* parent)
 
 Worker::~Worker()
 {
-	if (battleLua != nullptr)
-	{
-		luaL_error(battleLua->getLua().lua_state(), "");
-		battleLua.reset();
-	}
 	qDebug() << "Worker is distroyed!!";
 }
 
 //用於清空部分數據 主要用於登出後清理數據避免數據混亂，每次登出後都應該清除大部分的基礎訊息
 void Worker::clear()
 {
+	if (battleLua != nullptr)
+	{
+		sol::state& lua = battleLua->getLua();
+		if (lua.lua_state() != nullptr && battleLua->isRunning())
+		{
+			lua_State* L = lua.lua_state();
+			luaL_error(L, "");
+		}
+		battleLua.reset();
+	}
+
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	gamedevice.autil.setKey("upupupupp");
 
@@ -463,12 +469,6 @@ void Worker::clear()
 
 	skupFuture_.cancel();
 	skupFuture_.waitForFinished();
-
-	if (battleLua != nullptr)
-	{
-		luaL_error(battleLua->getLua().lua_state(), "");
-		battleLua.reset();
-	}
 }
 
 bool Worker::handleCustomMessage(const QByteArray& badata)
@@ -488,6 +488,7 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 	if (preStr.startsWith("bpk|"))
 	{
 		isBattleDialogReady.on();
+		asyncBattleAction(true);
 		return true;
 	}
 
@@ -2229,7 +2230,7 @@ long long Worker::checkJobDailyState(const QString& missionName, long long timeo
 {
 	QString newMissionName = missionName.simplified();
 	if (newMissionName.isEmpty())
-		return false;
+		return 0;
 
 	if (timeout <= 0)
 		timeout = 5000;
@@ -5517,7 +5518,7 @@ bool Worker::setCharFaceDirection(long long dir, bool noWindow)
 }
 
 //轉向 使用方位字符串
-bool Worker::setCharFaceDirection(const QString& dirStr)
+bool Worker::setCharFaceDirection(const QString& dirStr, bool noWindow)
 {
 	static const QHash<QString, QString> dirhash = {
 		{ "北", "A" }, { "東北", "B" }, { "東", "C" }, { "東南", "D" },
@@ -5549,8 +5550,11 @@ bool Worker::setCharFaceDirection(const QString& dirStr)
 	if (!lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str())))
 		return false;
 
-	if (!lssproto_L_send(dir))
-		return false;
+	if (!noWindow)
+	{
+		if (!lssproto_L_send(dir))
+			return false;
+	}
 
 	if (getBattleFlag())
 		return false;
@@ -6830,18 +6834,20 @@ bool Worker::runBattleLua(const QString& name)
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	bool bret = false;
 
 	do
 	{
 		if (!gamedevice.getEnableHash(util::kBattleLuaModeEnable))
-			return false;
+			break;
 
 		QStringList battleLuaFiles;
-		util::searchFiles(util::applicationDirPath(), name, "lua", &battleLuaFiles);
+		util::searchFiles(util::applicationDirPath(), name, ".lua", &battleLuaFiles);
 		if (battleLuaFiles.isEmpty())
 			break;
 
 		QString fileName = battleLuaFiles.first();
+
 		if (fileName.isEmpty())
 			break;
 
@@ -6857,24 +6863,15 @@ bool Worker::runBattleLua(const QString& name)
 			}
 
 			battleLua->setHookEnabled(true);
-			battleLua->setHookForBattlle(true);
+			battleLua->setHookForBattle(true);
 			battleLua->openlibs();
 		}
 
-		sol::state& lua = battleLua->getLua();
-		sol::protected_function_result loaded_chunk = lua.safe_script_file(sfileName, sol::script_pass_on_error);
-		if (!loaded_chunk.valid())
-		{
-			sol::error err = loaded_chunk;
-			qDebug() << err.what();
-			break;
-		}
-
-		return true;
-
+		QFuture<bool> future = QtConcurrent::run([this, sfileName]() { return battleLua->doFile(sfileName); });
+		future.waitForFinished();
+		bret = future.result();
 	} while (false);
-
-	return false;
+	return bret;
 }
 
 //人物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
@@ -6887,7 +6884,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 	tempCatchPetTargetIndex_.set(-1);
 	petEnableEscapeForTemp_.off(); //用於在必要的時候切換戰寵動作為逃跑模式
 
-	if (runBattleLua("battle_char.lua"))
+	if (runBattleLua("battle_char"))
 		return true;
 
 	QStringList items;
@@ -7913,7 +7910,6 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				sa::battle_object_t obj = bt.objects.value(battleCharCurrentPos.get() + 5);
 
 				if (obj.modelid > 0
-					|| !obj.name.isEmpty()
 					|| obj.level > 0
 					|| obj.maxHp > 0)
 					break;
@@ -7931,7 +7927,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 					}
 
 					sa::pet_t _pet = getPet(i);
-					if (_pet.level <= 0 || _pet.maxHp <= 0 || _pet.hp < 1 || _pet.modelid == 0 || _pet.name.isEmpty())
+					if (_pet.level <= 0 || _pet.maxHp <= 0 || _pet.hp < 1 || _pet.modelid == 0)
 					{
 						battlePetDisableList_[i] = true;
 						continue;
@@ -8320,7 +8316,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 //寵物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
 bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 {
-	if (runBattleLua("battle_pet.lua"))
+	if (runBattleLua("battle_pet"))
 		return true;
 
 	using namespace util;
@@ -10322,8 +10318,7 @@ bool Worker::sendBattleCharSwitchPetAct(long long petIndex)
 		if (!lssproto_B_send(qcmd))
 			break;
 
-		QString text(QObject::tr("switch pet to %1") \
-			.arg(!pet.freeName.isEmpty() ? pet.freeName : pet.name));
+		QString text(QObject::tr("switch pet to %1").arg(!pet.freeName.isEmpty() ? pet.freeName : pet.name) + QString("[%1]").arg(petIndex + 1));
 
 		labelCharAction.set(text);
 		emit signalDispatcher.updateLabelCharAction(text);
@@ -10623,9 +10618,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
-#endif
 	}
+#endif
+}
 }
 
 //名片數據
@@ -10684,7 +10679,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				break;
 			}
 		}
-	}
+}
 #endif
 }
 
@@ -10834,10 +10829,10 @@ void Worker::lssproto_RS_recv(char* cdata)
 #else
 		std::ignore = QtConcurrent::run(this, &Worker::checkAutoAbility);
 #endif
-	}
+}
 	if (gamedevice.getEnableHash(util::kDropPetEnable))
 		checkAutoDropPet();
-}
+			}
 
 //戰後積分改變
 void Worker::lssproto_RD_recv(char*)
@@ -11336,6 +11331,7 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
 		oneRoundDurationTimer.restart();
+		battleCurrentRound.reset();
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 		emit signalDispatcher.battleTableAllItemResetColor();
 	}
@@ -11574,12 +11570,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
+			}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-				}
-			}
+		}
+	}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11593,11 +11589,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-		}
+	}
 
 		setBattleData(bt);
+
+		asyncBattleAction(true);
 		break;
-	}
+}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -11968,6 +11966,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 		//切換標誌為可動作狀態
 		battleCharAlreadyActed.off();
 		battlePetAlreadyActed.off();
+
+		asyncBattleAction(true);
 		break;
 	}
 	case 'U':
@@ -12373,12 +12373,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-		}
+	}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-	}
+}
 }
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
@@ -12667,6 +12667,7 @@ void Worker::lssproto_missionInfo_recv(char* cdata)
 			perdata.clear();
 			++j;
 		}
+
 		missionInfo_.insert(i - 1, jobdaily);
 		getdata.clear();
 		j = 1;
@@ -12674,10 +12675,8 @@ void Worker::lssproto_missionInfo_recv(char* cdata)
 	}
 
 	//是否有接收到資料
-	//if (i > 1)
-	//	JobdailyGetMax = i - 2;
-	//else
-	//	JobdailyGetMax = -1;
+	if (i <= 1)
+		missionInfo_.clear();
 
 	if (IS_WAITFOR_missionInfo_FLAG.get())
 		IS_WAITFOR_missionInfo_FLAG.off();
@@ -12899,7 +12898,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12949,7 +12948,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -12985,18 +12984,18 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-		}
+}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-	}
+		}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
 	}
-}
+			}
 
 //地圖數據更新，重新繪製地圖
 void Worker::lssproto_MC_recv(long long fl, long long x1, long long y1, long long x2, long long y2, long long tileSum, long long partsSum, long long eventSum, char* cdata)
@@ -13254,9 +13253,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
-#endif
 			}
+#endif
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13283,7 +13282,13 @@ void Worker::lssproto_C_recv(char* cdata)
 			unit.profession_level = profession_level;
 			unit.profession_skill_point = profession_skill_point;
 			unit.isVisible = modelid > 0 && modelid != 9999;
-			unit.objType = unit.type == sa::CHAR_TYPEPLAYER ? sa::kObjectHuman : sa::kObjectNPC;
+
+			if (unit.type == sa::CHAR_TYPEPLAYER)
+				unit.objType = sa::kObjectHuman;
+			else if (unit.type == sa::CHAR_TYPEPET || unit.type == sa::CHAR_TYPEBUS)
+				unit.objType = sa::kObjectPet;
+			else
+				unit.objType = sa::kObjectNPC;
 			mapUnitHash.insert(id, unit);
 
 			break;
@@ -13394,7 +13399,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13552,7 +13557,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}
@@ -15796,10 +15801,10 @@ bool Worker::captchaOCR(QString* pmsg)
 		*pmsg = gifCode;
 		announce("<ocr>success! result is:" + gifCode);
 		return true;
-		}
+	}
 	else
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return false;
-	}
+		}
 #endif

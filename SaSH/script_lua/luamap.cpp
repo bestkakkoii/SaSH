@@ -143,7 +143,7 @@ bool CLuaMap::ismap(sol::object omap, sol::this_state s)
 	return false;
 }
 
-long long CLuaMap::setdir(sol::object p1, sol::object p2, sol::this_state s)
+long long CLuaMap::setdir(sol::object p1, sol::object p2, sol::object p3, sol::this_state s)
 {
 	sol::state_view lua(s);
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
@@ -166,8 +166,19 @@ long long CLuaMap::setdir(sol::object p1, sol::object p2, sol::this_state s)
 	}
 
 	long long y = -1;
+	bool noWindow = false;
 	if (p2.is<long long>())
+	{
 		y = p2.as<long long>();
+		if (p3.is<bool>())
+			noWindow = p3.as<bool>();
+	}
+	else
+	{
+		if (p2.is<bool>())
+			noWindow = p2.as<bool>();
+	}
+
 
 	if (x != -1 && y != -1)
 	{
@@ -178,11 +189,11 @@ long long CLuaMap::setdir(sol::object p1, sol::object p2, sol::this_state s)
 
 	if (dir != -1 && dirStr.isEmpty() && dir >= 0 && dir < sa::MAX_DIR)
 	{
-		return gamedevice.worker->setCharFaceDirection(dir);
+		return gamedevice.worker->setCharFaceDirection(dir, noWindow);
 	}
 	else if (dir == -1 && !dirStr.isEmpty())
 	{
-		return gamedevice.worker->setCharFaceDirection(dirStr);
+		return gamedevice.worker->setCharFaceDirection(dirStr, noWindow);
 	}
 
 	return FALSE;

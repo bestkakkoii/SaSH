@@ -52,7 +52,7 @@ static const QHash<QString, RESERVE> keywords = {
 #pragma endregion
 
 #pragma region  Tool
-void Lexer::showError(const QString text, ErrorType type)
+void Lexer::showError(const QString text, ErrorType type) const
 {
 	long long currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);

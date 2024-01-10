@@ -380,7 +380,7 @@ public:
 	CLuaMap(long long index) : index_(index) {}
 	~CLuaMap() = default;
 
-	long long setdir(sol::object p1, sol::object p2, sol::this_state s);
+	long long setdir(sol::object p1, sol::object p2, sol::object p3, sol::this_state s);
 	long long walkpos(long long x, long long y, sol::object otimeout, sol::this_state s);
 
 	long long move(sol::object obj, long long y, sol::this_state s);
@@ -486,7 +486,11 @@ public:
 	void __fastcall setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
 	void __fastcall setHookForStop(bool isHookForStop) { lua_["__HOOKFORSTOP"] = isHookForStop; }
 	void __fastcall setHookEnabled(bool isHookEnabled) { isHookEnabled_ = isHookEnabled; }
-	void __fastcall setHookForBattlle(bool isHookForBattlle) { lua_["__HOOKFORBATTLE"] = isHookForBattlle; }
+	void __fastcall setHookForBattle(bool isHookForBattlle) { lua_["__HOOKFORBATTLE"] = isHookForBattlle; }
+	void __fastcall setRunningState(bool isRunning) { if (isRunning) isRunning_.on(); else isRunning_.off(); }
+
+	bool __fastcall doFile(std::string fileName);
+
 private:
 	void __fastcall open_enumlibs();
 	void __fastcall open_testlibs();

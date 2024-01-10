@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>311</width>
-    <height>334</height>
+    <height>482</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -36,12 +36,12 @@
   </property>
   <widget class="QCheckBox" name="checkBox_hidechar">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="geometry">
     <rect>
-     <x>230</x>
-     <y>390</y>
+     <x>220</x>
+     <y>290</y>
      <width>66</width>
      <height>16</height>
     </rect>

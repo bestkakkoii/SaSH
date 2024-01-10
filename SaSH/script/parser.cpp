@@ -135,6 +135,8 @@ static void hookProc(lua_State* L, lua_Debug* ar)
 					value = pair.second.toLongLong();
 				else if (pair.first == "(number)")
 					value = pair.second.toDouble();
+				else if (pair.first == "(user data)")
+					value.fromValue((void*)pair.second.toLongLong());
 				else
 					value = pair.second.toString();
 				pparser->insertLocalVar(key, value);
@@ -206,9 +208,6 @@ void Parser::initialize(Parser* pparent)
 
 	sol::state& lua_ = pLua_->getLua();
 
-	makeTable(lua_, "unit", 2000);
-	makeTable(lua_, "magic", sa::MAX_MAGIC);
-	makeTable(lua_, "petskill", sa::MAX_PET, sa::MAX_PET_SKILL);
 	makeTable(lua_, "petequip", sa::MAX_PET, sa::MAX_PET_ITEM);
 	makeTable(lua_, "point");
 	makeTable(lua_, "mails", sa::MAX_ADDRESS_BOOK, sa::MAIL_MAX_HISTORY);
@@ -532,9 +531,9 @@ QVariant Parser::luaDoString(QString expr)
 				%1
 			end)
 			if not __success then
-				error(__result)
+				error(__result);
 			else
-				return __result
+				return __result;
 			end
 	)").arg(exprStr);
 
@@ -2823,222 +2822,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	/////////////////////////////////////////////////////////////////////////////////////
 	if (gamedevice.worker.isNull())
 		return;
-
-	//unit\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if (expr.contains("unit") || expr.contains("unit["))
-	{
-		QList<sa::map_unit_t> units = gamedevice.worker->mapUnitHash.values();
-
-		long long size = units.size();
-
-		sol::meta::unqualified_t<sol::table> unit = lua_["unit"];
-
-		unit["count"] = size;
-
-		for (long long i = 0; i < size; ++i)
-		{
-			sa::map_unit_t u = units.value(i);
-			if (!u.isVisible)
-				continue;
-
-			long long index = i + 1;
-
-			unit[index]["valid"] = u.isVisible;
-
-			unit[index]["index"] = index;
-
-			unit[index]["id"] = u.id;
-
-			unit[index]["name"] = util::toConstData(u.name);
-
-			unit[index]["fname"] = util::toConstData(u.freeName);
-
-			unit[index]["family"] = util::toConstData(u.family);
-
-			unit[index]["lv"] = u.level;
-
-			unit[index]["dir"] = u.dir;
-
-			unit[index]["x"] = u.p.x();
-
-			unit[index]["y"] = u.p.y();
-
-			unit[index]["gold"] = u.gold;
-
-			unit[index]["modelid"] = u.modelid;
-		}
-
-		unit["find"] = [this, currentIndex](sol::object oname, sol::object ofname, sol::this_state s)->sol::object
-			{
-				sol::state_view lua(s);
-				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-				if (gamedevice.worker.isNull())
-					return sol::lua_nil;
-
-				QString name = "";
-				long long modelid = -1;
-				if (oname.is<std::string>())
-					name = util::toQString(oname);
-				if (oname.is<long long>())
-					modelid = oname.as<long long>();
-
-				QString freeName = "";
-				if (ofname.is<std::string>())
-					freeName = util::toQString(ofname);
-
-				if (name.isEmpty() && modelid == 0 && freeName.isEmpty())
-					return sol::lua_nil;
-
-				sa::map_unit_t _unit = {};
-				if (!gamedevice.worker->findUnit(name, sa::kObjectNPC, &_unit, freeName, modelid))
-				{
-					if (!gamedevice.worker->findUnit(name, sa::kObjectHuman, &_unit, freeName, modelid))
-						return sol::lua_nil;
-				}
-
-				sol::table t = lua.create_table();
-				t["valid"] = _unit.isVisible;
-
-				t["index"] = -1;
-
-				t["id"] = _unit.id;
-
-				t["name"] = util::toConstData(_unit.name);
-
-				t["fname"] = util::toConstData(_unit.freeName);
-
-				t["family"] = util::toConstData(_unit.family);
-
-				t["lv"] = _unit.level;
-
-				t["dir"] = _unit.dir;
-
-				t["x"] = _unit.p.x();
-
-				t["y"] = _unit.p.y();
-
-				t["gold"] = _unit.gold;
-
-				t["modelid"] = _unit.modelid;
-
-				return sol::make_object(lua, t);
-			};
-	}
-
-	//magic\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if (expr.contains("magic") || expr.contains("magic["))
-	{
-		sol::meta::unqualified_t<sol::table> mg = lua_["magic"];
-
-		for (long long i = 0; i < sa::MAX_MAGIC; ++i)
-		{
-			long long index = i + 1;
-			sa::magic_t magic = gamedevice.worker->getMagic(i);
-
-			mg[index]["valid"] = magic.valid;
-			mg[index]["index"] = index;
-			mg[index]["costmp"] = magic.costmp;
-			mg[index]["field"] = magic.field;
-			mg[index]["name"] = util::toConstData(magic.name);
-			mg[index]["memo"] = util::toConstData(magic.memo);
-			mg[index]["target"] = magic.target;
-		}
-
-		mg["find"] = [this, currentIndex](sol::object oname, sol::this_state s)->sol::object
-			{
-				sol::state_view lua(s);
-				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-				if (gamedevice.worker.isNull())
-					return 0;
-
-				QString name = "";
-				if (oname.is<std::string>())
-					name = util::toQString(oname);
-
-				if (name.isEmpty())
-					return sol::lua_nil;
-
-
-				long long index = gamedevice.worker->getMagicIndexByName(name);
-				if (index == -1)
-					return sol::lua_nil;
-
-				sa::magic_t _magic = gamedevice.worker->getMagic(index);
-
-				sol::table t = lua.create_table();
-
-				t["valid"] = _magic.valid;
-				t["index"] = index;
-				t["costmp"] = _magic.costmp;
-				t["field"] = _magic.field;
-				t["name"] = util::toConstData(_magic.name);
-				t["memo"] = util::toConstData(_magic.memo);
-				t["target"] = _magic.target;
-
-				return t;
-			};
-	}
-
-	//petskill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if (expr.contains("petskill") || expr.contains("petskill["))
-	{
-		sol::meta::unqualified_t<sol::table> psk = lua_["petskill"];
-
-		long long petIndex = -1;
-		long long index = -1;
-		long long i, j;
-		for (i = 0; i < sa::MAX_PET; ++i)
-		{
-			petIndex = i + 1;
-
-			for (j = 0; j < sa::MAX_PET_SKILL; ++j)
-			{
-				index = j + 1;
-				sa::pet_skill_t skill = gamedevice.worker->getPetSkill(i, j);
-
-				psk[petIndex][index]["valid"] = skill.valid;
-				psk[petIndex][index]["index"] = index;
-				psk[petIndex][index]["id"] = skill.skillId;
-				psk[petIndex][index]["field"] = skill.field;
-				psk[petIndex][index]["target"] = skill.target;
-				psk[petIndex][index]["name"] = util::toConstData(skill.name);
-				psk[petIndex][index]["memo"] = util::toConstData(skill.memo);
-			}
-		}
-
-		psk["find"] = [this, currentIndex](long long petIndex, sol::object oname, sol::this_state s)->sol::object
-			{
-				sol::state_view lua(s);
-				GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-				if (gamedevice.worker.isNull())
-					return 0;
-
-				QString name = "";
-				if (oname.is<std::string>())
-					name = util::toQString(oname);
-
-				if (name.isEmpty())
-					return sol::lua_nil;
-
-				long long index = gamedevice.worker->getPetSkillIndexByName(petIndex, name);
-				if (index == -1)
-					return sol::lua_nil;
-
-				sa::pet_skill_t _skill = gamedevice.worker->getPetSkill(petIndex, index);
-
-				sol::table t = lua.create_table();
-
-				t["valid"] = _skill.valid;
-				t["index"] = index;
-				t["id"] = _skill.skillId;
-				t["field"] = _skill.field;
-				t["target"] = _skill.target;
-				t["name"] = util::toConstData(_skill.name);
-				t["memo"] = util::toConstData(_skill.memo);
-
-				return t;
-			};
-	}
 
 	//petequip\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("petequip") || expr.contains("petequip["))

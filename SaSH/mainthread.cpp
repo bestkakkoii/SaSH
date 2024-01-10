@@ -472,7 +472,7 @@ void MainObject::mainProc()
 	for (;;)
 	{
 		if (!nodelay)
-			QThread::msleep(100);
+			QThread::msleep(200);
 		else
 			nodelay = false;
 
@@ -520,7 +520,7 @@ void MainObject::mainProc()
 		//這裡是預留的暫時沒作用
 		if (status == 1)//非登入狀態
 		{
-			QThread::msleep(50);
+			QThread::msleep(200);
 			nodelay = true;
 		}
 		else if (status == 2)//平時
@@ -757,7 +757,13 @@ long long MainObject::checkAndRunFunctions()
 	for (long long i = 0; i < MissionThread::kMaxAutoMission; ++i)
 	{
 		MissionThread* p = autoThreads_.value(i);
-		if (p != nullptr && !p->isFinished())
+		if (p != nullptr && p->isFinished())
+		{
+			p->wait();
+			delete p;
+			p = nullptr;
+		}
+		else if (p != nullptr && !p->isFinished())
 		{
 			if (!p->isRunning())
 			{
@@ -765,13 +771,6 @@ long long MainObject::checkAndRunFunctions()
 			}
 
 			continue;
-		}
-
-		if (p != nullptr)
-		{
-			p->wait();
-			delete p;
-			p = nullptr;
 		}
 
 		p = q_check_ptr(new MissionThread(currentIndex, i));
@@ -1105,68 +1104,104 @@ void MainObject::checkEtcFlag() const
 MissionThread::MissionThread(long long index, long long type, QObject* parent)
 	: Indexer(index)
 	, type_(type)
+	, index_(index)
 {
 	std::ignore = parent;
-
-	thread_ = q_check_ptr(new QThread());
-	sash_assume(thread_ != nullptr);
-
-	connect(this, &MissionThread::finished, thread_, &QThread::quit);
-	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
-
-	moveToThread(thread_);
-
-	switch (type)
-	{
-	case kAutoJoin:
-		connect(thread_, &QThread::started, this, &MissionThread::autoJoin);
-		break;
-	case kAutoWalk:
-		connect(thread_, &QThread::started, this, &MissionThread::autoWalk);
-		break;
-	case kAutoSortItem:;
-		connect(thread_, &QThread::started, this, &MissionThread::autoSortItem);
-		break;
-	case kAutoHeal:
-		connect(thread_, &QThread::started, this, &MissionThread::autoHeal);
-		break;
-	case kAutoRecordNPC:
-		connect(thread_, &QThread::started, this, &MissionThread::autoRecordNPC);
-		break;
-	case kAutoBattle:
-		connect(thread_, &QThread::started, this, &MissionThread::autoBattle);
-		break;
-	case kAsyncFindPath:
-		connect(thread_, &QThread::started, this, &MissionThread::asyncFindPath);
-		break;
-	}
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &MissionThread::requestMissionInterruption);
 }
 
 MissionThread::~MissionThread()
 {
-	qDebug() << "MissionThread::~MissionThread()" << type_;
+	//qDebug() << "MissionThread::~MissionThread()" << type_;
+	if (thread_ == nullptr)
+		return;
+
+	thread_->quit();
+	thread_->wait();
+	delete thread_;
+	thread_ = nullptr;
 }
 
 void MissionThread::wait()
 {
+	requestMissionInterruption();
+
+	if (thread_ == nullptr)
+		return;
+
 	if (!thread_->isRunning())
 		return;
 
-	requestMissionInterruption();
 	thread_->quit();
 	thread_->wait();
+
+	delete thread_;
+	thread_ = nullptr;
 }
 
 void MissionThread::start()
 {
+	if (thread_ == nullptr)
+	{
+		thread_ = q_check_ptr(new QThread());
+		sash_assume(thread_ != nullptr);
+		if (thread_ == nullptr)
+			return;
+	}
+
 	if (thread_->isRunning())
 		return;
 
+	connect(this, &MissionThread::finished, thread_, &QThread::quit);
+	connect(this, &MissionThread::finished, this, [this]() { finished_.on(); });
+
+	switch (type_)
+	{
+	case kAutoJoin:
+	{
+		connect(thread_, &QThread::started, this, &MissionThread::autoJoin);
+		break;
+	}
+	case kAutoWalk:
+	{
+		connect(thread_, &QThread::started, this, &MissionThread::autoWalk);
+		break;
+	}
+	case kAutoSortItem:
+	{
+		connect(thread_, &QThread::started, this, &MissionThread::autoSortItem);
+		break;
+	}
+	case kAutoHeal:
+	{
+		connect(thread_, &QThread::started, this, &MissionThread::autoHeal);
+		break;
+	}
+	case kAutoRecordNPC:
+	{
+		connect(thread_, &QThread::started, this, &MissionThread::autoRecordNPC);
+		break;
+	}
+#if 0
+	case kAutoBattle:
+		connect(&thread_, &QThread::started, this, &MissionThread::autoBattle);
+		break;
+#endif
+	case kAsyncFindPath:
+	{
+		connect(thread_, &QThread::started, this, &MissionThread::asyncFindPath);
+		break;
+	}
+	default:
+		return;
+	}
+
+	moveToThread(thread_);
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index_);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &MissionThread::requestMissionInterruption);
+
 	thread_->start();
-}
+	}
 
 void MissionThread::autoJoin()
 {
@@ -1204,20 +1239,18 @@ void MissionThread::autoJoin()
 
 		if (gamedevice.getEnableHash(util::kAutoWalkEnable) || gamedevice.getEnableHash(util::kFastAutoWalkEnable))
 		{
-			QThread::msleep(100);
-			continue;
+			break;
 		}
 
 		if (!gamedevice.getEnableHash(util::kAutoJoinEnable))
 		{
-			QThread::msleep(100);
-			continue;
+			break;
 		}
 
 		leader = gamedevice.getStringHash(util::kAutoFunNameString);
 		if (leader.isEmpty())
 		{
-			QThread::msleep(100);
+			QThread::msleep(200);
 			continue;
 		}
 
@@ -1257,7 +1290,7 @@ void MissionThread::autoJoin()
 				//檢查隊長是否正確
 				if (util::checkAND(ch.status, sa::kCharacterStatus_IsLeader))
 				{
-					QThread::msleep(100);
+					QThread::msleep(200);
 					break;
 				}
 
@@ -1267,12 +1300,12 @@ void MissionThread::autoJoin()
 					if ((!name.isEmpty() && leader == name)
 						|| (!name.isEmpty() && leader.count("|") > 0 && leader.contains(name)))//隊長正確
 					{
-						QThread::msleep(100);
+						QThread::msleep(200);
 						break;
 					}
 
 					gamedevice.worker->setTeamState(false);
-					QThread::msleep(100);
+					QThread::msleep(500);
 					break;
 				}
 			}
@@ -1290,13 +1323,13 @@ void MissionThread::autoJoin()
 			//如果人物不在線上則自動退出
 			if (!gamedevice.worker->getOnlineFlag())
 			{
-				QThread::msleep(100);
+				QThread::msleep(500);
 				break;
 			}
 
 			if (gamedevice.worker->getBattleFlag())
 			{
-				QThread::msleep(100);;
+				QThread::msleep(500);;
 				break;
 			}
 
@@ -1304,7 +1337,7 @@ void MissionThread::autoJoin()
 
 			if (floor != gamedevice.worker->getFloor())
 			{
-				QThread::msleep(100);
+				QThread::msleep(500);
 				break;
 			}
 
@@ -1331,7 +1364,7 @@ void MissionThread::autoJoin()
 			if (current_point == unit.p)
 			{
 				gamedevice.worker->move(current_point + util::fix_point.value(util::rnd::get(0, 7)));
-				QThread::msleep(100);;
+				QThread::msleep(200);;
 				break;
 			}
 
@@ -1339,7 +1372,7 @@ void MissionThread::autoJoin()
 			dir = gamedevice.worker->mapDevice.calcBestFollowPointByDstPoint(index, &astar, floor, current_point, unit.p, &newpoint, false, -1);
 			if (-1 == dir)
 			{
-				QThread::msleep(100);
+				QThread::msleep(200);
 				break;
 			}
 
@@ -1350,13 +1383,14 @@ void MissionThread::autoJoin()
 				{
 					gamedevice.worker->setCharFaceDirection(dir, true);
 					gamedevice.worker->setTeamState(true);
+					QThread::msleep(500);
 					continue;
 				}
 			}
 
 			if (!gamedevice.worker->mapDevice.calcNewRoute(index, &astar, floor, current_point, newpoint, blockList, &path))
 			{
-				QThread::msleep(100);
+				QThread::msleep(200);
 				continue;
 			}
 
@@ -1374,13 +1408,13 @@ void MissionThread::autoJoin()
 			//如果步長小於1 就不動
 			if (len < 0)
 			{
-				QThread::msleep(100);
+				QThread::msleep(200);
 				break;
 			}
 
 			if (len >= static_cast<long long>(path.size()))
 			{
-				QThread::msleep(100);
+				QThread::msleep(200);
 				break;
 			}
 
@@ -1418,9 +1452,7 @@ void MissionThread::autoWalk()
 		bool enableFastAutoWalk = gamedevice.getEnableHash(util::kFastAutoWalkEnable);//快速遇敵開關
 		if (!enableAutoWalk && !enableFastAutoWalk)
 		{
-			current_pos = QPoint();
-			QThread::msleep(100);
-			continue;
+			break;
 		}
 		else if (current_pos.isNull())
 		{
@@ -1429,10 +1461,7 @@ void MissionThread::autoWalk()
 
 		//如果人物不在線上則自動退出
 		if (!gamedevice.worker->getOnlineFlag())
-		{
-			QThread::msleep(500);
-			continue;
-		}
+			break;
 
 		//如果人物在戰鬥中則進入循環等待
 		if (gamedevice.worker->getBattleFlag())
@@ -1568,6 +1597,9 @@ void MissionThread::autoSortItem()
 			if (!gamedevice.getEnableHash(util::kAutoStackEnable))
 				break;
 
+			if (!gamedevice.worker->getOnlineFlag())
+				break;
+
 			QThread::msleep(100);;
 		}
 
@@ -1581,10 +1613,10 @@ void MissionThread::autoSortItem()
 			break;
 
 		if (!gamedevice.getEnableHash(util::kAutoStackEnable))
-		{
-			QThread::msleep(500);
-			continue;
-		}
+			break;
+
+		if (!gamedevice.worker->getOnlineFlag())
+			break;
 
 		gamedevice.worker->sortItem();
 	}
@@ -1613,7 +1645,7 @@ void MissionThread::autoHeal()
 					return -1;
 
 				if (!gamedevice.worker->getOnlineFlag())
-					return 0;
+					return -1;
 
 				if (gamedevice.worker->getBattleFlag())
 					return 0;
@@ -1622,8 +1654,7 @@ void MissionThread::autoHeal()
 					&& !gamedevice.getEnableHash(util::kNormalItemHealEnable)
 					&& !gamedevice.getEnableHash(util::kNormalMagicHealEnable))
 				{
-					QThread::msleep(100);
-					return 0;
+					return -1;
 				}
 
 				return 1;
@@ -1634,7 +1665,7 @@ void MissionThread::autoHeal()
 			break;
 		else if (0 == state)
 		{
-			QThread::msleep(100);
+			QThread::msleep(500);
 			continue;
 		}
 
@@ -1827,6 +1858,8 @@ void MissionThread::autoHeal()
 			gamedevice.worker->useMagic(magicIndex, target);
 			QThread::msleep(150);
 		}
+
+		QThread::msleep(100);
 	}
 
 	emit finished();
@@ -1842,7 +1875,7 @@ void MissionThread::autoBattle()
 
 	for (;;)
 	{
-		QThread::msleep(100);
+		QThread::msleep(200);
 
 		if (gamedevice.isGameInterruptionRequested())
 			break;
@@ -1899,10 +1932,7 @@ void MissionThread::autoRecordNPC()
 			break;
 
 		if (!gamedevice.worker->getOnlineFlag())
-		{
-			QThread::msleep(500);
-			continue;
-		}
+			break;
 
 		if (gamedevice.worker->getBattleFlag())
 		{
@@ -2069,13 +2099,13 @@ void MissionThread::autoRecordNPC()
 void MissionThread::asyncFindPath()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	if (gamedevice.worker.isNull())
-		return;
+	if (!gamedevice.worker.isNull())
+	{
+		QPoint dst = args_.value(0).toPoint();
 
-	QPoint dst = args_.value(0).toPoint();
-
-	std::function<bool()> fun = std::bind(&MissionThread::isMissionInterruptionRequested, this);
-	gamedevice.worker->findPathAsync(dst, fun);
+		std::function<bool()> fun = std::bind(&MissionThread::isMissionInterruptionRequested, this);
+		gamedevice.worker->findPathAsync(dst, fun);
+	}
 
 	emit finished();
 }

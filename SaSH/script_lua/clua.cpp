@@ -413,12 +413,22 @@ void __fastcall luadebug::logExport(const sol::this_state& s, const QString& dat
 	QString msg = "\0";
 	QString src = "\0";
 	sol::state_view lua(s);
-	long long currentline = lua["LINE"].get<long long>();//getCurrentLine(s);
+
+	long long currentline = -1;
+	if (lua["LINE"].valid() && lua["LINE"].is<long long>())
+		currentline = lua["LINE"].get<long long>();
+	else
+		currentline = getCurrentLine(s);
+
+	QString newData = data;
+	if (lua["__HOOKFORBATTLE"].valid() && lua["__HOOKFORBATTLE"].is<bool>() && lua["__HOOKFORBATTLE"].get<bool>())
+	{
+		newData.prepend("[battle]");
+	}
 
 	msg = (QString("[%1 | @%2]: %3\0") \
 		.arg(timeStr)
-		.arg(currentline, 3, 10, QLatin1Char(' ')).arg(data));
-
+		.arg(currentline, 3, 10, QLatin1Char(' ')).arg(newData));
 
 	long long currentIndex = lua["__INDEX"].get<long long>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -426,11 +436,11 @@ void __fastcall luadebug::logExport(const sol::this_state& s, const QString& dat
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	if (!gamedevice.worker.isNull() && !doNotAnnounce)
 	{
-		gamedevice.worker->announce(data, color);
+		gamedevice.worker->announce(newData, color);
 	}
 
 	if (gamedevice.log.isOpen())
-		gamedevice.log.write(data, currentline);
+		gamedevice.log.write(newData, currentline);
 }
 
 void __fastcall luadebug::showErrorMsg(const sol::this_state& s, long long level, const QString& data)
@@ -478,10 +488,10 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 //lua函數鉤子 這裡主要用於控制 暫停、終止腳本、獲取棧數據、變量數據...或其他操作
 void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 {
-	if (!L)
+	if (nullptr == L)
 		return;
 
-	if (!ar)
+	if (nullptr == ar)
 		return;
 
 	sol::this_state s = L;
@@ -489,22 +499,15 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 	switch (ar->event)
 	{
-	case LUA_HOOKCALL:
-	{
-		//函數入口
-		break;
-	}
-	case LUA_MASKCOUNT:
-	{
-		//每 n 個函數執行一次
-		break;
-	}
-	case LUA_HOOKRET:
-	{
-		//函數返回
-		break;
-	}
 	case LUA_HOOKLINE:
+	{
+		long long currentLine = ar->currentline;
+		lua["LINE"] = currentLine;
+		Q_FALLTHROUGH();
+	}
+	case LUA_HOOKCALL: //函數入口
+	case LUA_MASKCOUNT: //每 n 個函數執行一次
+	case LUA_HOOKRET: //函數返回
 	{
 		if (lua["__HOOKFORBATTLE"].is<bool>() && lua["__HOOKFORBATTLE"].get<bool>())
 		{
@@ -524,11 +527,12 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 			break;
 		}
 
-		long long currentLine = ar->currentline;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["__INDEX"].get<long long>());
 		long long max = lua["ROWCOUNT"];
 
 		GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+
+		long long currentLine = ar->currentline;
 
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
@@ -887,8 +891,73 @@ void CLua::open_testlibs()
 	*/
 }
 
+class CLuaLog
+{
+public:
+	CLuaLog(std::string filename, sol::this_state s)
+	{
+		QString path = util::toQString(filename);
+		if (!path.endsWith(".log"))
+			path += ".log";
+
+		file_.setFileName(path);
+		file_.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
+
+		textStream_.setFile(&file_);
+	}
+
+	~CLuaLog()
+	{
+		if (file_.isOpen())
+			file_.close();
+
+		qDebug() << "~CLuaLog";
+	}
+
+	bool write(sol::object odata)
+	{
+		if (!file_.isOpen())
+			return false;
+
+		QString data;
+		if (odata.is<std::string>())
+			data = util::toQString(odata.as<std::string>());
+		else if (odata.is<long long>())
+			data = util::toQString(odata.as<long long>());
+		else if (odata.is<double>())
+			data = util::toQString(odata.as<double>());
+		else if (odata.is<bool>())
+			data = odata.as<bool>() ? "true" : "false";
+		else
+			return false;
+
+		QString line = QString("[%1] [%2] [%3] %4\n")
+			.arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz"))
+			.arg("sash")
+			.arg("debug")
+			.arg(data);
+
+		textStream_ << line;
+		textStream_.flush();
+		file_.flush();
+		return true;
+	}
+
+private:
+	util::TextStream textStream_;
+	QFile file_;
+};
+
 void CLua::open_utillibs(sol::state&)
 {
+	lua_.new_usertype<CLuaLog>("Log",
+		sol::call_constructor,
+		sol::constructors<
+		CLuaLog(std::string, sol::this_state)>(),
+		"write", &CLuaLog::write
+	);
+
+
 	lua_.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
@@ -2470,20 +2539,33 @@ void CLua::open_syslibs(sol::state& lua)
 			if (!print.valid())
 				return 0;
 
+			sol::protected_function_result result;
+
 			if (ovalue.is<std::string>())
 			{
 				sol::protected_function format = lua["format"];
-				if (!format.valid())
-					return 0;
+				if (format.valid())
+				{
+					sol::object o = format.call(ovalue.as<std::string>());
+					if (!o.valid())
+						return 0;
 
-				sol::object o = format.call(ovalue.as<std::string>());
-				if (!o.valid())
-					return 0;
-
-				return print.call(o, ocolor).get<long long>();
+					result = print.call(o, ocolor);
+				}
+				else
+				{
+					result = print.call(ovalue, ocolor);
+				}
+			}
+			else
+			{
+				result = print.call(ovalue, ocolor);
 			}
 
-			return print.call(ovalue, ocolor).get<long long>();
+			if (!result.valid())
+				return 0;
+
+			return 1;
 		});
 
 	//直接覆蓋print會無效,改成在腳本內中轉覆蓋
@@ -2646,7 +2728,7 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.collect_garbage();
 
 
-	lua.new_usertype<CLuaTimer>("timer",
+	lua.new_usertype<CLuaTimer>("Timer",
 		sol::call_constructor,
 		sol::constructors<CLuaTimer()>(),
 
@@ -2656,12 +2738,7 @@ void CLua::open_syslibs(sol::state& lua)
 		"tostr", &CLuaTimer::toString,
 		"todb", &CLuaTimer::toDouble,
 		"msec", sol::property(&CLuaTimer::cost),
-		"sec", sol::property(&CLuaTimer::costSeconds)
-	);
-
-	lua.new_usertype<CLuaTimer>("计时器",
-		sol::call_constructor,
-		sol::constructors<CLuaTimer()>(),
+		"sec", sol::property(&CLuaTimer::costSeconds),
 		"重置", &CLuaTimer::restart,
 		"超时", &CLuaTimer::hasExpired,
 		"取格式", &CLuaTimer::toFormatedString,
@@ -2670,6 +2747,12 @@ void CLua::open_syslibs(sol::state& lua)
 		"毫秒", sol::property(&CLuaTimer::cost),
 		"秒", sol::property(&CLuaTimer::costSeconds)
 	);
+
+	//lua.new_usertype<CLuaTimer>("计时器",
+	//	sol::call_constructor,
+	//	sol::constructors<CLuaTimer()>(),
+
+	//);
 
 	lua.new_usertype<sa::address_bool_t>("CardStruct",
 		"valid", sol::readonly(&sa::address_bool_t::valid),
@@ -2709,7 +2792,9 @@ void CLua::open_syslibs(sol::state& lua)
 		sol::constructors<CLuaTeam(long long)>(),
 		sol::meta_function::index, &CLuaTeam::operator[],
 		"contains", &CLuaTeam::contains,
-		"count", sol::property(&CLuaTeam::count)
+		"count", sol::property(&CLuaTeam::count),
+		"包含", &CLuaTeam::contains,
+		"数量", sol::property(&CLuaTeam::count)
 	);
 
 	lua.safe_script("team = TeamClass(__INDEX);", sol::script_pass_on_error);
@@ -2800,16 +2885,16 @@ public:
 		return gamedevice.worker->getSkill(index);
 	}
 
-	sa::profession_skill_t find(std::string sname)
+	sol::object find(std::string sname, sol::this_state s)
 	{
 		GameDevice& gamedevice = GameDevice::getInstance(index_);
 		if (gamedevice.worker.isNull())
-			return sa::profession_skill_t();
+			return sol::lua_nil;
 
 		QString name = util::toQString(sname);
 
 		if (name.isEmpty())
-			return sa::profession_skill_t();
+			return sol::lua_nil;
 
 		bool isExist = true;
 		QString newName = name;
@@ -2832,14 +2917,73 @@ public:
 				continue;
 
 			if (isExist && skillname == newName)
-				return skill;
+				return sol::make_object(s, skill);
 			else if (!isExist && skillname.contains(newName))
-				return skill;
+				return sol::make_object(s, skill);
 			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
-				return skill;
+				return sol::make_object(s, skill);
 		}
 
-		return sa::profession_skill_t();
+		return sol::lua_nil;
+	}
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaMagic
+{
+public:
+	CLuaMagic(long long index) : index_(index) {}
+
+	sa::magic_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::magic_t();
+
+		return gamedevice.worker->getMagic(index);
+	}
+
+	sol::object find(std::string sname, sol::this_state s)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+		QString name = util::toQString(sname);
+
+		if (name.isEmpty())
+			return sol::lua_nil;
+
+		bool isExist = true;
+		QString newName = name;
+		if (name.startsWith("?"))
+		{
+			newName = name.mid(1);
+			isExist = false;
+		}
+
+		for (long long i = 0; i < sa::MAX_MAGIC; ++i)
+		{
+			sa::magic_t magic = gamedevice.worker->getMagic(i);
+
+			QString magicname = magic.name;
+			QString memo = magic.memo;
+			if (magicname.isEmpty())
+				continue;
+
+			if (isExist && magicname == newName)
+				return sol::make_object(s, magic);
+			else if (!isExist && magicname.contains(newName))
+				return sol::make_object(s, magic);
+			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
+				return sol::make_object(s, magic);
+		}
+
+		return sol::lua_nil;
 	}
 
 private:
@@ -2975,7 +3119,109 @@ void CLua::open_charlibs(sol::state& lua)
 
 	lua.safe_script("skill = SkillClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
+
+	lua.new_usertype <sa::magic_t>("MagicStruct",
+		"valid", sol::readonly(&sa::magic_t::valid),
+		"costmp", sol::readonly(&sa::magic_t::costmp),
+		"field", sol::readonly(&sa::magic_t::field),
+		"target", sol::readonly(&sa::magic_t::target),
+		"flag", sol::readonly(&sa::magic_t::deadTargetFlag),
+		"name", sol::property(&sa::magic_t::getName),
+		"memo", sol::property(&sa::magic_t::getMemo)
+	);
+
+	lua.new_usertype<CLuaMagic>("MagicClass",
+		sol::call_constructor,
+		sol::constructors<CLuaMagic(long long)>(),
+		sol::meta_function::index, &CLuaMagic::operator[],
+		"find", &CLuaMagic::find,
+		"查找", &CLuaMagic::find
+	);
+
+	lua.safe_script("magic = MagicClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
 }
+
+class CLuaPetSkillProxy
+{
+public:
+	CLuaPetSkillProxy(long long gameDeviceIndex, long long petIndex)
+		: index_(gameDeviceIndex), petIndex_(petIndex) {}
+
+	sa::pet_skill_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::pet_skill_t();
+
+		return gamedevice.worker->getPetSkill(petIndex_, index);
+	}
+
+private:
+	long long index_ = 0;
+	long long petIndex_;
+};
+
+class CLuaPetSkill
+{
+public:
+	CLuaPetSkill(long long index) : index_(index) {}
+
+	CLuaPetSkillProxy operator[](long long index)
+	{
+		--index;
+
+		CLuaPetSkillProxy proxy(index_, index);
+
+		return proxy;
+	}
+
+	sol::object find(long long petIndex, std::string sname, sol::this_state s)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+		QString name = util::toQString(sname);
+
+		if (name.isEmpty())
+			return sol::lua_nil;
+
+		bool isExist = true;
+		QString newName = name;
+		if (name.startsWith("?"))
+		{
+			newName = name.mid(1);
+			isExist = false;
+		}
+
+		QHash<long long, sa::pet_skill_t> skills = gamedevice.worker->getPetSkills(petIndex);
+
+		for (long long i = 0; i < sa::MAX_PET_SKILL; ++i)
+		{
+			sa::pet_skill_t skill = skills.value(i);
+
+			QString skillname = skill.name;
+			QString memo = skill.memo;
+			if (skillname.isEmpty())
+				continue;
+
+			if (isExist && skillname == newName)
+				return sol::make_object(s, skill);
+			else if (!isExist && skillname.contains(newName))
+				return sol::make_object(s, skill);
+			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
+				return sol::make_object(s, skill);
+		}
+
+		return sol::lua_nil;
+	}
+
+private:
+	long long index_ = 0;
+};
 
 void CLua::open_petlibs(sol::state& lua)
 {
@@ -3030,12 +3276,96 @@ void CLua::open_petlibs(sol::state& lua)
 		sol::call_constructor,
 		sol::constructors<CLuaPet(long long)>(),
 		sol::meta_function::index, &CLuaPet::operator[],
-		"count", &CLuaPet::count
+		"count", &CLuaPet::count,
+		"数量", &CLuaPet::count
 	);
 
 	lua.safe_script("pet = PetClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
+
+	lua.new_usertype <sa::pet_skill_t>("PetSkillStruct",
+		"valid", sol::readonly(&sa::pet_skill_t::valid),
+		"skillid", sol::readonly(&sa::pet_skill_t::skillId),
+		"field", sol::readonly(&sa::pet_skill_t::field),
+		"target", sol::readonly(&sa::pet_skill_t::target),
+		"name", sol::property(&sa::pet_skill_t::getName),
+		"memo", sol::property(&sa::pet_skill_t::getMemo)
+	);
+
+	lua.new_usertype < CLuaPetSkillProxy>("PetSkillProxyClass",
+		sol::call_constructor,
+		sol::constructors<CLuaPetSkillProxy(long long, long long)>(),
+		sol::meta_function::index, &CLuaPetSkillProxy::operator[]
+	);
+
+	lua.new_usertype<CLuaPetSkill>("PetSkillClass",
+		sol::call_constructor,
+		sol::constructors<CLuaPetSkill(long long)>(),
+		sol::meta_function::index, &CLuaPetSkill::operator[],
+		"find", &CLuaPetSkill::find
+	);
+
+	lua.safe_script("petskill = PetSkillClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
 }
+
+class CLuaMapUnit
+{
+public:
+	CLuaMapUnit(long long index) : index_(index) {}
+
+	sa::map_unit_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::map_unit_t();
+
+		return gamedevice.worker->mapUnitHash.value(index);
+	}
+
+	sol::object find(sol::object p1, sol::this_state s)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+
+
+		QString name = "";
+		long long modelid = -1;
+		if (p1.is<std::string>())
+			name = util::toQString(p1);
+		else if (p1.is<long long>())
+			modelid = p1.as<long long>();
+		else
+			return sol::lua_nil;
+
+		if (name.isEmpty())
+			return sol::lua_nil;
+
+		sa::map_unit_t unit = {};
+		if (!gamedevice.worker->findUnit(name, sa::kObjectNPC, &unit, "", modelid))
+		{
+			if (!gamedevice.worker->findUnit("", sa::kObjectNPC, &unit, name, modelid))
+			{
+				if (!gamedevice.worker->findUnit(name, sa::kObjectHuman, &unit, "", modelid))
+				{
+					if (!gamedevice.worker->findUnit("", sa::kObjectHuman, &unit, name, modelid))
+					{
+						return sol::lua_nil;
+					}
+				}
+			}
+		}
+
+		return sol::make_object(s, unit);
+	}
+
+private:
+	long long index_ = 0;
+};
 
 void CLua::open_maplibs(sol::state& lua)
 {
@@ -3063,6 +3393,42 @@ void CLua::open_maplibs(sol::state& lua)
 	);
 
 	lua.safe_script("map = MapClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
+
+	lua.new_usertype <sa::map_unit_t>("UnitStruct",
+		"visible", sol::readonly(&sa::map_unit_t::isVisible),
+		"walkable", sol::readonly(&sa::map_unit_t::walkable),
+		"id", sol::readonly(&sa::map_unit_t::id),
+		"modelid", sol::readonly(&sa::map_unit_t::modelid),
+		"x", sol::readonly(&sa::map_unit_t::x),
+		"y", sol::readonly(&sa::map_unit_t::y),
+		"dir", sol::readonly(&sa::map_unit_t::dir),
+		"level", sol::readonly(&sa::map_unit_t::level),
+		"namecolor", sol::readonly(&sa::map_unit_t::nameColor),
+		"height", sol::readonly(&sa::map_unit_t::height),
+		"charnamecolor", sol::readonly(&sa::map_unit_t::charNameColor),
+		"petlevel", sol::readonly(&sa::map_unit_t::petlevel),
+		"classno", sol::readonly(&sa::map_unit_t::classNo),
+		"gold", sol::readonly(&sa::map_unit_t::gold),
+		"professionclass", sol::readonly(&sa::map_unit_t::profession_class),
+		"professionlv", sol::readonly(&sa::map_unit_t::profession_level),
+		"professionpoint", sol::readonly(&sa::map_unit_t::profession_skill_point),
+		"name", sol::property(&sa::map_unit_t::getName),
+		"fname", sol::property(&sa::map_unit_t::getFreeName),
+		"family", sol::property(&sa::map_unit_t::getFamily),
+		"petname", sol::property(&sa::map_unit_t::getPetName),
+		"itemname", sol::property(&sa::map_unit_t::getItemName)
+	);
+
+	lua.new_usertype<CLuaMapUnit>("UnitClass",
+		sol::call_constructor,
+		sol::constructors<CLuaMapUnit(long long)>(),
+		sol::meta_function::index, &CLuaMapUnit::operator[],
+		"find", &CLuaMapUnit::find,
+		"查找", &CLuaMapUnit::find
+	);
+
+	lua.safe_script("unit = UnitClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
 }
 
@@ -3119,33 +3485,34 @@ void CLua::open_battlelibs(sol::state& lua)
 		"size", sol::property(&CLuaBattle::size),
 		"enemycount", sol::property(&CLuaBattle::enemycount),
 		"alliecount", sol::property(&CLuaBattle::alliecount),
-		"h", &CLuaBattle::charUseAttack,
-		"j", sol::overload(
+		"atk", &CLuaBattle::charUseAttack,
+		"magic", sol::overload(
 			sol::resolve< long long(long long, long long, sol::this_state)>(&CLuaBattle::charUseMagic),
 			sol::resolve< long long(std::string, long long, sol::this_state)>(&CLuaBattle::charUseMagic)
 		),
-		"p", sol::overload(
+		"skill", sol::overload(
 			sol::resolve< long long(long long, long long, sol::this_state)>(&CLuaBattle::charUseSkill),
 			sol::resolve< long long(std::string, long long, sol::this_state)>(&CLuaBattle::charUseSkill)
 		),
-		"s", &CLuaBattle::switchPet,
-		"e", &CLuaBattle::escape,
-		"d", &CLuaBattle::defense,
-		"i", sol::overload(
+		"switch", &CLuaBattle::switchPet,
+		"escape", &CLuaBattle::escape,
+		"def", &CLuaBattle::defense,
+		"item", sol::overload(
 			sol::resolve< long long(long long, long long, sol::this_state)>(&CLuaBattle::useItem),
 			sol::resolve< long long(std::string, long long, sol::this_state)>(&CLuaBattle::useItem)
 		),
-		"t", sol::overload(
+		"catch", sol::overload(
 			sol::resolve< long long(long long, sol::this_state)>(&CLuaBattle::catchPet),
 			sol::resolve< long long(std::string, sol::object, sol::object, sol::object, sol::this_state)>(&CLuaBattle::catchPet)
 		),
-		"n", &CLuaBattle::nothing,
-		"w", sol::overload(
+		"none", &CLuaBattle::nothing,
+		"petskill", sol::overload(
 			sol::resolve< long long(long long, long long, sol::this_state)>(&CLuaBattle::petUseSkill),
 			sol::resolve< long long(std::string, long long, sol::this_state)>(&CLuaBattle::petUseSkill)
 		),
-		"wn", &CLuaBattle::petNothing,
-		"wait", &CLuaBattle::bwait
+		"petnone", &CLuaBattle::petNothing,
+		"wait", &CLuaBattle::bwait,
+		"done", &CLuaBattle::bend
 	);
 
 	lua.safe_script("battle = BattleClass(__INDEX);", sol::script_pass_on_error);
@@ -3272,6 +3639,54 @@ collectgarbage("step", 1024);
 		lua_State* L = lua_.lua_state();
 		lua_sethook(L, &luadebug::hookProc, LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, NULL);// | LUA_MASKCOUNT
 	}
+}
+
+bool CLua::doFile(std::string fileName)
+{
+	bool bret = false;
+
+	do
+	{
+		safe::auto_flag autoFlag(&isRunning_);
+
+		sol::protected_function_result loaded_chunk = lua_.safe_script_file(fileName, sol::script_pass_on_error);
+		lua_.collect_garbage();
+
+		if (loaded_chunk.valid())
+		{
+			sol::type tp = loaded_chunk.get_type();
+
+			if (tp == sol::type::boolean)
+			{
+				bret = loaded_chunk.get<bool>();
+				break;
+			}
+			else if (tp == sol::type::number)
+			{
+				bret = loaded_chunk.get<double>() > 0.0;
+				break;
+			}
+		}
+		else
+		{
+			try
+			{
+				sol::error err = loaded_chunk;
+				qDebug() << err.what();
+
+				QString errStr = util::toQString(err.what());
+
+				errStr.prepend("[battle]");
+
+				sol::this_state s = lua_.lua_state();
+
+				luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, errStr);
+			}
+			catch (...) {}
+		}
+	} while (false);
+
+	return bret;
 }
 
 void CLua::proc()

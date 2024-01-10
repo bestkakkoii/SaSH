@@ -259,7 +259,7 @@ private:
 		kTypeWarning = 10,
 	};
 
-	void __fastcall showError(const QString text, ErrorType type = kTypeError);
+	void __fastcall showError(const QString text, ErrorType type = kTypeError) const;
 
 	bool __fastcall isTable(const QString& str) const;
 	bool __fastcall isDouble(const QString& str) const;

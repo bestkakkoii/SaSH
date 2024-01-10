@@ -19,7 +19,6 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 	ui.setupUi(this);
 	ui.checkBox_autoanswer->hide();
 	ui.checkBox_battletimeextend->hide();
-	ui.checkBox_hidechar->hide();
 	ui.checkBox_lockimage->hide();
 
 	setFont(util::getFont());
@@ -672,23 +671,31 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 	if (name == "checkBox_fastbattle")
 	{
+		gamedevice.setEnableHash(util::kFastBattleEnable, isChecked);
+
 		if (isChecked)
 		{
 			ui.checkBox_autobattle->setChecked(!isChecked);
+			if (!gamedevice.worker.isNull())
+			{
+				gamedevice.worker->asyncBattleAction(false);
+				if (gamedevice.worker->getWorldStatus() == 10)// 強退戰鬥畫面
+					gamedevice.worker->setGameStatus(7);
+			}
 		}
-
-		gamedevice.setEnableHash(util::kFastBattleEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autobattle")
 	{
+		gamedevice.setEnableHash(util::kAutoBattleEnable, isChecked);
+
 		if (isChecked)
 		{
 			ui.checkBox_fastbattle->setChecked(!isChecked);
+			if (!gamedevice.worker.isNull())
+				gamedevice.worker->asyncBattleAction(false);
 		}
-
-		gamedevice.setEnableHash(util::kAutoBattleEnable, isChecked);
 		return;
 	}
 
@@ -1067,6 +1074,14 @@ void GeneralForm::onGameStart()
 
 void GeneralForm::startGameAsync()
 {
+	//QTimer + QEventLoop wait for 5s
+	QTimer timer;
+	timer.setSingleShot(true);
+	QEventLoop loop;
+	connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+	timer.start(3000);
+	loop.exec();
+
 	do
 	{
 		QString path = ui.comboBox_paths->currentData().toString();

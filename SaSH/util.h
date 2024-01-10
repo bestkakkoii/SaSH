@@ -2016,6 +2016,12 @@ QGroupBox {
 	class TextStream : public QTextStream
 	{
 	public:
+		TextStream()
+			: QTextStream()
+		{
+			init();
+		}
+
 		explicit TextStream(FILE* file)
 			: QTextStream(file)
 		{
@@ -2028,6 +2034,11 @@ QGroupBox {
 			init();
 		}
 
+		void setFile(QFile* file)
+		{
+			QTextStream::setDevice(file);
+		}
+
 	private:
 		void init()
 		{
@@ -2036,11 +2047,11 @@ QGroupBox {
 #else
 			setEncoding(QStringConverter::Utf8);
 #endif
-			setGenerateByteOrderMark(true);
+			//setGenerateByteOrderMark(true);
 
 			setAutoDetectUnicode(true);
 		}
-	};
+		};
 
 	//智能文件句柄類
 	class ScopedFile : public QFile
@@ -2517,4 +2528,4 @@ QGroupBox {
 		qputenv("CONSOLE_HANDLE", QByteArray::number(reinterpret_cast<qint64>(hWnd)));
 		return hWnd;
 	}
-}
+	}

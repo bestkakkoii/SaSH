@@ -62,10 +62,15 @@ long long CLuaBattle::round()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
+		return -1;
+
+	if (!gamedevice.worker->getOnlineFlag())
+		return -1;
+
+	if (!gamedevice.worker->getBattleFlag())
 		return 0;
 
 	return gamedevice.worker->battleCurrentRound.get() + 1;
-
 }
 
 std::string CLuaBattle::field()
@@ -81,7 +86,7 @@ long long CLuaBattle::charpos()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
-		return 0;
+		return -1;
 
 	return static_cast<long long>(gamedevice.worker->battleCharCurrentPos.get() + 1);
 }
@@ -90,7 +95,7 @@ long long CLuaBattle::petpos()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
-		return 0;
+		return -1;
 
 	long long petIndex = gamedevice.worker->battleCharCurrentPos.get() + 5;
 
@@ -154,7 +159,11 @@ long long CLuaBattle::charUseMagic(long long magicIndex, long long objIndex, sol
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharMagicAct(--magicIndex, --objIndex) ? TRUE : FALSE;
+	--objIndex;
+	if (objIndex < 0)
+		objIndex = 0;
+
+	return gamedevice.worker->sendBattleCharMagicAct(--magicIndex, objIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::charUseMagic(std::string smagig, long long objIndex, sol::this_state s)//magic
@@ -168,7 +177,11 @@ long long CLuaBattle::charUseMagic(std::string smagig, long long objIndex, sol::
 	if (index < 0)
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharMagicAct(index, --objIndex) ? TRUE : FALSE;
+	--objIndex;
+	if (objIndex < 0)
+		objIndex = 0;
+
+	return gamedevice.worker->sendBattleCharMagicAct(index, objIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::charUseSkill(long long skillIndex, long long objIndex, sol::this_state s)//skill
@@ -178,7 +191,11 @@ long long CLuaBattle::charUseSkill(long long skillIndex, long long objIndex, sol
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharJobSkillAct(--skillIndex, --objIndex) ? TRUE : FALSE;
+	--objIndex;
+	if (objIndex < 0)
+		objIndex = 0;
+
+	return gamedevice.worker->sendBattleCharJobSkillAct(--skillIndex, objIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::charUseSkill(std::string sskill, long long objIndex, sol::this_state s)//skill
@@ -192,7 +209,11 @@ long long CLuaBattle::charUseSkill(std::string sskill, long long objIndex, sol::
 	if (index < 0)
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharJobSkillAct(index, --objIndex) ? TRUE : FALSE;
+	--objIndex;
+	if (objIndex < 0)
+		objIndex = 0;
+
+	return gamedevice.worker->sendBattleCharJobSkillAct(index, objIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::switchPet(long long petIndex, sol::this_state s)//switch
@@ -232,7 +253,11 @@ long long CLuaBattle::useItem(long long itemIndex, long long objIndex, sol::this
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharItemAct(--itemIndex, --objIndex) ? TRUE : FALSE;
+	--objIndex;
+	if (objIndex < 0)
+		objIndex = 0;
+
+	return gamedevice.worker->sendBattleCharItemAct(--itemIndex, objIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::useItem(std::string sitem, long long objIndex, sol::this_state s)//item
@@ -246,7 +271,11 @@ long long CLuaBattle::useItem(std::string sitem, long long objIndex, sol::this_s
 	if (index < 0)
 		return FALSE;
 
-	return gamedevice.worker->sendBattleCharItemAct(index, --objIndex) ? TRUE : FALSE;
+	--objIndex;
+	if (objIndex < 0)
+		objIndex = 0;
+
+	return gamedevice.worker->sendBattleCharItemAct(index, objIndex) ? TRUE : FALSE;
 }
 
 long long CLuaBattle::catchPet(long long objIndex, sol::this_state s)//catch

@@ -371,7 +371,7 @@ long long CLuaItem::useitem(sol::object p1, sol::object p2, sol::object p3, sol:
 
 	long long min = 0, max = static_cast<long long>(sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT - 1);
 	QVector<long long> indexs;
-	if (!luatool::checkRange(p1, min, max, &indexs))
+	if (!luatool::checkRange(p1, min, max, &indexs) || p1 == sol::lua_nil || p1.is<std::string>() && p1.as<std::string>().empty())
 	{
 		if (p1.is<std::string>())
 			itemName = util::toQString(p1.as<std::string>());
@@ -703,8 +703,11 @@ long long CLuaItem::doffitem(sol::object oitem, sol::object p1, sol::object p2, 
 		else
 			itemIndex -= 100;
 
+		if (itemIndex < sa::CHAR_EQUIPSLOT_COUNT)
+			return FALSE;
+
 		gamedevice.worker->dropItem(itemIndex);
-		return FALSE;
+		return TRUE;
 	}
 
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
@@ -730,6 +733,9 @@ long long CLuaItem::doffitem(sol::object oitem, sol::object p1, sol::object p2, 
 			//排除掉所有包含在indexs的
 			for (long long i = min; i <= max; ++i)
 			{
+				if (i < sa::CHAR_EQUIPSLOT_COUNT)
+					continue;
+
 				if (!indexs.contains(i))
 				{
 					gamedevice.worker->dropItem(i);
@@ -760,6 +766,9 @@ long long CLuaItem::doffitem(sol::object oitem, sol::object p1, sol::object p2, 
 			{
 				for (const long long it : indexs)
 				{
+					if (it < sa::CHAR_EQUIPSLOT_COUNT)
+						continue;
+
 					gamedevice.worker->dropItem(it);
 					if (bOnlyOne)
 					{
@@ -1684,7 +1693,7 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 				return FALSE;
 			}
 
-			for (long long i = min; i <= max; ++i)
+			for (long long i = min; i <= max + 1; ++i)
 				itemIndexList.append(util::toQString(i));
 		}
 		else if (itemListStr.count("|") > 0)
@@ -1769,18 +1778,18 @@ long long CLuaItem::trade(std::string sname, sol::object oitem, sol::object opet
 					petIndexVec.append(i);
 			}
 		}
-		else if (petListStr.count("-") == 1 || petListStr.count("-") == 0)
+		else if (petListStr.count("-") == 1 || petListStr.count("-") == 0 && petListStr.count("|") == 0)
 		{
 			long long min = 1;
 			long long max = sa::MAX_PET;
-			if (!luatool::checkRange(oitem, min, max, nullptr))
+			if (!luatool::checkRange(opet, min, max, nullptr))
 			{
 				gamedevice.worker->tradeCancel();
 				qDebug() << "not a valid range string for petList";
 				return FALSE;
 			}
 
-			for (long long i = min; i <= max; ++i)
+			for (long long i = min; i <= max + 1; ++i)
 			{
 				sa::pet_t pet = gamedevice.worker->getPet(i - 1);
 				if (pet.valid)
@@ -1964,8 +1973,8 @@ long long CLuaItem::count(sol::object oitemnames, sol::object oitemmemos, sol::o
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	bool includeEequip = true;
-	if (oitemmemos.is<bool>())
+	bool includeEequip = false;
+	if (oincludeEequip.is<bool>())
 		includeEequip = oincludeEequip.as<bool>();
 
 	long long c = 0;

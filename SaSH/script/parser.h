@@ -638,7 +638,7 @@ private:
 		"__THIS_PARSER", "__THIS", "_G",
 		"__print", "__require",
 		"TARGET",
-		"BattleClass", "CharClass", "InfoClass", "ItemClass", "MapClass", "PetClass", "SystemClass", "DialogClass", "timer", "TARGET", "_G", "ROWCOUNT",
+		"BattleClass", "CharClass", "InfoClass", "ItemClass", "MapClass", "PetClass", "SystemClass", "DialogClass", "Timer", "TARGET", "_G", "ROWCOUNT",
 		"assert", "base",  "collectgarbage",
 		"contains", "copy", "coroutine", "dbclick", "debug", "dofile", "dragto", "error", "find", "format", "full", "getmetatable",
 		"half", "input", "io", "ipairs", "lclick", "load", "loadfile", "loadset", "lower", "math", "mkpath", "mktable", "dlg", "ocr", "findfiles",

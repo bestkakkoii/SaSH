@@ -31,7 +31,7 @@ constexpr const char* g_sash_keywords[9] = {
 
 	/*yellow*/
 	"dlg rnd setglobal getglobal clearglobal capture "
-	"print printf sleep timer msg logout logback eo button say input menu "
+	"print printf sleep msg logout logback eo button say input menu "
 	"talk cls set saveset loadset "
 	"chpet chname chpetname chmap "
 	"usemagic doffpet buy sell useitem doffitem swapitem pickup putitem "
@@ -52,7 +52,6 @@ constexpr const char* g_sash_keywords[9] = {
 	/* . */
 	"item:count item:indexof item:find "
 	"unit.find dialog.contains petskill.find skill.find magic.find "
-	"timer.get timer.gets timer.new timer.del timer.getstr "
 	"map.isxy map.isrect map.ismap chat.contains "
 
 	/*lua original*/
@@ -76,6 +75,7 @@ constexpr const char* g_sash_keywords[9] = {
 	"tonumber tostring type "
 	"utf8.char utf8.codepoint utf8.codes utf8.len utf8.offset warn xpcall ",
 	/*light green*/
+	"Timer "
 	"string table "
 	"TARGET ",
 	/*blue green*/

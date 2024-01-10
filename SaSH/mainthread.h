@@ -21,8 +21,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QSharedMemory>
 #include <indexer.h>
 #include <util.h>
+#include <QThread>
+#include <QMutex>
 
-class QThread;
 class Server;
 
 class MissionThread : public QObject, public Indexer
@@ -36,7 +37,7 @@ public:
 		kAutoHeal,
 		kAutoSortItem,
 		kAutoRecordNPC,
-		kAutoBattle,
+		//kAutoBattle,
 		kMaxAutoMission,
 		kAsyncFindPath
 	};
@@ -46,8 +47,14 @@ public:
 
 	void wait();
 
-	inline bool isRunning() const { return thread_ != nullptr && thread_->isRunning(); }
-	inline bool isFinished() const { return thread_ != nullptr && thread_->isFinished(); }
+	inline bool isRunning() const {
+		return thread_ != nullptr && thread_->isRunning() && !isMissionInterruptionRequested_.get();
+	}
+
+	inline bool isFinished() const {
+		return thread_ != nullptr && thread_->isFinished() || isMissionInterruptionRequested_.get() || finished_.get();
+	}
+
 	inline void appendArg(const QVariant& arg) { args_.append(arg); }
 	inline void appendArgs(const QVariantList& args) { args_.append(args); }
 
@@ -83,10 +90,12 @@ private:
 	}
 
 private:
+	long long index_ = -1;
 	long long type_ = 0;
 	QThread* thread_ = nullptr;
 	QVariantList args_;
 	safe::flag isMissionInterruptionRequested_ = false;
+	safe::flag finished_ = false;
 };
 
 class MainObject : public QObject, public Indexer

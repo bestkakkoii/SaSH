@@ -560,16 +560,19 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 		l = msg.split("\r\n");
 		luadebug::logExport(s, l, color, doNotAnnounce);
 		split = true;
+		return TRUE;
 	}
 	else if (msg.contains("\n"))
 	{
 		l = msg.split("\n");
 		luadebug::logExport(s, l, color, doNotAnnounce);
 		split = true;
+		return TRUE;
 	}
 	else
 	{
 		luadebug::logExport(s, msg, color, doNotAnnounce);
+		return TRUE;
 	}
 
 	return FALSE;
@@ -2217,10 +2220,18 @@ long long CLuaSystem::set(std::string enumStr,
 		if (type == util::kFastBattleEnable && ok)
 		{
 			gamedevice.setEnableHash(util::kAutoBattleEnable, !ok);
+			if (!gamedevice.worker.isNull())
+			{
+				gamedevice.worker->asyncBattleAction(false);
+				if (gamedevice.worker->getWorldStatus() == 10)// 強退戰鬥畫面
+					gamedevice.worker->setGameStatus(7);
+			}
 		}
 		else if (type == util::kAutoBattleEnable && ok)
 		{
 			gamedevice.setEnableHash(util::kFastBattleEnable, !ok);
+			if (!gamedevice.worker.isNull())
+				gamedevice.worker->asyncBattleAction(false);
 		}
 		else if (type == util::kAutoWalkEnable && ok)
 		{

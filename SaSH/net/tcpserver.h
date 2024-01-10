@@ -244,7 +244,7 @@ public://actions
 
 	long long __fastcall setCharFaceToPoint(const QPoint& pos);
 	bool __fastcall setCharFaceDirection(long long dir, bool noWindow = false);
-	bool __fastcall setCharFaceDirection(const QString& dirStr);
+	bool __fastcall setCharFaceDirection(const QString& dirStr, bool noWindow = false);
 
 	[[nodiscard]] long long __fastcall getTeamSize();
 	[[nodiscard]] QStringList __fastcall getJoinableUnitList() const;
