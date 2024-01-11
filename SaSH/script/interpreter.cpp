@@ -327,6 +327,12 @@ void Interpreter::openLibs()
 	//system
 	registerFunction("run", &Interpreter::run);
 	registerFunction("dostr", &Interpreter::dostr);
+
+	registerFunction("執行", &Interpreter::run);
+	registerFunction("執行代碼", &Interpreter::dostr);
+
+	registerFunction("执行", &Interpreter::run);
+	registerFunction("执行代码", &Interpreter::dostr);
 }
 
 long long Interpreter::scriptCallBack(long long currentIndex, long long currentLine, const TokenMap& TK)

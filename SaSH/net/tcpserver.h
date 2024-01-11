@@ -48,6 +48,7 @@ private slots:
 private:
 	long long index_ = -1;
 	bool init = false;
+	mutable QMutex socketLock_;
 };
 
 class CLua;

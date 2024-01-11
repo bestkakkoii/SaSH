@@ -27,7 +27,7 @@ constexpr long long kCallPlaceHoldSize = 2;
 //"格式化" 最小佔位
 constexpr long long kFormatPlaceHoldSize = 3;
 
-#pragma region  LuaTools
+#if 0
 static void __fastcall makeTable(sol::state& lua, const char* name, long long i, long long j)
 {
 	if (!lua[name].valid())
@@ -78,7 +78,7 @@ static void __fastcall makeTable(sol::state& lua, const char* name)
 	else if (!lua[name].is<sol::table>())
 		lua[name] = lua.create_table();
 }
-#pragma endregion
+#endif
 
 static void hookProc(lua_State* L, lua_Debug* ar)
 {
@@ -208,10 +208,6 @@ void Parser::initialize(Parser* pparent)
 
 	sol::state& lua_ = pLua_->getLua();
 
-	makeTable(lua_, "petequip", sa::MAX_PET, sa::MAX_PET_ITEM);
-	makeTable(lua_, "point");
-	makeTable(lua_, "mails", sa::MAX_ADDRESS_BOOK, sa::MAIL_MAX_HISTORY);
-
 	insertGlobalVar("INDEX", index);
 
 	if (globalNames_->isEmpty())
@@ -232,7 +228,7 @@ void Parser::initialize(Parser* pparent)
 	QFileInfo info = QFileInfo(path);
 	lua_.set("CURRENTSCRIPTDIR", util::toConstData(info.absolutePath()));
 
-	lua_.set_function("format", [this](std::string sformat, sol::this_state s)->std::string
+	lua_["format"] = [this](std::string sformat, sol::this_state s)->std::string
 		{
 			QString formatStr = util::toQString(sformat);
 			if (formatStr.isEmpty())
@@ -336,7 +332,7 @@ void Parser::initialize(Parser* pparent)
 
 			return util::toConstData(formatStr);
 
-		});
+		};
 
 	lua_State* L = lua_.lua_state();
 	lua_["__THIS_PARSER"] = pparent;
@@ -2076,7 +2072,7 @@ void Parser::processBack()
 }
 
 //這裡是防止人為設置過長的延時導致腳本無法停止
-void Parser::processDelay()
+void Parser::processDelay() const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -2817,74 +2813,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	if (expr.contains("INDEX"))
 	{
 		lua_.set("INDEX", gamedevice.getIndex());
-	}
-
-	/////////////////////////////////////////////////////////////////////////////////////
-	if (gamedevice.worker.isNull())
-		return;
-
-	//petequip\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if (expr.contains("petequip") || expr.contains("petequip["))
-	{
-		sol::meta::unqualified_t<sol::table> peq = lua_["petequip"];
-
-		long long petIndex = -1;
-		long long index = -1;
-		long long i, j;
-		for (i = 0; i < sa::MAX_PET; ++i)
-		{
-			petIndex = i + 1;
-
-			for (j = 0; j < sa::MAX_PET_ITEM; ++j)
-			{
-				index = j + 1;
-
-				sa::item_t item = gamedevice.worker->getPetEquip(i, j);
-
-				peq[petIndex][index]["valid"] = item.valid;
-				peq[petIndex][index]["index"] = index;
-				peq[petIndex][index]["lv"] = item.level;
-				peq[petIndex][index]["field"] = item.field;
-				peq[petIndex][index]["target"] = item.target;
-				peq[petIndex][index]["type"] = item.type;
-				peq[petIndex][index]["modelid"] = item.modelid;
-				peq[petIndex][index]["dura"] = item.damage;
-				peq[petIndex][index]["name"] = util::toConstData(item.name);
-				peq[petIndex][index]["name2"] = util::toConstData(item.name2);
-				peq[petIndex][index]["memo"] = util::toConstData(item.memo);
-			}
-		}
-	}
-
-	if (expr.contains("point"))
-	{
-		sa::currency_data_t point = gamedevice.worker->currencyData.get();
-
-		sol::meta::unqualified_t<sol::table> pt = lua_["point"];
-
-		pt["exp"] = point.expbufftime;
-		pt["rep"] = point.prestige;
-		pt["ene"] = point.energy;
-		pt["shl"] = point.shell;
-		pt["vit"] = point.vitality;
-		pt["pts"] = point.points;
-		pt["vip"] = point.VIPPoints;
-	}
-
-	if (expr.contains("mails") || expr.contains("mails["))
-	{
-		sol::meta::unqualified_t<sol::table> mails = lua_["mails"];
-		long long j = 0;
-		for (long long i = 0; i < sa::MAX_ADDRESS_BOOK; ++i)
-		{
-			long long card = i + 1;
-			sa::mail_history_t mail = gamedevice.worker->getMailHistory(i);
-			for (j = 0; j < sa::MAIL_MAX_HISTORY; ++j)
-			{
-				long long index = j + 1;
-				mails[card][index] = util::toConstData(mail.dateStr[j]);
-			}
-		}
 	}
 }
 #pragma endregion

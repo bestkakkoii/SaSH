@@ -308,7 +308,13 @@ void Socket::onReadyRead()
 			GameDevice& gamedevice = GameDevice::getInstance(index_);
 
 			if (!gamedevice.isGameInterruptionRequested())
-				gamedevice.worker->handleData(std::move(badata));
+				std::ignore = QtConcurrent::run([this, badata]()
+					{
+						QMutexLocker locker(&socketLock_);
+						GameDevice& gamedevice = GameDevice::getInstance(index_);
+						gamedevice.worker->handleData(std::move(badata));
+					});
+			//gamedevice.worker->handleData(std::move(badata));
 		}
 		return;
 	}
@@ -10618,9 +10624,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-	}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -10679,7 +10685,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				break;
 			}
 		}
-}
+	}
 #endif
 }
 
@@ -10829,10 +10835,10 @@ void Worker::lssproto_RS_recv(char* cdata)
 #else
 		std::ignore = QtConcurrent::run(this, &Worker::checkAutoAbility);
 #endif
-}
+	}
 	if (gamedevice.getEnableHash(util::kDropPetEnable))
 		checkAutoDropPet();
-			}
+}
 
 //戰後積分改變
 void Worker::lssproto_RD_recv(char*)
@@ -11331,7 +11337,7 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
 		oneRoundDurationTimer.restart();
-		battleCurrentRound.reset();
+		battleCurrentRound.set(-1);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 		emit signalDispatcher.battleTableAllItemResetColor();
 	}
@@ -11570,12 +11576,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-			}
+					}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-		}
-	}
+				}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11589,13 +11595,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-	}
+		}
 
 		setBattleData(bt);
 
 		asyncBattleAction(true);
 		break;
-}
+	}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -11966,8 +11972,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 		//切換標誌為可動作狀態
 		battleCharAlreadyActed.off();
 		battlePetAlreadyActed.off();
-
-		asyncBattleAction(true);
 		break;
 	}
 	case 'U':
@@ -12373,12 +12377,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-	}
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-}
+	}
 }
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
@@ -12898,7 +12902,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12948,7 +12952,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -12984,18 +12988,18 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-}
+		}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-		}
+	}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
 	}
-			}
+}
 
 //地圖數據更新，重新繪製地圖
 void Worker::lssproto_MC_recv(long long fl, long long x1, long long y1, long long x2, long long y2, long long tileSum, long long partsSum, long long eventSum, char* cdata)
@@ -13253,9 +13257,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13399,7 +13403,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13557,7 +13561,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}
@@ -15806,5 +15810,5 @@ bool Worker::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return false;
-		}
+}
 #endif

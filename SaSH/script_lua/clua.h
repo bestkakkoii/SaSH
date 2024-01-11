@@ -135,6 +135,10 @@ namespace luadebug
 namespace luatool
 {
 	bool checkRange(sol::object o, long long& min, long long& max, QVector<long long>* pindexs);
+
+	sol::object getVar(sol::state_view& lua, const std::string& varName);
+
+	std::string format(std::string sformat, sol::this_state s);
 }
 
 class CLuaTest
@@ -266,6 +270,56 @@ public:
 private:
 	QElapsedTimer timer_;
 };
+
+class CLuaTimerZhs
+{
+public:
+	CLuaTimerZhs()
+	{
+		timer_.start();
+	}
+
+	long long cost() const
+	{
+		return timer_.elapsed();
+	}
+
+	long long costSeconds() const
+	{
+		return timer_.elapsed() / 1000;
+	}
+
+	bool hasExpired(long long milliseconds) const
+	{
+		return timer_.elapsed() >= milliseconds;
+	}
+
+	void restart()
+	{
+		timer_.restart();
+	}
+
+	std::string toFormatedString()
+	{
+		QString formated = util::formatMilliseconds(timer_.elapsed());
+		return util::toConstData(formated);
+	}
+
+	std::string toString()
+	{
+		QString str = util::toQString(timer_.elapsed());
+		return util::toConstData(str);
+	}
+
+	double toDouble()
+	{
+		return static_cast<double>(timer_.elapsed());
+	}
+
+private:
+	QElapsedTimer timer_;
+};
+
 
 class CLuaItem
 {

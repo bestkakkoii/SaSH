@@ -492,7 +492,7 @@ private:
 	void __fastcall processFunction();
 	void __fastcall processLabel();
 	void __fastcall processClean();
-	void __fastcall processDelay();
+	void __fastcall processDelay() const;
 	bool __fastcall processFor();
 	bool __fastcall processEnd();
 	bool __fastcall processEndFor();

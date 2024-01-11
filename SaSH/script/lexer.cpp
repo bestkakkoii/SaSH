@@ -25,11 +25,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增註冊新函數，這裡不添加的話，腳本分析後會忽略未知的命令
 static const QHash<QString, RESERVE> keywords = {
 	{ "[call]", TK_CALLWITHNAME },
-	//... 其他後續增加的關鍵字
+
 	{ "#lua", TK_LUABEGIN },
 	{ "#endlua", TK_LUAEND },
+	{ "#結束lua", TK_LUAEND },
+	{ "#结束lua", TK_LUAEND },
 
-	//keyword，關鍵字 全權交由parser處理
+	//sash keywords(关键字) 交由 parser.cpp 处理
 	{ "call", TK_CALL },
 	{ "goto", TK_GOTO },
 	{ "jmp", TK_JMP },
@@ -45,9 +47,49 @@ static const QHash<QString, RESERVE> keywords = {
 	{ "break", TK_BREAK },
 	{ "continue", TK_CONTINUE },
 
-	//system 系統命令 交由interpreter處理
+	//system 系统命令 交由 interpreter.cpp 处理
 	{ "run", TK_CMD },
 	{ "dostr", TK_CMD },
+
+	//sash keywords(关键字) 交由 parser.cpp 处理
+	{ "調用", TK_CALL },
+	{ "跳轉", TK_GOTO },
+	{ "跳至", TK_JMP },
+	{ "結束", TK_END },
+	{ "返回", TK_RETURN },
+	{ "回到", TK_BAK },
+	{ "退出", TK_EXIT },
+	{ "暫停", TK_PAUSE },
+	{ "功能", TK_FUNCTION, },
+	{ "標記", TK_LABEL, },
+	{ "如果", TK_IF },
+	{ "遍歷", TK_FOR },
+	{ "跳出", TK_BREAK },
+	{ "繼續", TK_CONTINUE },
+
+	//system 系统命令 交由 interpreter.cpp 处理
+	{ "執行", TK_CMD },
+	{ "執行代碼", TK_CMD },
+
+	//sash keywords(关键字) 交由 parser.cpp 处理
+	{ "调用", TK_CALL },
+	{ "跳转", TK_GOTO },
+	{ "跳至", TK_JMP },
+	{ "结束", TK_END },
+	{ "返回", TK_RETURN },
+	{ "回到", TK_BAK },
+	{ "退出", TK_EXIT },
+	{ "暂停", TK_PAUSE },
+	{ "功能", TK_FUNCTION, },
+	{ "标记", TK_LABEL, },
+	{ "如果", TK_IF },
+	{ "遍历", TK_FOR },
+	{ "跳出", TK_BREAK },
+	{ "继续", TK_CONTINUE },
+
+	//system 系统命令 交由 interpreter.cpp 处理
+	{ "执行", TK_CMD },
+	{ "执行代码", TK_CMD },
 };
 #pragma endregion
 
@@ -261,7 +303,6 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 			"move", "cls", "eo", "logout", "logback", "runex", "openwindow", "rungame", "closegame", "setlogin", "dostrex",
 			"getgamestate", "loadsetex", "createch", "delch", "menu", "checkdaily", "button", "join", "leave", "kick", "send",
 			"chname", "chpetname", "doffstone", "dir", "walkpos", "chpet",
-			"bh", "bj", "bp", "bs", "be", "bd", "bi", "bn", "bw", "bwn", "bwait", "bend",
 			"waitpos", "waitmap", "waititem", "waitteam", "waitpet", "waitsay", "waitdlg",
 			"usemagic", "doffpet", "buy", "sell",  "sellpet","useitem", "doffitem",
 			"swapitem", "pickup", "putitem","getitem", "putpet", "getpet", "putstone",  "getstone", "make", "cook", "uequip",

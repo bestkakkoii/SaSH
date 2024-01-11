@@ -423,7 +423,9 @@ void __fastcall luadebug::logExport(const sol::this_state& s, const QString& dat
 	QString newData = data;
 	if (lua["__HOOKFORBATTLE"].valid() && lua["__HOOKFORBATTLE"].is<bool>() && lua["__HOOKFORBATTLE"].get<bool>())
 	{
-		newData.prepend("[battle]");
+		const QString prefix = "[" + QObject::tr("battle") + "]";
+		if (newData.contains(prefix))
+			newData.prepend(prefix);
 	}
 
 	msg = (QString("[%1 | @%2]: %3\0") \
@@ -605,81 +607,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		break;
 	}
 }
-
-bool luatool::checkRange(sol::object o, long long& min, long long& max, QVector<long long>* pindexs)
-{
-	if (o == sol::lua_nil)
-		return true;
-
-	if (o.is<std::string>())
-	{
-		QString str = util::toQString(o.as<std::string>());
-		if (str.isEmpty() || str == "?")
-		{
-			return true;
-		}
-
-		bool ok = false;
-		long long tmp = str.toLongLong(&ok) - 1;
-		if (ok)
-		{
-			if (tmp < 0)
-				return false;
-
-			min = tmp;
-			max = tmp;
-			return true;
-		}
-
-		QStringList range = str.split("-", Qt::SkipEmptyParts);
-		if (range.isEmpty())
-		{
-			return true;
-		}
-
-		if (range.size() == 2)
-		{
-			bool ok1, ok2;
-			long long tmp1 = range.value(0).toLongLong(&ok1);
-			long long tmp2 = range.value(1).toLongLong(&ok2);
-			if (ok1 && ok2)
-			{
-				if (tmp1 < 0 || tmp2 < 0)
-					return false;
-
-				min = tmp1 - 1;
-				max = tmp2 - 1;
-				return true;
-			}
-		}
-		else
-		{
-			if (pindexs != nullptr)
-			{
-				for (const QString& str : range)
-				{
-					bool ok;
-					long long tmp = str.toLongLong(&ok) - 1;
-					if (ok && tmp >= 0)
-						pindexs->append(tmp);
-				}
-
-				return pindexs->size() > 0;
-			}
-		}
-	}
-	else if (o.is<long long>())
-	{
-		long long tmp = o.as<long long>() - 1;
-		if (tmp < 0)
-			return false;
-
-		min = tmp;
-		max = tmp;
-		return true;
-	}
-	return false;
-}
 #pragma endregion
 
 #pragma region luatool
@@ -763,6 +690,242 @@ std::vector<T> Rotate(const std::vector<T>& v, long long len)//true = right, fal
 		std::rotate(result.begin(), result.end() + len, result.end());
 #endif
 	return result;
+}
+
+
+bool luatool::checkRange(sol::object o, long long& min, long long& max, QVector<long long>* pindexs)
+{
+	if (o == sol::lua_nil)
+		return true;
+
+	if (o.is<std::string>())
+	{
+		QString str = util::toQString(o.as<std::string>());
+		if (str.isEmpty() || str == "?")
+		{
+			return true;
+		}
+
+		bool ok = false;
+		long long tmp = str.toLongLong(&ok) - 1;
+		if (ok)
+		{
+			if (tmp < 0)
+				return false;
+
+			min = tmp;
+			max = tmp;
+			return true;
+		}
+
+		QStringList range = str.split("-", Qt::SkipEmptyParts);
+		if (range.isEmpty())
+		{
+			return true;
+		}
+
+		if (range.size() == 2)
+		{
+			bool ok1, ok2;
+			long long tmp1 = range.value(0).toLongLong(&ok1);
+			long long tmp2 = range.value(1).toLongLong(&ok2);
+			if (ok1 && ok2)
+			{
+				if (tmp1 < 0 || tmp2 < 0)
+					return false;
+
+				min = tmp1 - 1;
+				max = tmp2 - 1;
+				return true;
+			}
+		}
+		else
+		{
+			if (pindexs != nullptr)
+			{
+				for (const QString& str : range)
+				{
+					bool ok;
+					long long tmp = str.toLongLong(&ok) - 1;
+					if (ok && tmp >= 0)
+						pindexs->append(tmp);
+				}
+
+				return pindexs->size() > 0;
+			}
+		}
+	}
+	else if (o.is<long long>())
+	{
+		long long tmp = o.as<long long>() - 1;
+		if (tmp < 0)
+			return false;
+
+		min = tmp;
+		max = tmp;
+		return true;
+	}
+	return false;
+}
+
+sol::object luatool::getVar(sol::state_view& lua, const std::string& varName)
+{
+	// Accessing local variables
+	lua_Debug ar;
+	int index = 1; // Stack level
+	lua_State* L = lua.lua_state();
+
+	while (lua_getstack(L, index, &ar))
+	{
+		int i = 1;
+		const char* name;
+		while ((name = lua_getlocal(L, &ar, i)) != nullptr)
+		{
+			if (varName == name)
+			{
+				sol::stack_object value(L, -1); // Get the value from the stack
+				lua_pop(L, 1); // Pop the value
+				return value;
+			}
+
+			lua_pop(L, 1); // Pop the variable name
+			++i;
+		}
+		++index;
+	}
+
+	// If not found in local, try global
+	return lua[varName];
+}
+
+std::string luatool::format(std::string sformat, sol::this_state s)
+{
+	sol::state_view lua(s);
+	QString formatStr = util::toQString(sformat);
+	if (formatStr.isEmpty())
+		return sformat;
+
+	static const QRegularExpression rexFormat(R"(\{\s*(?:([CT]?))\s*:\s*([^}]+)\s*\})");
+	if (!formatStr.contains(rexFormat))
+		return sformat;
+
+	enum FormatType
+	{
+		kNothing,
+		kTime,
+		kConst,
+	};
+
+	constexpr long long MAX_FORMAT_DEPTH = 10;
+
+	for (long long i = 0; i < MAX_FORMAT_DEPTH; ++i)
+	{
+		QRegularExpressionMatchIterator matchIter = rexFormat.globalMatch(formatStr);
+		//Group 1: T or C or nothing
+		//Group 2: var or var table
+
+		QMap<QString, QPair<FormatType, QString>> formatVarList;
+
+		for (;;)
+		{
+			if (!matchIter.hasNext())
+				break;
+
+			const QRegularExpressionMatch match = matchIter.next();
+			if (!match.hasMatch())
+				break;
+
+			QString type = match.captured(1);
+			QString varStr = match.captured(2);
+			//QVariant varValue;
+
+			if (type == "T")
+			{
+				sol::object obj = getVar(lua, util::toConstData(varStr));
+
+				if (obj != sol::lua_nil && (obj.is<long long>() || obj.is<double>()))
+				{
+					long long sec = 0;
+					if (obj.is<long long>())
+						sec = obj.as<long long>();
+					else if (obj.is<double>())
+						sec = static_cast<long long>(obj.as<double>());
+					else
+						continue;
+
+					formatVarList.insert(varStr, qMakePair(FormatType::kTime, util::formatSeconds(obj.as<long long>())));
+				}
+				else
+					formatVarList.insert(varStr, qMakePair(FormatType::kNothing, QString()));
+			}
+			else if (type == "C")
+			{
+				QString str;
+				if (varStr.toLower() == "date")
+				{
+					const QDateTime dt = QDateTime::currentDateTime();
+					str = dt.toString("yyyy-MM-dd");
+
+				}
+				else if (varStr.toLower() == "time")
+				{
+					const QDateTime dt = QDateTime::currentDateTime();
+					str = dt.toString("hh:mm:ss:zzz");
+				}
+
+				formatVarList.insert(varStr, qMakePair(FormatType::kConst, str));
+			}
+			else
+			{
+				sol::object obj = getVar(lua, util::toConstData(varStr));
+				if (obj != sol::lua_nil)
+				{
+					QString str;
+					if (obj.is<long long>())
+						str = QString::number(obj.as<long long>());
+					else if (obj.is<std::string>())
+						str = util::toQString(obj.as<std::string>());
+					else if (obj.is<bool>())
+						str = util::toQString(obj.as<bool>());
+					else if (obj.is<double>())
+						str = QString::number(obj.as<double>());
+					else
+						str = util::toQString(obj.as<std::string>());
+					formatVarList.insert(varStr, qMakePair(FormatType::kNothing, str));
+				}
+				else
+					formatVarList.insert(varStr, qMakePair(FormatType::kNothing, QString()));
+			}
+		}
+
+		if (formatVarList.isEmpty())
+			continue;
+
+		for (auto it = formatVarList.constBegin(); it != formatVarList.constEnd(); ++it)
+		{
+			const QString key = it.key();
+			const QPair<FormatType, QString> varValue = it.value();
+			QString preReplace = "";
+			switch (varValue.first)
+			{
+			case FormatType::kNothing:
+				preReplace = QString("{:%1}").arg(key);
+				break;
+			case FormatType::kTime:
+				preReplace = QString("{T:%1}").arg(key);
+				break;
+			case FormatType::kConst:
+				preReplace = QString("{C:%1}").arg(key);
+				break;
+			default:
+				continue;
+			}
+
+			formatStr.replace(preReplace, varValue.second);
+		}
+	}
+
+	return util::toConstData(formatStr);
 }
 #pragma endregion
 
@@ -948,17 +1111,18 @@ private:
 	QFile file_;
 };
 
-void CLua::open_utillibs(sol::state&)
+void CLua::open_utillibs(sol::state& lua)
 {
-	lua_.new_usertype<CLuaLog>("Log",
+	lua.new_usertype<CLuaLog>("Log",
 		sol::call_constructor,
 		sol::constructors<
 		CLuaLog(std::string, sol::this_state)>(),
 		"write", &CLuaLog::write
 	);
 
+	lua.set_function("format", &luatool::format);
 
-	lua_.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->long long
+	lua.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			QString mission = util::toQString(smisson);
@@ -974,7 +1138,7 @@ void CLua::open_utillibs(sol::state&)
 		});
 
 
-	lua_.set_function("getgamestate", [this](long long id)->long long
+	lua.set_function("getgamestate", [this](long long id)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			InterfaceSender sender(gamedevice.getParentWidget());
@@ -983,7 +1147,7 @@ void CLua::open_utillibs(sol::state&)
 		});
 
 
-	lua_.set_function("setlogin", [this](long long id, long long server, long long subserver, long long position, std::string account, std::string password)->long long
+	lua.set_function("setlogin", [this](long long id, long long server, long long subserver, long long position, std::string account, std::string password)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			InterfaceSender sender(gamedevice.getParentWidget());
@@ -994,7 +1158,7 @@ void CLua::open_utillibs(sol::state&)
 			return sender.SetAutoLogin(id, server - 1, subserver - 1, position - 1, acc, pwd);
 		});
 
-	lua_.set_function("contains", [this](sol::object data, sol::object ocmp_data, sol::this_state s)->bool
+	lua.set_function("contains", [this](sol::object data, sol::object ocmp_data, sol::this_state s)->bool
 		{
 			auto toVariant = [](const sol::object& o)->QVariant
 				{
@@ -1076,7 +1240,7 @@ void CLua::open_utillibs(sol::state&)
 		}
 	);
 
-	lua_["mkpath"] = [](std::string sfilename, sol::object osuffix, sol::object obj, sol::this_state s)->std::string
+	lua["mkpath"] = [](std::string sfilename, sol::object osuffix, sol::object obj, sol::this_state s)->std::string
 		{
 			QString retstring = "\0";
 			QString fileName = util::toQString(sfilename);
@@ -1111,7 +1275,7 @@ void CLua::open_utillibs(sol::state&)
 			return util::toConstData(retstring);
 		};
 
-	lua_["findfiles"] = [](std::string sname, sol::object osuffix, sol::object obasedir, sol::this_state s)->sol::table
+	lua["findfiles"] = [](std::string sname, sol::object osuffix, sol::object obasedir, sol::this_state s)->sol::table
 		{
 			sol::state_view lua(s);
 			QString name = util::toQString(sname);
@@ -1147,7 +1311,7 @@ void CLua::open_utillibs(sol::state&)
 		};
 
 
-	lua_["mktable"] = [](long long a, sol::object ob, sol::this_state s)->sol::object
+	lua["mktable"] = [](long long a, sol::object ob, sol::this_state s)->sol::object
 		{
 			sol::state_view lua(s);
 
@@ -1203,7 +1367,7 @@ void CLua::open_utillibs(sol::state&)
 			return true;
 		};
 
-	lua_["tshuffle"] = [](sol::object t, sol::this_state s)->sol::object
+	lua["tshuffle"] = [](sol::object t, sol::this_state s)->sol::object
 		{
 			if (!t.is<sol::table>())
 				return sol::lua_nil;
@@ -1233,7 +1397,7 @@ void CLua::open_utillibs(sol::state&)
 			return t2;
 		};
 
-	lua_["trotate"] = [](sol::object t, sol::object oside, sol::this_state s)->sol::object
+	lua["trotate"] = [](sol::object t, sol::object oside, sol::this_state s)->sol::object
 		{
 			if (!t.is<sol::table>())
 				return sol::lua_nil;
@@ -1271,7 +1435,7 @@ void CLua::open_utillibs(sol::state&)
 			return t2;
 		};
 
-	lua_["tsleft"] = [](sol::object t, long long i, sol::this_state s)->sol::object
+	lua["tsleft"] = [](sol::object t, long long i, sol::this_state s)->sol::object
 		{
 			if (!t.is<sol::table>())
 				return sol::lua_nil;
@@ -1303,7 +1467,7 @@ void CLua::open_utillibs(sol::state&)
 			return t2;
 		};
 
-	lua_["tsright"] = [](sol::object t, long long i, sol::this_state s)->sol::object
+	lua["tsright"] = [](sol::object t, long long i, sol::this_state s)->sol::object
 		{
 			if (!t.is<sol::table>())
 				return sol::lua_nil;
@@ -1335,7 +1499,7 @@ void CLua::open_utillibs(sol::state&)
 			return t2;
 		};
 
-	lua_["tunique"] = [](sol::object t, sol::this_state s)->sol::object
+	lua["tunique"] = [](sol::object t, sol::this_state s)->sol::object
 		{
 			if (!t.is<sol::table>())
 				return sol::lua_nil;
@@ -1397,7 +1561,7 @@ void CLua::open_utillibs(sol::state&)
 				return sol::lua_nil;
 		};
 
-	lua_["tsort"] = [](sol::object t, sol::this_state s)->sol::object
+	lua["tsort"] = [](sol::object t, sol::this_state s)->sol::object
 		{
 			sol::state_view lua(s);
 			if (!t.is<sol::table>())
@@ -1411,7 +1575,7 @@ void CLua::open_utillibs(sol::state&)
 			return t;
 		};
 
-	lua_.safe_script(R"(
+	lua.safe_script(R"(
 		trsort = function(t)
 			local function reverseSort(a, b)
 				if type(a) == "string" and type(b) == "string" then
@@ -1432,6 +1596,8 @@ void CLua::open_utillibs(sol::state&)
 		end
 
 	)", sol::script_pass_on_error);
+
+	lua.collect_garbage();
 
 #pragma region _copyfunstr
 	std::string _copyfunstr = R"(
@@ -1462,13 +1628,13 @@ void CLua::open_utillibs(sol::state&)
 	{
 		sol::protected_function target = lr.get<sol::protected_function>();
 		sol::bytecode target_bc = target.dump();
-		lua_.safe_script(target_bc.as_string_view(), sol::script_pass_on_error);
-		lua_.collect_garbage();
+		lua.safe_script(target_bc.as_string_view(), sol::script_pass_on_error);
+		lua.collect_garbage();
 	}
 #pragma endregion
 
 	//表合併
-	lua_["tmerge"] = [](sol::object t1, sol::object t2, sol::this_state s)->sol::object
+	lua["tmerge"] = [](sol::object t1, sol::object t2, sol::this_state s)->sol::object
 		{
 			if (!t1.is<sol::table>() || !t2.is<sol::table>())
 				return sol::lua_nil;
@@ -1504,7 +1670,7 @@ void CLua::open_utillibs(sol::state&)
 			return t3;
 		};
 
-	lua_.set_function("split", [](std::string src, std::string del, sol::object skipEmpty, sol::object orex, sol::this_state s)->sol::object
+	lua.set_function("split", [](std::string src, std::string del, sol::object skipEmpty, sol::object orex, sol::this_state s)->sol::object
 		{
 			sol::state_view lua(s);
 			sol::table t = lua.create_table();
@@ -1548,7 +1714,7 @@ void CLua::open_utillibs(sol::state&)
 		});
 
 	//根據key交換表中的兩個元素
-	lua_["tswap"] = [](sol::table t, sol::object key1, sol::object key2, sol::this_state s)->sol::object
+	lua["tswap"] = [](sol::table t, sol::object key1, sol::object key2, sol::this_state s)->sol::object
 		{
 			if (!t.valid())
 				return sol::lua_nil;
@@ -1560,7 +1726,7 @@ void CLua::open_utillibs(sol::state&)
 			return t;
 		};
 
-	lua_["tadd"] = [](sol::table t, sol::object value, sol::this_state s)->sol::object
+	lua["tadd"] = [](sol::table t, sol::object value, sol::this_state s)->sol::object
 		{
 			if (!t.valid())
 				return sol::lua_nil;
@@ -1568,7 +1734,7 @@ void CLua::open_utillibs(sol::state&)
 			return t;
 		};
 
-	lua_["tpadd"] = [](sol::table t, sol::object value, sol::this_state s)->sol::object
+	lua["tpadd"] = [](sol::table t, sol::object value, sol::this_state s)->sol::object
 		{
 			sol::state_view lua(s);
 			if (!t.valid())
@@ -1578,7 +1744,7 @@ void CLua::open_utillibs(sol::state&)
 			return t;
 		};
 
-	lua_["tpopback"] = [](sol::table t, sol::this_state s)->sol::object
+	lua["tpopback"] = [](sol::table t, sol::this_state s)->sol::object
 		{
 			sol::state_view lua(s);
 			if (!t.valid())
@@ -1589,7 +1755,7 @@ void CLua::open_utillibs(sol::state&)
 			return t;
 		};
 
-	lua_["tpopfront"] = [](sol::table t, sol::this_state s)->sol::object
+	lua["tpopfront"] = [](sol::table t, sol::this_state s)->sol::object
 		{
 			sol::state_view lua(s);
 			if (!t.valid())
@@ -1600,14 +1766,14 @@ void CLua::open_utillibs(sol::state&)
 			return t;
 		};
 
-	lua_["tfront"] = [](sol::table t, sol::this_state s)->sol::object
+	lua["tfront"] = [](sol::table t, sol::this_state s)->sol::object
 		{
 			if (!t.valid())
 				return sol::lua_nil;
 			return t[1];
 		};
 
-	lua_["tback"] = [](sol::table t, sol::this_state s)->sol::object
+	lua["tback"] = [](sol::table t, sol::this_state s)->sol::object
 		{
 			if (!t.valid())
 				return sol::lua_nil;
@@ -1615,7 +1781,7 @@ void CLua::open_utillibs(sol::state&)
 		};
 #pragma endregion
 
-	lua_.set_function("rungame", [this](long long id)->long long
+	lua.set_function("rungame", [this](long long id)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			InterfaceSender sender(gamedevice.getParentWidget());
@@ -1623,7 +1789,7 @@ void CLua::open_utillibs(sol::state&)
 			return sender.RunGame(id);
 		});
 
-	lua_.set_function("closegame", [this](long long id)->long long
+	lua.set_function("closegame", [this](long long id)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			InterfaceSender sender(gamedevice.getParentWidget());
@@ -1631,7 +1797,7 @@ void CLua::open_utillibs(sol::state&)
 			return sender.CloseGame(id);
 		});
 
-	lua_.set_function("openwindow", [this](long long id)->long long
+	lua.set_function("openwindow", [this](long long id)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			InterfaceSender sender(gamedevice.getParentWidget());
@@ -1639,7 +1805,7 @@ void CLua::open_utillibs(sol::state&)
 			return sender.OpenNewWindow(id);
 		});
 
-	lua_.set_function("runex", [this](long long id, std::string path)->long long
+	lua.set_function("runex", [this](long long id, std::string path)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			InterfaceSender sender(gamedevice.getParentWidget());
@@ -1647,7 +1813,7 @@ void CLua::open_utillibs(sol::state&)
 			return sender.RunFile(id, util::toQString(path));
 		});
 
-	lua_.set_function("stoprunex", [this](long long id)->long long
+	lua.set_function("stoprunex", [this](long long id)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			InterfaceSender sender(gamedevice.getParentWidget());
@@ -1655,7 +1821,7 @@ void CLua::open_utillibs(sol::state&)
 			return sender.StopFile(id);
 		});
 
-	lua_.set_function("dostrex", [this](long long id, std::string content)->long long
+	lua.set_function("dostrex", [this](long long id, std::string content)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			InterfaceSender sender(gamedevice.getParentWidget());
@@ -1663,7 +1829,7 @@ void CLua::open_utillibs(sol::state&)
 			return sender.RunScript(id, util::toQString(content));
 		});
 
-	lua_.set_function("loadsetex", [this](long long id, std::string content)->long long
+	lua.set_function("loadsetex", [this](long long id, std::string content)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			InterfaceSender sender(gamedevice.getParentWidget());
@@ -1715,7 +1881,7 @@ void CLua::open_utillibs(sol::state&)
 		});
 #endif
 
-	lua_.set_function("dlg", [this](std::string buttonstr, std::string stext, sol::object otype, sol::object otimeout, sol::this_state s)->sol::object
+	lua.set_function("dlg", [this](std::string buttonstr, std::string stext, sol::object otype, sol::object otimeout, sol::this_state s)->sol::object
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			sol::state_view lua_(s);
@@ -1827,7 +1993,7 @@ void CLua::open_utillibs(sol::state&)
 			return t;
 		});
 
-	lua_.set_function("input", [this](sol::object oargs, sol::this_state s)->sol::object
+	lua.set_function("input", [this](sol::object oargs, sol::this_state s)->sol::object
 		{
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
@@ -1892,7 +2058,7 @@ void CLua::open_utillibs(sol::state&)
 			}
 		});
 
-	lua_.set_function("half", [this](std::string sstr, sol::this_state s)->std::string
+	lua.set_function("half", [this](std::string sstr, sol::this_state s)->std::string
 		{
 			const QString FullWidth = "０１２３４５６７８９"
 				"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
@@ -1916,7 +2082,7 @@ void CLua::open_utillibs(sol::state&)
 			return util::toConstData(result);
 		});
 
-	lua_.set_function("full", [this](std::string sstr, sol::this_state s)->std::string
+	lua.set_function("full", [this](std::string sstr, sol::this_state s)->std::string
 		{
 			const QString FullWidth = "０１２３４５６７８９"
 				"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
@@ -1940,21 +2106,21 @@ void CLua::open_utillibs(sol::state&)
 			return util::toConstData(result);
 		});
 
-	lua_.set_function("lower", [this](std::string sstr, sol::this_state s)->std::string
+	lua.set_function("lower", [this](std::string sstr, sol::this_state s)->std::string
 		{
 			QString result = util::toQString(sstr).toLower();
 
 			return util::toConstData(result);
 		});
 
-	lua_.set_function("upper", [this](std::string sstr, sol::this_state s)->std::string
+	lua.set_function("upper", [this](std::string sstr, sol::this_state s)->std::string
 		{
 			QString result = util::toQString(sstr).toUpper();
 
 			return util::toConstData(result);
 		});
 
-	lua_.set_function("trim", [this](std::string sstr, sol::object oisSimplified, sol::this_state s)->std::string
+	lua.set_function("trim", [this](std::string sstr, sol::object oisSimplified, sol::this_state s)->std::string
 		{
 			bool isSimplified = false;
 
@@ -1973,7 +2139,7 @@ void CLua::open_utillibs(sol::state&)
 			return util::toConstData(result);
 		});
 
-	lua_.set_function("todb", [this](sol::object ovalue, sol::object len, sol::this_state s)->double
+	lua.set_function("todb", [this](sol::object ovalue, sol::object len, sol::this_state s)->double
 		{
 			double result = 0.0;
 			if (ovalue.is<std::string>())
@@ -1992,7 +2158,7 @@ void CLua::open_utillibs(sol::state&)
 			return result;
 		});
 
-	lua_.set_function("tostr", [this](sol::object ovalue, sol::this_state s)->std::string
+	lua.set_function("tostr", [this](sol::object ovalue, sol::this_state s)->std::string
 		{
 			QString result = "";
 			if (ovalue.is<std::string>())
@@ -2009,7 +2175,7 @@ void CLua::open_utillibs(sol::state&)
 			return util::toConstData(result);
 		});
 
-	lua_.set_function("toint", [this](sol::object ovalue, sol::this_state s)->long long
+	lua.set_function("toint", [this](sol::object ovalue, sol::this_state s)->long long
 		{
 			long long result = 0.0;
 			if (ovalue.is<std::string>())
@@ -2022,7 +2188,7 @@ void CLua::open_utillibs(sol::state&)
 			return result;
 		});
 
-	lua_.set_function("replace", [this](std::string ssrc, std::string sfrom, std::string sto, sol::object oisRex, sol::this_state s)->std::string
+	lua.set_function("replace", [this](std::string ssrc, std::string sfrom, std::string sto, sol::object oisRex, sol::this_state s)->std::string
 		{
 			QString src = util::toQString(ssrc);
 			QString from = util::toQString(sfrom);
@@ -2048,7 +2214,7 @@ void CLua::open_utillibs(sol::state&)
 			return util::toConstData(result);
 		});
 
-	lua_.set_function("find", [this](std::string ssrc, std::string sfrom, sol::object osto, sol::this_state s)->std::string
+	lua.set_function("find", [this](std::string ssrc, std::string sfrom, sol::object osto, sol::this_state s)->std::string
 		{
 			QString varValue = util::toQString(ssrc);
 			QString text1 = util::toQString(sfrom);
@@ -2080,7 +2246,7 @@ void CLua::open_utillibs(sol::state&)
 		});
 
 	//参数1:字符串内容, 参数2:正则表达式, 参数3(选填):第几个匹配项, 参数4(选填):是否为全局匹配, 参数5(选填):第几组
-	lua_.set_function("regex", [this](std::string ssrc, std::string rexstr, sol::object oidx, sol::object oisglobal, sol::object ogidx, sol::this_state s)->std::string
+	lua.set_function("regex", [this](std::string ssrc, std::string rexstr, sol::object oidx, sol::object oisglobal, sol::object ogidx, sol::this_state s)->std::string
 		{
 			QString varValue = util::toQString(ssrc);
 
@@ -2140,7 +2306,7 @@ void CLua::open_utillibs(sol::state&)
 		});
 
 	//rex 参数1:来源字符串, 参数2:正则表达式
-	lua_.set_function("rex", [this](std::string ssrc, std::string rexstr, sol::this_state s)->sol::table
+	lua.set_function("rex", [this](std::string ssrc, std::string rexstr, sol::this_state s)->sol::table
 		{
 			QString src = util::toQString(ssrc);
 			sol::state_view lua(s);
@@ -2166,7 +2332,7 @@ void CLua::open_utillibs(sol::state&)
 			return result;
 		});
 
-	lua_.set_function("rexg", [this](std::string ssrc, std::string rexstr, sol::this_state s)->sol::table
+	lua.set_function("rexg", [this](std::string ssrc, std::string rexstr, sol::this_state s)->sol::table
 		{
 			QString src = util::toQString(ssrc);
 			sol::state_view lua(s);
@@ -2198,7 +2364,7 @@ void CLua::open_utillibs(sol::state&)
 			return result;
 		});
 
-	lua_.set_function("rnd", [this](sol::object omin, sol::object omax, sol::this_state s)->long long
+	lua.set_function("rnd", [this](sol::object omin, sol::object omax, sol::this_state s)->long long
 		{
 			long long result = 0;
 			long long min = 0;
@@ -2232,7 +2398,7 @@ void CLua::open_utillibs(sol::state&)
 			return result;
 		});
 
-	lua_["tjoin"] = [this](sol::table t, std::string del, sol::this_state s)->std::string
+	lua["tjoin"] = [this](sol::table t, std::string del, sol::this_state s)->std::string
 		{
 			QStringList l = {};
 			for (const std::pair<sol::object, sol::object>& i : t)
@@ -2433,6 +2599,65 @@ private:
 	long long index_ = 0;
 };
 
+class CLuaMailProxy
+{
+public:
+	CLuaMailProxy(long long gameDeviceIndex, long long addressBookIndex)
+		: index_(gameDeviceIndex), addressBookIndex_(addressBookIndex) {}
+
+	std::string operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return "";
+
+		if (index < 0 || index >= sa::MAIL_MAX_HISTORY)
+			return "";
+
+		sa::mail_history_t hisory = gamedevice.worker->getMailHistory(addressBookIndex_);
+		return util::toConstData(hisory.dateStr[index]);
+	}
+
+private:
+	long long index_ = 0;
+	long long addressBookIndex_ = 0;
+};
+
+class CLuaMail
+{
+public:
+	CLuaMail(long long index) : index_(index) {}
+
+	CLuaMailProxy operator[](long long index)
+	{
+		--index;
+
+		return CLuaMailProxy(index_, index);
+	}
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaPoint
+{
+public:
+	CLuaPoint(long long index) : index_(index) {}
+
+	long long getExp() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().expbufftime; }
+	long long getRep() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().prestige; }
+	long long getEne() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().energy; }
+	long long getShl() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().shell; }
+	long long getVit() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().vitality; }
+	long long getPts() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().points; }
+	long long getVip() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().VIPPoints; }
+
+private:
+	long long index_ = 0;
+};
+
 std::string sa::team_t::getFreeName() const
 {
 	GameDevice& gamedevice = GameDevice::getInstance(controlIndex);
@@ -2572,6 +2797,7 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.safe_script(R"(
 		print = printf;
 	)", sol::script_pass_on_error);
+	lua.collect_garbage();
 
 	lua.set_function("msg", &CLuaSystem::messagebox, &luaSystem_);
 	lua.set_function("saveset", &CLuaSystem::savesetting, &luaSystem_);
@@ -2721,7 +2947,8 @@ void CLua::open_syslibs(sol::state& lua)
 		sol::call_constructor,
 		sol::constructors<CLuaChat(long long)>(),
 		sol::meta_function::index, &CLuaChat::operator[],
-		"contains", &CLuaChat::contains
+		"contains", &CLuaChat::contains,
+		"包含", &CLuaChat::contains
 	);
 
 	lua.safe_script("chat = ChatClass(__INDEX);", sol::script_pass_on_error);
@@ -2748,6 +2975,26 @@ void CLua::open_syslibs(sol::state& lua)
 		"秒", sol::property(&CLuaTimer::costSeconds)
 	);
 
+	lua.new_usertype<CLuaTimerZhs>("计时器",
+		sol::call_constructor,
+		sol::constructors<CLuaTimerZhs()>(),
+
+		"restart", &CLuaTimerZhs::restart,
+		"expired", &CLuaTimerZhs::hasExpired,
+		"getstr", &CLuaTimerZhs::toFormatedString,
+		"tostr", &CLuaTimerZhs::toString,
+		"todb", &CLuaTimerZhs::toDouble,
+		"msec", sol::property(&CLuaTimerZhs::cost),
+		"sec", sol::property(&CLuaTimerZhs::costSeconds),
+		"重置", &CLuaTimerZhs::restart,
+		"超时", &CLuaTimerZhs::hasExpired,
+		"取格式", &CLuaTimerZhs::toFormatedString,
+		"到字符串", &CLuaTimerZhs::toString,
+		"到浮点数", &CLuaTimerZhs::toDouble,
+		"毫秒", sol::property(&CLuaTimerZhs::cost),
+		"秒", sol::property(&CLuaTimerZhs::costSeconds)
+	);
+
 	//lua.new_usertype<CLuaTimer>("计时器",
 	//	sol::call_constructor,
 	//	sol::constructors<CLuaTimer()>(),
@@ -2768,7 +3015,8 @@ void CLua::open_syslibs(sol::state& lua)
 		sol::call_constructor,
 		sol::constructors<CLuaCard(long long)>(),
 		sol::meta_function::index, &CLuaCard::operator[],
-		"contains", &CLuaCard::contains
+		"contains", &CLuaCard::contains,
+		"包含", &CLuaCard::contains
 	);
 
 	lua.safe_script("card = CardClass(__INDEX);", sol::script_pass_on_error);
@@ -2799,7 +3047,111 @@ void CLua::open_syslibs(sol::state& lua)
 
 	lua.safe_script("team = TeamClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
+
+	lua.new_usertype<CLuaMailProxy>("MailProxyClass",
+		sol::call_constructor,
+		sol::constructors<CLuaMailProxy(long long, long long)>(),
+		sol::meta_function::index, &CLuaMailProxy::operator[]
+	);
+
+	lua.new_usertype<CLuaMail>("MailClass",
+		sol::call_constructor,
+		sol::constructors<CLuaMail(long long)>(),
+		sol::meta_function::index, &CLuaMail::operator[]
+	);
+
+	lua.safe_script("mails = MailClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
+
+	lua.new_usertype <CLuaPoint>("PointClass",
+		sol::call_constructor,
+		sol::constructors<CLuaPoint(long long)>(),
+		"exp", sol::property(&CLuaPoint::getExp),
+		"rep", sol::property(&CLuaPoint::getRep),
+		"ene", sol::property(&CLuaPoint::getEne),
+		"shl", sol::property(&CLuaPoint::getShl),
+		"vit", sol::property(&CLuaPoint::getVit),
+		"pts", sol::property(&CLuaPoint::getPts),
+		"vip", sol::property(&CLuaPoint::getVip)
+	);
+
+	lua.safe_script("point = PointClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
 }
+
+class CLuaPetEquipProxy
+{
+public:
+	CLuaPetEquipProxy(long long gameDeviceIndex, long long petIndex) : index_(gameDeviceIndex), petIndex_(petIndex) {}
+
+	sa::item_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::item_t();
+
+		return gamedevice.worker->getPetEquip(petIndex_, index);
+	}
+
+	sol::object find(std::string sname, sol::this_state s)
+	{
+		sol::state_view lua(s.lua_state());
+		GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+		QString name = util::toQString(sname);
+		bool isExact = false;
+		if (name.startsWith("?"))
+		{
+			name = name.mid(1);
+			isExact = true;
+		}
+
+		for (long long i = 0; i < sa::MAX_PET_ITEM; ++i)
+		{
+			sa::item_t item = gamedevice.worker->getPetEquip(petIndex_, i);
+			if (!item.valid)
+				continue;
+
+			if (isExact)
+			{
+				if (item.name == name)
+					return sol::make_object(lua, item);
+			}
+			else
+			{
+				if (item.name.contains(name))
+					return sol::make_object(lua, item);
+			}
+		}
+
+		return sol::lua_nil;
+	}
+
+private:
+	long long index_ = 0;
+	long long petIndex_ = -1;
+};
+
+class CLuaPetEquip
+{
+public:
+	CLuaPetEquip(long long index) : index_(index) {}
+
+	CLuaPetEquipProxy operator[](long long index)
+	{
+		--index;
+
+		CLuaPetEquipProxy proxy(index_, index);
+		return proxy;
+	}
+
+private:
+	long long index_ = 0;
+};
 
 void CLua::open_itemlibs(sol::state& lua)
 {
@@ -2865,6 +3217,21 @@ void CLua::open_itemlibs(sol::state& lua)
 	);
 
 	lua.safe_script("item = ItemClass(__INDEX);", sol::script_pass_on_error);
+	lua.collect_garbage();
+
+	lua.new_usertype < CLuaPetEquipProxy>("PetEquipClass",
+		sol::call_constructor,
+		sol::constructors<CLuaPetEquipProxy(long long, long long)>(),
+		sol::meta_function::index, &CLuaPetEquipProxy::operator[]
+	);
+
+	lua.new_usertype<CLuaPetEquip>("PetEquipClass",
+		sol::call_constructor,
+		sol::constructors<CLuaPetEquip(long long)>(),
+		sol::meta_function::index, &CLuaPetEquip::operator[]
+	);
+
+	lua.safe_script("petequip = PetEquipClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
 }
 
@@ -3159,9 +3526,50 @@ public:
 		return gamedevice.worker->getPetSkill(petIndex_, index);
 	}
 
+	sol::object find(std::string sname, sol::this_state s)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+		QString name = util::toQString(sname);
+
+		if (name.isEmpty())
+			return sol::lua_nil;
+
+		bool isExist = true;
+		QString newName = name;
+		if (name.startsWith("?"))
+		{
+			newName = name.mid(1);
+			isExist = false;
+		}
+
+		QHash<long long, sa::pet_skill_t> skills = gamedevice.worker->getPetSkills(petIndex_);
+
+		for (auto it = skills.begin(); it != skills.end(); ++it)
+		{
+			sa::pet_skill_t skill = it.value();
+
+			QString skillname = skill.name;
+			QString memo = skill.memo;
+			if (skillname.isEmpty())
+				continue;
+
+			if (isExist && skillname == newName)
+				return sol::make_object(s, skill);
+			else if (!isExist && skillname.contains(newName))
+				return sol::make_object(s, skill);
+			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
+				return sol::make_object(s, skill);
+		}
+
+		return sol::lua_nil;
+	}
+
 private:
 	long long index_ = 0;
-	long long petIndex_;
+	long long petIndex_ = -1;
 };
 
 class CLuaPetSkill
@@ -3196,6 +3604,8 @@ public:
 			newName = name.mid(1);
 			isExist = false;
 		}
+
+		--petIndex;
 
 		QHash<long long, sa::pet_skill_t> skills = gamedevice.worker->getPetSkills(petIndex);
 
@@ -3295,14 +3705,17 @@ void CLua::open_petlibs(sol::state& lua)
 	lua.new_usertype < CLuaPetSkillProxy>("PetSkillProxyClass",
 		sol::call_constructor,
 		sol::constructors<CLuaPetSkillProxy(long long, long long)>(),
-		sol::meta_function::index, &CLuaPetSkillProxy::operator[]
+		sol::meta_function::index, &CLuaPetSkillProxy::operator[],
+		"find", &CLuaPetSkillProxy::find,
+		"查找", &CLuaPetSkillProxy::find
 	);
 
 	lua.new_usertype<CLuaPetSkill>("PetSkillClass",
 		sol::call_constructor,
 		sol::constructors<CLuaPetSkill(long long)>(),
 		sol::meta_function::index, &CLuaPetSkill::operator[],
-		"find", &CLuaPetSkill::find
+		"find", &CLuaPetSkill::find,
+		"查找", &CLuaPetSkill::find
 	);
 
 	lua.safe_script("petskill = PetSkillClass(__INDEX);", sol::script_pass_on_error);
@@ -3434,23 +3847,6 @@ void CLua::open_maplibs(sol::state& lua)
 
 void CLua::open_battlelibs(sol::state& lua)
 {
-	//registerFunction("bwait", &Interpreter::bwait);
-	//registerFunction("bend", &Interpreter::bend);
-
-	//lua.set_function("bh", &CLuaBattle::charUseAttack, &luaBattle_);
-	//lua.set_function("bj", &CLuaBattle::charUseMagic, &luaBattle_);
-	//lua.set_function("bp", &CLuaBattle::charUseSkill, &luaBattle_);
-	//lua.set_function("bs", &CLuaBattle::switchPet, &luaBattle_);
-	//lua.set_function("be", &CLuaBattle::escape, &luaBattle_);
-	//lua.set_function("bd", &CLuaBattle::defense, &luaBattle_);
-	//lua.set_function("bi", &CLuaBattle::useItem, &luaBattle_);
-	//lua.set_function("bt", &CLuaBattle::catchPet, &luaBattle_);
-	//lua.set_function("bn", &CLuaBattle::nothing, &luaBattle_);
-	//lua.set_function("bw", &CLuaBattle::petUseSkill, &luaBattle_);
-	//lua.set_function("bwn", &CLuaBattle::petNothing, &luaBattle_);
-	//lua.set_function("bwait", &CLuaBattle::bwait, &luaBattle_);
-	//lua.set_function("bend", &CLuaBattle::bend, &luaBattle_);
-
 	lua.new_usertype<sa::battle_object_t>("BattleStruct",
 		"ready", sol::readonly(&sa::battle_object_t::ready),
 		"pos", sol::readonly(&sa::battle_object_t::pos),
@@ -3615,6 +4011,8 @@ collectgarbage("setstepmul", 100);
 collectgarbage("step", 1024);
 	)", sol::script_pass_on_error);
 
+	lua_.collect_garbage();
+
 	//Add additional package path.
 	QStringList paths;
 	std::string package_path = lua_["package"]["path"];
@@ -3633,6 +4031,7 @@ collectgarbage("step", 1024);
 	lua_.safe_script(R"(
 		require('translations');
 	)", sol::script_pass_on_error);
+	lua_.collect_garbage();
 
 	if (isHookEnabled_)
 	{
@@ -3675,8 +4074,6 @@ bool CLua::doFile(std::string fileName)
 				qDebug() << err.what();
 
 				QString errStr = util::toQString(err.what());
-
-				errStr.prepend("[battle]");
 
 				sol::this_state s = lua_.lua_state();
 
