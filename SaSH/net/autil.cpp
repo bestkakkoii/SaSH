@@ -210,7 +210,7 @@ bool Autil::util_SendMesg(long long func, char* buffer)
 
 	util_EncodeMessage(t2, NETDATASIZE, t1);
 
-	int size = static_cast<int>(strlen(t2));
+	int size = static_cast<int>(strnlen_s(t2, sizeof(t2)));
 	t2[size] = '\n';
 	size += 1;
 

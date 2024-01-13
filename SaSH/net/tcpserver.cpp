@@ -2879,14 +2879,17 @@ void Worker::setWorldStatus(long long w) const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	mem::write<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetWorldStatus, w);
+	if (gamedevice.postMessage(kSetWorldStatus, w, NULL) == FALSE)
+		mem::write<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetWorldStatus, w);
 }
 
 void Worker::setGameStatus(long long g) const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	mem::write<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetGameStatus, g);
+
+	if (gamedevice.postMessage(kSetGameStatus, g, NULL) == FALSE)
+		mem::write<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetGameStatus, g);
 }
 
 //切換是否在戰鬥中的標誌
@@ -3038,7 +3041,7 @@ bool Worker::cleanChatHistory()
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	if (gamedevice.sendMessage(kCleanChatHistory, NULL, NULL) <= 0)
+	if (!gamedevice.postMessage(kCleanChatHistory, NULL, NULL))
 		return false;
 
 	chatQueue.clear();
@@ -3371,6 +3374,8 @@ bool Worker::logOut()
 
 	if (!lssproto_CharLogout_send(0))
 		return false;
+
+	lssproto_Echo_send(const_cast<char*>("hoge"));
 
 	setWorldStatus(7);
 	setGameStatus(0);
@@ -3969,7 +3974,7 @@ bool Worker::createRemoteDialog(unsigned long long type, unsigned long long butt
 
 	mem::VirtualMemory ptr(gamedevice.getProcess(), text, mem::VirtualMemory::kAnsi, true);
 
-	return gamedevice.sendMessage(kCreateDialog, MAKEWPARAM(type, button), ptr) > 0;
+	return gamedevice.postMessage(kCreateDialog, MAKEWPARAM(type, button), ptr);
 }
 
 //按下按鈕
@@ -3979,7 +3984,7 @@ bool Worker::press(sa::ButtonType select, long long dialogid, long long unitid)
 	{
 		long long currentIndex = getIndex();
 		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-		return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
+		return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
 	}
 
 	sa::dialog_t dialog = currentDialog.get();
@@ -4030,7 +4035,7 @@ bool Worker::press(sa::ButtonType select, long long dialogid, long long unitid)
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
+	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
 }
 
 //按下行按鈕
@@ -4050,7 +4055,7 @@ bool Worker::press(long long row, long long dialogid, long long unitid)
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
+	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
 }
 
 //買東西
@@ -4077,7 +4082,7 @@ bool Worker::buy(long long index, long long amt, long long dialogid, long long u
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
+	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
 }
 
 //賣東西
@@ -4125,7 +4130,7 @@ bool Worker::sell(long long index, long long dialogid, long long unitid)
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
+	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
 }
 
 //賣東西
@@ -4182,7 +4187,7 @@ bool Worker::learn(long long petIndex, long long shopSkillIndex, long long petSk
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
+	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
 }
 
 bool Worker::depositItem(long long itemIndex, long long dialogid, long long unitid)
@@ -4224,7 +4229,7 @@ bool Worker::withdrawItem(long long itemIndex, long long dialogid, long long uni
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	if (gamedevice.sendMessage(kDistoryDialog, NULL, NULL) <= 0)
+	if (!gamedevice.postMessage(kDistoryDialog, NULL, NULL))
 		return false;
 
 	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
@@ -4275,7 +4280,7 @@ bool Worker::inputtext(const QString& text, long long dialogid, long long unitid
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
+	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
 }
 
 //解除安全瑪
@@ -4289,7 +4294,7 @@ bool Worker::unlockSecurityCode(const QString& code)
 		return false;
 
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL) > 0;
+	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
 }
 
 bool Worker::windowPacket(const QString& command, long long dialogid, long long unitid)
@@ -5428,7 +5433,7 @@ bool Worker::move(const QPoint& p) const
 	if (!gamedevice.isValid())
 		return false;
 
-	return gamedevice.sendMessage(kSetMove, p.x(), p.y()) > 0;
+	return gamedevice.postMessage(kSetMove, p.x(), p.y());
 }
 
 //轉向指定坐標
@@ -10285,7 +10290,7 @@ bool Worker::sendBattleCharCatchPetAct(long long target)
 
 		sa::battle_object_t obj = bt.objects.value(target);
 		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
-		const QString text(QObject::tr("catch [%1]%2").arg(target).arg(name));
+		const QString text(QObject::tr("catch [%1]%2").arg(target + 1).arg(name));
 
 		labelCharAction.set(text);
 		emit signalDispatcher.updateLabelCharAction(text);
@@ -11347,7 +11352,7 @@ QString Worker::battleStringFormat(const sa::battle_object_t& obj, QString forma
 {
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	//"[%(pos)]%(self)%(name) LV:%(lv)(%(hp)|%(hpp))%(status)"
-	formatStr.replace("%(pos)", util::toQString(obj.pos), Qt::CaseInsensitive);
+	formatStr.replace("%(pos)", util::toQString(obj.pos + 1), Qt::CaseInsensitive);
 
 	bool isself = obj.pos == battleCharCurrentPos.get();
 	if ((obj.hp > 0) && (isself || (obj.pos == (battleCharCurrentPos.get() + 5))))

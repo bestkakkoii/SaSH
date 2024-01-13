@@ -31,7 +31,7 @@ inline static T CONVERT_GAMEVAR(ULONG_PTR offset) { return (T)((reinterpret_cast
 #include <assert.h>
 #include <cassert>
 #pragma comment(lib, "dbghelp.lib")
-LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
+static LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 {
 	do
 	{
@@ -98,80 +98,80 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 extern "C"
 {
 	//new socket
-	SOCKET WSAAPI New_socket(int af, int type, int protocol)
+	static SOCKET WSAAPI New_socket(int af, int type, int protocol)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_socket(af, type, protocol);
 	}
 
 	//new send
-	int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags)
+	static int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_send(s, buf, len, flags);
 	}
 
 	//new recv
-	int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags)
+	static int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_recv(s, buf, len, flags);
 	}
 
 	//new closesocket
-	int WSAAPI New_closesocket(SOCKET s)
+	static int WSAAPI New_closesocket(SOCKET s)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_closesocket(s);
 	}
 
 	//new connect
-	int WSAAPI New_connect(SOCKET s, const struct sockaddr* name, int namelen)
+	static int WSAAPI New_connect(SOCKET s, const struct sockaddr* name, int namelen)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_connect(s, name, namelen);
 	}
 
 	//new inet_addr
-	unsigned long WSAAPI New_inet_addr(const char* cp)
+	static unsigned long WSAAPI New_inet_addr(const char* cp)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_inet_addr(cp);
 	}
 
 	//new ntohs
-	u_short WSAAPI New_ntohs(u_short netshort)
+	static u_short WSAAPI New_ntohs(u_short netshort)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_ntohs(netshort);
 	}
 
 	//new SetWindowTextA
-	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString)
+	static BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_SetWindowTextA(hWnd, lpString);
 	}
 
-	DWORD WINAPI New_GetTickCount()
+	static DWORD WINAPI New_GetTickCount()
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_GetTickCount();
 	}
 
-	BOOL WINAPI New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
+	static BOOL WINAPI New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_QueryPerformanceCounter(lpPerformanceCount);
 	}
 
-	DWORD WINAPI New_TimeGetTime()
+	static DWORD WINAPI New_TimeGetTime()
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_TimeGetTime();
 	}
 
-	void WINAPI New_Sleep(DWORD dwMilliseconds)
+	static void WINAPI New_Sleep(DWORD dwMilliseconds)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_Sleep(dwMilliseconds);
@@ -180,74 +180,74 @@ extern "C"
 	/////// game client ///////
 
 	//PlaySound
-	void __cdecl New_PlaySound(int a, int b, int c)
+	static void __cdecl New_PlaySound(int a, int b, int c)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_PlaySound(a, b, c);
 	}
 
 	//BattleProc
-	void __cdecl New_BattleProc()
+	static void __cdecl New_BattleProc()
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_BattleProc();
 	}
 
 	//BattleCommandReady
-	void __cdecl New_BattleCommandReady()
+	static void __cdecl New_BattleCommandReady()
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_BattleCommandReady();
 	}
 
 	//TimeProc
-	void __cdecl New_TimeProc(int fd)
+	static void __cdecl New_TimeProc(int fd)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_TimeProc(fd);
 	}
 
 	//lssproto_EN_recv
-	void __cdecl New_lssproto_EN_recv(int fd, int result, int field)
+	static void __cdecl New_lssproto_EN_recv(int fd, int result, int field)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_lssproto_EN_recv(fd, result, field);
 	}
 
 	//lssproto_B_recv
-	void __cdecl New_lssproto_B_recv(int fd, char* command)
+	static void __cdecl New_lssproto_B_recv(int fd, char* command)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_lssproto_B_recv(fd, command);
 	}
 
 	//lssproto_WN_send
-	void _cdecl New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, char* data)
+	static void _cdecl New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, char* data)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_lssproto_WN_send(fd, x, y, dialogid, unitid, select, data);
 	}
 
-	void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area)
+	static void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_lssproto_TK_send(fd, x, y, message, color, area);
 	}
 
-	void __cdecl New_lssproto_W2_send(int fd, int x, int y, const char* dir)
+	static void __cdecl New_lssproto_W2_send(int fd, int x, int y, const char* dir)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_lssproto_W2_send(fd, x, y, dir);
 	}
 
-	void __cdecl New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data)
+	static void __cdecl New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_CreateDialog(unk, type, button, unitid, dialogid, data);
 	}
 }
 
-void setSocket(SOCKET fd)
+static void setSocket(SOCKET fd)
 {
 	int option_value = 1; //禁用Nagle
 	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&option_value, sizeof(option_value));
@@ -281,7 +281,7 @@ void setSocket(SOCKET fd)
 }
 
 //hooks
-SOCKET GameService::New_socket(int af, int type, int protocol)
+SOCKET GameService::New_socket(int af, int type, int protocol) const
 {
 	SOCKET fd = psocket(af, type, protocol);
 	if (INVALID_SOCKET != fd)
@@ -289,13 +289,13 @@ SOCKET GameService::New_socket(int af, int type, int protocol)
 	return fd;
 }
 
-int GameService::New_send(SOCKET s, const char* buf, int len, int flags)
+int GameService::New_send(SOCKET s, const char* buf, int len, int flags) const
 {
 	int ret = psend(s, buf, len, flags);
 	return ret;
 }
 
-int GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen)
+int GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen) const
 {
 	//if (s && name != nullptr)
 	//{
@@ -313,20 +313,19 @@ int GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen)
 	return pconnect(s, name, namelen);
 }
 
-unsigned long GameService::New_inet_addr(const char* cp)
+unsigned long GameService::New_inet_addr(const char* cp) const
 {
 	std::cout << L"inet_addr: " << std::string(cp) << std::endl;
 	return pinet_addr(cp);
 }
 
-u_short GameService::New_ntohs(u_short netshort)
+u_short GameService::New_ntohs(u_short netshort) const
 {
 	std::wcout << L"ntohs: " << std::to_wstring(netshort) << std::endl;
 	return pntohs(netshort);
 }
 
 //hook recv將封包全部轉發給外掛，本來準備完全由外掛處理好再發回來，但效果不盡人意
-char g_buffer[1] = { '\0' };
 int GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 {
 	int recvlen = precv(s, buf, len, flags);
@@ -334,7 +333,6 @@ int GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 	if ((recvlen > 0) && (recvlen <= len))
 	{
 		sendToServer(buf, static_cast<size_t>(recvlen));
-		//recvFromServer(g_buffer, sizeof(g_buffer));
 	}
 
 	return recvlen;
@@ -363,7 +361,7 @@ BOOL GameService::New_SetWindowTextA(HWND, LPCSTR)
 	return TRUE;
 }
 
-DWORD GameService::New_GetTickCount()
+DWORD GameService::New_GetTickCount() const
 {
 	static DWORD g_dwRealTick = pGetTickCount();
 	static DWORD g_dwHookTick = pGetTickCount();
@@ -376,7 +374,7 @@ DWORD GameService::New_GetTickCount()
 	return g_dwHookTick;
 }
 
-BOOL GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
+BOOL GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount) const
 {
 	BOOL result = pQueryPerformanceCounter(lpPerformanceCount);
 
@@ -385,7 +383,7 @@ BOOL GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
 	return result;
 }
 
-DWORD GameService::New_TimeGetTime()
+DWORD GameService::New_TimeGetTime() const
 {
 	static DWORD g_dwRealTime = pTimeGetTime();
 	static DWORD g_dwHookTime = pTimeGetTime();
@@ -409,7 +407,7 @@ void GameService::New_Sleep(DWORD dwMilliseconds)
 //////////////////////////////////////////////////////////////////////
 
 //音效
-void GameService::New_PlaySound(int a, int b, int c)
+void GameService::New_PlaySound(int a, int b, int c) const
 {
 	if (FALSE == IS_SOUND_MUTE_FLAG)
 	{
@@ -418,7 +416,7 @@ void GameService::New_PlaySound(int a, int b, int c)
 }
 
 //戰鬥循環
-void GameService::New_BattleProc()
+void GameService::New_BattleProc() const
 {
 	if (TRUE == IS_BATTLE_PROC_FLAG)
 	{
@@ -436,21 +434,21 @@ void GameService::New_BattleCommandReady()
 }
 
 //遊戲時間刷新循環 (早上,下午....)
-void GameService::New_TimeProc(int fd)
+void GameService::New_TimeProc(int fd) const
 {
 	if (FALSE == IS_TIME_LOCK_FLAG)
 		pTimeProc(fd);
 }
 
 //EN封包攔截，戰鬥進場
-void GameService::New_lssproto_EN_recv(int fd, int result, int field)
+void GameService::New_lssproto_EN_recv(int fd, int result, int field) const
 {
 	if (FALSE == IS_ENCOUNT_BLOCK_FLAG)
 		pLssproto_EN_recv(fd, result, field);
 }
 
 //B封包攔截，戰鬥封包
-void GameService::New_lssproto_B_recv(int fd, char* command)
+void GameService::New_lssproto_B_recv(int fd, char* command) const
 {
 	if (FALSE == IS_ENCOUNT_BLOCK_FLAG)
 		pLssproto_B_recv(fd, command);
@@ -520,13 +518,13 @@ void GameService::New_lssproto_TK_send(int fd, int x, int y, const char* message
 }
 
 //W2移動收包攔截
-void GameService::New_lssproto_W2_send(int fd, int x, int y, const char* message)
+void GameService::New_lssproto_W2_send(int fd, int x, int y, const char* message) const
 {
 	//PostMessageW(g_ParenthWnd, kSetMove, NULL, MAKELPARAM(x, y));
 	pLssproto_W2_send(fd, x, y, message);
 }
 
-void GameService::New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data)
+void GameService::New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data) const
 {
 	pCreateDialog(unk, type, button, unitid, dialogid, data);
 	*CONVERT_GAMEVAR<int*>(0x4200004ul) = 1;
@@ -538,6 +536,8 @@ void GameService::New_CreateDialog(int unk, int type, int button, int unitid, in
 //設置遊戲畫面狀態值
 BOOL GameService::WM_SetGameStatus(int status)
 {
+	std::unique_lock<std::shared_mutex> lock(g_statusLock);
+
 	if (!isInitialized_.load(std::memory_order_acquire))
 		return FALSE;
 
@@ -549,6 +549,28 @@ BOOL GameService::WM_SetGameStatus(int status)
 	if (G != status)
 	{
 		*g_game_status = status;
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+//設置遊戲世界狀態值
+BOOL GameService::WM_SetWorldStatus(int status)
+{
+	std::unique_lock<std::shared_mutex> lock(g_statusLock);
+
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
+	if (nullptr == g_world_status)
+		return FALSE;
+
+	int W = *g_world_status;
+
+	if (W != status)
+	{
+		*g_world_status = status;
 		return TRUE;
 	}
 
@@ -755,11 +777,19 @@ BOOL GameService::WM_EnableEffect(BOOL enable)
 	DWORD effectAddr3 = CONVERT_GAMEVAR<DWORD>(0x48DE6ul);
 	DWORD effectAddr4 = CONVERT_GAMEVAR<DWORD>(0x49029ul);
 	DWORD effectAddr5 = CONVERT_GAMEVAR<DWORD>(0x7BDF2ul);
+	DWORD effectAddr6 = CONVERT_GAMEVAR<DWORD>(0x60013);
+	DWORD effectAddr7 = CONVERT_GAMEVAR<DWORD>(0x21163);
 
 	if (TRUE == enable)
 	{
 		//sa_8001sf.exe+434DD - C7 05 F0 0D 63 04 C8 00 00 00 - mov [sa_8001sf.exe+4230DF0],000000C8 { (3),200 }
 		util::MemoryMove(effectAddr, "\xC7\x05\xF0\x0D\x63\x04\xC8\x00\x00\x00", 10u);
+
+		//sa_8001.exe.text+5F013 - C7 05 F00D6304 C8000000 - mov [sa_8001.exe+4230DF0],000000C8 { (3),200 }
+		util::MemoryMove(effectAddr6, "\xC7\x05\xF0\x0D\x63\x04\xC8\x00\x00\x00", 10u);
+
+		//sa_8001.exe.text+20163 - C7 05 F00D6304 C8000000 - mov [sa_8001.exe+4230DF0],000000C8 { (3),200 }
+		util::MemoryMove(effectAddr7, "\xC7\x05\xF0\x0D\x63\x04\xC8\x00\x00\x00", 10u);
 
 		///*
 		//	sa_8001sf.exe+482F0 - 0F8C FA020000         - jl sa_8001sf.exe+485F0
@@ -784,6 +814,12 @@ BOOL GameService::WM_EnableEffect(BOOL enable)
 		//sa_8001sf.exe+434DD - EB 08                 - jmp sa_8001sf.exe+434E7
 		util::MemoryMove(effectAddr, "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 10u);
 
+		//sa_8001.exe.text+5F013 - C7 05 F00D6304 C8000000 - mov [sa_8001.exe+4230DF0],000000C8 { (3),200 }
+		util::MemoryMove(effectAddr6, "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 10u);
+
+		//sa_8001.exe.text+20163 - C7 05 F00D6304 C8000000 - mov [sa_8001.exe+4230DF0],000000C8 { (3),200 }
+		util::MemoryMove(effectAddr7, "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 10u);
+
 		///*
 		//sa_8001sf.exe+482F0 - EB 04                 - jmp sa_8001sf.exe+482F6
 		//sa_8001sf.exe+482F2 - FA                    - cli
@@ -803,6 +839,8 @@ BOOL GameService::WM_EnableEffect(BOOL enable)
 		sa_8001sf.exe+7BDF3 - E9 20010000           - jmp sa_8001sf.exe+7BF18
 		*/
 		util::MemoryMove(effectAddr5, "\x90\xE9\x20\x01\x00\x00", 6u);
+
+
 	}
 
 	return TRUE;
@@ -1255,7 +1293,7 @@ BOOL GameService::WM_SetBlockPacket(BOOL enable)
 #pragma endregion
 
 #pragma region WinProc
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	GameService& g_GameService = GameService::getInstance();
 
@@ -1287,8 +1325,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					char* pszText = static_cast<char*>(GlobalLock(hClipboardData));
 					if (pszText != nullptr)
 					{
-						if ((((1 == *g_GameService.g_world_status) && (2 == *g_GameService.g_game_status))
-							|| ((1 == *g_GameService.g_world_status) && (3 == *g_GameService.g_game_status))))
+						if ((((1 == g_GameService.getWorldStatue()) && (2 == g_GameService.getGameStatue()))
+							|| ((1 == g_GameService.getWorldStatue()) && (3 == g_GameService.getGameStatue()))))
 						{
 							constexpr size_t inputBoxBufSize = 20u;
 
@@ -1434,7 +1472,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case kSetGameStatus://設置遊戲動畫狀態
 	{
-		return g_GameService.WM_SetGameStatus(wParam > 0 ? TRUE : FALSE);
+		return g_GameService.WM_SetGameStatus(static_cast<int>(wParam));
+	}
+	case kSetWorldStatus://設置世界動畫狀態
+	{
+		return g_GameService.WM_SetWorldStatus(static_cast<int>(wParam));
 	}
 	case kSetBlockPacket://戰鬥封包阻擋
 	{

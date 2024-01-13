@@ -569,7 +569,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 	if (name == "checkBox_lockmove")
 	{
 		gamedevice.setEnableHash(util::kLockMoveEnable, isChecked);
-		gamedevice.sendMessage(kEnableMoveLock, isChecked, NULL);
+		gamedevice.postMessage(kEnableMoveLock, isChecked, NULL);
 		return;
 	}
 
@@ -924,7 +924,7 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 	{
 		gamedevice.setValueHash(util::kLockTimeValue, value);
 		if (ui.checkBox_locktime->isChecked())
-			gamedevice.sendMessage(kSetTimeLock, true, value);
+			gamedevice.postMessage(kSetTimeLock, true, value);
 		return;
 	}
 

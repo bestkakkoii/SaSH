@@ -661,7 +661,7 @@ void GameDevice::leftDoubleClick(long long x, long long y) const
 	mouseMove(x, y);
 	QThread::msleep(50);
 	LPARAM data = MAKELPARAM(x, y);
-	sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
+	postMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
 }
 
 void GameDevice::rightClick(long long x, long long y) const
@@ -688,7 +688,7 @@ void GameDevice::dragto(long long x1, long long y1, long long x2, long long y2) 
 	QThread::msleep(50);
 	sendMessage(WM_MOUSEMOVE, NULL, datato);
 	QThread::msleep(50);
-	sendMessage(WM_LBUTTONUP, MK_LBUTTON, datato);
+	postMessage(WM_LBUTTONUP, MK_LBUTTON, datato);
 	QThread::msleep(50);
 }
 
@@ -739,7 +739,7 @@ void GameDevice::hide(long long mode) const
 		ShowWindow(hWnd, SW_HIDE);
 	}
 
-	sendMessage(kEnableWindowHide, true, NULL);
+	postMessage(kEnableWindowHide, true, NULL);
 
 	mem::freeUnuseMemory(getProcess());
 }
@@ -750,7 +750,7 @@ void GameDevice::show() const
 	if (hWnd == nullptr)
 		return;
 
-	sendMessage(kEnableWindowHide, false, NULL);
+	postMessage(kEnableWindowHide, false, NULL);
 
 	bool isWin7 = false;
 	//get windows version

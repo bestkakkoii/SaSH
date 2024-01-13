@@ -16,6 +16,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
+#include <shared_mutex>
 #ifndef SADLL_H
 #define SADLL_H
 
@@ -56,6 +57,7 @@ public:
 	BOOL __fastcall WM_BattleTimeExtend(BOOL enable);
 	BOOL __fastcall WM_EnableBattleDialog(BOOL enable);
 	BOOL __fastcall WM_SetGameStatus(int status);
+	BOOL __fastcall WM_SetWorldStatus(int status);
 	BOOL __fastcall WM_SetOptimize(BOOL enable);
 	BOOL __fastcall WM_SetWindowHide(BOOL enable);
 	BOOL __fastcall WM_Announce(char* str, int color);
@@ -67,30 +69,30 @@ public:
 	BOOL __fastcall WM_SetBlockPacket(BOOL enable);
 
 public://hook
-	SOCKET __fastcall New_socket(int af, int type, int protocol);
+	SOCKET __fastcall New_socket(int af, int type, int protocol) const;
 	int __fastcall New_closesocket(SOCKET s);
-	int __fastcall New_send(SOCKET s, const char* buf, int len, int flags);
+	int __fastcall New_send(SOCKET s, const char* buf, int len, int flags) const;
 	int __fastcall New_recv(SOCKET s, char* buf, int len, int flags);
-	int __fastcall New_connect(SOCKET s, const struct sockaddr* name, int namelen);
-	unsigned long __fastcall New_inet_addr(const char* cp);
-	u_short __fastcall New_ntohs(u_short netshort);
+	int __fastcall New_connect(SOCKET s, const struct sockaddr* name, int namelen) const;
+	unsigned long __fastcall New_inet_addr(const char* cp) const;
+	u_short __fastcall New_ntohs(u_short netshort) const;
 
 	BOOL __fastcall New_SetWindowTextA(HWND hWnd, LPCSTR lpString);
-	DWORD __fastcall New_GetTickCount();
-	BOOL __fastcall New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
-	DWORD __fastcall New_TimeGetTime();
+	DWORD __fastcall New_GetTickCount() const;
+	BOOL __fastcall New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount) const;
+	DWORD __fastcall New_TimeGetTime() const;
 	void __fastcall New_Sleep(DWORD dwMilliseconds);
 
-	void __cdecl New_PlaySound(int a, int b, int c);
-	void __cdecl New_BattleProc();
+	void __cdecl New_PlaySound(int a, int b, int c) const;
+	void __cdecl New_BattleProc() const;
 	void __cdecl New_BattleCommandReady();
-	void __cdecl New_TimeProc(int fd);
-	void __cdecl New_lssproto_EN_recv(int fd, int result, int field);
-	void __cdecl New_lssproto_B_recv(int fd, char* command);
+	void __cdecl New_TimeProc(int fd) const;
+	void __cdecl New_lssproto_EN_recv(int fd, int result, int field) const;
+	void __cdecl New_lssproto_B_recv(int fd, char* command) const;
 	void __cdecl New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, const char* data);
 	void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area);
-	void __cdecl New_lssproto_W2_send(int fd, int x, int y, const char* dir);
-	void __cdecl New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data);
+	void __cdecl New_lssproto_W2_send(int fd, int x, int y, const char* dir) const;
+	void __cdecl New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data) const;
 
 public:
 	//setwindowtexta
@@ -166,6 +168,12 @@ public://g-var
 	int* g_game_status = nullptr;
 
 	HWND g_consoleHwnd = nullptr;
+
+	mutable std::shared_mutex g_statusLock;
+
+	int __fastcall getWorldStatue() const { /*lock read*/ std::shared_lock<std::shared_mutex> lock(g_statusLock); return *g_world_status; }
+	int __fastcall getGameStatue() const { /*lock read*/ std::shared_lock<std::shared_mutex> lock(g_statusLock); return *g_game_status; }
+
 
 private:
 	BOOL __fastcall sendToServer(const std::string& text);

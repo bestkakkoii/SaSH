@@ -21,6 +21,7 @@ enum UserMessage
 	kMuteSound,
 	kEnableBattleDialog,
 	kSetGameStatus,
+	kSetWorldStatus,
 	kSetBlockPacket,
 	kBattleTimeExtend,
 	kEnableOptimize,

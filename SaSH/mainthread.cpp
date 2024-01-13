@@ -534,17 +534,17 @@ void MainObject::mainProc()
 			// 允許 自動戰鬥
 			if (bCheckedAutoBattle)
 			{
-				gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+				gamedevice.postMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 			}
 			// 允許 快速戰鬥
 			else if (bCheckedFastBattle)
 			{
 				if (W == 10)// 強退戰鬥畫面
 					gamedevice.worker->setGameStatus(7);
-				gamedevice.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
+				gamedevice.postMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
 			}
 			else // 不允許 快速戰鬥 和 自動戰鬥
-				gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+				gamedevice.postMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 		}
 		else if (status == 3)//戰鬥中
 		{
@@ -658,7 +658,7 @@ long long MainObject::inGameInitialize() const
 	gamedevice.worker->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
 	gamedevice.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(0));
 	gamedevice.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
-	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
+	gamedevice.postMessage(kDistoryDialog, NULL, NULL);
 	gamedevice.worker->echo();
 	gamedevice.worker->updateComboBoxList();
 	gamedevice.worker->updateDatasFromMemory();
@@ -991,7 +991,7 @@ void MainObject::checkControl()
 	if (flagMuteEnable_ != bChecked)
 	{
 		flagMuteEnable_ = bChecked;
-		gamedevice.sendMessage(kEnableSound, !bChecked, NULL);
+		gamedevice.postMessage(kEnableSound, !bChecked, NULL);
 	}
 }
 
@@ -1201,7 +1201,7 @@ void MissionThread::start()
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &MissionThread::requestMissionInterruption);
 
 	thread_->start();
-	}
+}
 
 void MissionThread::autoJoin()
 {

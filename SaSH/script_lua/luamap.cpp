@@ -381,7 +381,7 @@ long long CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 	return TRUE;
 }
 
-bool __fastcall findPathProcess(
+static bool __fastcall findPathProcess(
 	long long currentIndex,
 	AStarDevice* pastar,
 	QPoint dst,
