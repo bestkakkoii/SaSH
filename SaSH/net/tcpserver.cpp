@@ -1493,11 +1493,14 @@ bool Worker::getBattleFlag()
 //檢查是否在線
 bool Worker::getOnlineFlag()
 {
-	if (getUnloginStatus() == util::kStatusDisconnect)
+	long long W = getWorldStatus();
+	long long G = getGameStatus();
+
+	if (11 == W && 2 == G)
 	{
+		setOnlineFlag(false);
 		return false;
 	}
-
 	return isOnline_.get();
 }
 
@@ -3619,7 +3622,7 @@ bool Worker::login(long long s)
 		{
 			gamedevice.leftDoubleClick(315, 253);
 			config.writeArray<long long>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
-	}
+		}
 #endif
 		break;
 	}
@@ -3755,10 +3758,10 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1500))
 				break;
 
-	}
+		}
 #endif
 		break;
-}
+	}
 	case util::kStatusSelectSubServer:
 	{
 		if (!input())
@@ -3911,7 +3914,7 @@ bool Worker::login(long long s)
 					break;
 
 			}
-	}
+		}
 #endif
 		break;
 	}
@@ -7205,7 +7208,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 					break;
 
 				target = -1;
-				if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target < sa::MAX_ENEMY))
+				if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0))
 					return sendBattleCharItemAct(itemIndex, target);
 			} while (false);
 
@@ -7267,8 +7270,8 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				QHash<long long, long long> tagetHash = {
 					{ kSelectEnemyAny, target == -1 ? getBattleSelectableEnemyTarget(bt) : target },
 					{ kSelectEnemyAll, sa::TARGET_SIDE_1 },
-					{ kSelectEnemyFront, target == -1 ? getBattleSelectableEnemyOneRowTarget(bt, true) + sa::MAX_ENEMY : target + sa::MAX_ENEMY },
-					{ kSelectEnemyBack, target == -1 ? getBattleSelectableEnemyOneRowTarget(bt, false) + sa::MAX_ENEMY : target + sa::MAX_ENEMY },
+					{ kSelectEnemyFront, getBattleSelectableEnemyOneRowTarget(bt, true) },
+					{ kSelectEnemyBack, getBattleSelectableEnemyOneRowTarget(bt, false) },
 					{ kSelectSelf, battleCharCurrentPos.get() },
 					{ kSelectPet, battleCharCurrentPos.get() + 5 },
 					{ kSelectAllieAny, getBattleSelectableAllieTarget(bt) },
@@ -7314,7 +7317,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 					{
 						magicIndex -= sa::MAX_MAGIC;
 
-						if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_ALL)))
+						if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0))
 						{
 							if (isCharMpEnoughForSkill(magicIndex))
 							{
@@ -7330,7 +7333,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 					else
 					{
 
-						if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_ALL)))
+						if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0))
 						{
 							if (isCharMpEnoughForMagic(magicIndex))
 							{
@@ -7433,7 +7436,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				if (!isProfession) // ifMagic
 				{
 					target = -1;
-					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_SIDE_0)))
+					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0))
 					{
 						if (isCharMpEnoughForMagic(magicIndex))
 						{
@@ -7448,7 +7451,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				else
 				{
 					magicIndex -= sa::MAX_MAGIC;
-					if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_SIDE_0)))
+					if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0))
 					{
 						if (isCharMpEnoughForSkill(magicIndex))
 						{
@@ -7549,7 +7552,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 					break;
 
 				target = -1;
-				if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_SIDE_0)))
+				if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0))
 				{
 					return sendBattleCharItemAct(itemIndex, target);
 				}
@@ -7703,7 +7706,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				else
 				{
 					target = -1;
-					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target < sa::MAX_ENEMY))
+					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0))
 					{
 						if (isCharMpEnoughForMagic(magicIndex))
 						{
@@ -7753,8 +7756,8 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				QHash<long long, long long> tagetHash = {
 					{ kSelectEnemyAny, target == -1 ? getBattleSelectableEnemyTarget(bt) : target },
 					{ kSelectEnemyAll, sa::TARGET_SIDE_1 },
-					{ kSelectEnemyFront, target == -1 ? getBattleSelectableEnemyOneRowTarget(bt, true) + sa::MAX_ENEMY : target + sa::MAX_ENEMY },
-					{ kSelectEnemyBack, target == -1 ? getBattleSelectableEnemyOneRowTarget(bt, false) + sa::MAX_ENEMY : target + sa::MAX_ENEMY },
+					{ kSelectEnemyFront, getBattleSelectableEnemyOneRowTarget(bt, true) },
+					{ kSelectEnemyBack, getBattleSelectableEnemyOneRowTarget(bt, false)},
 					{ kSelectSelf, battleCharCurrentPos.get() },
 					{ kSelectPet, battleCharCurrentPos.get() + 5 },
 					{ kSelectAllieAny, getBattleSelectableAllieTarget(bt) },
@@ -7800,7 +7803,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 					{
 						magicIndex -= sa::MAX_MAGIC;
 
-						if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_ALL)))
+						if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0))
 						{
 							if (isCharMpEnoughForSkill(magicIndex))
 							{
@@ -7816,7 +7819,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 					else
 					{
 
-						if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_ALL)))
+						if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0))
 						{
 							if (isCharMpEnoughForMagic(magicIndex))
 							{
@@ -7903,7 +7906,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				if (!isProfession) // ifMagic
 				{
 					target = -1;
-					if (!fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) || (target < 0 || target >(sa::TARGET_SIDE_0)))
+					if (!fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) || (target < 0))
 						break;
 
 					if (!isCharMpEnoughForMagic(magicIndex))
@@ -8097,7 +8100,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 						{
 							magicIndex -= sa::MAX_MAGIC;
 							target = -1;
-							if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_ALL)))
+							if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0))
 							{
 								if (isCharMpEnoughForSkill(magicIndex))
 								{
@@ -8135,7 +8138,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 							}
 
 							target = -1;
-							if (!fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) || (target < 0 || target >(sa::TARGET_ALL)))
+							if (!fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) || (target < 0))
 								break;
 
 							if (!isCharMpEnoughForMagic(magicIndex))
@@ -8164,7 +8167,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 					target = -1;
 					if (itemIndex != -1)
 					{
-						if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_SIDE_1)))
+						if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0))
 						{
 							return sendBattleCharItemAct(itemIndex, target);
 						}
@@ -8266,8 +8269,8 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 		QHash<long long, long long> tagetHash = {
 			{ kSelectEnemyAny, target == -1 ? getBattleSelectableEnemyTarget(bt) : target },
 			{ kSelectEnemyAll, sa::TARGET_SIDE_1 },
-			{ kSelectEnemyFront, target == -1 ? getBattleSelectableEnemyOneRowTarget(bt, true) + sa::MAX_ENEMY : target + sa::MAX_ENEMY },
-			{ kSelectEnemyBack, target == -1 ? getBattleSelectableEnemyOneRowTarget(bt, false) + sa::MAX_ENEMY : target + sa::MAX_ENEMY },
+			{ kSelectEnemyFront, getBattleSelectableEnemyOneRowTarget(bt, true) },
+			{ kSelectEnemyBack, getBattleSelectableEnemyOneRowTarget(bt, false) },
 			{ kSelectSelf, battleCharCurrentPos.get() },
 			{ kSelectPet, battleCharCurrentPos.get() + 5 },
 			{ kSelectAllieAny, getBattleSelectableAllieTarget(bt) },
@@ -8305,7 +8308,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 			{
 				magicIndex -= sa::MAX_MAGIC;
 
-				if (!fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) || (target < 0 && target >(sa::TARGET_ALL)))
+				if (!fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) || (target < 0))
 					break;
 
 				if (!isCharMpEnoughForSkill(magicIndex))
@@ -8315,7 +8318,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 			}
 			else
 			{
-				if (!fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) || (target < 0 && target >(sa::TARGET_ALL)))
+				if (!fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) || (target < 0))
 					break;
 
 				if (!isCharMpEnoughForMagic(magicIndex))
@@ -8457,7 +8460,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 			break;
 
 		long long tempTarget = tempCatchPetTargetIndex_.get();
-		if ((tempTarget != -1) && fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_ALL)))
+		if ((tempTarget != -1) && fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0))
 		{
 			return sendBattlePetSkillAct(skillIndex, target);
 		}
@@ -8546,14 +8549,14 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		else if (util::checkAND(targetFlags, kSelectEnemyFront))
 		{
 			if (target == -1)
-				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + sa::MAX_ENEMY;
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true);
 			else
 				tempTarget = target;
 		}
 		else if (util::checkAND(targetFlags, kSelectEnemyBack))
 		{
 			if (target == -1)
-				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + sa::MAX_ENEMY;
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false);
 			else
 				tempTarget = target;
 		}
@@ -8620,7 +8623,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		if (skillIndex < 0 || skillIndex > sa::MAX_PET_SKILL)
 			break;
 
-		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0))
 		{
 			return sendBattlePetSkillAct(skillIndex, target);
 		}
@@ -8658,14 +8661,14 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		else if (util::checkAND(targetFlags, kSelectEnemyFront))
 		{
 			if (target == -1)
-				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true);
 			else
 				tempTarget = target;
 		}
 		else if (util::checkAND(targetFlags, kSelectEnemyBack))
 		{
 			if (target == -1)
-				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false);
 			else
 				tempTarget = target;
 		}
@@ -8732,14 +8735,14 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		if (skillIndex < 0 || skillIndex > sa::MAX_PET_SKILL)
 			break;
 
-		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= sa::TARGET_ALL))
+		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0))
 		{
 			return sendBattlePetSkillAct(skillIndex, target);
 		}
 		else
 		{
 			tempTarget = getBattleSelectableEnemyTarget(bt);
-			if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= sa::TARGET_ALL))
+			if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0))
 			{
 				return sendBattlePetSkillAct(skillIndex, target);
 			}
@@ -8813,7 +8816,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		if (!isProfession) // ifpetAction
 		{
 			target = -1;
-			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_SIDE_0)))
+			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0))
 			{
 				return sendBattlePetSkillAct(petActionIndex, target);
 			}
@@ -8888,7 +8891,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		if (!isProfession) // ifpetAction
 		{
 			target = -1;
-			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0 && target <= (sa::TARGET_SIDE_0)))
+			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0))
 			{
 				return sendBattlePetSkillAct(petActionIndex, target);
 			}
@@ -8942,14 +8945,14 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		else if (util::checkAND(targetFlags, kSelectEnemyFront))
 		{
 			if (target == -1)
-				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true);
 			else
 				tempTarget = target;
 		}
 		else if (util::checkAND(targetFlags, kSelectEnemyBack))
 		{
 			if (target == -1)
-				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false);
 			else
 				tempTarget = target;
 		}
@@ -9016,7 +9019,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		if (skillIndex < 0 || skillIndex > sa::MAX_PET_SKILL)
 			break;
 
-		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= sa::TARGET_ALL))
+		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0))
 		{
 			return sendBattlePetSkillAct(skillIndex, target);
 		}
@@ -9024,7 +9027,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyTarget(bt);
-			if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= sa::TARGET_ALL))
+			if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0))
 			{
 
 				return sendBattlePetSkillAct(skillIndex, target);
@@ -9304,6 +9307,23 @@ long long Worker::getBattleSelectableEnemyTarget(const sa::battle_data_t& bt) co
 //取戰鬥一排可選編號
 long long Worker::getBattleSelectableEnemyOneRowTarget(const sa::battle_data_t& bt, bool front) const
 {
+	//逆序
+	if (battleCharCurrentPos.get() >= (sa::MAX_ENEMY / 2))
+	{
+		if (front)
+			return sa::TARGET_SIDE_0_F_ROW;
+		else
+			return sa::TARGET_SIDE_0_B_ROW;
+	}
+	else
+	{
+		if (front)
+			return sa::TARGET_SIDE_1_F_ROW;
+		else
+			return sa::TARGET_SIDE_1_B_ROW;
+	}
+
+#if 0
 	long long defaultTarget = sa::MAX_ENEMY - 5;
 	if (battleCharCurrentPos.get() >= (sa::MAX_ENEMY / 2))
 		defaultTarget = sa::MAX_ENEMY / 4;
@@ -9379,6 +9399,7 @@ long long Worker::getBattleSelectableEnemyOneRowTarget(const sa::battle_data_t& 
 	}
 
 	return defaultTarget;
+#endif
 }
 
 //取戰鬥隊友可選目標編號
@@ -9968,10 +9989,12 @@ bool Worker::fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget,
 	{
 		long long max = sa::MAX_ENEMY;
 		long long min = 0;
+		long long row = sa::TARGET_SIDE_1_F_ROW;
 		if (battleCharCurrentPos.get() >= 10)
 		{
 			max = 19;
 			min = 10;
+			row = sa::TARGET_SIDE_0_F_ROW;
 		}
 
 		if (oldtarget < min || oldtarget > max)
@@ -9981,6 +10004,10 @@ bool Worker::fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget,
 		else if (oldtarget == (battleCharCurrentPos.get() + 5))
 		{
 			oldtarget = -1;
+		}
+		else
+		{
+			oldtarget = row;
 		}
 		break;
 	}
@@ -10635,9 +10662,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-	}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -10696,7 +10723,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				break;
 			}
 		}
-}
+	}
 #endif
 }
 
@@ -10846,7 +10873,7 @@ void Worker::lssproto_RS_recv(char* cdata)
 #else
 		std::ignore = QtConcurrent::run(this, &Worker::checkAutoAbility);
 #endif
-}
+	}
 	if (gamedevice.getEnableHash(util::kDropPetEnable))
 		checkAutoDropPet();
 }
@@ -11587,12 +11614,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-			}
+					}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-		}
-	}
+				}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11606,13 +11633,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-	}
+		}
 
 		setBattleData(bt);
 
 		asyncBattleAction(true);
 		break;
-}
+	}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12388,11 +12415,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-	}
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
-}
+	}
 	}
 }
 
@@ -12913,7 +12940,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12963,7 +12990,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -12999,7 +13026,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-}
+		}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13268,9 +13295,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13414,7 +13441,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13572,7 +13599,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}

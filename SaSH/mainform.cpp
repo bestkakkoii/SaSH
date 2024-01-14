@@ -1009,8 +1009,9 @@ void MainForm::moveEvent(QMoveEvent* e)
 		}
 
 		//將目標窗口吸附在本窗口左側
-		//PostMessageW(hWnd, WM_MOVE + WM_USER, 0, MAKELPARAM(pos.x() - 654, pos.y() - 31));
-		SetWindowPos(hWnd, HWND_TOP, pos.x() - 654, pos.y() - 31, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
+		long long width = static_cast<long long>(rect.right - rect.left);
+		//654 for win11
+		SetWindowPos(hWnd, HWND_TOP, pos.x() - width + 2, pos.y() - 31, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
 
 	} while (false);
 

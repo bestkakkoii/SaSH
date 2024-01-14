@@ -97,6 +97,7 @@ static LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 #pragma region New
 extern "C"
 {
+#if 0
 	//new socket
 	static SOCKET WSAAPI New_socket(int af, int type, int protocol)
 	{
@@ -109,20 +110,6 @@ extern "C"
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_send(s, buf, len, flags);
-	}
-
-	//new recv
-	static int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags)
-	{
-		GameService& g_GameService = GameService::getInstance();
-		return g_GameService.New_recv(s, buf, len, flags);
-	}
-
-	//new closesocket
-	static int WSAAPI New_closesocket(SOCKET s)
-	{
-		GameService& g_GameService = GameService::getInstance();
-		return g_GameService.New_closesocket(s);
 	}
 
 	//new connect
@@ -144,6 +131,22 @@ extern "C"
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_ntohs(netshort);
+	}
+
+#endif
+
+	//new recv
+	static int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_recv(s, buf, len, flags);
+	}
+
+	//new closesocket
+	static int WSAAPI New_closesocket(SOCKET s)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_closesocket(s);
 	}
 
 	//new SetWindowTextA
@@ -778,7 +781,7 @@ BOOL GameService::WM_EnableEffect(BOOL enable)
 	DWORD effectAddr4 = CONVERT_GAMEVAR<DWORD>(0x49029ul);
 	DWORD effectAddr5 = CONVERT_GAMEVAR<DWORD>(0x7BDF2ul);
 	DWORD effectAddr6 = CONVERT_GAMEVAR<DWORD>(0x60013);
-	DWORD effectAddr7 = CONVERT_GAMEVAR<DWORD>(0x21163);
+	//DWORD effectAddr7 = CONVERT_GAMEVAR<DWORD>(0x21163);
 
 	if (TRUE == enable)
 	{
@@ -789,7 +792,7 @@ BOOL GameService::WM_EnableEffect(BOOL enable)
 		util::MemoryMove(effectAddr6, "\xC7\x05\xF0\x0D\x63\x04\xC8\x00\x00\x00", 10u);
 
 		//sa_8001.exe.text+20163 - C7 05 F00D6304 C8000000 - mov [sa_8001.exe+4230DF0],000000C8 { (3),200 }
-		util::MemoryMove(effectAddr7, "\xC7\x05\xF0\x0D\x63\x04\xC8\x00\x00\x00", 10u);
+		//util::MemoryMove(effectAddr7, "\xC7\x05\xF0\x0D\x63\x04\xC8\x00\x00\x00", 10u);
 
 		///*
 		//	sa_8001sf.exe+482F0 - 0F8C FA020000         - jl sa_8001sf.exe+485F0
@@ -818,7 +821,7 @@ BOOL GameService::WM_EnableEffect(BOOL enable)
 		util::MemoryMove(effectAddr6, "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 10u);
 
 		//sa_8001.exe.text+20163 - C7 05 F00D6304 C8000000 - mov [sa_8001.exe+4230DF0],000000C8 { (3),200 }
-		util::MemoryMove(effectAddr7, "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 10u);
+		//util::MemoryMove(effectAddr7, "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 10u);
 
 		///*
 		//sa_8001sf.exe+482F0 - EB 04                 - jmp sa_8001sf.exe+482F6
@@ -1300,7 +1303,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	switch (message)
 	{
 	case WM_NULL:
-		return 1L;
+		return 1234L;
 	case WM_CLOSE:
 	{
 		MINT::NtTerminateProcess(GetCurrentProcess(), 0UL);
@@ -1694,13 +1697,16 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	DetourTransactionBegin();
 	DetourUpdateThread(g_MainThreadHandle);
 
-	//DetourAttach(&(PVOID&)psocket, ::New_socket);
-	//DetourAttach(&(PVOID&)psend, ::New_send);
 	DetourAttach(&(PVOID&)precv, ::New_recv);
 	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
-	//DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
-	//DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
-	//DetourAttach(&(PVOID&)pconnect, ::New_connect);
+
+#if 0
+	DetourAttach(&(PVOID&)psocket, ::New_socket);
+	DetourAttach(&(PVOID&)psend, ::New_send);
+	DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
+	DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
+	DetourAttach(&(PVOID&)pconnect, ::New_connect);
+#endif
 
 
 	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);

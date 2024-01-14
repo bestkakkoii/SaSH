@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 Server GameDevice::server;
 safe::hash<long long, GameDevice*> GameDevice::instances;
 
-constexpr long long MessageTimeout = 3000;
+constexpr long long MessageTimeout = 8000;
 
 GameDevice::GameDevice(long long index)
 	: Indexer(index)
@@ -588,12 +588,14 @@ bool GameDevice::isWindowAlive() const
 	if (!isValid())
 		return false;
 
+	DWORD_PTR dwResult = 0L;
 	if (IsWindow(pi_.hWnd) == TRUE)
 	{
-		if (IsHungAppWindow(pi_.hWnd) == TRUE)
+		if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ERRORONEXIT, MessageTimeout, &dwResult) <= 0
+			|| IsHungAppWindow(pi_.hWnd) == TRUE
+			|| dwResult != 1234)
 		{
-			if (getEnableHash(util::kAutoRestartGameEnable))
-				close();
+			close();
 			return false;
 		}
 
@@ -619,10 +621,9 @@ bool GameDevice::isWindowAlive() const
 		if (program_info.th32ProcessID == pi_.dwProcessId)
 		{
 			//進一步檢查是否無響應
-			if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, MessageTimeout, nullptr) <= 0)
+			if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ERRORONEXIT, MessageTimeout, &dwResult) <= 0 || dwResult != 1234)
 			{
-				if (getEnableHash(util::kAutoRestartGameEnable))
-					close();
+				close();
 				return false;
 			}
 
@@ -635,7 +636,7 @@ bool GameDevice::isWindowAlive() const
 		if (program_info.th32ProcessID == pi_.dwProcessId)
 		{
 			//進一步檢查是否無響應
-			if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, MessageTimeout, nullptr) <= 0)
+			if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ERRORONEXIT, MessageTimeout, &dwResult) <= 0 || dwResult != 1234)
 			{
 				if (getEnableHash(util::kAutoRestartGameEnable))
 					close();
