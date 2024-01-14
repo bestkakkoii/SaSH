@@ -275,7 +275,7 @@ public://actions
 	bool __fastcall setPetFreeName(long long petIndex, const QString& name);
 
 	[[nodiscard]] bool __fastcall getBattleFlag();
-	[[nodiscard]] bool __fastcall getOnlineFlag() const;
+	[[nodiscard]] bool __fastcall getOnlineFlag();
 
 	void __fastcall sortItem();
 
@@ -578,7 +578,6 @@ public:
 
 	//custom
 	safe::flag IS_TRADING = false;
-	safe::flag IS_DISCONNECTED = false;
 
 	safe::flag IS_WAITFOR_missionInfo_FLAG = false;
 	safe::flag IS_WAITFOR_BANK_FLAG = false;

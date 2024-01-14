@@ -1146,7 +1146,7 @@ long long CLuaSystem::chname(sol::object oname, sol::this_state s)
 	QString name;
 	if (oname.is<long long>())
 		name = util::toQString(oname.as<long long>());
-	if (oname.is<double>())
+	else if (oname.is<double>())
 		name = util::toQString(oname.as<double>());
 	else if (oname.is<std::string>())
 		name = util::toQString(oname);
@@ -1184,7 +1184,7 @@ long long CLuaSystem::chpetname(long long index, sol::object oname, sol::this_st
 	QString name;
 	if (oname.is<long long>())
 		name = util::toQString(oname.as<long long>());
-	if (oname.is<double>())
+	else if (oname.is<double>())
 		name = util::toQString(oname.as<double>());
 	else if (oname.is<std::string>())
 		name = util::toQString(oname);

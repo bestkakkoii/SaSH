@@ -722,7 +722,7 @@ long long MainObject::checkAndRunFunctions()
 
 			gamedevice.worker->loginTimer.restart();
 			//自動登入 或 斷線重連
-			if (gamedevice.getEnableHash(util::kAutoLoginEnable) || gamedevice.worker->IS_DISCONNECTED.get())
+			if (gamedevice.getEnableHash(util::kAutoLoginEnable))
 				gamedevice.worker->login(status);
 			return 1;
 		}

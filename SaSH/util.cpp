@@ -324,14 +324,14 @@ unsigned long long __fastcall mem::virtualAlloc(HANDLE hProcess, unsigned long l
 
 	//return reinterpret_cast<unsigned long long>(ptr);
 
-	std::shared_lock<std::shared_mutex> lock(mem::mutex);
-	auto it = mem::memoryPoolMap.find(hProcess);
-	if (it == mem::memoryPoolMap.end()) {
+	std::shared_lock<std::shared_mutex> lock(mutex);
+	auto it = memoryPoolMap.find(hProcess);
+	if (it == memoryPoolMap.end()) {
 		lock.unlock();
-		std::unique_lock<std::shared_mutex> lock(mem::mutex);
+		std::unique_lock<std::shared_mutex> lock(mutex);
 		it = memoryPoolMap.find(hProcess);
 		if (it == memoryPoolMap.end()) {
-			std::unique_ptr<RemoteMemoryPool> memoryPool(new RemoteMemoryPool(hProcess, 4096 * 1024));
+			std::unique_ptr<RemoteMemoryPool> memoryPool(new RemoteMemoryPool(hProcess, 4096 * 32));
 			it = memoryPoolMap.insert(std::make_pair(hProcess, std::move(memoryPool))).first;
 		}
 	}
@@ -398,11 +398,11 @@ bool __fastcall mem::virtualFree(HANDLE hProcess, unsigned long long baseAddress
 
 	//return ret == TRUE;
 
-	std::shared_lock<std::shared_mutex> lock(mem::mutex);
-	auto it = mem::memoryPoolMap.find(hProcess);
-	if (it != mem::memoryPoolMap.end()) {
+	std::shared_lock<std::shared_mutex> lock(mutex);
+	auto it = memoryPoolMap.find(hProcess);
+	if (it != memoryPoolMap.end()) {
 		lock.unlock();
-		std::unique_lock<std::shared_mutex> lock(mem::mutex);
+		std::unique_lock<std::shared_mutex> lock(mutex);
 		it = memoryPoolMap.find(hProcess);
 		if (it != memoryPoolMap.end()) {
 			it->second->deallocate(reinterpret_cast<void*>(baseAddress));

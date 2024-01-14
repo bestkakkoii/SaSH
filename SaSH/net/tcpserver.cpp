@@ -1491,8 +1491,13 @@ bool Worker::getBattleFlag()
 }
 
 //檢查是否在線
-bool Worker::getOnlineFlag() const
+bool Worker::getOnlineFlag()
 {
+	if (getUnloginStatus() == util::kStatusDisconnect)
+	{
+		return false;
+	}
+
 	return isOnline_.get();
 }
 
@@ -3554,7 +3559,9 @@ bool Worker::login(long long s)
 	{
 	case util::kStatusDisconnect:
 	{
-		IS_DISCONNECTED.on();
+		if (!gamedevice.getEnableHash(util::kAutoReconnectEnable))
+			break;
+
 		QList<long long> list = config.readArray<long long>("System", "Login", "Disconnect");
 		if (list.size() == 2)
 			gamedevice.leftDoubleClick(list.value(0), list.value(1));
@@ -3612,7 +3619,7 @@ bool Worker::login(long long s)
 		{
 			gamedevice.leftDoubleClick(315, 253);
 			config.writeArray<long long>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
-		}
+	}
 #endif
 		break;
 	}
@@ -3748,10 +3755,10 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1500))
 				break;
 
-		}
+	}
 #endif
 		break;
-	}
+}
 	case util::kStatusSelectSubServer:
 	{
 		if (!input())
@@ -3904,7 +3911,7 @@ bool Worker::login(long long s)
 					break;
 
 			}
-		}
+	}
 #endif
 		break;
 	}
@@ -3952,7 +3959,6 @@ bool Worker::login(long long s)
 	}
 	case util::kStatusLogined:
 	{
-		IS_DISCONNECTED.off();
 		return true;
 	}
 	default:
@@ -5433,7 +5439,7 @@ bool Worker::move(const QPoint& p) const
 	if (!gamedevice.isValid())
 		return false;
 
-	return gamedevice.postMessage(kSetMove, p.x(), p.y());
+	return gamedevice.sendMessage(kSetMove, p.x(), p.y());
 }
 
 //轉向指定坐標
@@ -10629,9 +10635,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
-#endif
 	}
+#endif
+}
 }
 
 //名片數據
@@ -10690,7 +10696,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				break;
 			}
 		}
-	}
+}
 #endif
 }
 
@@ -10840,7 +10846,7 @@ void Worker::lssproto_RS_recv(char* cdata)
 #else
 		std::ignore = QtConcurrent::run(this, &Worker::checkAutoAbility);
 #endif
-	}
+}
 	if (gamedevice.getEnableHash(util::kDropPetEnable))
 		checkAutoDropPet();
 }
@@ -11581,12 +11587,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
+			}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-				}
-			}
+		}
+	}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11600,13 +11606,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-		}
+	}
 
 		setBattleData(bt);
 
 		asyncBattleAction(true);
 		break;
-	}
+}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12382,11 +12388,11 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-		}
+	}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
-	}
+}
 	}
 }
 
@@ -12907,7 +12913,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -12957,7 +12963,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -12993,7 +12999,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-		}
+}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13262,9 +13268,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
-#endif
 			}
+#endif
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13408,7 +13414,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13566,7 +13572,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}

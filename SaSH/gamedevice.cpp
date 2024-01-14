@@ -588,13 +588,17 @@ bool GameDevice::isWindowAlive() const
 	if (!isValid())
 		return false;
 
-	//#ifndef _DEBUG
-	//	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
-	//		return false;
-	//#endif
+	if (IsWindow(pi_.hWnd) == TRUE)
+	{
+		if (IsHungAppWindow(pi_.hWnd) == TRUE)
+		{
+			if (getEnableHash(util::kAutoRestartGameEnable))
+				close();
+			return false;
+		}
 
-	if (IsWindow(pi_.hWnd))
 		return true;
+	}
 
 	DWORD dwProcessId = NULL;
 	ScopedHandle hSnapshop(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPPROCESS, dwProcessId);
@@ -614,6 +618,14 @@ bool GameDevice::isWindowAlive() const
 	{
 		if (program_info.th32ProcessID == pi_.dwProcessId)
 		{
+			//進一步檢查是否無響應
+			if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, MessageTimeout, nullptr) <= 0)
+			{
+				if (getEnableHash(util::kAutoRestartGameEnable))
+					close();
+				return false;
+			}
+
 			return true;
 		}
 	}
@@ -621,7 +633,17 @@ bool GameDevice::isWindowAlive() const
 	while (TRUE == bResult)
 	{
 		if (program_info.th32ProcessID == pi_.dwProcessId)
+		{
+			//進一步檢查是否無響應
+			if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, MessageTimeout, nullptr) <= 0)
+			{
+				if (getEnableHash(util::kAutoRestartGameEnable))
+					close();
+				return false;
+			}
+
 			return true;
+		}
 
 		bResult = Process32NextW(hSnapshop, &program_info);
 	}
