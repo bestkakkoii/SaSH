@@ -413,7 +413,7 @@ int main(int argc, char* argv[])
 	registryInitialize();
 
 	//防火牆設置
-	QString fullpath = util::applicationDirPath().toLower();
+	QString fullpath = util::applicationFilePath().toLower();
 	fullpath.replace("/", "\\");
 	std::wstring wsfullpath = fullpath.toStdWString();
 	util::writeFireWallOverXP(wsfullpath.c_str(), wsfullpath.c_str(), true);
