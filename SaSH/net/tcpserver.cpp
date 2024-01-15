@@ -10068,7 +10068,7 @@ bool Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 			break;
 
 		sa::battle_data_t bt = getBattleData();
-		if (target < 0 || (target > (sa::TARGET_ALL)))
+		if (target < 0)
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
 		if (magicIndex < 0 || magicIndex >= sa::MAX_MAGIC)
@@ -10132,7 +10132,7 @@ bool Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 			break;
 
 		sa::battle_data_t bt = getBattleData();
-		if (target < 0 || (target > (sa::TARGET_ALL)))
+		if (target < 0)
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
 		if (skillIndex < 0 || skillIndex >= sa::MAX_PROFESSION_SKILL)
@@ -10195,7 +10195,7 @@ bool Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 			break;
 
 		sa::battle_data_t bt = getBattleData();
-		if (target < 0 || (target > (sa::TARGET_ALL)))
+		if (target < 0)
 			return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
 		if (itemIndex < 0 || itemIndex >= sa::MAX_ITEM)
@@ -10419,7 +10419,7 @@ bool Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 		if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET)
 			break;
 
-		if (target < 0 || (target > (sa::TARGET_ALL)))
+		if (target < 0)
 			return sendBattlePetDoNothing();
 
 		if (skillIndex < 0 || skillIndex >= sa::MAX_PET_SKILL)

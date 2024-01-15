@@ -322,7 +322,7 @@ int main(int argc, char* argv[])
 	SetConsoleCP(CP_UTF8);
 	SetConsoleOutputCP(CP_UTF8);
 	setlocale(LC_ALL, "en_US.UTF-8");
-
+	QT_VERSION_STR;
 	//DPI相關設置
 	QApplication::setAttribute(Qt::AA_Use96Dpi, true);// DPI support
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)

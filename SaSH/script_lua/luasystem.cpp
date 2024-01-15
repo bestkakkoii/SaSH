@@ -1905,6 +1905,8 @@ long long CLuaSystem::set(std::string enumStr,
 			{ "自动换宠", util::kBattleAutoSwitchEnable },
 			{ "自动EO", util::kBattleAutoEOEnable },
 			{ "lua战斗託管", util::kBattleLuaModeEnable },
+			{ "lua战斗托管", util::kBattleLuaModeEnable },
+			{ "lua战斗讬管", util::kBattleLuaModeEnable },
 
 			{ "队伍开关", util::kSwitcherTeamEnable },
 			{ "PK开关", util::kSwitcherPKEnable },
