@@ -462,6 +462,7 @@ private: //lockers
 private:
 	safe::flag isBattle_ = false;//是否在戰鬥中
 	safe::flag isOnline_ = false;//是否在線上
+	safe::flag waitfor_C_recv_ = false;//等待接收C封包
 
 	util::timer eoTTLTimer_;//伺服器響應時間(MS)
 	util::timer connectingTimer_;//登入連接時間(MS)

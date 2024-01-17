@@ -290,8 +290,8 @@ Socket::Socket(qintptr socketDescriptor, QObject* parent)
 	setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 0);
 	setSocketOption(QAbstractSocket::TypeOfServiceOption, 64);
 	connect(this, &QIODevice::readyRead, this, &Socket::onReadyRead, Qt::DirectConnection);
-	//moveToThread(&thread);
-	//thread.start();
+	//moveToThread(&thread_);
+	//thread_.start();
 }
 
 void Socket::onReadyRead()
@@ -313,9 +313,12 @@ void Socket::onReadyRead()
 						QMutexLocker locker(&socketLock_);
 						GameDevice& gamedevice = GameDevice::getInstance(index_);
 						gamedevice.worker->handleData(std::move(badata));
+						QThread::yieldCurrentThread();
 					});
 			//gamedevice.worker->handleData(std::move(badata));
 		}
+
+		QThread::yieldCurrentThread();
 		return;
 	}
 
@@ -342,6 +345,8 @@ void Socket::onReadyRead()
 		qDebug() << "tcp ok";
 		gamedevice.IS_TCP_CONNECTION_OK_TO_USE.on();
 	}
+
+	QThread::yieldCurrentThread();
 }
 
 //異步發送數據
@@ -1476,7 +1481,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 
 	gamedevice.autil.util_DiscardMessage();
-	std::this_thread::yield();
+	QThread::yieldCurrentThread();
 	return kBufferAboutToEnd;
 }
 #pragma endregion
@@ -2278,7 +2283,7 @@ long long Worker::checkJobDailyState(const QString& missionName, long long timeo
 		if (!IS_WAITFOR_missionInfo_FLAG.get())
 			break;
 
-		QThread::msleep(100);
+		QThread::msleep(200);
 	}
 
 	if (newMissionName.startsWith("?"))
@@ -3657,7 +3662,7 @@ bool Worker::login(long long s)
 			if (gamedevice.isGameInterruptionRequested())
 				return false;
 
-			QThread::msleep(100);
+			QThread::msleep(200);
 		}
 
 		//sa_8001.exe+206F1 - 0F85 1A020000         - jne sa_8001.exe+20911
@@ -3694,7 +3699,7 @@ bool Worker::login(long long s)
 			if (gamedevice.isGameInterruptionRequested())
 				return false;
 
-			QThread::msleep(100);
+			QThread::msleep(200);
 		}
 
 		/*
@@ -3830,7 +3835,7 @@ bool Worker::login(long long s)
 			if (gamedevice.isGameInterruptionRequested())
 				return false;
 
-			QThread::msleep(100);
+			QThread::msleep(200);
 		}
 
 		/*
@@ -5893,7 +5898,7 @@ bool Worker::tradeStart(const QString& name, long long timeout)
 		if (IS_TRADING.get())
 			break;
 
-		QThread::msleep(100);
+		QThread::msleep(200);
 	}
 
 	bool bret = opp_name == name;
@@ -6169,13 +6174,15 @@ void Worker::setBattleEnd()
 
 	battleBackupThreadFlag_.on();
 
-	echo();
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.getEnableHash(util::kFastBattleEnable))//這裡不加限制的話，非快戰結束後會因為和客戶端EO重複發送導致周圍單位無法顯示
+		lssproto_EO_send(0);
+	eoTTLTimer_.restart();
+	lssproto_Echo_send(const_cast<char*>("hoge"));
 
 	//重置動作人寵標誌避免重複發送
 	//battleCharAlreadyActed.on();
 	//battlePetAlreadyActed.on();
-
-	battlePetDisableList_.clear();
 
 	long long battleDuation = battleDurationTimer.cost();
 	if (battleDuation > 0ll)
@@ -6183,14 +6190,19 @@ void Worker::setBattleEnd()
 	setBattleFlag(false);
 
 	normalDurationTimer.restart();
-	if (getWorldStatus() == 10)
-		setGameStatus(7);
 
-	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	//強退戰鬥畫面
+	//if (getWorldStatus() == 10)
+		//setGameStatus(7);
+
 	bool enableLockRide = gamedevice.getEnableHash(util::kLockRideEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
 	bool enableLockPet = gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
 	if ((enableLockRide || enableLockPet))
 		checkAutoLockPet();
+
+	battlePetDisableList_.clear();
+
+	waitfor_C_recv_.on();
 }
 
 //戰鬥BA包標誌位檢查
@@ -6219,7 +6231,7 @@ void Worker::doBattleWork(bool canDelay)
 					GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 					for (long long i = 0; i < 50; ++i)
 					{
-						QThread::msleep(100);
+						QThread::msleep(200);
 						if (gamedevice.isGameInterruptionRequested())
 							return;
 
@@ -6265,7 +6277,7 @@ void Worker::doBattleWork(bool canDelay)
 							break;
 						}
 
-						QThread::msleep(100);
+						QThread::msleep(200);
 					}
 
 					if (battleCharAlreadyActed.get())
@@ -13117,6 +13129,10 @@ void Worker::lssproto_C_recv(char* cdata)
 		return;
 
 	setOnlineFlag(true);
+	if (waitfor_C_recv_.get())
+	{
+		waitfor_C_recv_.off();
+	}
 
 	long long i = 0, j = 0, id = 0, x = 0, y = 0, dir = 0;
 	long long modelid = 0, level = 0, nameColor = 0, walkable = 0, height = 0, classNo = 0, money = 0, charType = 0, charNameColor = 0;
@@ -15778,7 +15794,7 @@ void Worker::findPathAsync(const QPoint& dst, const std::function<bool()>& func)
 				if (stimer.hasExpired(180000))
 					break;
 
-				QThread::msleep(100);
+				QThread::msleep(200);
 			}
 
 			QThread::msleep(1000);

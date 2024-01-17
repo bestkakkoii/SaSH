@@ -516,7 +516,7 @@ bool GameDevice::injectLibrary(GameDevice::process_information_t& pi, unsigned s
 			if (timer.hasExpired(sa::MAX_TIMEOUT))
 				break;
 
-			QThread::msleep(10);
+			QThread::msleep(200);
 		}
 
 		timer.restart();

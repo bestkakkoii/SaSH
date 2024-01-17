@@ -82,25 +82,38 @@ static void __fastcall makeTable(sol::state& lua, const char* name)
 
 static void hookProc(lua_State* L, lua_Debug* ar)
 {
-	if (!L)
+	if (L == nullptr)
+	{
+		QThread::yieldCurrentThread();
 		return;
+	}
 
-	if (!ar)
+	if (ar == nullptr)
+	{
+		QThread::yieldCurrentThread();
 		return;
+	}
 
 	sol::this_state s = L;
 	sol::state_view lua(L);
 
 	if (ar->event == LUA_MASKRET || ar->event == LUA_MASKLINE || ar->event == LUA_MASKCALL)
 	{
+		QThread::msleep(1);
 		luadebug::checkStopAndPause(s);
 
 		if (!lua["__THIS_PARSER"].valid())
+		{
+			QThread::yieldCurrentThread();
 			return;
+		}
 
 		Parser* pparser = lua["__THIS_PARSER"].get<Parser*>();
 		if (pparser == nullptr)
+		{
+			QThread::yieldCurrentThread();
 			return;
+		}
 
 		lua.set("LINE", pparser->getCurrentLine() + 1);
 
@@ -141,11 +154,14 @@ static void hookProc(lua_State* L, lua_Debug* ar)
 					value = pair.second.toString();
 				pparser->insertLocalVar(key, value);
 			}
+
 			lua_pop(L, 1);
 		}
 
 		luadebug::checkStopAndPause(s);
 	}
+
+	QThread::yieldCurrentThread();
 }
 
 Parser::Parser(long long index)

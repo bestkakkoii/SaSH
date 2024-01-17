@@ -313,7 +313,7 @@ bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 			if (timer.hasExpired(180000))
 				break;
 
-			QThread::msleep(100);;
+			QThread::msleep(200);
 		}
 
 		QThread::msleep(1000);
@@ -345,7 +345,7 @@ bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 			if (timer.hasExpired(180000))
 				break;
 
-			QThread::msleep(100);;
+			QThread::msleep(200);
 		}
 
 		QThread::msleep(1000);
@@ -482,7 +482,7 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 			break;
 		}
 
-		QThread::msleep(100);;
+		QThread::msleep(200);
 	}
 	return bret;
 }
@@ -491,10 +491,16 @@ bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, s
 void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 {
 	if (nullptr == L)
+	{
+		QThread::yieldCurrentThread();
 		return;
+	}
 
 	if (nullptr == ar)
+	{
+		QThread::yieldCurrentThread();
 		return;
+	}
 
 	sol::this_state s = L;
 	sol::state_view lua(L);
@@ -553,7 +559,10 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		CLua* pLua = lua["__THIS_CLUA"].get<CLua*>();
 		if (pLua == nullptr)
+		{
+			QThread::yieldCurrentThread();
 			return;
+		}
 
 		QString scriptFileName = gamedevice.currentScriptFileName.get();
 
@@ -561,7 +570,8 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		const safe::hash<long long, break_marker_t> stepMarkers = gamedevice.step_markers.value(scriptFileName);
 		if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 		{
-			return;//檢查是否有中斷點
+			QThread::yieldCurrentThread();
+			return;
 		}
 
 		gamedevice.paused();
@@ -606,6 +616,8 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	default:
 		break;
 	}
+
+	QThread::yieldCurrentThread();
 }
 #pragma endregion
 
@@ -1939,7 +1951,7 @@ void CLua::open_utillibs(sol::state& lua)
 					bret = true;
 					break;
 				}
-				QThread::msleep(100);;
+				QThread::msleep(200);
 			}
 			gamedevice.worker->IS_WAITFOR_CUSTOM_DIALOG_FLAG.off();
 
@@ -3851,12 +3863,12 @@ void CLua::open_battlelibs(sol::state& lua)
 		"ready", sol::readonly(&sa::battle_object_t::ready),
 		"pos", sol::readonly(&sa::battle_object_t::pos),
 		"modelid", sol::readonly(&sa::battle_object_t::modelid),
-		"level", sol::readonly(&sa::battle_object_t::level),
+		"lv", sol::readonly(&sa::battle_object_t::level),
 		"hp", sol::readonly(&sa::battle_object_t::hp),
 		"maxhp", sol::readonly(&sa::battle_object_t::maxHp),
 		"hpp", sol::readonly(&sa::battle_object_t::hpPercent),
 		"rideflag", sol::readonly(&sa::battle_object_t::rideFlag),
-		"ridelevel", sol::readonly(&sa::battle_object_t::rideLevel),
+		"ridelv", sol::readonly(&sa::battle_object_t::rideLevel),
 		"ridehp", sol::readonly(&sa::battle_object_t::rideHp),
 		"ridemaxhp", sol::readonly(&sa::battle_object_t::rideMaxHp),
 		"ridehpp", sol::readonly(&sa::battle_object_t::rideHpPercent),

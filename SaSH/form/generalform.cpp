@@ -19,7 +19,7 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 	ui.setupUi(this);
 	ui.checkBox_autoanswer->hide();
 	ui.checkBox_battletimeextend->hide();
-	ui.checkBox_lockimage->hide();
+	//ui.checkBox_lockimage->hide();
 
 	setFont(util::getFont());
 
@@ -569,7 +569,13 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 	if (name == "checkBox_lockmove")
 	{
 		gamedevice.setEnableHash(util::kLockMoveEnable, isChecked);
-		gamedevice.postMessage(kEnableMoveLock, isChecked, NULL);
+		gamedevice.sendMessage(kEnableMoveLock, isChecked, NULL);
+		return;
+	}
+
+	if (name == "checkBox_luabattle")
+	{
+		gamedevice.setEnableHash(util::kBattleLuaModeEnable, isChecked);
 		return;
 	}
 
@@ -1033,7 +1039,8 @@ void GeneralForm::onApplyHashSettingsToUI()
 	//support2
 	ui.checkBox_fastwalk->setChecked(enableHash.value(util::kFastWalkEnable));
 	ui.checkBox_lockmove->setChecked(enableHash.value(util::kLockMoveEnable));
-	ui.checkBox_lockimage->setChecked(enableHash.value(util::kLockImageEnable));
+	//ui.checkBox_lockimage->setChecked(enableHash.value(util::kLockImageEnable));
+	ui.checkBox_luabattle->setChecked(enableHash.value(util::kBattleLuaModeEnable));
 	ui.checkBox_autodropmeat->setChecked(enableHash.value(util::kAutoDropMeatEnable));
 	ui.checkBox_autodrop->setChecked(enableHash.value(util::kAutoDropEnable));
 	ui.checkBox_autostack->setChecked(enableHash.value(util::kAutoStackEnable));

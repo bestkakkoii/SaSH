@@ -350,7 +350,10 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 		|| currentType == RESERVE::TK_UNK;
 
 	if (skip)
+	{
+		QThread::yieldCurrentThread();
 		return 1;
+	}
 
 	if (parser_.getMode() == Parser::kSync)
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getToken().size(), false);
@@ -367,13 +370,17 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 		return 0;
 
 	if (!gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
+	{
+		QThread::yieldCurrentThread();
 		return 1;
+	}
 
 	QString scriptFileName = parser_.getScriptFileName();
 	safe::hash<long long, break_marker_t> breakMarkers = gamedevice.break_markers.value(scriptFileName);
 	const safe::hash<long long, break_marker_t> stepMarkers = gamedevice.step_markers.value(scriptFileName);
 	if (!breakMarkers.contains(currentLine) && !stepMarkers.contains(currentLine))
 	{
+		QThread::yieldCurrentThread();
 		return 1;//檢查是否有中斷點
 	}
 
@@ -400,6 +407,7 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 	if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 		return 0;
 
+	QThread::yieldCurrentThread();
 	return 1;
 }
 
@@ -459,7 +467,7 @@ bool Interpreter::checkBattleThenWait()
 			if (timer.hasExpired(180000))
 				break;
 
-			QThread::msleep(100);;
+			QThread::msleep(200);
 		}
 
 		QThread::msleep(1000);
@@ -499,7 +507,7 @@ bool Interpreter::checkOnlineThenWait()
 			if (timer.hasExpired(180000))
 				break;
 
-			QThread::msleep(100);;
+			QThread::msleep(200);
 		}
 
 		QThread::msleep(1000);

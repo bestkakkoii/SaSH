@@ -274,7 +274,7 @@ long long CLuaMap::move(sol::object obj, long long y, sol::this_state s)
 	if (!gamedevice.worker->move(p))
 		return FALSE;
 
-	QThread::msleep(100);;
+	QThread::msleep(200);
 	return TRUE;
 }
 

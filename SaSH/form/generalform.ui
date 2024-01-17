@@ -282,20 +282,20 @@
     <string>auto restart</string>
    </property>
   </widget>
-  <widget class="QCheckBox" name="checkBox_lockimage">
+  <widget class="QCheckBox" name="checkBox_luabattle">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="geometry">
     <rect>
-     <x>160</x>
-     <y>390</y>
+     <x>150</x>
+     <y>310</y>
      <width>66</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>lock image</string>
+    <string>luabattle</string>
    </property>
   </widget>
   <widget class="QCheckBox" name="checkBox_showexp">

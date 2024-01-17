@@ -411,7 +411,7 @@ void MainObject::run()
 				remove_thread_reason = util::REASON_TCP_CONNECTION_TIMEOUT;
 				break;
 			}
-			QThread::msleep(100);;
+			QThread::msleep(200);
 		}
 
 		if (remove_thread_reason != util::REASON_NO_ERROR)
@@ -493,7 +493,7 @@ void MainObject::mainProc()
 
 		if (gamedevice.worker.isNull())
 		{
-			std::this_thread::yield();
+			QThread::yieldCurrentThread();
 			continue;
 		}
 
@@ -530,44 +530,46 @@ void MainObject::mainProc()
 
 			bCheckedFastBattle = gamedevice.getEnableHash(util::kFastBattleEnable);
 			bCheckedAutoBattle = gamedevice.getEnableHash(util::kAutoBattleEnable);
-			W = gamedevice.worker->getWorldStatus();
+
 			// 允許 自動戰鬥
 			if (bCheckedAutoBattle)
 			{
-				gamedevice.postMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+				gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 			}
 			// 允許 快速戰鬥
 			else if (bCheckedFastBattle)
 			{
+				W = gamedevice.worker->getWorldStatus();
 				if (W == 10)// 強退戰鬥畫面
 					gamedevice.worker->setGameStatus(7);
-				gamedevice.postMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
+				gamedevice.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
 			}
 			else // 不允許 快速戰鬥 和 自動戰鬥
-				gamedevice.postMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+				gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 		}
 		else if (status == 3)//戰鬥中
 		{
 			bCheckedFastBattle = gamedevice.getEnableHash(util::kFastBattleEnable);
 			bCheckedAutoBattle = gamedevice.getEnableHash(util::kAutoBattleEnable);
-			W = gamedevice.worker->getWorldStatus();
+
 			if (bCheckedFastBattle)
 			{
+				W = gamedevice.worker->getWorldStatus();
 				if (W == 10)// 強退戰鬥畫面
 					gamedevice.worker->setGameStatus(7);
 			}
 
 			if (bCheckedFastBattle || bCheckedAutoBattle)
-				gamedevice.postMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
+				gamedevice.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
 			else
-				gamedevice.postMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
+				gamedevice.sendMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
 		}
 		else//錯誤
 		{
 			break;
 		}
 
-		std::this_thread::yield();
+		QThread::yieldCurrentThread();
 	}
 }
 
@@ -631,7 +633,7 @@ long long MainObject::inGameInitialize() const
 		if (gamedevice.worker->checkWG(9, 3))
 			break;
 
-		QThread::msleep(100);
+		QThread::msleep(200);
 	}
 
 	if (!gamedevice.worker->getBattleFlag())
@@ -918,7 +920,7 @@ void MainObject::checkControl()
 	if (flagFastWalkEnable_ != bChecked)
 	{
 		flagFastWalkEnable_ = bChecked;
-		gamedevice.postMessage(kEnableFastWalk, bChecked, NULL);
+		gamedevice.sendMessage(kEnableFastWalk, bChecked, NULL);
 	}
 
 	//異步橫衝直撞 (穿牆)
@@ -926,7 +928,7 @@ void MainObject::checkControl()
 	if (flagPassWallEnable_ != bChecked)
 	{
 		flagPassWallEnable_ = bChecked;
-		gamedevice.postMessage(kEnablePassWall, bChecked, NULL);
+		gamedevice.sendMessage(kEnablePassWall, bChecked, NULL);
 	}
 
 	//異步鎖定畫面
@@ -934,7 +936,7 @@ void MainObject::checkControl()
 	if (flagLockImageEnable_ != bChecked)
 	{
 		flagLockImageEnable_ = bChecked;
-		gamedevice.postMessage(kEnableImageLock, bChecked, NULL);
+		gamedevice.sendMessage(kEnableImageLock, bChecked, NULL);
 	}
 
 	//異步資源優化
@@ -942,7 +944,7 @@ void MainObject::checkControl()
 	if (flagOptimizeEnable_ != bChecked)
 	{
 		flagOptimizeEnable_ = bChecked;
-		gamedevice.postMessage(kEnableOptimize, bChecked, NULL);
+		gamedevice.sendMessage(kEnableOptimize, bChecked, NULL);
 	}
 
 	//異步關閉特效
@@ -960,7 +962,7 @@ void MainObject::checkControl()
 	{
 		flagLockTimeEnable_ = bChecked;
 		flagLockTimeValue_ = value;
-		gamedevice.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
+		gamedevice.sendMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
 	}
 
 	//隱藏人物按下，異步隱藏
@@ -976,7 +978,7 @@ void MainObject::checkControl()
 	if (flagBattleTimeExtendEnable_ != bChecked)
 	{
 		flagBattleTimeExtendEnable_ = bChecked;
-		gamedevice.postMessage(kBattleTimeExtend, bChecked, NULL);
+		gamedevice.sendMessage(kBattleTimeExtend, bChecked, NULL);
 	}
 
 	if (!gamedevice.worker->getOnlineFlag())
@@ -1205,7 +1207,7 @@ void MissionThread::start()
 
 void MissionThread::autoJoin()
 {
-	qDebug() << "autoJoin() start";
+	//qDebug() << "autoJoin() start";
 
 	long long index = getIndex();
 	QSet<QPoint> blockList;
@@ -1355,7 +1357,7 @@ void MissionThread::autoJoin()
 			//查找目標人物所在坐標
 			if (!gamedevice.worker->findUnit(leader, sa::kObjectHuman, &unit, freeName))
 			{
-				QThread::msleep(100);
+				QThread::msleep(200);
 				break;
 			}
 
@@ -1423,12 +1425,12 @@ void MissionThread::autoJoin()
 	}
 
 	emit finished();
-	qDebug() << "MissionThread::autoJoin() finished";
+	//qDebug() << "MissionThread::autoJoin() finished";
 }
 
 void MissionThread::autoWalk()
 {
-	qDebug() << "autoWalk() start";
+	//qDebug() << "autoWalk() start";
 
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	QPoint current_pos;
@@ -1484,7 +1486,7 @@ void MissionThread::autoWalk()
 					if (isMissionInterruptionRequested())
 						break;
 
-					QThread::msleep(100);;
+					QThread::msleep(200);
 				}
 			}
 			else
@@ -1570,12 +1572,12 @@ void MissionThread::autoWalk()
 
 	emit finished();
 
-	qDebug() << "MissionThread::autoWalk() finished";
+	//qDebug() << "MissionThread::autoWalk() finished";
 }
 
 void MissionThread::autoSortItem()
 {
-	qDebug() << "autoSortItem() start";
+	//qDebug() << "autoSortItem() start";
 
 	long long i = 0;
 	constexpr long long duration = 50;
@@ -1600,7 +1602,7 @@ void MissionThread::autoSortItem()
 			if (!gamedevice.worker->getOnlineFlag())
 				break;
 
-			QThread::msleep(100);;
+			QThread::msleep(200);
 		}
 
 		if (isMissionInterruptionRequested())
@@ -1623,13 +1625,13 @@ void MissionThread::autoSortItem()
 
 	emit finished();
 
-	qDebug() << "MissionThread::autoSortItem() finished";
+	//qDebug() << "MissionThread::autoSortItem() finished";
 }
 
 //自動補血
 void MissionThread::autoHeal()
 {
-	qDebug() << "autoHeal() start";
+	//qDebug() << "autoHeal() start";
 
 	for (;;)
 	{
@@ -1706,7 +1708,7 @@ void MissionThread::autoHeal()
 				break;
 
 			gamedevice.worker->useItem(itemIndex, 0);
-			QThread::msleep(150);
+			QThread::msleep(200);
 		}
 
 		//平時道具補血
@@ -1786,7 +1788,7 @@ void MissionThread::autoHeal()
 				break;
 
 			gamedevice.worker->useItem(itemIndex, target);
-			QThread::msleep(150);
+			QThread::msleep(200);
 		}
 
 		//平時精靈補血
@@ -1856,20 +1858,20 @@ void MissionThread::autoHeal()
 			}
 
 			gamedevice.worker->useMagic(magicIndex, target);
-			QThread::msleep(150);
+			QThread::msleep(200);
 		}
 
-		QThread::msleep(100);
+		QThread::msleep(200);
 	}
 
 	emit finished();
 
-	qDebug() << "MissionThread::autoHeal() finished";
+	//qDebug() << "MissionThread::autoHeal() finished";
 }
 
 void MissionThread::autoBattle()
 {
-	qDebug() << "autoBattle() start";
+	//qDebug() << "autoBattle() start";
 
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
@@ -1897,20 +1899,20 @@ void MissionThread::autoBattle()
 
 	emit finished();
 
-	qDebug() << "MissionThread::autoBattle() finished";
+	//qDebug() << "MissionThread::autoBattle() finished";
 }
 
 void MissionThread::autoRecordNPC()
 {
-	qDebug() << "autoRecordNPC() start";
+	//qDebug() << "autoRecordNPC() start";
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	for (;;)
 	{
-		for (long long i = 0; i < 50; ++i)
+		for (long long i = 0; i < 15; ++i)
 		{
-			QThread::msleep(100);;
+			QThread::msleep(200);
 
 			if (gamedevice.isGameInterruptionRequested())
 				break;
@@ -2093,7 +2095,7 @@ void MissionThread::autoRecordNPC()
 
 	emit finished();
 
-	qDebug() << "MissionThread::autoRecordNPC() finished";
+	//qDebug() << "MissionThread::autoRecordNPC() finished";
 }
 
 void MissionThread::asyncFindPath()
@@ -2235,7 +2237,7 @@ void MainObject::checkAutoLockSchedule()
 				if (pet.hp <= 1)
 				{
 					gamedevice.worker->setPetState(rindex, kRest);
-					QThread::msleep(100);;
+					QThread::msleep(200);
 				}
 
 				if (pet.state != kRide)
@@ -2248,7 +2250,7 @@ void MainObject::checkAutoLockSchedule()
 				if (pet.hp <= 1)
 				{
 					gamedevice.worker->setPetState(bindex, kRest);
-					QThread::msleep(100);;
+					QThread::msleep(200);
 				}
 
 				if (pet.state != kBattle)
