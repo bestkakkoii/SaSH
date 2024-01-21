@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma comment(lib, "ws2_32.lib")
 #include <DbgHelp.h>
+#include <regex>
 #pragma comment(lib, "dbghelp.lib")
 
 //堆棧追蹤
@@ -322,6 +323,7 @@ int main(int argc, char* argv[])
 	SetConsoleCP(CP_UTF8);
 	SetConsoleOutputCP(CP_UTF8);
 	setlocale(LC_ALL, "en_US.UTF-8");
+
 	QT_VERSION_STR;
 	//DPI相關設置
 	QApplication::setAttribute(Qt::AA_Use96Dpi, true);// DPI support

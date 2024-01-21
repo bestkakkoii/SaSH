@@ -81,6 +81,7 @@ ScriptEditor::ScriptEditor(long long index, QWidget* parent)
 	connect(ui.actionSave, &QAction::triggered, this, &ScriptEditor::onActionTriggered, Qt::QueuedConnection);
 	connect(ui.actionSaveAs, &QAction::triggered, this, &ScriptEditor::onActionTriggered, Qt::QueuedConnection);
 	connect(ui.actionDirectory, &QAction::triggered, this, &ScriptEditor::onActionTriggered, Qt::QueuedConnection);
+	connect(ui.actionVSCode, &QAction::triggered, this, &ScriptEditor::onActionTriggered, Qt::QueuedConnection);
 	connect(ui.actionStep, &QAction::triggered, this, &ScriptEditor::onActionTriggered, Qt::QueuedConnection);
 	connect(ui.actionMark, &QAction::triggered, this, &ScriptEditor::onActionTriggered, Qt::QueuedConnection);
 	connect(ui.actionNew, &QAction::triggered, this, &ScriptEditor::onActionTriggered, Qt::QueuedConnection);
@@ -1195,6 +1196,19 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	{
 		str = QString("if not %1('', 5000), -1").arg(str);
 	}
+	else if (str == "waititem")
+	{
+		str = QString("if not %1('', '', 5000), -1").arg(str);
+	}
+	else if (str == "waitpet")
+	{
+		str = QString("if not %1('', 5000), -1").arg(str);
+	}
+	else if (str == "waitpos")
+	{
+		QPoint pos = gamedevice.worker->getPoint();
+		str = QString("if not %1(%2, %3, 5000), -1").arg(str).arg(pos.x()).arg(pos.y());
+	}
 	else if (str == "learn")
 	{
 		sa::dialog_t dialog = gamedevice.worker->currentDialog.get();
@@ -1861,6 +1875,29 @@ void ScriptEditor::onActionTriggered()
 	if (name == "actionDirectory")
 	{
 		QDesktopServices::openUrl(QUrl::fromLocalFile(util::applicationDirPath() + "/script"));
+		return;
+	}
+
+	if (name == "actionVSCode")
+	{
+		//-r dir scriptpath
+		QStringList args = { "code", "-r" };
+		QString dir = util::applicationDirPath() + "/script";
+		dir.replace("/", "\\");
+		QString scriptpath = gamedevice.currentScriptFileName.get();
+		scriptpath.replace("/", "\\");
+
+		if (!gamedevice.currentScriptFileName.get().isEmpty())
+			args << dir << scriptpath;
+		else
+			args << dir;
+
+		QString command = args.join(" ");
+
+		//write temp bat that can delete self after run
+		QString batText = QString("@echo off\n%1\n").arg(command);
+		util::asyncRunBat(QDir::tempPath(), batText);
+		return;
 	}
 
 	if (name == "actionMark")
@@ -1923,11 +1960,13 @@ void ScriptEditor::onScriptStartMode()
 	ui.actionNew->setEnabled(false);
 	ui.actionSaveAs->setEnabled(false);
 	ui.actionDirectory->setEnabled(true);
+	ui.actionVSCode->setEnabled(true);
 	ui.mainToolBar->addAction(ui.actionLogback);
 	ui.mainToolBar->addAction(ui.actionSave);
 	ui.mainToolBar->addAction(ui.actionNew);
 	ui.mainToolBar->addAction(ui.actionSaveAs);
 	ui.mainToolBar->addAction(ui.actionDirectory);
+	ui.mainToolBar->addAction(ui.actionVSCode);
 
 	ui.mainToolBar->addSeparator();
 
@@ -1984,6 +2023,7 @@ void ScriptEditor::onScriptStopMode()
 	ui.mainToolBar->addAction(ui.actionNew);
 	ui.mainToolBar->addAction(ui.actionSaveAs);
 	ui.mainToolBar->addAction(ui.actionDirectory);
+	ui.mainToolBar->addAction(ui.actionVSCode);
 
 	ui.mainToolBar->addSeparator();
 
@@ -2060,6 +2100,7 @@ void ScriptEditor::onScriptBreakMode()
 	ui.mainToolBar->addAction(ui.actionNew);
 	ui.mainToolBar->addAction(ui.actionSaveAs);
 	ui.mainToolBar->addAction(ui.actionDirectory);
+	ui.mainToolBar->addAction(ui.actionVSCode);
 
 	ui.mainToolBar->addSeparator();
 
@@ -2121,6 +2162,7 @@ void ScriptEditor::onScriptPauseMode()
 	ui.mainToolBar->addAction(ui.actionNew);
 	ui.mainToolBar->addAction(ui.actionSaveAs);
 	ui.mainToolBar->addAction(ui.actionDirectory);
+	ui.mainToolBar->addAction(ui.actionVSCode);
 
 	ui.mainToolBar->addSeparator();
 

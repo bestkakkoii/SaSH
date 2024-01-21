@@ -653,14 +653,14 @@ long long MainObject::inGameInitialize() const
 
 	//登入後的廣告公告
 	constexpr bool isbeta = true;
-	const QString version = QString("%1.%2.%3")
-		.arg(SASH_VERSION_MAJOR) \
-		.arg(SASH_VERSION_MINOR) \
-		.arg(0);
+	//const QString version = QString("%1.%2.%3")
+	//	.arg(SASH_VERSION_MAJOR) \
+	//	.arg(SASH_VERSION_MINOR) \
+	//	.arg(0);
 	gamedevice.worker->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
-	gamedevice.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(0));
-	gamedevice.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
-	gamedevice.postMessage(kDistoryDialog, NULL, NULL);
+	//gamedevice.worker->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(0));
+	//gamedevice.worker->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
+	gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 	gamedevice.worker->echo();
 	gamedevice.worker->updateComboBoxList();
 	gamedevice.worker->updateDatasFromMemory();
@@ -888,7 +888,7 @@ void MainObject::checkControl()
 	if (flagSetBoostValue_ != value)
 	{
 		flagSetBoostValue_ = value;
-		gamedevice.postMessage(kSetBoostSpeed, true, flagSetBoostValue_);
+		gamedevice.sendMessage(kSetBoostSpeed, true, flagSetBoostValue_);
 	}
 
 	//登出按下，異步登出
@@ -952,7 +952,7 @@ void MainObject::checkControl()
 	if (flagCloseEffectEnable_ != bChecked)
 	{
 		flagCloseEffectEnable_ = bChecked;
-		gamedevice.postMessage(kEnableEffect, !bChecked, NULL);
+		gamedevice.sendMessage(kEnableEffect, !bChecked, NULL);
 	}
 
 	//異步鎖定時間
@@ -970,7 +970,7 @@ void MainObject::checkControl()
 	if (flagHideCharacterEnable_ != bChecked)
 	{
 		flagHideCharacterEnable_ = bChecked;
-		gamedevice.postMessage(kEnableCharShow, !bChecked, NULL);
+		gamedevice.sendMessage(kEnableCharShow, !bChecked, NULL);
 	}
 
 	//異步戰鬥99秒
@@ -993,7 +993,7 @@ void MainObject::checkControl()
 	if (flagMuteEnable_ != bChecked)
 	{
 		flagMuteEnable_ = bChecked;
-		gamedevice.postMessage(kEnableSound, !bChecked, NULL);
+		gamedevice.sendMessage(kEnableSound, !bChecked, NULL);
 	}
 }
 

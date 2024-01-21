@@ -930,7 +930,7 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 	{
 		gamedevice.setValueHash(util::kLockTimeValue, value);
 		if (ui.checkBox_locktime->isChecked())
-			gamedevice.postMessage(kSetTimeLock, true, value);
+			gamedevice.sendMessage(kSetTimeLock, true, value);
 		return;
 	}
 

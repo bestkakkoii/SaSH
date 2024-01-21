@@ -1230,7 +1230,7 @@ void MainForm::closeEvent(QCloseEvent* e)
 	hide();
 
 	//GameDevice::getInstance(getIndex()).close();
-	GameDevice::getInstance(getIndex()).postMessage(kUninitialize, NULL, NULL);
+	GameDevice::getInstance(getIndex()).sendMessage(kUninitialize, NULL, NULL);
 	UniqueIdManager::getInstance().deallocateUniqueId(getIndex());
 
 	for (const auto& it : g_mainFormHash)

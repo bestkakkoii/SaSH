@@ -2086,6 +2086,7 @@ QCheckBox::indicator:indeterminate:pressed {
    <addaction name="actionSaveAs"/>
    <addaction name="actionDirectory"/>
    <addaction name="separator"/>
+   <addaction name="actionVSCode"/>
    <addaction name="actionStart"/>
    <addaction name="actionPause"/>
    <addaction name="actionStop"/>
@@ -2473,6 +2474,15 @@ QCheckBox::indicator:indeterminate:pressed {
    </property>
    <property name="toolTip">
     <string>Debug</string>
+   </property>
+  </action>
+  <action name="actionVSCode">
+   <property name="icon">
+    <iconset resource="../resource.qrc">
+     <normaloff>:/image/icon_vscode.svg</normaloff>:/image/icon_vscode.svg</iconset>
+   </property>
+   <property name="text">
+    <string>VSCode</string>
    </property>
   </action>
  </widget>

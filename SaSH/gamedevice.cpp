@@ -711,7 +711,7 @@ void GameDevice::dragto(long long x1, long long y1, long long x2, long long y2) 
 	QThread::msleep(50);
 	sendMessage(WM_MOUSEMOVE, NULL, datato);
 	QThread::msleep(50);
-	postMessage(WM_LBUTTONUP, MK_LBUTTON, datato);
+	sendMessage(WM_LBUTTONUP, MK_LBUTTON, datato);
 	QThread::msleep(50);
 }
 
@@ -762,7 +762,7 @@ void GameDevice::hide(long long mode) const
 		ShowWindow(hWnd, SW_HIDE);
 	}
 
-	postMessage(kEnableWindowHide, true, NULL);
+	sendMessage(kEnableWindowHide, true, NULL);
 
 	mem::freeUnuseMemory(getProcess());
 }
@@ -773,7 +773,7 @@ void GameDevice::show() const
 	if (hWnd == nullptr)
 		return;
 
-	postMessage(kEnableWindowHide, false, NULL);
+	sendMessage(kEnableWindowHide, false, NULL);
 
 	bool isWin7 = false;
 	//get windows version

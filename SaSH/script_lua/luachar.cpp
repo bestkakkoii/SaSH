@@ -203,7 +203,7 @@ long long CLuaChar::mail(sol::object oaddrIndex, sol::object omessage, sol::obje
 
 	gamedevice.worker->mail(card, text, petIndex, itemName, itemMemo);
 
-	bool bret = luadebug::waitfor(s, 500, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	bool bret = luadebug::waitfor(s, 200, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 	return bret;
 }

@@ -441,7 +441,7 @@ long long CLuaSystem::eo(sol::this_state s)
 	if (!gamedevice.worker->EO())
 		return FALSE;
 
-	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !GameDevice::getInstance(currentIndex).worker->isEOTTLSend.get(); });
+	bool bret = luadebug::waitfor(s, 2000, [currentIndex]() { return !GameDevice::getInstance(currentIndex).worker->isEOTTLSend.get(); });
 
 	long long result = bret ? gamedevice.worker->lastEOTime.get() : 0;
 

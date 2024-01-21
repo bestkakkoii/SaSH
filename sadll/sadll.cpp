@@ -1034,9 +1034,12 @@ BOOL GameService::WM_EnableFastWalk(BOOL enable)
 	{
 		//sa_8001sf.exe+42EB8 - 75 33                 - jne sa_8001sf.exe+42EED
 		util::MemoryMove(pFastWalk, "\x75\x33", 2u);
+		*CONVERT_GAMEVAR<float*>(0x9C328ul) = 4.0f;
+
 	}
 	else
 	{
+		*CONVERT_GAMEVAR<float*>(0x9C328ul) = 32.0f;
 		util::MemoryMove(pFastWalk, "\x90\x90", 2u);
 	}
 
@@ -1178,14 +1181,16 @@ BOOL GameService::WM_Move(int x, int y)
 	if (nullptr == g_hGameModule)
 		return FALSE;
 
-	int* goalX = CONVERT_GAMEVAR<int*>(0x416024Cul);
-	int* goalY = CONVERT_GAMEVAR<int*>(0x4160250ul);
-	int* walking = CONVERT_GAMEVAR<int*>(0x41829E0ul);
+	*CONVERT_GAMEVAR<int*>(0x416024Cul) = x;//goalX
+	*CONVERT_GAMEVAR<int*>(0x4160250ul) = y;//goalY
+	*CONVERT_GAMEVAR<int*>(0x41829E0ul) = 1;//moveStart
 
-	*goalX = x;
-	*goalY = y;
-	*walking = 1;
-
+	//*CONVERT_GAMEVAR<int*>(0x4181D3C) = x;
+	//*CONVERT_GAMEVAR<int*>(0x4181D40) = y;
+	//*CONVERT_GAMEVAR<float*>(0x416A644) = static_cast<float>(x) * 64.0f;
+	//*CONVERT_GAMEVAR<float*>(0x416A648) = static_cast<float>(y) * 64.0f;
+	//*CONVERT_GAMEVAR<float*>(0x4182998) = static_cast<float>(x) * 64.0f;
+	//*CONVERT_GAMEVAR<float*>(0x4182994) = static_cast<float>(y) * 64.0f;
 	return TRUE;
 }
 

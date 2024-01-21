@@ -2892,7 +2892,7 @@ void Worker::setWorldStatus(long long w) const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	if (gamedevice.postMessage(kSetWorldStatus, w, NULL) == FALSE)
+	if (gamedevice.sendMessage(kSetWorldStatus, w, NULL) == FALSE)
 		mem::write<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetWorldStatus, w);
 }
 
@@ -2901,7 +2901,7 @@ void Worker::setGameStatus(long long g) const
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
-	if (gamedevice.postMessage(kSetGameStatus, g, NULL) == FALSE)
+	if (gamedevice.sendMessage(kSetGameStatus, g, NULL) == FALSE)
 		mem::write<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetGameStatus, g);
 }
 
@@ -2960,6 +2960,9 @@ void Worker::setOnlineFlag(bool enable)
 
 bool Worker::setWindowTitle(QString formatStr)
 {
+	if (doNotChangeTitle_.get())
+		return false;
+
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	if (!gamedevice.isValid())
@@ -3054,7 +3057,7 @@ bool Worker::cleanChatHistory()
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	if (!gamedevice.postMessage(kCleanChatHistory, NULL, NULL))
+	if (!gamedevice.sendMessage(kCleanChatHistory, NULL, NULL))
 		return false;
 
 	chatQueue.clear();
@@ -3988,7 +3991,7 @@ bool Worker::createRemoteDialog(unsigned long long type, unsigned long long butt
 
 	mem::VirtualMemory ptr(gamedevice.getProcess(), text, mem::VirtualMemory::kAnsi, true);
 
-	return gamedevice.postMessage(kCreateDialog, MAKEWPARAM(type, button), ptr);
+	return gamedevice.sendMessage(kCreateDialog, MAKEWPARAM(type, button), ptr);
 }
 
 //按下按鈕
@@ -3998,7 +4001,7 @@ bool Worker::press(sa::ButtonType select, long long dialogid, long long unitid)
 	{
 		long long currentIndex = getIndex();
 		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-		return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
+		return gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 	}
 
 	sa::dialog_t dialog = currentDialog.get();
@@ -4049,7 +4052,7 @@ bool Worker::press(sa::ButtonType select, long long dialogid, long long unitid)
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 //按下行按鈕
@@ -4069,7 +4072,7 @@ bool Worker::press(long long row, long long dialogid, long long unitid)
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 //買東西
@@ -4096,7 +4099,7 @@ bool Worker::buy(long long index, long long amt, long long dialogid, long long u
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 //賣東西
@@ -4144,7 +4147,7 @@ bool Worker::sell(long long index, long long dialogid, long long unitid)
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 //賣東西
@@ -4167,7 +4170,7 @@ bool Worker::sell(const QVector<long long>& indexs, long long dialogid, long lon
 		if (it < 0 || it >= sa::MAX_ITEM)
 			continue;
 
-		bret = bret && sell(it, dialogid, unitid);
+		bret = sell(it, dialogid, unitid);
 	}
 
 	return bret;
@@ -4201,7 +4204,7 @@ bool Worker::learn(long long petIndex, long long shopSkillIndex, long long petSk
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 bool Worker::depositItem(long long itemIndex, long long dialogid, long long unitid)
@@ -4243,7 +4246,7 @@ bool Worker::withdrawItem(long long itemIndex, long long dialogid, long long uni
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	if (!gamedevice.postMessage(kDistoryDialog, NULL, NULL))
+	if (!gamedevice.sendMessage(kDistoryDialog, NULL, NULL))
 		return false;
 
 	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
@@ -4294,7 +4297,7 @@ bool Worker::inputtext(const QString& text, long long dialogid, long long unitid
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 //解除安全瑪
@@ -4308,7 +4311,7 @@ bool Worker::unlockSecurityCode(const QString& code)
 		return false;
 
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	return gamedevice.postMessage(kDistoryDialog, NULL, NULL);
+	return gamedevice.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 bool Worker::windowPacket(const QString& command, long long dialogid, long long unitid)
@@ -5316,8 +5319,6 @@ bool Worker::downloadMap(long long x, long long y, long long floor)
 //下載全部地圖塊
 bool Worker::downloadMap(long long floor)
 {
-	bool IsDownloadingMap = true;
-
 	long long original = floor;
 
 	if (floor == -1)
@@ -5359,10 +5360,11 @@ bool Worker::downloadMap(long long floor)
 	QString title;
 	std::wstring wtitle;
 
-	announce(QString("floor %1 downloadMapXSize: %2 downloadMapYSize: %3 totalBlocks: %4").arg(floor).arg(downloadMapXSize_).arg(downloadMapYSize_).arg(totalBlocks));
+	announce(QString("floor %1 downloadMapXSize: %2 downloadMapYSize: %3 totalBlocks: %4")
+		.arg(floor).arg(downloadMapXSize_).arg(downloadMapYSize_).arg(totalBlocks));
 	util::timer timer;
 
-	do
+	for (;;)
 	{
 		if (original != getFloor())
 			return false;
@@ -5381,20 +5383,17 @@ bool Worker::downloadMap(long long floor)
 		}
 
 		// 更新下載進度
-		downloadCount_++;
+		++downloadCount_;
 		downloadMapProgress_ = static_cast<qreal>(downloadCount_) / totalMapBlocks_ * 100.0;
 
 		// 更新下載進度
 		title = QString("downloading floor %1 - %2%").arg(floor).arg(util::toQString(downloadMapProgress_));
-		wtitle = title.toStdWString();
-		SetWindowTextW(gamedevice.getProcessWindow(), wtitle.c_str());
 
 		if (downloadMapProgress_ >= 100.0)
 		{
 			break;
 		}
-
-	} while (IsDownloadingMap);
+	};
 
 	//清空尋路地圖數據、數據重讀、圖像重繪
 	mapDevice.clear(floor);
@@ -5403,7 +5402,6 @@ bool Worker::downloadMap(long long floor)
 	timer.restart();
 	mapDevice.readFromBinary(currentIndex, floor, getFloorName(), false, true);
 	announce(QString("floor %1 reload complete cost: %2 ms").arg(floor).arg(timer.cost()));
-
 	return true;
 }
 
@@ -5438,6 +5436,49 @@ bool Worker::move(const QPoint& p, const QString& dir)
 	return true;
 }
 
+//根據自身座標和目標座標計算出面相方位
+static QString getDirByPoint(const QPoint& p, const QPoint& tp)
+{
+	QPoint c = tp - p;
+	double r = atan2(c.x(), c.y()) / M_PI * 180.0;
+	//八方位 北方為 a, 東北 b 東 c 東南 d 南 e 西南 f 西 g 西北 h
+	QString dirStr;
+	if (r <= -135 + 22.5 && r >= -135 - 22.5)
+	{
+		dirStr = "h";
+	}
+	else if (r <= -90 + 22.5 && r >= -90 - 22.5)
+	{
+		dirStr = "g";
+	}
+	else if (r <= -45 + 22.5 && r >= -45 - 22.5)
+	{
+		dirStr = "f";
+	}
+	else if (r <= 0 + 22.5 && r >= 0 - 22.5)
+	{
+		dirStr = "e";
+	}
+	else if (r <= 45 + 22.5 && r >= 45 - 22.5)
+	{
+		dirStr = "d";
+	}
+	else if (r <= 90 + 22.5 && r >= 90 - 22.5)
+	{
+		dirStr = "c";
+	}
+	else if (r <= 135 + 22.5 && r >= 135 - 22.5)
+	{
+		dirStr = "b";
+	}
+	else if (r < -135 - 22.5 || (r <= 180 + 22.5 && r >= 180 - 22.5))
+	{
+		dirStr = "a";
+	}
+
+	return dirStr;
+}
+
 //移動(記憶體)
 bool Worker::move(const QPoint& p) const
 {
@@ -5448,6 +5489,30 @@ bool Worker::move(const QPoint& p) const
 		return false;
 
 	return gamedevice.sendMessage(kSetMove, p.x(), p.y());
+}
+
+//單步移動(封包)
+bool Worker::stepMove(const QPoint& p)
+{
+	QMutexLocker locker(&moveLock_);
+	long long currentIndex = getIndex();
+	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.isValid())
+		return false;
+
+	QPoint point = getPoint();
+	QString dirStr = getDirByPoint(point, p);
+	move(point, dirStr);
+
+	HANDLE hProcess = gamedevice.getProcess();
+	long long hModule = gamedevice.getProcessModule();
+	mem::write<int>(hProcess, hModule + sa::kOffsetNowX, p.x());
+	mem::write<int>(hProcess, hModule + sa::kOffsetNowY, p.y());
+	mem::write<float>(hProcess, hModule + 0x416A644, (float)p.x() * 64.0);
+	mem::write<float>(hProcess, hModule + 0x416A648, (float)p.y() * 64.0);
+	mem::write<float>(hProcess, hModule + 0x4182998, (float)p.x() * 64.0);
+	mem::write<float>(hProcess, hModule + 0x4182994, (float)p.y() * 64.0);
+	return true;
 }
 
 //轉向指定坐標
@@ -5701,7 +5766,7 @@ bool Worker::dropItem(QVector<long long> indexs)
 {
 	bool bret = true;
 	for (const long long it : indexs)
-		bret = bret && dropItem(it);
+		bret = dropItem(it);
 
 	return bret;
 }
@@ -8930,7 +8995,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		long long level = gamedevice.getValueHash(util::kBattlePetNormalActionLevelValue);
 		if (level != 0)
 		{
-			auto minIt = std::min_element(bt.enemies.begin(), bt.enemies.end(),
+			const sa::battle_object_t* minIt = std::min_element(bt.enemies.begin(), bt.enemies.end(),
 				[](const sa::battle_object_t& obj1, const sa::battle_object_t& obj2)
 				{
 					return obj1.level < obj2.level;
@@ -9213,8 +9278,8 @@ static bool compareBattleObjects(const sa::battle_object_t& a, const sa::battle_
 		return false;
 
 	constexpr long long order[sa::MAX_ENEMY] = { 19, 17, 15, 16, 18, 14, 12, 10, 11, 13, 8, 6, 5, 7, 9, 3, 1, 0, 2, 4 };
-	auto ait = std::find(order, order + sa::MAX_ENEMY, a.pos);
-	auto bit = std::find(order, order + sa::MAX_ENEMY, b.pos);
+	const long long* ait = std::find(order, order + sa::MAX_ENEMY, a.pos);
+	const long long* bit = std::find(order, order + sa::MAX_ENEMY, b.pos);
 	long long aindex = std::distance(order, ait);
 	long long bindex = std::distance(order, bit);
 	return aindex < bindex;
@@ -15734,7 +15799,7 @@ void Worker::findPathAsync(const QPoint& dst, const std::function<bool()>& func)
 		if (!gamedevice.IS_FINDINGPATH.get())
 			break;
 
-		if (timer.hasExpired(60000))
+		if (timer.hasExpired(180000))
 			break;
 
 		if (getFloor() != current_floor)

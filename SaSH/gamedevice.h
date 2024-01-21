@@ -195,7 +195,7 @@ public:
 
 		//遊戲後臺滑鼠一移動到左上
 		LPARAM data = MAKELPARAM(0, 0);
-		postMessage(WM_MOUSEMOVE, NULL, data);
+		sendMessage(WM_MOUSEMOVE, NULL, data);
 
 		//根據HWND擷取窗口後臺圖像
 		QPixmap pixmap = screen->grabWindow(reinterpret_cast<WId>(getProcessWindow()));

@@ -349,15 +349,20 @@ long long CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 		dir.setFilter(QDir::Files | QDir::NoSymLinks);
 		QFileInfoList fileInfoList = dir.entryInfoList();
 		static const QRegularExpression reg("(\\d+).dat");
+		QString fileName;
+		QRegularExpressionMatch match;
+		QString szfl;
+		int size;
 		for (QFileInfo& fileInfo : fileInfoList)
 		{
-			QString fileName = fileInfo.fileName();
-			QRegularExpressionMatch match = reg.match(fileName.toLower());
+			fileName = fileInfo.fileName();
+			match = reg.match(fileName.toLower());
 			if (match.hasMatch())
 			{
-				QString szfl = match.captured(1);
-				int size = fileInfo.size();
-				list.append(map{ szfl.toLongLong(), size });
+				szfl = match.captured(1);
+				size = fileInfo.size();
+				if (size > 0)
+					list.append(map{ szfl.toLongLong(), size });
 			}
 		}
 
@@ -369,7 +374,9 @@ long long CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 
 		for (const map& m : list)
 		{
+			luadebug::checkStopAndPause(s);
 			gamedevice.worker->downloadMap(m.floor);
+			lua.collect_garbage();
 		}
 	}
 	else
@@ -858,7 +865,7 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 				return func(dst.x(), dst.y());
 			};
 
-		if (findPathProcess(currentIndex, &astar, p, steplen, step_cost, timeout, stdfun, 50, s))
+		if (findPathProcess(currentIndex, &astar, p, --steplen, step_cost, timeout, stdfun, 50, s))
 		{
 			if (!name.isEmpty() && (findNpcCallBack(name, p, &dir)) && dir != -1)
 				gamedevice.worker->setCharFaceDirection(dir);
@@ -867,7 +874,7 @@ long long CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol:
 		return FALSE;
 	}
 
-	if (findPathProcess(currentIndex, &astar, p, steplen, step_cost, timeout, nullptr, 0, s))
+	if (findPathProcess(currentIndex, &astar, p, --steplen, step_cost, timeout, nullptr, 0, s))
 	{
 		if (!name.isEmpty() && (findNpcCallBack(name, p, &dir)) && dir != -1)
 			gamedevice.worker->setCharFaceDirection(dir);

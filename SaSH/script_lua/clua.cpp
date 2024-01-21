@@ -2189,7 +2189,7 @@ void CLua::open_utillibs(sol::state& lua)
 
 	lua.set_function("toint", [this](sol::object ovalue, sol::this_state s)->long long
 		{
-			long long result = 0.0;
+			long long result = 0;
 			if (ovalue.is<std::string>())
 				result = util::toQString(ovalue).toLongLong();
 			else if (ovalue.is<long long>())
@@ -3698,8 +3698,8 @@ void CLua::open_petlibs(sol::state& lua)
 		sol::call_constructor,
 		sol::constructors<CLuaPet(long long)>(),
 		sol::meta_function::index, &CLuaPet::operator[],
-		"count", &CLuaPet::count,
-		"数量", &CLuaPet::count
+		"count", sol::property(&CLuaPet::count),
+		"数量", sol::property(&CLuaPet::count)
 	);
 
 	lua.safe_script("pet = PetClass(__INDEX);", sol::script_pass_on_error);
