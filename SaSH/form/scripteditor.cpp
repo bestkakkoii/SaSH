@@ -843,7 +843,7 @@ void ScriptEditor::createScriptListContextMenu()
 			emit signalDispatcher.reloadScriptList();
 		});
 
-	connect(renameAction, &QAction::triggered, this, [this]()
+	connect(renameAction, &QAction::triggered, this, [this, currentIndex]()
 		{
 			//current item
 			TreeWidgetItem* item = reinterpret_cast<TreeWidgetItem*>(ui.treeWidget_scriptList->currentItem());
@@ -858,13 +858,43 @@ void ScriptEditor::createScriptListContextMenu()
 			if (!QFile::exists(currentPath))
 				return;
 
-			//設置為可編輯
-			item->setFlags(item->flags() | Qt::ItemIsEditable);
+			QString newCurrentText = currentText;
+			newCurrentText.remove(util::SCRIPT_DEFAULT_SUFFIX);
 
-			currentRenamePath_ = currentPath;
-			currentRenameText_ = currentText;
+			//create a input dialog with same style as the main window
+			QInputDialog inputDialog(this);
+			inputDialog.setWindowFlags(windowFlags());
+			inputDialog.setInputMode(QInputDialog::TextInput);
+			inputDialog.setWindowTitle(tr("Rename"));
+			inputDialog.setLabelText(tr("New name:"));
+			inputDialog.setTextValue(newCurrentText);
+			inputDialog.resize(300, 100);
+			inputDialog.setOkButtonText(QObject::tr("ok"));
+			inputDialog.setCancelButtonText(QObject::tr("cancel"));
 
-			ui.treeWidget_scriptList->editItem(item, 0);
+			//show the dialog
+			if (inputDialog.exec() != QDialog::Accepted)
+				return;
+
+			QString newName = inputDialog.textValue();
+			if (newName.isEmpty())
+				return;
+
+			if (!newName.endsWith(util::SCRIPT_DEFAULT_SUFFIX))
+				newName.append(util::SCRIPT_DEFAULT_SUFFIX);
+
+			if (newName == currentText)
+				return;
+
+			QString newPath = currentPath;
+			//only replace the last part of the path
+			newPath.replace(currentText, newName);
+
+			//rename the file
+			QFile::rename(currentPath, newPath);
+
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+			emit signalDispatcher.reloadScriptList();
 		});
 
 	// Set the context menu policy for the QTreeWidget

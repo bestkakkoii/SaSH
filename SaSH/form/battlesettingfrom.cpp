@@ -4,95 +4,6 @@
 #include "util.h"
 #include "signaldispatcher.h"
 #include <gamedevice.h>
-#include "script/parser.h"
-
-BattleConditionTextItem::BattleConditionTextItem(const QString& text, QGraphicsItem* parent)
-	: QGraphicsTextItem(text, parent)
-{
-	setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsFocusable);
-	setCacheMode(QGraphicsItem::DeviceCoordinateCache);
-	setZValue(1);
-	setTextWidth(width_);
-	font_ = util::getFont();
-}
-
-void BattleConditionTextItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* e)
-{
-	//left double click
-	if (e->button() != Qt::LeftButton)
-		return;
-
-	emit clicked(data(Qt::UserRole).toString(), false);
-}
-
-void BattleConditionTextItem::mousePressEvent(QGraphicsSceneMouseEvent* e)
-{
-	isPressed_ = true;
-	update();
-
-	if (e->button() != Qt::RightButton)
-		return;
-
-	emit clicked(data(Qt::UserRole).toString(), true);
-}
-
-void BattleConditionTextItem::hoverEnterEvent(QGraphicsSceneHoverEvent*)
-{
-	isHovered_ = true;
-	update();
-}
-
-void BattleConditionTextItem::hoverLeaveEvent(QGraphicsSceneHoverEvent*)
-{
-	isHovered_ = false;
-	update();
-}
-
-void BattleConditionTextItem::mouseReleaseEvent(QGraphicsSceneMouseEvent*)
-{
-	if (isPressed_)
-	{
-		emit clicked(text_, false);
-		isPressed_ = false;
-		update();
-	}
-}
-
-void BattleConditionTextItem::mouseMoveEvent(QGraphicsSceneMouseEvent* e)
-{
-	QGraphicsItem::mouseMoveEvent(e);
-}
-
-void BattleConditionTextItem::dragEnterEvent(QGraphicsSceneDragDropEvent* e)
-{
-	if (e->mimeData()->hasText())
-	{
-		e->acceptProposedAction();
-	}
-}
-
-void BattleConditionTextItem::dropEvent(QGraphicsSceneDragDropEvent* e)
-{
-	QString droppedText = e->mimeData()->text();
-	qDebug() << "Dropped text: " << droppedText;
-	qDebug() << "Target text: " << toPlainText();
-}
-
-void BattleConditionTextItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
-{
-	QColor outlineColor = Qt::black;
-	if (isPressed_)
-		outlineColor = Qt::darkBlue;
-	else if (isHovered_)
-		outlineColor = Qt::blue;
-
-	painter->setFont(font_);
-	painter->setPen(QPen(outlineColor, 2));
-	painter->setBrush(Qt::white);
-	painter->drawRect(boundingRect());
-
-	QGraphicsTextItem::paint(painter, option, widget);
-}
 
 BattleSettingFrom::BattleSettingFrom(long long index, QWidget* parent)
 	: QWidget(parent)
@@ -103,181 +14,155 @@ BattleSettingFrom::BattleSettingFrom(long long index, QWidget* parent)
 	QFont font = util::getFont();
 	setFont(font);
 
-	// 創建 QGraphicsScene 和 QGraphicsView
-	QGraphicsScene* scene = q_check_ptr(new QGraphicsScene(this));
-	sash_assume(scene != nullptr);
-	if (scene != nullptr)
-	{
-		ui.graphicsView_condition->setScene(scene);
-		ui.graphicsView_condition->setRenderHint(QPainter::Antialiasing);
-		ui.graphicsView_condition->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-		ui.graphicsView_condition->setCacheMode(QGraphicsView::CacheBackground);
-	}
-
-	ui.widget_preview->setReadOnly(false);
-
-	ui.listWidget->setResizeMode(QListView::Fixed);
-	font.setPointSize(12);
-	font.setFamily("YaHei Consolas Hybrid");
-	ui.listWidget->setFont(font);
-	ui.listWidget->setStyleSheet(R"(
-		QListWidget { font-size:12px; font-family:YaHei Consolas Hybrid; }
-		QListWidget::item:selected { background-color: black; color: white;
-	})");
-
-	// 創建一個 QHash 用於映射中文文本和英文文本
-	QList<QPair<QString, QString>> textMapping = {
-		{ "等於","==" },
-		{ "不等於","!=" },
-		{ "大於",">" },
-		{ "小於","<" },
-		{ "大於等於",">=" },
-		{ "小於等於","<=" },
-		{ "包含","contains" },
-		{ "不包含","not contains" },
-
-		{ "","" },
-
-		{ "如果","if () then\n    \nend" },
-		{ "如果否則","if () then\n    \nelse\n    \nend" },
-		{ "如果否則如果","if () then\n    \nelseif () then\n    \nelse\n    \nend" },
-
-		{ "","" },
-
-		{ "人物名稱","char.name" },
-		{ "人物等級","char.lv" },
-
-
-		{ "","" },
-
-		{ "一般動作","bt.charUseAttack()" },
-		{ "使用精靈","bt.charUseMagic(,)" },
-		{ "使用技能","bt.charUseSkill(,)" },
-		{ "使用道具","bt.useItem(,)" },
-		{ "寵物一般動作","bt.petUseSkill()" },
-		{ "交換寵物","bt.switchPet()" },
-		{ "逃跑","bt.escape()" },
-		{ "防禦","bt.defense()" },
-		{ "捕捉","bt.catchPet()" },
-		{ "登出","sys.out()" },
-
-		{ "","" },
-		{ "加入庫","local bt <const> = BattleClass();\nlocal sys <const> = SystemClass();\n" },
-
-	};
-
-	// 添加更多映射...
-
-	long long x = 0;
-	long long y = 0;
-	long long itemWidth = 80; // 调整每个项的宽度，根据需要修改
-	long long itemHeight = 20; // 调整每个项的高度，根据需要修改
-	for (const QPair<QString, QString>& textPair : textMapping)
-	{
-		if (textPair.first.isEmpty())//換行
-		{
-			x = 0;
-			++y;
-			continue;
-		}
-
-		BattleConditionTextItem* item = q_check_ptr(new  BattleConditionTextItem(textPair.first));
-		sash_assume(item != nullptr);
-		if (item == nullptr)
-			continue;
-
-		scene->addItem(item);
-
-		// 计算每个项的位置，靠左对齐
-		qreal xPos = x * itemWidth;
-		qreal yPos = y * itemHeight;
-
-		item->setPos(xPos, yPos);
-
-		// 存储英文文本到图形项的 UserData 中
-		item->setData(Qt::UserRole, textPair.second);
-
-		connect(item, &BattleConditionTextItem::clicked, this, &BattleSettingFrom::onTextBrowserAppendText);
-
-		// 更新 x 和 y 的值
-		++x;
-
-		if (x >= 10) // 一行最多10列，如果超过10列，换行
-		{
-			x = 0;
-			++y;
-		}
-	}
-
-	connect(ui.listWidget, &QListWidget::itemDoubleClicked, this, &BattleSettingFrom::onListWidgetDoubleClicked);
-
+	QStringList nameCheckList;
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
-		if (button)
-			connect(button, &PushButton::clicked, this, &BattleSettingFrom::onButtonClicked, Qt::QueuedConnection);
-	}
-
-}
-
-BattleSettingFrom::~BattleSettingFrom()
-{}
-
-void BattleSettingFrom::onListWidgetAddItem(const QString& text)
-{
-	std::ignore = text;
-}
-
-void BattleSettingFrom::onTextBrowserAppendText(const QString& text, bool cacheOnly)
-{
-	if (text.isEmpty())
-		return;
-
-	if (!cacheOnly)
-	{
-		ui.label_combinepreview->setText(text);
-		ui.widget_preview->append(text);
-		cacheText.clear();
-		return;
-	}
-
-	static const QStringList ops = {
-		">", "<", "==", "!=", ">=", "<=", "contains", "not contains"
-	};
-
-	static const QStringList canrecord = {
-	 "contains", "not contains"
-	};
-
-	if (cacheText.isEmpty())
-	{
-		if (!canrecord.contains(text))
-			return;
-
-		cacheText = text;
-		ui.label_combinepreview->setText(cacheText);
-		return;
-	}
-
-	if (cacheText.contains("contains"))
-	{
-		if (!cacheText.contains("("))
+		if (button && !nameCheckList.contains(button->objectName()))
 		{
-			if (ops.contains(text))
-				return;
-
-			// "contains(xxxxx" or "not contains(xxxxx"
-			QString newText = QString("%1(%2, '')").arg(cacheText).arg(text);
-			cacheText = newText;
-			ui.label_combinepreview->setText(newText);
-			if (!ui.widget_preview->text().isEmpty())
-				ui.widget_preview->append(newText);
-			else
-				ui.widget_preview->setText(newText);
+			util::setPushButton(button);
+			nameCheckList.append(button->objectName());
+			connect(button, &PushButton::clicked, this, &BattleSettingFrom::onButtonClicked, Qt::UniqueConnection);
 		}
 	}
 
-	cacheText.clear();
+	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
+	for (auto& checkBox : checkBoxList)
+	{
+		if (checkBox && !nameCheckList.contains(checkBox->objectName()))
+		{
+			util::setCheckBox(checkBox);
+			nameCheckList.append(checkBox->objectName());
+			//connect(checkBox, &QCheckBox::stateChanged, this, &AfkForm::onCheckBoxStateChanged, Qt::UniqueConnection);
+		}
+	}
+
+	QList <QSpinBox*> spinBoxList = util::findWidgets<QSpinBox>(this);
+	for (auto& spinBox : spinBoxList)
+	{
+		if (spinBox && !nameCheckList.contains(spinBox->objectName()))
+		{
+			util::setSpinBox(spinBox);
+			nameCheckList.append(spinBox->objectName());
+			//connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
+		}
+	}
+
+	QList <QLineEdit*> lineEditList = util::findWidgets<QLineEdit>(this);
+	for (auto& lineEdit : lineEditList)
+	{
+		if (lineEdit && !nameCheckList.contains(lineEdit->objectName()))
+		{
+			util::setLineEdit(lineEdit);
+			nameCheckList.append(lineEdit->objectName());
+			//connect(lineEdit, &QLineEdit::textChanged, this, &AfkForm::onLineEditTextChanged, Qt::UniqueConnection);
+		}
+	}
+
+	QList <ComboBox*> comboBoxList = util::findWidgets<ComboBox>(this);
+	for (auto& comboBox : comboBoxList)
+	{
+		if (comboBox && !nameCheckList.contains(comboBox->objectName()))
+		{
+			util::setComboBox(comboBox);
+			nameCheckList.append(comboBox->objectName());
+			//connect(comboBox, &ComboBox::clicked, this, &AfkForm::onComboBoxClicked, Qt::UniqueConnection);
+			//connect(comboBox, &ComboBox::currentTextChanged, this, &AfkForm::onComboBoxTextChanged, Qt::UniqueConnection);
+			//connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
+		}
+	}
+
+	QList <QLabel*> labelList = util::findWidgets<QLabel>(this);
+	for (auto& label : labelList)
+	{
+		if (label && !nameCheckList.contains(label->objectName()))
+		{
+			util::setLabel(label);
+			nameCheckList.append(label->objectName());
+		}
+	}
+
+	QList <TableWidget*> tableList = util::findWidgets<TableWidget>(this);
+	for (auto& table : tableList)
+	{
+		if (table && !nameCheckList.contains(table->objectName()))
+		{
+			util::setTableWidget(table);
+			nameCheckList.append(table->objectName());
+		}
+	}
+
+	enum Logic
+	{
+		kEqual = 0,
+		kNotEqual,
+		kLess,
+		kGreater,
+		kLessEqual,
+		kGreaterEqual,
+		kContains,
+		kNotContains,
+	};
+
+	static const QHash<QString, Logic> logicMap = {
+		{ "==", Logic::kEqual },
+		{ "!=", Logic::kNotEqual },
+		{ "<", Logic::kLess },
+		{ ">", Logic::kGreater },
+		{ "<=", Logic::kLessEqual },
+		{ ">=", Logic::kGreaterEqual },
+		{ "contains", Logic::kContains },
+		{ "not contains", Logic::kNotContains },
+		{ "包含", Logic::kContains },
+		{ "不包含", Logic::kNotContains },
+	};
+
+	QStringList conditions = {
+		tr("char_hp"), tr("char_mp"), tr("char_hp%"), tr("char_mp%"), tr("char_status"), tr("char_lv"),
+
+		tr("pet_hp"), tr("pet_hp%"), tr("pet_status"), tr("pet_lv"),
+
+		tr("allies_hp_lowest"), tr("allies_hp%_lowest"), tr("allies_hp_highest"), tr("allies_hp%_highest"),
+		tr("allies_lv_lowest"), tr("allies_lv_highest"),
+		tr("allies_status"), tr("allies_count"),
+
+		tr("enemy_hp_lowest"), tr("enemy_hp%_lowest"), tr("enemy_hp_highest"), tr("enemy_hp%_highest"),
+		tr("enemy_lv_lowest"), tr("enemy_lv_highest"),
+		tr("enemy_status"), tr("enemy_count"),
+
+		tr("battle_round"),
+	};
+
+	QStringList logicList = { "==", "!=", "<", ">", "<=", ">=", tr("contains"), tr("not contains") };
+
+	QStringList target = {
+		tr("char_only"), tr("pet_only"),
+
+		tr("allies_lowest_hp"), tr("allies_highest_hp"), tr("allies_lowest_lv"), tr("allies_highest_lv"),
+		tr("allies_lowest_hp%"), tr("allies_highest_hp%"),
+
+		tr("enemy_lowest_hp"), tr("enemy_highest_hp"), tr("enemy_lowest_lv"), tr("enemy_highest_lv"),
+		tr("enemy_lowest_hp%"), tr("enemy_highest_hp%"),
+
+	};
+
+	ui.comboBox_conditions->addItems(conditions);
+	ui.comboBox_logics->addItems(logicList);
+	ui.comboBox_target->addItems(target);
+
+	//header: conditions action target
+
+	QStringList tableHeaders = { tr("type"), tr("conditions"), tr("action"), tr("target") };
+	ui.tableWidget_logics->setColumnCount(tableHeaders.size());
+	ui.tableWidget_logics->setHorizontalHeaderLabels(tableHeaders);
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+	connect(&signalDispatcher, &SignalDispatcher::updateComboBoxItemText, this, &BattleSettingFrom::onUpdateComboBoxItemText, Qt::QueuedConnection);
+}
+
+BattleSettingFrom::~BattleSettingFrom()
+{
+
 }
 
 void BattleSettingFrom::onButtonClicked()
@@ -290,83 +175,273 @@ void BattleSettingFrom::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	long long currentIndex = getIndex();
-
-	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-
-	if (name == "pushButton_save")
+	if (name == "pushButton_default")
 	{
-		QStringList logicList;
-		for (long long i = 0; i < ui.listWidget->count(); ++i)
-		{
-			QListWidgetItem* item = ui.listWidget->item(i);
-			if (item == nullptr)
-				continue;
+		long long row = ui.tableWidget_logics->rowCount();
+		ui.tableWidget_logics->insertRow(row);
+		ui.tableWidget_logics->setText(row, 0, tr("char"));
+		ui.tableWidget_logics->setText(row, 1, "");
+		ui.tableWidget_logics->setText(row, 2, tr("attack"));
+		ui.tableWidget_logics->setText(row, 3, tr("enemy_lowest_hp"));
 
-			logicList.append(item->text());
-		}
-
-		gamedevice.setStringHash(util::kBattleLogicsString, logicList.join("\n"));
+		row = ui.tableWidget_logics->rowCount();
+		ui.tableWidget_logics->insertRow(row);
+		ui.tableWidget_logics->setText(row, 0, tr("pet"));
+		ui.tableWidget_logics->setText(row, 1, "");
+		ui.tableWidget_logics->setText(row, 2, tr("attack"));
+		ui.tableWidget_logics->setText(row, 3, tr("enemy_lowest_hp"));
 		return;
 	}
 
-	if (name == "pushButton_testresult")
+	if (name == "pushButton_conditionup")
 	{
-		Parser parser(getIndex());
-		QVariant var = parser.luaDoString(ui.widget_preview->text().simplified());
-		if (var.isValid())
-		{
-			QMessageBox::information(this, tr("Test Result"), tr("Test Result: %1").arg(var.toString()));
-		}
-		return;
+		util::SwapRowUp(ui.listWidget_conditions);
 	}
 
-	if (name == "pushButton_addlogic")
+	if (name == "pushButton_conditiondown")
 	{
-		QString text = ui.widget_preview->text().simplified();
-		if (text.isEmpty())
-			return;
-
-		QListWidgetItem* item = q_check_ptr(new QListWidgetItem(text));
-		sash_assume(item != nullptr);
-		if (item == nullptr)
-			return;
-
-		item->setSizeHint(QSize(0, 18));
-		item->setData(Qt::UserRole, QVariant::fromValue(ui.widget_preview->text()));
-		ui.listWidget->addItem(item);
-		return;
+		util::SwapRowDown(ui.listWidget_conditions);
 	}
 
 	if (name == "pushButton_logicup")
 	{
-		util::SwapRowUp(ui.listWidget);
-		return;
+		util::SwapRowUp(ui.tableWidget_logics);
 	}
 
 	if (name == "pushButton_logicdown")
 	{
-		util::SwapRowDown(ui.listWidget);
+		util::SwapRowDown(ui.tableWidget_logics);
+	}
+
+	if (name == "pushButton_addcondition")
+	{
+		QString condition = ui.comboBox_conditions->currentText();
+		QString logic = ui.comboBox_logics->currentText();
+		QString value = ui.lineEdit_cmpvalue->text();
+
+		if (condition.isEmpty() || logic.isEmpty() || value.isEmpty())
+			return;
+
+		QString text = QString("%1,%2,%3").arg(condition).arg(logic).arg(value);
+		ui.listWidget_conditions->addItem(text);
 		return;
+	}
+
+	if (name == "pushButton_addcharlogic")
+	{
+		QStringList conditions;
+		for (long long i = 0; i < ui.listWidget_conditions->count(); ++i)
+		{
+			QString text = ui.listWidget_conditions->item(i)->text();
+			conditions.append(text);
+		}
+
+		conditions.removeDuplicates();
+
+		QString conditionsStr = conditions.join("&&");
+		QString action = ui.comboBox_charactions->currentText();
+		if (action.contains(tr("item")))
+		{
+			QString item = ui.lineEdit_items->text();
+			action.append(QString(":%1").arg(item));
+		}
+
+		QString target = ui.comboBox_target->currentText();
+
+		if (conditionsStr.isEmpty() || action.isEmpty() || target.isEmpty())
+			return;
+
+		//col: 1.conditions 2.action 3.target
+		long long row = ui.tableWidget_logics->rowCount();
+		ui.tableWidget_logics->insertRow(row);
+		ui.tableWidget_logics->setText(row, 0, tr("char"));
+		ui.tableWidget_logics->setText(row, 1, conditionsStr);
+		ui.tableWidget_logics->setText(row, 2, action);
+		ui.tableWidget_logics->setText(row, 3, target);
+		return;
+	}
+
+	if (name == "pushButton_addpetlogic")
+	{
+		QStringList conditions;
+		for (long long i = 0; i < ui.listWidget_conditions->count(); ++i)
+		{
+			QString text = ui.listWidget_conditions->item(i)->text();
+			conditions.append(text);
+		}
+
+		conditions.removeDuplicates();
+
+		QString conditionsStr = conditions.join("&&");
+		QString action = ui.comboBox_charactions->currentText();
+		QString target = ui.comboBox_target->currentText();
+
+		if (conditionsStr.isEmpty() || action.isEmpty() || target.isEmpty())
+			return;
+
+		//col: 1.conditions 2.action 3.target
+		long long row = ui.tableWidget_logics->rowCount();
+		ui.tableWidget_logics->insertRow(row);
+		ui.tableWidget_logics->setText(row, 0, tr("pet"));
+		ui.tableWidget_logics->setText(row, 1, conditionsStr);
+		ui.tableWidget_logics->setText(row, 2, action);
+		ui.tableWidget_logics->setText(row, 3, target);
 	}
 }
 
-void BattleSettingFrom::onListWidgetDoubleClicked(QListWidgetItem* item)
+void BattleSettingFrom::onUpdateComboBoxItemText(long long type, const QStringList& textList)
 {
-	if (item == nullptr)
+	if (isHidden())
 		return;
 
-	bool isLeftButton = (QApplication::mouseButtons() & Qt::LeftButton);
-	if (isLeftButton)
+	long long currentIndex = getIndex();
+
+	switch (type)
 	{
-		//remove item
-		ui.listWidget->takeItem(ui.listWidget->row(item));
-		return;
+	case util::kComboBoxCharAction:
+	{
+		const QStringList normalActionList = {
+			tr("attack"), tr("defense"), tr("escape"), tr("item")
+		};
+
+		const QStringList equipActionList = {
+			tr("head"), tr("body"), tr("righthand"), tr("leftacc"),
+			tr("rightacc"), tr("belt"), tr("lefthand"), tr("shoes"),
+			tr("gloves")
+		};
+
+		auto appendMagicText = [this, &normalActionList, &equipActionList, &textList, currentIndex](QComboBox* combo)->void
+			{
+				if (combo == nullptr)
+					return;
+
+				if (combo->hasFocus())
+					return;
+
+				if (combo->view()->hasFocus())
+					return;
+
+				combo->blockSignals(true);
+				combo->setUpdatesEnabled(false);
+				long long nOriginalIndex = combo->currentIndex();
+
+				const long long base = normalActionList.size(); //基礎3個動作
+				long long size = sa::MAX_MAGIC + base + sa::MAX_PROFESSION_SKILL;
+				long long n = 0;
+
+				//去除多餘的
+				if (combo->count() > size)
+				{
+					for (long long i = static_cast<long long>(combo->count()) - 1; i >= size; --i)
+						combo->removeItem(i);
+				}
+
+				//更新精靈
+				for (long long i = 0; i < size; ++i)
+				{
+					//缺則補
+					if (i >= combo->count())
+						combo->addItem("");
+
+					//重設基礎動作
+					QString text = "";
+					if (i < base)
+					{
+						text = QString("%1:%2").arg(i + 1).arg(normalActionList.value(i));
+					}
+					else if (i >= base && i < sa::MAX_MAGIC + 3)
+					{
+						text = QString("%1:%2:%3").arg(i + 1).arg(equipActionList.value(i - base)).arg(textList.value(i - base));
+					}
+					else
+					{
+						text = QString("%1:%3").arg(i + 1).arg(textList.value(i - base));
+					}
+
+					combo->setItemText(i, text);
+					combo->setItemData(i, text, Qt::ToolTipRole);
+					++n;
+				}
+
+				combo->setCurrentIndex(nOriginalIndex);
+				combo->setUpdatesEnabled(true);
+				combo->blockSignals(false);
+			};
+
+		//battle
+		appendMagicText(ui.comboBox_charactions);
+		break;
 	}
+	case util::kComboBoxPetAction:
+	{
+		auto appendText = [&textList](QComboBox* combo, long long max, bool noIndex)->void
+			{
+				if (combo == nullptr)
+					return;
 
-	QString text = item->data(Qt::UserRole).toString();
-	if (text.isEmpty())
-		return;
+				if (combo->hasFocus())
+					return;
 
-	ui.widget_preview->setText(text);
+				if (combo->view()->hasFocus())
+					return;
+
+				combo->blockSignals(true);
+				combo->setUpdatesEnabled(false);
+				long long nOriginalIndex = combo->currentIndex();
+
+				long long size = textList.size();
+				long long n = 0;
+
+				if (combo->count() > max)
+				{
+					for (long long i = static_cast<long long>(combo->count()) - 1; i >= max; --i)
+						combo->removeItem(i);
+				}
+
+				for (long long i = 0; i < max; ++i)
+				{
+					if (i >= combo->count())
+						combo->addItem("");
+
+					long long index = 0;
+					QString text;
+					if (!noIndex)
+					{
+						if (i >= size)
+						{
+							combo->setItemText(i, QString("%1:").arg(i + 1));
+							combo->setItemData(i, QString("%1:").arg(i + 1), Qt::ToolTipRole);
+							continue;
+						}
+						text = QString("%1:%2").arg(i + 1).arg(textList[i]);
+					}
+					else
+					{
+						if (i >= size)
+							break;
+						text = textList[n];
+						++n;
+					}
+
+					combo->setItemText(i, text);
+					index = static_cast<long long>(combo->count()) - 1;
+					combo->setItemData(index, text, Qt::ToolTipRole);
+				}
+
+				combo->setCurrentIndex(nOriginalIndex);
+				combo->setUpdatesEnabled(true);
+				combo->blockSignals(false);
+			};
+
+		//battle
+		appendText(ui.comboBox_petsctions, sa::MAX_PET_SKILL, false);
+
+		break;
+	}
+	case util::kComboBoxItem:
+	{
+
+		break;
+	}
+	}
 }

@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "selecttargetform.h"
 #include "selectobjectform.h"
+#include "battlesettingfrom.h"
 
 AfkForm::AfkForm(long long index, QWidget* parent)
 	: QWidget(nullptr)
@@ -134,6 +135,9 @@ AfkForm::AfkForm(long long index, QWidget* parent)
 	GameDevice& gamedevice = GameDevice::getInstance(index);
 	if (!gamedevice.worker.isNull())
 		gamedevice.worker->updateComboBoxList();
+
+	BattleSettingFrom* pBattleSettingFrom = new BattleSettingFrom(index, this);
+	ui.tabWidget->addTab(pBattleSettingFrom, tr("demo"));
 }
 
 AfkForm::~AfkForm()

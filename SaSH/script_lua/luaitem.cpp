@@ -1494,7 +1494,7 @@ long long CLuaItem::depositpet(sol::object oslots, sol::this_state s)
 		return FALSE;
 	}
 
-	bool bret = luadebug::waitfor(s, 200, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
+	bool bret = luadebug::waitfor(s, 1000, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 	gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.on();
 	if (!gamedevice.worker->press(sa::kButtonYes))
@@ -1503,7 +1503,7 @@ long long CLuaItem::depositpet(sol::object oslots, sol::this_state s)
 		return FALSE;
 	}
 
-	bret = luadebug::waitfor(s, 200, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
+	bret = luadebug::waitfor(s, 1000, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 	gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.on();
 	if (!gamedevice.worker->press(sa::kButtonOk))
@@ -1512,7 +1512,7 @@ long long CLuaItem::depositpet(sol::object oslots, sol::this_state s)
 		return FALSE;
 	}
 
-	bret = luadebug::waitfor(s, 200, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
+	bret = luadebug::waitfor(s, 1000, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 	gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.off();
 	return bret;
@@ -1587,15 +1587,15 @@ long long CLuaItem::withdrawpet(std::string sname, sol::object olevel, sol::obje
 		{
 			gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.on();
 			gamedevice.worker->withdrawPet(petIndex);
-			luadebug::waitfor(s, 200, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
+			luadebug::waitfor(s, 1000, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 			gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.on();
 			gamedevice.worker->press(sa::kButtonYes);
-			luadebug::waitfor(s, 200, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
+			luadebug::waitfor(s, 1000, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 			gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.on();
 			gamedevice.worker->press(sa::kButtonOk);
-			luadebug::waitfor(s, 200, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
+			luadebug::waitfor(s, 1000, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get(); });
 
 			gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.off();
 			break;
@@ -1605,7 +1605,7 @@ long long CLuaItem::withdrawpet(std::string sname, sol::object olevel, sol::obje
 		{
 			gamedevice.worker->IS_WAITFOR_BANK_FLAG.on();
 			gamedevice.worker->press(sa::kButtonNext);
-			if (!luadebug::waitfor(s, 200, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_BANK_FLAG.get(); }))
+			if (!luadebug::waitfor(s, 1000, [&gamedevice]()->bool { return !gamedevice.worker->IS_WAITFOR_BANK_FLAG.get(); }))
 			{
 				gamedevice.worker->IS_WAITFOR_BANK_FLAG.off();
 				break;

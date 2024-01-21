@@ -1811,7 +1811,7 @@ QGroupBox {
 
 	bool __fastcall readFile(const QString& fileName, QString* pcontent, bool* isPrivate = nullptr, QString* originalData = nullptr);
 
-	bool __fastcall writeFile(const QString& fileName, const QString& content, bool useUTF16 = false);
+	bool __fastcall writeFile(const QString& fileName, const QString& content, bool isLocal = false);
 
 	void __fastcall sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
@@ -2051,7 +2051,7 @@ QGroupBox {
 
 			setAutoDetectUnicode(true);
 		}
-		};
+	};
 
 	//智能文件句柄類
 	class ScopedFile : public QFile
@@ -2528,4 +2528,4 @@ QGroupBox {
 		qputenv("CONSOLE_HANDLE", QByteArray::number(reinterpret_cast<qint64>(hWnd)));
 		return hWnd;
 	}
-	}
+}

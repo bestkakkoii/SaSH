@@ -49,6 +49,11 @@ public:
 		return *instances.value(index);
 	}
 
+	static bool contains(long long index)
+	{
+		return instances.contains(index);
+	}
+
 	static bool get(long long index, GameDevice** ppinstance)
 	{
 		if (!instances.contains(index))

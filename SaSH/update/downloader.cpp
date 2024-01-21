@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "downloader.h"
 #include "util.h"
+#include "gamedevice.h"
 
 constexpr const char* SASH_WIKI_URL = "https://gitee.com/Bestkakkoii/sash/wikis/pages/export?type=markdown&doc_id=4046472";
 constexpr const char* SASH_MAPDATA_URL = "https://gitee.com/Bestkakkoii/sash/raw/master/mapdata.lua";
@@ -881,6 +882,15 @@ void Downloader::overwriteCurrentExecutable()
 		QVector<long long> processes;
 		if (mem::enumProcess(&processes, QString(SASH_INJECT_DLLNAME) + ".dll"))
 		{
+			for (long long i = 0; i < 10000; ++i)
+			{
+				if (!GameDevice::contains(i))
+					continue;
+
+				GameDevice& gamedevice = GameDevice::getInstance(i);
+				gamedevice.setEnableHash(util::kAutoRestartGameEnable, false);
+			}
+
 			progressDialog_->reset();
 			progressDialog_->setMaximum(processes.size());
 			long long currentSize = 0;
