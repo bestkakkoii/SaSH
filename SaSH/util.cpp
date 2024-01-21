@@ -2183,12 +2183,16 @@ bool __fastcall util::writeFile(const QString& fileName, const QString& content,
 		{
 			QTextStream stream(&f);
 			UINT acp = GetACP();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 			if (acp == 950)
 				stream.setCodec("Big5");
 			else if (acp == 936)
 				stream.setCodec("GBK");
 			else
 				stream.setCodec("UTF-8");
+#else
+			stream.setEncoding(QStringConverter::Encoding::System);
+#endif
 
 			stream << content;
 			stream.flush();
