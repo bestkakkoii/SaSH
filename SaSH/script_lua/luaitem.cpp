@@ -1936,6 +1936,21 @@ long long CLuaItem::getSpace()
 	return itemIndexs.size();
 }
 
+long long CLuaItem::getSpaceIndex()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return -1;
+
+	QVector<long long> itemIndexs;
+	gamedevice.worker->getItemEmptySpotIndexs(&itemIndexs);
+
+	if (itemIndexs.isEmpty())
+		return -1;
+
+	return itemIndexs.front();
+}
+
 bool CLuaItem::getIsFull()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);

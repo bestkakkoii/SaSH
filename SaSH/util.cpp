@@ -173,37 +173,47 @@ bool __fastcall mem::writeString(HANDLE hProcess, unsigned long long baseAddress
 	return ret == TRUE;
 }
 
-class RemoteMemoryPool {
+class RemoteMemoryPool
+{
 public:
 	RemoteMemoryPool(HANDLE hProcess, SIZE_T size)
-		: hProcess(hProcess), poolSize(size), allocatedSize(0) {
+		: hProcess(hProcess), poolSize(size), allocatedSize(0)
+	{
 		PVOID baseAddress = NULL;
 		NTSTATUS status = MINT::NtAllocateVirtualMemory(hProcess, &baseAddress, 0, &poolSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-		if (!NT_SUCCESS(status)) {
+		if (!NT_SUCCESS(status))
+		{
 			throw std::runtime_error("Failed to allocate memory pool");
 		}
 		poolBase = reinterpret_cast<unsigned char*>(baseAddress);
 	}
 
-	~RemoteMemoryPool() {
-		if (poolBase) {
+	~RemoteMemoryPool()
+	{
+		if (poolBase)
+		{
 			SIZE_T size = 0;
 			MINT::NtFreeVirtualMemory(hProcess, reinterpret_cast<PVOID*>(&poolBase), &size, MEM_RELEASE);
 		}
 	}
 
-	void* __fastcall allocate(SIZE_T size) {
+	void* __fastcall allocate(SIZE_T size)
+	{
 		std::unique_lock<std::shared_mutex> lock(mutex);
 
 		// Check free list first
-		for (auto it = freeBlocks.begin(); it != freeBlocks.end(); ++it) {
-			if (it->second >= size) {
+		for (auto it = freeBlocks.begin(); it != freeBlocks.end(); ++it)
+		{
+			if (it->second >= size)
+			{
 				void* allocatedMemory = it->first;
-				if (it->second > size) {
+				if (it->second > size)
+				{
 					it->first = static_cast<unsigned char*>(it->first) + size;
 					it->second -= size;
 				}
-				else {
+				else
+				{
 					freeBlocks.erase(it);
 				}
 				allocationMap[allocatedMemory] = size;
@@ -212,7 +222,8 @@ public:
 		}
 
 		// Allocate from the remaining pool space
-		if (allocatedSize + size > poolSize) {
+		if (allocatedSize + size > poolSize)
+		{
 			return nullptr; // Out of memory
 		}
 		void* allocatedMemory = poolBase + allocatedSize;
@@ -221,11 +232,13 @@ public:
 		return allocatedMemory;
 	}
 
-	void deallocate(void* ptr) {
+	void deallocate(void* ptr)
+	{
 		std::unique_lock<std::shared_mutex> lock(mutex);
 
 		auto allocationEntry = allocationMap.find(ptr);
-		if (allocationEntry == allocationMap.end()) {
+		if (allocationEntry == allocationMap.end())
+		{
 			// Handle error: attempting to deallocate memory that was not allocated
 			return;
 		}
@@ -239,7 +252,8 @@ public:
 		BOOL result = WriteProcessMemory(hProcess, ptr, zeroBuffer, size, &bytesWritten);
 		delete[] zeroBuffer;
 
-		if (!result || bytesWritten != size) {
+		if (!result || bytesWritten != size)
+		{
 			// Handle error: memory write failed
 			return;
 		}
@@ -257,21 +271,25 @@ private:
 	std::list<std::pair<void*, SIZE_T>> freeBlocks;
 	std::shared_mutex mutex;
 
-	void mergeFreeBlock(void* ptr, SIZE_T size) {
+	void mergeFreeBlock(void* ptr, SIZE_T size)
+	{
 		unsigned char* blockStart = reinterpret_cast<unsigned char*>(ptr);
 		unsigned char* blockEnd = blockStart + size;
 
-		for (auto it = freeBlocks.begin(); it != freeBlocks.end(); ++it) {
+		for (auto it = freeBlocks.begin(); it != freeBlocks.end(); ++it)
+		{
 			unsigned char* currentBlockStart = reinterpret_cast<unsigned char*>(it->first);
 			unsigned char* currentBlockEnd = currentBlockStart + it->second;
 
-			if (blockEnd == currentBlockStart) {
+			if (blockEnd == currentBlockStart)
+			{
 				it->first = blockStart;
 				it->second += size;
 				mergeAdjacentFreeBlocks(it);
 				return;
 			}
-			else if (blockStart == currentBlockEnd) {
+			else if (blockStart == currentBlockEnd)
+			{
 				it->second += size;
 				mergeAdjacentFreeBlocks(it);
 				return;
@@ -281,19 +299,23 @@ private:
 		freeBlocks.emplace_back(ptr, size);
 	}
 
-	void mergeAdjacentFreeBlocks(std::list<std::pair<void*, SIZE_T>>::iterator startIt) {
+	void mergeAdjacentFreeBlocks(std::list<std::pair<void*, SIZE_T>>::iterator startIt)
+	{
 		auto it = startIt;
 		auto nextIt = std::next(it);
 
-		while (nextIt != freeBlocks.end()) {
+		while (nextIt != freeBlocks.end())
+		{
 			unsigned char* currentBlockEnd = reinterpret_cast<unsigned char*>(it->first) + it->second;
 			unsigned char* nextBlockStart = reinterpret_cast<unsigned char*>(nextIt->first);
 
-			if (currentBlockEnd == nextBlockStart) {
+			if (currentBlockEnd == nextBlockStart)
+			{
 				it->second += nextIt->second;
 				nextIt = freeBlocks.erase(nextIt);
 			}
-			else {
+			else
+			{
 				++it;
 				++nextIt;
 			}
@@ -326,11 +348,13 @@ unsigned long long __fastcall mem::virtualAlloc(HANDLE hProcess, unsigned long l
 
 	std::shared_lock<std::shared_mutex> lock(mutex);
 	auto it = memoryPoolMap.find(hProcess);
-	if (it == memoryPoolMap.end()) {
+	if (it == memoryPoolMap.end())
+	{
 		lock.unlock();
 		std::unique_lock<std::shared_mutex> lock(mutex);
 		it = memoryPoolMap.find(hProcess);
-		if (it == memoryPoolMap.end()) {
+		if (it == memoryPoolMap.end())
+		{
 			std::unique_ptr<RemoteMemoryPool> memoryPool(new RemoteMemoryPool(hProcess, 4096 * 32));
 			it = memoryPoolMap.insert(std::make_pair(hProcess, std::move(memoryPool))).first;
 		}
@@ -400,11 +424,13 @@ bool __fastcall mem::virtualFree(HANDLE hProcess, unsigned long long baseAddress
 
 	std::shared_lock<std::shared_mutex> lock(mutex);
 	auto it = memoryPoolMap.find(hProcess);
-	if (it != memoryPoolMap.end()) {
+	if (it != memoryPoolMap.end())
+	{
 		lock.unlock();
 		std::unique_lock<std::shared_mutex> lock(mutex);
 		it = memoryPoolMap.find(hProcess);
-		if (it != memoryPoolMap.end()) {
+		if (it != memoryPoolMap.end())
+		{
 			it->second->deallocate(reinterpret_cast<void*>(baseAddress));
 			return true;
 		}

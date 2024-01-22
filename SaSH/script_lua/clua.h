@@ -179,7 +179,9 @@ public:
 	long long chname(sol::object oname, sol::this_state s);
 	long long chpetname(long long index, sol::object oname, sol::this_state s);
 	long long chpet(long long petindex, sol::object ostate, sol::this_state s);
-	long long set(std::string enumStr, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s);
+	long long set(sol::object oenumStr,
+		sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7,
+		sol::this_state s);
 	long long leftclick(long long x, long long y, sol::this_state s);//ok
 	long long rightclick(long long x, long long y, sol::this_state s);//ok
 	long long leftdoubleclick(long long x, long long y, sol::this_state s);//ok
@@ -360,6 +362,7 @@ public:
 	long long trade(std::string sname, sol::object oitem, sol::object opet, sol::object ogold, sol::object oitemout, sol::this_state s);
 
 	long long getSpace();
+	long long getSpaceIndex();
 	bool getIsFull();
 
 public:
@@ -405,6 +408,84 @@ public:
 	long long mail(sol::object oaddrIndex, sol::object omessage, sol::object opetindex, sol::object sitemname, sol::object sitemmemo, sol::this_state s);
 	long long usemagic(sol::object omagic, sol::object otarget, sol::this_state s);
 	sa::character_t getCharacter() const;
+
+	long long getBattlePetNo() { return getCharacter().battlePetNo + 1; }
+	long long getMailPetNo() { return getCharacter().mailPetNo + 1; }
+	long long getStandbyPet() { return getCharacter().standbyPet + 1; }
+	long long getRidePetNo() { return getCharacter().ridePetNo + 1; }
+	long long getModelId() { return getCharacter().modelid; }
+	long long getFaceId() { return getCharacter().faceid; }
+	long long getUnitId() { return getCharacter().id; }
+	long long getDir() { return getCharacter().dir; }
+	long long getHp() { return getCharacter().hp; }
+	long long getMaxHp() { return getCharacter().maxHp; }
+	long long getHpPercent() { return getCharacter().hpPercent; }
+	long long getMp() { return getCharacter().mp; }
+	long long getMaxMp() { return getCharacter().maxMp; }
+	long long getMpPercent() { return getCharacter().mpPercent; }
+	long long getVit() { return getCharacter().vit; }
+	long long getStr() { return getCharacter().str; }
+	long long getTgh() { return getCharacter().tgh; }
+	long long getDex() { return getCharacter().dex; }
+	long long getExp() { return getCharacter().exp; }
+	long long getMaxExp() { return getCharacter().maxExp; }
+	long long getLevel() { return getCharacter().level; }
+	long long getAtk() { return getCharacter().atk; }
+	long long getDef() { return getCharacter().def; }
+	long long getAgi() { return getCharacter().agi; }
+	long long getChasma() { return getCharacter().chasma; }
+	long long getLuck() { return getCharacter().luck; }
+	long long getEarth() { return getCharacter().earth; }
+	long long getWater() { return getCharacter().water; }
+	long long getFire() { return getCharacter().fire; }
+	long long getWind() { return getCharacter().wind; }
+	long long getGold() { return getCharacter().gold; }
+	long long getFame() { return getCharacter().fame; }
+	long long getTitleNo() { return getCharacter().titleNo; }
+	long long getDp() { return getCharacter().dp; }
+	long long getNameColor() { return getCharacter().nameColor; }
+	long long getStatus() { return getCharacter().status; }
+	long long getEtcFlag() { return getCharacter().etcFlag; }
+	long long getBattleNo() { return getCharacter().battleNo; }
+	long long getSideNo() { return getCharacter().sideNo; }
+	long long getHelpMode() { return getCharacter().helpMode; }
+	long long getPcNameColor() { return getCharacter().pcNameColor; }
+	long long getTransmigration() { return getCharacter().transmigration; }
+	long long getFamilyleader() { return getCharacter().familyleader; }
+	long long getChannel() { return getCharacter().channel; }
+	long long getQuickChannel() { return getCharacter().quickChannel; }
+	long long getPersonalBankgold() { return getCharacter().personal_bankgold; }
+	long long getLearnride() { return getCharacter().learnride; }
+	long long getLowsride() { return getCharacter().lowsride; }
+	long long getRidePetLevel() { return getCharacter().ridePetLevel; }
+	long long getFamilySprite() { return getCharacter().familySprite; }
+	long long getBaseGraNo() { return getCharacter().baseGraNo; }
+	long long getBig4fm() { return getCharacter().big4fm; }
+	long long getTradeConfirm() { return getCharacter().trade_confirm; }
+	long long getProfessionClass() { return getCharacter().profession_class; }
+	long long getProfessionLevel() { return getCharacter().profession_level; }
+	long long getProfessionExp() { return getCharacter().profession_exp; }
+	long long getProfessionSkillPoint() { return getCharacter().profession_skill_point; }
+	long long getHerofloor() { return getCharacter().herofloor; }
+	long long getIOnStreetVendor() { return getCharacter().iOnStreetVendor; }
+	long long getSkywalker() { return getCharacter().skywalker; }
+	long long getITheaterMode() { return getCharacter().iTheaterMode; }
+	long long getISceneryNumber() { return getCharacter().iSceneryNumber; }
+	long long getIDanceMode() { return getCharacter().iDanceMode; }
+	long long getNewfame() { return getCharacter().newfame; }
+	long long getFtype() { return getCharacter().ftype; }
+	long long getMaxload() { return getCharacter().maxload; }
+	long long getPoint() { return getCharacter().point; }
+	long long getTradeState() { return getCharacter().trade_confirm; }
+
+	std::string getName() { return util::toConstData(getCharacter().name); }
+	std::string getFreeName() { return util::toConstData(getCharacter().freeName); }
+	std::string getProfessionClassName() { return util::toConstData(getCharacter().profession_class_name); }
+	std::string getChatRoomNum() { return util::toConstData(getCharacter().chatRoomNum); }
+	std::string getChusheng() { return util::toConstData(getCharacter().chusheng); }
+	std::string getFamily() { return util::toConstData(getCharacter().family); }
+	std::string getRidePetName() { return util::toConstData(getCharacter().ridePetName); }
+	std::string getHash() { return getCharacter().getHash(); }
 
 private:
 	long long index_ = -1;

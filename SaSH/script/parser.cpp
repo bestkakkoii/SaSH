@@ -99,7 +99,8 @@ static void hookProc(lua_State* L, lua_Debug* ar)
 
 	if (ar->event == LUA_MASKRET || ar->event == LUA_MASKLINE || ar->event == LUA_MASKCALL)
 	{
-		QThread::msleep(1);
+		if (ar->event == LUA_MASKRET)
+			QThread::msleep(1);
 		luadebug::checkStopAndPause(s);
 
 		if (!lua["__THIS_PARSER"].valid())

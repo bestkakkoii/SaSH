@@ -306,7 +306,7 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 			"waitpos", "waitmap", "waititem", "waitteam", "waitpet", "waitsay", "waitdlg",
 			"usemagic", "doffpet", "buy", "sell",  "sellpet","useitem", "doffitem",
 			"swapitem", "pickup", "putitem","getitem", "putpet", "getpet", "putstone",  "getstone", "make", "cook", "uequip",
-			"requip", "wequip", "puequip", "pequip","skup", "learn", "trade", "mail",
+			"requip", "wequip", "puequip", "pequip","skup", "learn", "trade", "mail", "cout"
 		};
 
 		for (const QString& it : tempReplacementList)
@@ -325,6 +325,12 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 				originalRaw = raw;
 				break;
 			}
+		}
+
+		if (originalRaw.startsWith("cout()"))
+		{
+			raw.prepend("sash_bitwise_left_shift_output_device=");
+			originalRaw.prepend("sash_bitwise_left_shift_output_device=");
 		}
 
 		bool doNotLowerCase = false;

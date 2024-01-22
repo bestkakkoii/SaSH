@@ -123,7 +123,7 @@ void Autil::util_DecodeMessage(QByteArray& dst, QByteArray src)
 	//  strcpy(dst, src);
 	//  util_xorstring(dst, src);
 
-	constexpr auto INTCODESIZE = (sizeof(int) * 8 + 5) / 6;
+	constexpr unsigned int INTCODESIZE = (sizeof(int) * 8 + 5) / 6;
 
 	int rn = 0;
 	int* t1 = nullptr;
@@ -167,13 +167,13 @@ long long Autil::util_GetFunctionFromSlice(long long* func, long long* fieldcoun
 	QByteArray t1(NETDATASIZE, '\0');
 
 	// 從QHash中獲取第一个元素来替代msgSlice_[0]
-	auto firstItem = msgSlice_.value(0);
+	QByteArray firstItem = msgSlice_.value(0);
 
 	if (firstItem != DEFAULTFUNCBEGIN)
 		util_DiscardMessage();
 
 	// 將第二个元素複製到t1中
-	auto secondItem = msgSlice_.value(1);
+	QByteArray secondItem = msgSlice_.value(1);
 
 	*func = secondItem.toLongLong() - offest;
 
@@ -204,8 +204,8 @@ bool Autil::util_SendMesg(long long func, char* buffer)
 	char t1[NETDATASIZE] = {};
 	char t2[NETDATASIZE] = {};
 
-	constexpr auto FUNCTION_OFFSET = 13;
-	constexpr auto FORMAT = "&;%d%s;#;";
+	constexpr int FUNCTION_OFFSET = 13;
+	constexpr const char* FORMAT = "&;%d%s;#;";
 	_snprintf_s(t1, NETDATASIZE, _TRUNCATE, FORMAT, static_cast<int>(func) + FUNCTION_OFFSET, buffer);
 
 	util_EncodeMessage(t2, NETDATASIZE, t1);

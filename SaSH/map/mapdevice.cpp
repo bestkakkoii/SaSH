@@ -911,7 +911,7 @@ void MapDevice::loadHotData(Downloader& downloader)
 {
 	QString fileName = util::applicationDirPath() + "/lib/map/mapdata.lua";
 	QString strdata;
-	QSet<quint16> d = {};
+	QSet<unsigned short> d = {};
 
 	if (QFile::exists(fileName))
 	{
@@ -971,7 +971,7 @@ void MapDevice::loadHotData(Downloader& downloader)
 		for (const auto& pair : table)
 		{
 			if (pair.second.is<long long>())
-				d.insert(static_cast<quint16>(pair.second.as<long long>()));
+				d.insert(static_cast<unsigned short>(pair.second.as<long long>()));
 		}
 
 		if (key == "UP")

@@ -1473,6 +1473,16 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		//char int
 		break;
 	}
+	case 301:
+	{
+		memset(netDataBuffer_, 0, NETDATASIZE);
+		if (!gamedevice.autil.util_Receive(netDataBuffer_))
+			return kInvalidBuffer;
+
+		qDebug() << "LSSPROTO_301_RECV" << util::toUnicode(netDataBuffer_);
+
+		break;
+	}
 	default:
 	{
 		qDebug() << "-------------------UNKNOWN fun" << func << "fieldcount" << fieldcount;
@@ -3758,7 +3768,7 @@ bool Worker::login(long long s)
 			{
 				gamedevice.leftDoubleClick(x, y);
 				break;
-			}
+		}
 			x -= 5;
 			if (x <= 0)
 				break;
@@ -3766,7 +3776,7 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1500))
 				break;
 
-		}
+	}
 #endif
 		break;
 	}
@@ -3921,11 +3931,11 @@ bool Worker::login(long long s)
 				if (timer.hasExpired(1500))
 					break;
 
-			}
 		}
+	}
 #endif
 		break;
-	}
+}
 	case util::kStatusSelectCharacter:
 	{
 		if (position < 0 || position > sa::MAX_CHARACTER)
@@ -9466,8 +9476,8 @@ long long Worker::getBattleSelectableEnemyOneRowTarget(const sa::battle_data_t& 
 					targetIndex = i;
 					break;
 				}
-			}
-		}
+	}
+}
 	}
 
 	if (targetIndex >= 0 && targetIndex < enemies.size())
@@ -10739,7 +10749,7 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
+	}
 #endif
 	}
 }
@@ -11683,7 +11693,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 					if (i == battleCharCurrentPos.get())
 					{
 						qDebug() << QString("自己 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
+	}
 					if (i == battleCharCurrentPos.get() + 5)
 					{
 						qDebug() << QString("戰寵 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
@@ -11695,8 +11705,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-				}
-			}
+	}
+}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11710,7 +11720,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-		}
+	}
 
 		setBattleData(bt);
 
@@ -12483,7 +12493,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 					++i;
 				++i;
 				break;
-			}
+		}
 			default:
 			{
 				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
@@ -12491,8 +12501,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 				++i;
 				break;
 			}
-			}
-		}
+	}
+}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
@@ -13103,7 +13113,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-		}
+			}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13415,7 +13425,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+			}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13672,15 +13682,15 @@ void Worker::lssproto_C_recv(char* cdata)
 						if (money > 1000)
 						{
 							//setMoneyCharObj(id, 24051, x, y, 0, money, info);
-						}
+		}
 						else
 						{
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
-					}
-				}
-			}
 		}
+	}
+}
+}
 #endif
 #pragma endregion
 	}
@@ -14455,8 +14465,8 @@ void Worker::lssproto_S_recv(char* cdata)
 						++i;
 					}
 #endif
+					}
 				}
-			}
 
 
 			pet.power = (((static_cast<double>(pet.atk + pet.def + pet.agi) + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0);
@@ -14464,7 +14474,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-		}
+			}
 
 		sa::character_t pc = getCharacter();
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < sa::MAX_PET)
@@ -14522,7 +14532,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 		gamedevice.setUserData(util::kUserPetNames, petNames);
-	}
+		}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -15137,7 +15147,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-}
+	}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)
@@ -15929,5 +15939,5 @@ bool Worker::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return false;
-}
+	}
 #endif

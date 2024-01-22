@@ -944,6 +944,835 @@ std::string luatool::format(std::string sformat, sol::this_state s)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#pragma region luaclasses
+class CLuaLog
+{
+public:
+	CLuaLog(std::string filename, sol::this_state s)
+	{
+		QString path = util::toQString(filename);
+		if (!path.endsWith(".log"))
+			path += ".log";
+
+		file_.setFileName(path);
+		file_.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
+
+		textStream_.setFile(&file_);
+	}
+
+	~CLuaLog()
+	{
+		if (file_.isOpen())
+			file_.close();
+
+		qDebug() << "~CLuaLog";
+	}
+
+	bool write(sol::object odata)
+	{
+		if (!file_.isOpen())
+			return false;
+
+		QString data;
+		if (odata.is<std::string>())
+			data = util::toQString(odata.as<std::string>());
+		else if (odata.is<long long>())
+			data = util::toQString(odata.as<long long>());
+		else if (odata.is<double>())
+			data = util::toQString(odata.as<double>());
+		else if (odata.is<bool>())
+			data = odata.as<bool>() ? "true" : "false";
+		else
+			return false;
+
+		QString line = QString("[%1] [%2] [%3] %4\n")
+			.arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz"))
+			.arg("sash")
+			.arg("debug")
+			.arg(data);
+
+		textStream_ << line;
+		textStream_.flush();
+		file_.flush();
+		return true;
+	}
+
+private:
+	util::TextStream textStream_;
+	QFile file_;
+};
+
+class CLuaChat
+{
+public:
+	CLuaChat(long long index) : index_(index) {}
+
+	std::string operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return "";
+
+		QString text = gamedevice.worker->getChatHistory(index);
+		return util::toConstData(text);
+	}
+
+	bool contains(std::string str, sol::this_state s) const
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return false;
+
+		if (str.empty())
+			return false;
+
+		QStringList list = util::toQString(str).split(util::rexOR, Qt::SkipEmptyParts);
+		QString text = util::toQString(str);
+		for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
+		{
+			QString cmptext = gamedevice.worker->getChatHistory(i);
+			if (cmptext.isEmpty())
+				continue;
+
+			for (const QString& it : list)
+			{
+				if (it.isEmpty())
+					continue;
+
+				if (cmptext.contains(it))
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaCard
+{
+public:
+	CLuaCard(long long index) : index_(index) {}
+
+	sa::address_bool_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::address_bool_t();
+
+		sa::address_bool_t card = gamedevice.worker->getAddressBook(index);
+		return card;
+	}
+
+	bool contains(std::string str, sol::this_state s) const
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return false;
+
+		if (str.empty())
+			return false;
+
+		QStringList list = util::toQString(str).split(util::rexOR, Qt::SkipEmptyParts);
+		for (long long i = 0; i < sa::MAX_ADDRESS_BOOK; ++i)
+		{
+			sa::address_bool_t card = gamedevice.worker->getAddressBook(i);
+			if (card.name.isEmpty())
+				continue;
+
+			for (const QString& it : list)
+			{
+				if (it.isEmpty())
+					continue;
+
+				if (card.name.contains(it))
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaMailProxy
+{
+public:
+	CLuaMailProxy(long long gameDeviceIndex, long long addressBookIndex)
+		: index_(gameDeviceIndex), addressBookIndex_(addressBookIndex) {}
+
+	std::string operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return "";
+
+		if (index < 0 || index >= sa::MAIL_MAX_HISTORY)
+			return "";
+
+		sa::mail_history_t hisory = gamedevice.worker->getMailHistory(addressBookIndex_);
+		return util::toConstData(hisory.dateStr[index]);
+	}
+
+private:
+	long long index_ = 0;
+	long long addressBookIndex_ = 0;
+};
+
+class CLuaMail
+{
+public:
+	CLuaMail(long long index) : index_(index) {}
+
+	CLuaMailProxy operator[](long long index)
+	{
+		--index;
+
+		return CLuaMailProxy(index_, index);
+	}
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaPoint
+{
+public:
+	CLuaPoint(long long index) : index_(index) {}
+
+	long long getExp() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().expbufftime; }
+	long long getRep() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().prestige; }
+	long long getEne() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().energy; }
+	long long getShl() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().shell; }
+	long long getVit() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().vitality; }
+	long long getPts() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().points; }
+	long long getVip() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().VIPPoints; }
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaTeam
+{
+public:
+	CLuaTeam(long long index) : index_(index) {}
+
+	sa::team_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::team_t();
+
+		gamedevice.worker->updateDatasFromMemory();
+
+		sa::team_t team = gamedevice.worker->getTeam(index);
+		team.controlIndex = index_;
+		return team;
+	}
+
+	bool contains(std::string names, sol::this_state s) const
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return false;
+
+		QStringList list = util::toQString(names).split(util::rexOR, Qt::SkipEmptyParts);
+		QString cmpName = list.value(0);
+		QString cmpFreeName = list.value(1);
+
+		gamedevice.worker->updateDatasFromMemory();
+
+		for (long long i = 0; i < sa::MAX_TEAM; ++i)
+		{
+			sa::team_t team = gamedevice.worker->getTeam(i);
+			if (team.name.isEmpty())
+				continue;
+
+			QString freeName = gamedevice.worker->mapUnitHash.value(team.id).freeName;
+
+			if (!cmpFreeName.isEmpty() && freeName.contains(cmpFreeName) && !cmpName.isEmpty() && team.name == cmpName)
+				return true;
+			if (cmpFreeName.isEmpty() && !cmpName.isEmpty() && team.name == cmpName)
+				return true;
+		}
+
+		return false;
+	}
+
+	long long count()
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return 0;
+
+		gamedevice.worker->updateDatasFromMemory();
+
+		return gamedevice.worker->getTeamSize();
+	}
+
+private:
+	long long index_ = 0;
+
+};
+
+class CLuaPetEquipProxy
+{
+public:
+	CLuaPetEquipProxy(long long gameDeviceIndex, long long petIndex) : index_(gameDeviceIndex), petIndex_(petIndex) {}
+
+	sa::item_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::item_t();
+
+		return gamedevice.worker->getPetEquip(petIndex_, index);
+	}
+
+	sol::object find(std::string sname, sol::this_state s)
+	{
+		sol::state_view lua(s.lua_state());
+		GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+		QString name = util::toQString(sname);
+		bool isExact = false;
+		if (name.startsWith("?"))
+		{
+			name = name.mid(1);
+			isExact = true;
+		}
+
+		for (long long i = 0; i < sa::MAX_PET_ITEM; ++i)
+		{
+			sa::item_t item = gamedevice.worker->getPetEquip(petIndex_, i);
+			if (!item.valid)
+				continue;
+
+			if (isExact)
+			{
+				if (item.name == name)
+					return sol::make_object(lua, item);
+			}
+			else
+			{
+				if (item.name.contains(name))
+					return sol::make_object(lua, item);
+			}
+		}
+
+		return sol::lua_nil;
+	}
+
+private:
+	long long index_ = 0;
+	long long petIndex_ = -1;
+};
+
+class CLuaPetEquip
+{
+public:
+	CLuaPetEquip(long long index) : index_(index) {}
+
+	CLuaPetEquipProxy operator[](long long index)
+	{
+		--index;
+
+		CLuaPetEquipProxy proxy(index_, index);
+		return proxy;
+	}
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaDialog
+{
+public:
+	CLuaDialog(long long index) : index_(index) {}
+	~CLuaDialog() = default;
+
+	std::string operator[](long long index)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+
+		QStringList dialogstrs = gamedevice.worker->currentDialog.get().linedatas;
+
+		long long size = dialogstrs.size();
+
+		bool visible = gamedevice.worker->isDialogVisible();
+
+		QString text;
+		if (index >= size || !visible)
+			text = "";
+		else
+			text = dialogstrs.value(index);
+
+		if (visible)
+			return util::toConstData(text);
+		else
+			return "";
+	}
+
+	long long getWindowType() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().windowtype; }
+	long long getButtonType() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().buttontype; }
+	long long getDialogId() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().dialogid; }
+	long long getUnitId() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().unitid; }
+	std::string getData() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return util::toConstData(gamedevice.worker->currentDialog.get().data); }
+	std::string  getLineData(long long index) const { GameDevice& gamedevice = GameDevice::getInstance(index_); return util::toConstData(gamedevice.worker->currentDialog.get().linedatas.join("|")); }
+	std::string  getButtonText(long long index) const { GameDevice& gamedevice = GameDevice::getInstance(index_); return util::toConstData(gamedevice.worker->currentDialog.get().linebuttontext.join("|")); }
+
+	bool contains(std::string str, sol::this_state s)
+	{
+		sol::state_view lua(s.lua_state());
+		GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+		if (gamedevice.worker.isNull())
+			return false;
+
+		if (str.empty())
+			return false;
+
+		if (!gamedevice.worker->isDialogVisible())
+			return false;
+
+		QString text = util::toQString(str);
+		QStringList list = text.split(util::rexOR, Qt::SkipEmptyParts);
+		QStringList dialogstrs = gamedevice.worker->currentDialog.get().linedatas;
+		long long size = dialogstrs.size();
+		for (long long i = 0; i < size; ++i)
+		{
+			QString cmptext = dialogstrs.value(i);
+			for (const QString& it : list)
+			{
+				if (cmptext.contains(it))
+					return true;
+			}
+		}
+
+		return false;
+	}
+private:
+	long long index_ = 0;
+};
+
+std::string sa::team_t::getFreeName() const
+{
+	GameDevice& gamedevice = GameDevice::getInstance(controlIndex);
+	if (gamedevice.worker.isNull())
+		return "";
+
+	gamedevice.worker->updateDatasFromMemory();
+
+	return util::toConstData(gamedevice.worker->mapUnitHash.value(id).freeName);
+}
+
+class CLuaSkill
+{
+public:
+	CLuaSkill(long long index) : index_(index) {}
+
+	sa::profession_skill_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::profession_skill_t();
+
+
+		return gamedevice.worker->getSkill(index);
+	}
+
+	sol::object find(std::string sname, sol::this_state s)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+		QString name = util::toQString(sname);
+
+		if (name.isEmpty())
+			return sol::lua_nil;
+
+		bool isExist = true;
+		QString newName = name;
+		if (name.startsWith("?"))
+		{
+			newName = name.mid(1);
+			isExist = false;
+		}
+
+		QHash<long long, sa::profession_skill_t> skill = gamedevice.worker->getSkills();
+
+		for (auto it = skill.begin(); it != skill.end(); ++it)
+		{
+			sa::profession_skill_t skill = it.value();
+			skill.index = it.key() + 1;
+
+			QString skillname = skill.name;
+			QString memo = skill.memo;
+			if (skillname.isEmpty())
+				continue;
+
+			if (isExist && skillname == newName)
+				return sol::make_object(s, skill);
+			else if (!isExist && skillname.contains(newName))
+				return sol::make_object(s, skill);
+			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
+				return sol::make_object(s, skill);
+		}
+
+		return sol::lua_nil;
+	}
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaMagic
+{
+public:
+	CLuaMagic(long long index) : index_(index) {}
+
+	sa::magic_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::magic_t();
+
+		return gamedevice.worker->getMagic(index);
+	}
+
+	sol::object find(std::string sname, sol::this_state s)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+		QString name = util::toQString(sname);
+
+		if (name.isEmpty())
+			return sol::lua_nil;
+
+		bool isExist = true;
+		QString newName = name;
+		if (name.startsWith("?"))
+		{
+			newName = name.mid(1);
+			isExist = false;
+		}
+
+		for (long long i = 0; i < sa::MAX_MAGIC; ++i)
+		{
+			sa::magic_t magic = gamedevice.worker->getMagic(i);
+
+			QString magicname = magic.name;
+			QString memo = magic.memo;
+			if (magicname.isEmpty())
+				continue;
+
+			if (isExist && magicname == newName)
+				return sol::make_object(s, magic);
+			else if (!isExist && magicname.contains(newName))
+				return sol::make_object(s, magic);
+			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
+				return sol::make_object(s, magic);
+		}
+
+		return sol::lua_nil;
+	}
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaPetSkillProxy
+{
+public:
+	CLuaPetSkillProxy(long long gameDeviceIndex, long long petIndex)
+		: index_(gameDeviceIndex), petIndex_(petIndex) {}
+
+	sa::pet_skill_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::pet_skill_t();
+
+		return gamedevice.worker->getPetSkill(petIndex_, index);
+	}
+
+	sol::object find(std::string sname, sol::this_state s)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+		QString name = util::toQString(sname);
+
+		if (name.isEmpty())
+			return sol::lua_nil;
+
+		bool isExist = true;
+		QString newName = name;
+		if (name.startsWith("?"))
+		{
+			newName = name.mid(1);
+			isExist = false;
+		}
+
+		QHash<long long, sa::pet_skill_t> skills = gamedevice.worker->getPetSkills(petIndex_);
+
+		for (auto it = skills.begin(); it != skills.end(); ++it)
+		{
+			sa::pet_skill_t skill = it.value();
+
+			QString skillname = skill.name;
+			QString memo = skill.memo;
+			if (skillname.isEmpty())
+				continue;
+
+			if (isExist && skillname == newName)
+				return sol::make_object(s, skill);
+			else if (!isExist && skillname.contains(newName))
+				return sol::make_object(s, skill);
+			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
+				return sol::make_object(s, skill);
+		}
+
+		return sol::lua_nil;
+	}
+
+private:
+	long long index_ = 0;
+	long long petIndex_ = -1;
+};
+
+class CLuaPetSkill
+{
+public:
+	CLuaPetSkill(long long index) : index_(index) {}
+
+	CLuaPetSkillProxy operator[](long long index)
+	{
+		--index;
+
+		CLuaPetSkillProxy proxy(index_, index);
+
+		return proxy;
+	}
+
+	sol::object find(long long petIndex, std::string sname, sol::this_state s)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+		QString name = util::toQString(sname);
+
+		if (name.isEmpty())
+			return sol::lua_nil;
+
+		bool isExist = true;
+		QString newName = name;
+		if (name.startsWith("?"))
+		{
+			newName = name.mid(1);
+			isExist = false;
+		}
+
+		--petIndex;
+
+		QHash<long long, sa::pet_skill_t> skills = gamedevice.worker->getPetSkills(petIndex);
+
+		for (long long i = 0; i < sa::MAX_PET_SKILL; ++i)
+		{
+			sa::pet_skill_t skill = skills.value(i);
+
+			QString skillname = skill.name;
+			QString memo = skill.memo;
+			if (skillname.isEmpty())
+				continue;
+
+			if (isExist && skillname == newName)
+				return sol::make_object(s, skill);
+			else if (!isExist && skillname.contains(newName))
+				return sol::make_object(s, skill);
+			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
+				return sol::make_object(s, skill);
+		}
+
+		return sol::lua_nil;
+	}
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaMapUnit
+{
+public:
+	CLuaMapUnit(long long index) : index_(index) {}
+
+	sa::map_unit_t operator[](long long index)
+	{
+		--index;
+
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sa::map_unit_t();
+
+		return gamedevice.worker->mapUnitHash.value(index);
+	}
+
+	sol::object find(sol::object p1, sol::this_state s)
+	{
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (gamedevice.worker.isNull())
+			return sol::lua_nil;
+
+
+
+		QString name = "";
+		long long modelid = -1;
+		if (p1.is<std::string>())
+			name = util::toQString(p1);
+		else if (p1.is<long long>())
+			modelid = p1.as<long long>();
+		else
+			return sol::lua_nil;
+
+		if (name.isEmpty())
+			return sol::lua_nil;
+
+		sa::map_unit_t unit = {};
+		if (!gamedevice.worker->findUnit(name, sa::kObjectNPC, &unit, "", modelid))
+		{
+			if (!gamedevice.worker->findUnit("", sa::kObjectNPC, &unit, name, modelid))
+			{
+				if (!gamedevice.worker->findUnit(name, sa::kObjectHuman, &unit, "", modelid))
+				{
+					if (!gamedevice.worker->findUnit("", sa::kObjectHuman, &unit, name, modelid))
+					{
+						return sol::lua_nil;
+					}
+				}
+			}
+		}
+
+		return sol::make_object(s, unit);
+	}
+
+private:
+	long long index_ = 0;
+};
+
+class CLuaDebug
+{
+public:
+	CLuaDebug(sol::this_state s)
+		: s_(s)
+	{}
+	~CLuaDebug()
+	{
+		CLuaSystem luasystem;
+		std::string output_string;
+		output_string += output_buffer_.str();
+
+		sol::object ostr = sol::make_object(s_, output_string);
+		sol::object ocolor = sol::make_object(s_, 4);
+		luasystem.print(ostr, ocolor, s_);
+	}
+
+	// <<
+	CLuaDebug& operator<<(sol::object o)
+	{
+		std::ostringstream ss;
+		if (o.is<std::string>())
+		{
+			ss << luatool::format(o.as<std::string>(), s_);
+		}
+		else if (o.is<long long>())
+			ss << std::to_string(o.as<long long>());
+		else if (o.is<double>())
+			ss << std::fixed << std::setprecision(std::numeric_limits<double>::digits10 + 1) << o.as<double>();
+		else if (o.is<bool>())
+			ss << o.as<bool>() ? "true" : "false";
+		else if (o.is<sol::table>() && !o.is<sol::userdata>() && !o.is<sol::function>() && !o.is<sol::lightuserdata>())
+		{
+			//print table
+			long long depth = 1024;
+			QString msg = luadebug::getTableVars(s_.L, 1, depth);
+			msg.replace("=[[", "='");
+			msg.replace("]],", "',");
+			msg.replace("]]}", "'}");
+			msg.replace(",", ",\n");
+
+			ss << util::toConstData(msg);
+		}
+		else if (o.is<sol::metatable>())
+		{
+			//print key and type name   like: QString("%1(%2)").arg(key).arg(typeName);
+			sol::userdata ud = o.as<sol::userdata>();
+			//打印出所有成員函數名
+			sol::table metaTable = ud[sol::metatable_key];
+
+			QString msg;
+			QStringList l;
+			for (auto& pair : metaTable)
+			{
+				QString name = util::toQString(pair.first.as<std::string>());
+				if (name.startsWith("__") || name.startsWith("class_"))
+					continue;
+
+				l.append(name);
+			}
+
+			if (!l.isEmpty())
+			{
+				msg = l.join("\n");
+			}
+			else
+			{
+				QString pointerStr = util::toQString(reinterpret_cast<long long>(o.pointer()), 16);
+				msg = "(userdata) 0x" + pointerStr;
+			}
+
+			ss << util::toConstData(msg);
+		}
+
+
+		output_buffer_ << ss.str();
+		return maybeSpace();
+	}
+
+private:
+	std::ostringstream output_buffer_;
+	sol::this_state s_;
+
+	CLuaDebug& maybeSpace() { output_buffer_ << " "; return *this; }
+
+};
+#pragma endregion
+
 CLua::CLua(long long index, QObject* parent)
 	: Indexer(index)
 {
@@ -1065,63 +1894,6 @@ void CLua::open_testlibs()
 
 	*/
 }
-
-class CLuaLog
-{
-public:
-	CLuaLog(std::string filename, sol::this_state s)
-	{
-		QString path = util::toQString(filename);
-		if (!path.endsWith(".log"))
-			path += ".log";
-
-		file_.setFileName(path);
-		file_.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
-
-		textStream_.setFile(&file_);
-	}
-
-	~CLuaLog()
-	{
-		if (file_.isOpen())
-			file_.close();
-
-		qDebug() << "~CLuaLog";
-	}
-
-	bool write(sol::object odata)
-	{
-		if (!file_.isOpen())
-			return false;
-
-		QString data;
-		if (odata.is<std::string>())
-			data = util::toQString(odata.as<std::string>());
-		else if (odata.is<long long>())
-			data = util::toQString(odata.as<long long>());
-		else if (odata.is<double>())
-			data = util::toQString(odata.as<double>());
-		else if (odata.is<bool>())
-			data = odata.as<bool>() ? "true" : "false";
-		else
-			return false;
-
-		QString line = QString("[%1] [%2] [%3] %4\n")
-			.arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz"))
-			.arg("sash")
-			.arg("debug")
-			.arg(data);
-
-		textStream_ << line;
-		textStream_.flush();
-		file_.flush();
-		return true;
-	}
-
-private:
-	util::TextStream textStream_;
-	QFile file_;
-};
 
 void CLua::open_utillibs(sol::state& lua)
 {
@@ -2438,314 +3210,6 @@ void CLua::open_utillibs(sol::state& lua)
 		};
 }
 
-class CLuaDialog
-{
-public:
-	CLuaDialog(long long index) : index_(index) {}
-	~CLuaDialog() = default;
-
-	std::string operator[](long long index)
-	{
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-
-		QStringList dialogstrs = gamedevice.worker->currentDialog.get().linedatas;
-
-		long long size = dialogstrs.size();
-
-		bool visible = gamedevice.worker->isDialogVisible();
-
-		QString text;
-		if (index >= size || !visible)
-			text = "";
-		else
-			text = dialogstrs.value(index);
-
-		if (visible)
-			return util::toConstData(text);
-		else
-			return "";
-	}
-
-	long long getWindowType() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().windowtype; }
-	long long getButtonType() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().buttontype; }
-	long long getDialogId() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().dialogid; }
-	long long getUnitId() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().unitid; }
-	std::string getData() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return util::toConstData(gamedevice.worker->currentDialog.get().data); }
-	std::string  getLineData(long long index) const { GameDevice& gamedevice = GameDevice::getInstance(index_); return util::toConstData(gamedevice.worker->currentDialog.get().linedatas.join("|")); }
-	std::string  getButtonText(long long index) const { GameDevice& gamedevice = GameDevice::getInstance(index_); return util::toConstData(gamedevice.worker->currentDialog.get().linebuttontext.join("|")); }
-
-	bool contains(std::string str, sol::this_state s);
-
-private:
-	long long index_ = 0;
-};
-
-bool CLuaDialog::contains(std::string str, sol::this_state s)
-{
-	sol::state_view lua(s.lua_state());
-	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
-	if (gamedevice.worker.isNull())
-		return false;
-
-	if (str.empty())
-		return false;
-
-	if (!gamedevice.worker->isDialogVisible())
-		return false;
-
-	QString text = util::toQString(str);
-	QStringList list = text.split(util::rexOR, Qt::SkipEmptyParts);
-	QStringList dialogstrs = gamedevice.worker->currentDialog.get().linedatas;
-	long long size = dialogstrs.size();
-	for (long long i = 0; i < size; ++i)
-	{
-		QString cmptext = dialogstrs.value(i);
-		for (const QString& it : list)
-		{
-			if (cmptext.contains(it))
-				return true;
-		}
-	}
-
-	return false;
-}
-
-class CLuaChat
-{
-public:
-	CLuaChat(long long index) : index_(index) {}
-
-	std::string operator[](long long index)
-	{
-		--index;
-
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return "";
-
-		QString text = gamedevice.worker->getChatHistory(index);
-		return util::toConstData(text);
-	}
-
-	bool contains(std::string str, sol::this_state s) const
-	{
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return false;
-
-		if (str.empty())
-			return false;
-
-		QStringList list = util::toQString(str).split(util::rexOR, Qt::SkipEmptyParts);
-		QString text = util::toQString(str);
-		for (long long i = 0; i < sa::MAX_CHAT_HISTORY; ++i)
-		{
-			QString cmptext = gamedevice.worker->getChatHistory(i);
-			if (cmptext.isEmpty())
-				continue;
-
-			for (const QString& it : list)
-			{
-				if (it.isEmpty())
-					continue;
-
-				if (cmptext.contains(it))
-					return true;
-			}
-		}
-
-		return false;
-	}
-
-private:
-	long long index_ = 0;
-};
-
-class CLuaCard
-{
-public:
-	CLuaCard(long long index) : index_(index) {}
-
-	sa::address_bool_t operator[](long long index)
-	{
-		--index;
-
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sa::address_bool_t();
-
-		sa::address_bool_t card = gamedevice.worker->getAddressBook(index);
-		return card;
-	}
-
-	bool contains(std::string str, sol::this_state s) const
-	{
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return false;
-
-		if (str.empty())
-			return false;
-
-		QStringList list = util::toQString(str).split(util::rexOR, Qt::SkipEmptyParts);
-		for (long long i = 0; i < sa::MAX_ADDRESS_BOOK; ++i)
-		{
-			sa::address_bool_t card = gamedevice.worker->getAddressBook(i);
-			if (card.name.isEmpty())
-				continue;
-
-			for (const QString& it : list)
-			{
-				if (it.isEmpty())
-					continue;
-
-				if (card.name.contains(it))
-					return true;
-			}
-		}
-
-		return false;
-	}
-
-private:
-	long long index_ = 0;
-};
-
-class CLuaMailProxy
-{
-public:
-	CLuaMailProxy(long long gameDeviceIndex, long long addressBookIndex)
-		: index_(gameDeviceIndex), addressBookIndex_(addressBookIndex) {}
-
-	std::string operator[](long long index)
-	{
-		--index;
-
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return "";
-
-		if (index < 0 || index >= sa::MAIL_MAX_HISTORY)
-			return "";
-
-		sa::mail_history_t hisory = gamedevice.worker->getMailHistory(addressBookIndex_);
-		return util::toConstData(hisory.dateStr[index]);
-	}
-
-private:
-	long long index_ = 0;
-	long long addressBookIndex_ = 0;
-};
-
-class CLuaMail
-{
-public:
-	CLuaMail(long long index) : index_(index) {}
-
-	CLuaMailProxy operator[](long long index)
-	{
-		--index;
-
-		return CLuaMailProxy(index_, index);
-	}
-
-private:
-	long long index_ = 0;
-};
-
-class CLuaPoint
-{
-public:
-	CLuaPoint(long long index) : index_(index) {}
-
-	long long getExp() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().expbufftime; }
-	long long getRep() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().prestige; }
-	long long getEne() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().energy; }
-	long long getShl() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().shell; }
-	long long getVit() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().vitality; }
-	long long getPts() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().points; }
-	long long getVip() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currencyData.get().VIPPoints; }
-
-private:
-	long long index_ = 0;
-};
-
-std::string sa::team_t::getFreeName() const
-{
-	GameDevice& gamedevice = GameDevice::getInstance(controlIndex);
-	if (gamedevice.worker.isNull())
-		return "";
-
-	gamedevice.worker->updateDatasFromMemory();
-
-	return util::toConstData(gamedevice.worker->mapUnitHash.value(id).freeName);
-}
-
-class CLuaTeam
-{
-public:
-	CLuaTeam(long long index) : index_(index) {}
-
-	sa::team_t operator[](long long index)
-	{
-		--index;
-
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sa::team_t();
-
-		gamedevice.worker->updateDatasFromMemory();
-
-		sa::team_t team = gamedevice.worker->getTeam(index);
-		team.controlIndex = index_;
-		return team;
-	}
-
-	bool contains(std::string names, sol::this_state s) const
-	{
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return false;
-
-		QStringList list = util::toQString(names).split(util::rexOR, Qt::SkipEmptyParts);
-		QString cmpName = list.value(0);
-		QString cmpFreeName = list.value(1);
-
-		gamedevice.worker->updateDatasFromMemory();
-
-		for (long long i = 0; i < sa::MAX_TEAM; ++i)
-		{
-			sa::team_t team = gamedevice.worker->getTeam(i);
-			if (team.name.isEmpty())
-				continue;
-
-			QString freeName = gamedevice.worker->mapUnitHash.value(team.id).freeName;
-
-			if (!cmpFreeName.isEmpty() && freeName.contains(cmpFreeName) && !cmpName.isEmpty() && team.name == cmpName)
-				return true;
-			if (cmpFreeName.isEmpty() && !cmpName.isEmpty() && team.name == cmpName)
-				return true;
-		}
-
-		return false;
-	}
-
-	long long count()
-	{
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return 0;
-
-		gamedevice.worker->updateDatasFromMemory();
-
-		return gamedevice.worker->getTeamSize();
-	}
-
-private:
-	long long index_ = 0;
-
-};
-
 //luasystem.cpp
 void CLua::open_syslibs(sol::state& lua)
 {
@@ -2966,7 +3430,6 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.safe_script("chat = ChatClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
 
-
 	lua.new_usertype<CLuaTimer>("Timer",
 		sol::call_constructor,
 		sol::constructors<CLuaTimer()>(),
@@ -3089,81 +3552,13 @@ void CLua::open_syslibs(sol::state& lua)
 
 	lua.safe_script("point = PointClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
+
+	lua.new_usertype<CLuaDebug>("cout",
+		sol::call_constructor,
+		sol::constructors<CLuaDebug(sol::this_state)>(),
+		sol::meta_function::bitwise_left_shift, &CLuaDebug::operator<<
+	);
 }
-
-class CLuaPetEquipProxy
-{
-public:
-	CLuaPetEquipProxy(long long gameDeviceIndex, long long petIndex) : index_(gameDeviceIndex), petIndex_(petIndex) {}
-
-	sa::item_t operator[](long long index)
-	{
-		--index;
-
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sa::item_t();
-
-		return gamedevice.worker->getPetEquip(petIndex_, index);
-	}
-
-	sol::object find(std::string sname, sol::this_state s)
-	{
-		sol::state_view lua(s.lua_state());
-		GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
-		if (gamedevice.worker.isNull())
-			return sol::lua_nil;
-
-		QString name = util::toQString(sname);
-		bool isExact = false;
-		if (name.startsWith("?"))
-		{
-			name = name.mid(1);
-			isExact = true;
-		}
-
-		for (long long i = 0; i < sa::MAX_PET_ITEM; ++i)
-		{
-			sa::item_t item = gamedevice.worker->getPetEquip(petIndex_, i);
-			if (!item.valid)
-				continue;
-
-			if (isExact)
-			{
-				if (item.name == name)
-					return sol::make_object(lua, item);
-			}
-			else
-			{
-				if (item.name.contains(name))
-					return sol::make_object(lua, item);
-			}
-		}
-
-		return sol::lua_nil;
-	}
-
-private:
-	long long index_ = 0;
-	long long petIndex_ = -1;
-};
-
-class CLuaPetEquip
-{
-public:
-	CLuaPetEquip(long long index) : index_(index) {}
-
-	CLuaPetEquipProxy operator[](long long index)
-	{
-		--index;
-
-		CLuaPetEquipProxy proxy(index_, index);
-		return proxy;
-	}
-
-private:
-	long long index_ = 0;
-};
 
 void CLua::open_itemlibs(sol::state& lua)
 {
@@ -3222,6 +3617,7 @@ void CLua::open_itemlibs(sol::state& lua)
 		sol::constructors<CLuaItem(long long)>(),
 		sol::meta_function::index, &CLuaItem::operator[],
 		"space", sol::property(&CLuaItem::getSpace),
+		"spaceindex", sol::property(&CLuaItem::getSpaceIndex),
 		"isfull", sol::property(&CLuaItem::getIsFull),
 		"count", &CLuaItem::count,
 		"indexof", &CLuaItem::indexof,
@@ -3246,128 +3642,6 @@ void CLua::open_itemlibs(sol::state& lua)
 	lua.safe_script("petequip = PetEquipClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
 }
-
-class CLuaSkill
-{
-public:
-	CLuaSkill(long long index) : index_(index) {}
-
-	sa::profession_skill_t operator[](long long index)
-	{
-		--index;
-
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sa::profession_skill_t();
-
-
-		return gamedevice.worker->getSkill(index);
-	}
-
-	sol::object find(std::string sname, sol::this_state s)
-	{
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sol::lua_nil;
-
-		QString name = util::toQString(sname);
-
-		if (name.isEmpty())
-			return sol::lua_nil;
-
-		bool isExist = true;
-		QString newName = name;
-		if (name.startsWith("?"))
-		{
-			newName = name.mid(1);
-			isExist = false;
-		}
-
-		QHash<long long, sa::profession_skill_t> skill = gamedevice.worker->getSkills();
-
-		for (auto it = skill.begin(); it != skill.end(); ++it)
-		{
-			sa::profession_skill_t skill = it.value();
-			skill.index = it.key() + 1;
-
-			QString skillname = skill.name;
-			QString memo = skill.memo;
-			if (skillname.isEmpty())
-				continue;
-
-			if (isExist && skillname == newName)
-				return sol::make_object(s, skill);
-			else if (!isExist && skillname.contains(newName))
-				return sol::make_object(s, skill);
-			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
-				return sol::make_object(s, skill);
-		}
-
-		return sol::lua_nil;
-	}
-
-private:
-	long long index_ = 0;
-};
-
-class CLuaMagic
-{
-public:
-	CLuaMagic(long long index) : index_(index) {}
-
-	sa::magic_t operator[](long long index)
-	{
-		--index;
-
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sa::magic_t();
-
-		return gamedevice.worker->getMagic(index);
-	}
-
-	sol::object find(std::string sname, sol::this_state s)
-	{
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sol::lua_nil;
-
-		QString name = util::toQString(sname);
-
-		if (name.isEmpty())
-			return sol::lua_nil;
-
-		bool isExist = true;
-		QString newName = name;
-		if (name.startsWith("?"))
-		{
-			newName = name.mid(1);
-			isExist = false;
-		}
-
-		for (long long i = 0; i < sa::MAX_MAGIC; ++i)
-		{
-			sa::magic_t magic = gamedevice.worker->getMagic(i);
-
-			QString magicname = magic.name;
-			QString memo = magic.memo;
-			if (magicname.isEmpty())
-				continue;
-
-			if (isExist && magicname == newName)
-				return sol::make_object(s, magic);
-			else if (!isExist && magicname.contains(newName))
-				return sol::make_object(s, magic);
-			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
-				return sol::make_object(s, magic);
-		}
-
-		return sol::lua_nil;
-	}
-
-private:
-	long long index_ = 0;
-};
 
 void CLua::open_charlibs(sol::state& lua)
 {
@@ -3468,7 +3742,70 @@ void CLua::open_charlibs(sol::state& lua)
 		sol::call_constructor,
 		sol::constructors<CLuaChar(long long)>(),
 		"data", sol::property(&CLuaChar::getCharacter),
-		"数据", sol::property(&CLuaChar::getCharacter)
+		"数据", sol::property(&CLuaChar::getCharacter),
+
+		"battlepet", sol::property(&CLuaChar::getBattlePetNo),
+		"mailpet", sol::property(&CLuaChar::getMailPetNo),
+		"standbypet", sol::property(&CLuaChar::getStandbyPet),
+		"ridepet", sol::property(&CLuaChar::getRidePetNo),
+		"modelid", sol::property(&CLuaChar::getModelId),
+		"faceid", sol::property(&CLuaChar::getFaceId),
+		"unitid", sol::property(&CLuaChar::getUnitId),
+		"dir", sol::property(&CLuaChar::getDir),
+		"hp", sol::property(&CLuaChar::getHp),
+		"maxhp", sol::property(&CLuaChar::getMaxHp),
+		"hpp", sol::property(&CLuaChar::getHpPercent),
+		"mp", sol::property(&CLuaChar::getMp),
+		"maxmp", sol::property(&CLuaChar::getMaxMp),
+		"mpp", sol::property(&CLuaChar::getMpPercent),
+		"vit", sol::property(&CLuaChar::getVit),
+		"str", sol::property(&CLuaChar::getStr),
+		"tgh", sol::property(&CLuaChar::getTgh),
+		"dex", sol::property(&CLuaChar::getDex),
+		"exp", sol::property(&CLuaChar::getExp),
+		"maxexp", sol::property(&CLuaChar::getMaxExp),
+		"lv", sol::property(&CLuaChar::getLevel),
+		"atk", sol::property(&CLuaChar::getAtk),
+		"def", sol::property(&CLuaChar::getDef),
+		"agi", sol::property(&CLuaChar::getAgi),
+		"chasma", sol::property(&CLuaChar::getChasma),
+		"luck", sol::property(&CLuaChar::getLuck),
+		"earth", sol::property(&CLuaChar::getEarth),
+		"water", sol::property(&CLuaChar::getWater),
+		"fire", sol::property(&CLuaChar::getFire),
+		"wind", sol::property(&CLuaChar::getWind),
+		"gold", sol::property(&CLuaChar::getGold),
+		"stone", sol::property(&CLuaChar::getGold),
+		"fame", sol::property(&CLuaChar::getFame),
+		"titleid", sol::property(&CLuaChar::getTitleNo),
+		"dp", sol::property(&CLuaChar::getDp),
+		"namecolor", sol::property(&CLuaChar::getNameColor),
+		"status", sol::property(&CLuaChar::getStatus),
+		"etc", sol::property(&CLuaChar::getEtcFlag),
+		"turn", sol::property(&CLuaChar::getTransmigration),
+		"fmleader", sol::property(&CLuaChar::getFamilyleader),
+		"channel", sol::property(&CLuaChar::getChannel),
+		"bankgold", sol::property(&CLuaChar::getPersonalBankgold),
+		"ridelv", sol::property(&CLuaChar::getRidePetLevel),
+		"tradestate", sol::property(&CLuaChar::getTradeState),
+		"professionclass", sol::property(&CLuaChar::getProfessionClass),
+		"professionlv", sol::property(&CLuaChar::CLuaChar::getProfessionLevel),
+		"professionexp", sol::property(&CLuaChar::getProfessionExp),
+		"professionpoint", sol::property(&CLuaChar::getProfessionSkillPoint),
+
+		//custom
+		"maxload", sol::property(&CLuaChar::getMaxload),
+		"point ", sol::property(&CLuaChar::getPoint),
+
+		"name", sol::property(&CLuaChar::getName),
+		"fname", sol::property(&CLuaChar::getFreeName),
+		"proname", sol::property(&CLuaChar::getProfessionClassName),
+		"chatroomnum", sol::property(&CLuaChar::getChatRoomNum),
+		"chusheng", sol::property(&CLuaChar::getChusheng),
+
+		"family", sol::property(&CLuaChar::getFamily),
+		"ridepetname", sol::property(&CLuaChar::getRidePetName),
+		"hash", sol::property(&CLuaChar::getHash)
 	);
 
 	lua.safe_script("char = CharacterClass(__INDEX);", sol::script_pass_on_error);
@@ -3520,130 +3857,6 @@ void CLua::open_charlibs(sol::state& lua)
 	lua.safe_script("magic = MagicClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
 }
-
-class CLuaPetSkillProxy
-{
-public:
-	CLuaPetSkillProxy(long long gameDeviceIndex, long long petIndex)
-		: index_(gameDeviceIndex), petIndex_(petIndex) {}
-
-	sa::pet_skill_t operator[](long long index)
-	{
-		--index;
-
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sa::pet_skill_t();
-
-		return gamedevice.worker->getPetSkill(petIndex_, index);
-	}
-
-	sol::object find(std::string sname, sol::this_state s)
-	{
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sol::lua_nil;
-
-		QString name = util::toQString(sname);
-
-		if (name.isEmpty())
-			return sol::lua_nil;
-
-		bool isExist = true;
-		QString newName = name;
-		if (name.startsWith("?"))
-		{
-			newName = name.mid(1);
-			isExist = false;
-		}
-
-		QHash<long long, sa::pet_skill_t> skills = gamedevice.worker->getPetSkills(petIndex_);
-
-		for (auto it = skills.begin(); it != skills.end(); ++it)
-		{
-			sa::pet_skill_t skill = it.value();
-
-			QString skillname = skill.name;
-			QString memo = skill.memo;
-			if (skillname.isEmpty())
-				continue;
-
-			if (isExist && skillname == newName)
-				return sol::make_object(s, skill);
-			else if (!isExist && skillname.contains(newName))
-				return sol::make_object(s, skill);
-			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
-				return sol::make_object(s, skill);
-		}
-
-		return sol::lua_nil;
-	}
-
-private:
-	long long index_ = 0;
-	long long petIndex_ = -1;
-};
-
-class CLuaPetSkill
-{
-public:
-	CLuaPetSkill(long long index) : index_(index) {}
-
-	CLuaPetSkillProxy operator[](long long index)
-	{
-		--index;
-
-		CLuaPetSkillProxy proxy(index_, index);
-
-		return proxy;
-	}
-
-	sol::object find(long long petIndex, std::string sname, sol::this_state s)
-	{
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sol::lua_nil;
-
-		QString name = util::toQString(sname);
-
-		if (name.isEmpty())
-			return sol::lua_nil;
-
-		bool isExist = true;
-		QString newName = name;
-		if (name.startsWith("?"))
-		{
-			newName = name.mid(1);
-			isExist = false;
-		}
-
-		--petIndex;
-
-		QHash<long long, sa::pet_skill_t> skills = gamedevice.worker->getPetSkills(petIndex);
-
-		for (long long i = 0; i < sa::MAX_PET_SKILL; ++i)
-		{
-			sa::pet_skill_t skill = skills.value(i);
-
-			QString skillname = skill.name;
-			QString memo = skill.memo;
-			if (skillname.isEmpty())
-				continue;
-
-			if (isExist && skillname == newName)
-				return sol::make_object(s, skill);
-			else if (!isExist && skillname.contains(newName))
-				return sol::make_object(s, skill);
-			else if (!memo.isEmpty() && memo.contains(name, Qt::CaseInsensitive))
-				return sol::make_object(s, skill);
-		}
-
-		return sol::lua_nil;
-	}
-
-private:
-	long long index_ = 0;
-};
 
 void CLua::open_petlibs(sol::state& lua)
 {
@@ -3733,64 +3946,6 @@ void CLua::open_petlibs(sol::state& lua)
 	lua.safe_script("petskill = PetSkillClass(__INDEX);", sol::script_pass_on_error);
 	lua.collect_garbage();
 }
-
-class CLuaMapUnit
-{
-public:
-	CLuaMapUnit(long long index) : index_(index) {}
-
-	sa::map_unit_t operator[](long long index)
-	{
-		--index;
-
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sa::map_unit_t();
-
-		return gamedevice.worker->mapUnitHash.value(index);
-	}
-
-	sol::object find(sol::object p1, sol::this_state s)
-	{
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sol::lua_nil;
-
-
-
-		QString name = "";
-		long long modelid = -1;
-		if (p1.is<std::string>())
-			name = util::toQString(p1);
-		else if (p1.is<long long>())
-			modelid = p1.as<long long>();
-		else
-			return sol::lua_nil;
-
-		if (name.isEmpty())
-			return sol::lua_nil;
-
-		sa::map_unit_t unit = {};
-		if (!gamedevice.worker->findUnit(name, sa::kObjectNPC, &unit, "", modelid))
-		{
-			if (!gamedevice.worker->findUnit("", sa::kObjectNPC, &unit, name, modelid))
-			{
-				if (!gamedevice.worker->findUnit(name, sa::kObjectHuman, &unit, "", modelid))
-				{
-					if (!gamedevice.worker->findUnit("", sa::kObjectHuman, &unit, name, modelid))
-					{
-						return sol::lua_nil;
-					}
-				}
-			}
-		}
-
-		return sol::make_object(s, unit);
-	}
-
-private:
-	long long index_ = 0;
-};
 
 void CLua::open_maplibs(sol::state& lua)
 {
@@ -3893,6 +4048,7 @@ void CLua::open_battlelibs(sol::state& lua)
 		"size", sol::property(&CLuaBattle::size),
 		"enemycount", sol::property(&CLuaBattle::enemycount),
 		"alliecount", sol::property(&CLuaBattle::alliecount),
+
 		"atk", &CLuaBattle::charUseAttack,
 		"magic", sol::overload(
 			sol::resolve< long long(long long, long long, sol::this_state)>(&CLuaBattle::charUseMagic),
@@ -4018,8 +4174,8 @@ void CLua::openlibs()
 
 	//執行短腳本
 	lua_.safe_script(R"(
-collectgarbage("setpause", 100)
-collectgarbage("setstepmul", 100);
+collectgarbage("setpause", 1000)
+collectgarbage("setstepmul", 50);
 collectgarbage("step", 1024);
 	)", sol::script_pass_on_error);
 
@@ -4042,6 +4198,7 @@ collectgarbage("step", 1024);
 
 	lua_.safe_script(R"(
 		require('translations');
+		set('init');
 	)", sol::script_pass_on_error);
 	lua_.collect_garbage();
 

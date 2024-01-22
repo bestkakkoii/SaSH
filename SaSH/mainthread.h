@@ -211,7 +211,7 @@ public:
 		QMutexLocker locker(&mutex_);
 		if (objects_.contains(index))
 		{
-			auto thread_ = objects_.value(index);
+			MainObject* thread_ = objects_.value(index);
 			thread_->thread.wait();
 		}
 	}

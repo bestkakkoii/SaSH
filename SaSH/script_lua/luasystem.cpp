@@ -490,9 +490,9 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 		raw = util::toQString(value);
 		msg = raw;
 	}
-	else if (ocontent.is<qlonglong>())
+	else if (ocontent.is<long long>())
 	{
-		const qlonglong value = ocontent.as<qlonglong>();
+		const long long value = ocontent.as<long long>();
 		raw = util::toQString(value);
 		msg = raw;
 	}
@@ -522,6 +522,33 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 		msg.replace("]],", "',");
 		msg.replace("]]}", "'}");
 		msg.replace(",", ",\n");
+	}
+	else if (ocontent.is<sol::userdata>() || ocontent.is<sol::lightuserdata>())
+	{
+		//print key and type name   like: QString("%1(%2)").arg(key).arg(typeName);
+		sol::userdata ud = ocontent.as<sol::userdata>();
+		//打印出所有成員函數名
+		sol::table metaTable = ud[sol::metatable_key];
+
+		QStringList l;
+		for (auto& pair : metaTable)
+		{
+			QString name = util::toQString(pair.first.as<std::string>());
+			if (name.startsWith("__") || name.startsWith("class_"))
+				continue;
+
+			l.append(name);
+		}
+
+		if (!l.isEmpty())
+		{
+			msg = l.join("\n");
+		}
+		else
+		{
+			QString pointerStr = util::toQString(reinterpret_cast<long long>(ocontent.pointer()), 16);
+			msg = "(userdata) 0x" + pointerStr;
+		}
 	}
 	else
 	{
@@ -1670,22 +1697,18 @@ bool CLuaSystem::waitsay(std::string sstr, sol::object otimeout, sol::this_state
 	return bret;
 }
 
-long long CLuaSystem::set(std::string enumStr,
-	sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)
+long long CLuaSystem::set(sol::object oenumStr,
+	sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7,
+	sol::this_state s)
 {
 	sol::state_view lua(s);
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["__INDEX"].get<long long>());
 
-	QString typeStr = util::toQString(enumStr);
-	if (typeStr.isEmpty())
-	{
-		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("type cannot be empty"));
-		return FALSE;
-	}
-
 	const QHash<QString, util::UserSetting> hash = {
 			{ "debug", util::kScriptDebugModeEnable },
+			{ "調試", util::kScriptDebugModeEnable },
+			{ "调试", util::kScriptDebugModeEnable },
 #pragma region zh_TW
 			/*{"戰鬥道具補血戰寵", util::kBattleItemHealPetValue},
 			{ "戰鬥道具補血隊友", util::kBattleItemHealAllieValue },
@@ -1978,12 +2001,55 @@ long long CLuaSystem::set(std::string enumStr,
 	#pragma endregion
 	};
 
-
-	util::UserSetting type = hash.value(typeStr, util::kSettingNotUsed);
-	if (type == util::kSettingNotUsed)
-	{
-		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unknown setting type: '%1'").arg(typeStr));
+	if (!oenumStr.is<long long>() && !oenumStr.is<std::string>())
 		return FALSE;
+
+	util::UserSetting type;
+	QString typeStr;
+	if (oenumStr.is<std::string>())
+	{
+		typeStr = util::toQString(oenumStr.as<std::string>());
+		if (typeStr.isEmpty())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("type cannot be empty"));
+			return FALSE;
+		}
+
+		if (typeStr == "init")
+		{
+			//將所有key遍歷設置成lua全局變量
+			for (auto it = hash.begin(); it != hash.end(); ++it)
+			{
+				QString key = it.key();
+				if (key.isEmpty())
+					continue;
+
+				if (key == "debug")
+					continue;
+
+				lua.set(util::toConstData(key), static_cast<long long>(it.value()));
+			}
+
+			return TRUE;
+		}
+
+		type = hash.value(typeStr, util::kSettingNotUsed);
+		if (type == util::kSettingNotUsed)
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unknown setting type: '%1'").arg(typeStr));
+			return FALSE;
+		}
+	}
+	else
+	{
+		typeStr = hash.key(static_cast<util::UserSetting>(oenumStr.as<long long>()), "");
+		if (typeStr.isEmpty())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unknown setting type: '%1'").arg(oenumStr.as<long long>()));
+			return FALSE;
+		}
+
+		type = static_cast<util::UserSetting>(oenumStr.as<long long>());
 	}
 
 	if (type == util::kScriptDebugModeEnable)

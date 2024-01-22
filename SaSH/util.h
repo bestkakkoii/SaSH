@@ -2525,7 +2525,7 @@ QGroupBox {
 		if (hMenu != nullptr)
 			DeleteMenu(hMenu, SC_CLOSE, MF_BYCOMMAND);
 
-		qputenv("CONSOLE_HANDLE", QByteArray::number(reinterpret_cast<qint64>(hWnd)));
+		qputenv("CONSOLE_HANDLE", QByteArray::number(reinterpret_cast<long long>(hWnd)));
 		return hWnd;
 	}
 }

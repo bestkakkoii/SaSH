@@ -92,31 +92,6 @@ BattleSettingFrom::BattleSettingFrom(long long index, QWidget* parent)
 		}
 	}
 
-	enum Logic
-	{
-		kEqual = 0,
-		kNotEqual,
-		kLess,
-		kGreater,
-		kLessEqual,
-		kGreaterEqual,
-		kContains,
-		kNotContains,
-	};
-
-	static const QHash<QString, Logic> logicMap = {
-		{ "==", Logic::kEqual },
-		{ "!=", Logic::kNotEqual },
-		{ "<", Logic::kLess },
-		{ ">", Logic::kGreater },
-		{ "<=", Logic::kLessEqual },
-		{ ">=", Logic::kGreaterEqual },
-		{ "contains", Logic::kContains },
-		{ "not contains", Logic::kNotContains },
-		{ "包含", Logic::kContains },
-		{ "不包含", Logic::kNotContains },
-	};
-
 	QStringList conditions = {
 		tr("char_hp"), tr("char_mp"), tr("char_hp%"), tr("char_mp%"), tr("char_status"), tr("char_lv"),
 

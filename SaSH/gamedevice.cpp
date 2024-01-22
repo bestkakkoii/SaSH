@@ -308,7 +308,7 @@ bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigne
 	};
 
 	injectdate.index = getIndex();
-	injectdate.parentHWnd = reinterpret_cast<__int64>(getParentWidget());
+	injectdate.parentHWnd = reinterpret_cast<long long>(getParentWidget());
 	injectdate.port = port;
 
 	//get windows version

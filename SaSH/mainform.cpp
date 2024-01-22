@@ -1962,7 +1962,7 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 	}
 
 	inputDialog.setWindowFlags(inputDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
-	auto ret = inputDialog.exec();
+	int ret = inputDialog.exec();
 	if (ret != QDialog::Accepted)
 	{
 		emit inputBoxFinished();

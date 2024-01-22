@@ -148,7 +148,7 @@ namespace util
 		if (hMenu != nullptr)
 			DeleteMenu(hMenu, SC_CLOSE, MF_BYCOMMAND);
 
-		//qputenv("CONSOLE_HANDLE", QByteArray::number(reinterpret_cast<qint64>(hWnd)));
+		//qputenv("CONSOLE_HANDLE", QByteArray::number(reinterpret_cast<long long>(hWnd)));
 		//set env
 		std::wstring hWndStr = std::to_wstring(reinterpret_cast<long long>(hWnd));
 		_wputenv_s(L"SA_CONSOLE_HANDLE", hWndStr.c_str());
