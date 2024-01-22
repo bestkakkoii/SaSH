@@ -542,6 +542,7 @@ long long CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_
 
 		if (!l.isEmpty())
 		{
+			std::sort(l.begin(), l.end());
 			msg = l.join("\n");
 		}
 		else

@@ -1490,6 +1490,7 @@ namespace sa
 		QString family = "";
 		QString petname = "";
 		QString item_name = "";
+		std::tuple<long long, long long> xy() const { return std::make_tuple(x, y); }
 		std::string getName() const { return util::toConstData(name); }
 		std::string getFreeName() const { return util::toConstData(freeName); }
 		std::string getFamily() const { return util::toConstData(family); }

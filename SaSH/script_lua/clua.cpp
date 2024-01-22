@@ -1329,6 +1329,7 @@ public:
 			return "";
 	}
 
+	bool isValid() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->isDialogVisible(); }
 	long long getWindowType() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().windowtype; }
 	long long getButtonType() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().buttontype; }
 	long long getDialogId() const { GameDevice& gamedevice = GameDevice::getInstance(index_); return gamedevice.worker->currentDialog.get().dialogid; }
@@ -1748,6 +1749,7 @@ public:
 
 			if (!l.isEmpty())
 			{
+				std::sort(l.begin(), l.end());
 				msg = l.join("\n");
 			}
 			else
@@ -3407,6 +3409,7 @@ void CLua::open_syslibs(sol::state& lua)
 		sol::constructors<CLuaDialog(long long)>(),
 		sol::meta_function::index, &CLuaDialog::operator[],
 		"contains", &CLuaDialog::contains,
+		"valid", sol::property(&CLuaDialog::isValid),
 		"type", sol::property(&CLuaDialog::getWindowType),
 		"button", sol::property(&CLuaDialog::getButtonType),
 		"id", sol::property(&CLuaDialog::getDialogId),
@@ -3976,12 +3979,14 @@ void CLua::open_maplibs(sol::state& lua)
 	lua.collect_garbage();
 
 	lua.new_usertype <sa::map_unit_t>("UnitStruct",
+		"valid", sol::readonly(&sa::map_unit_t::isVisible),
 		"visible", sol::readonly(&sa::map_unit_t::isVisible),
 		"walkable", sol::readonly(&sa::map_unit_t::walkable),
 		"id", sol::readonly(&sa::map_unit_t::id),
 		"modelid", sol::readonly(&sa::map_unit_t::modelid),
 		"x", sol::readonly(&sa::map_unit_t::x),
 		"y", sol::readonly(&sa::map_unit_t::y),
+		"xy", &sa::map_unit_t::xy,
 		"dir", sol::readonly(&sa::map_unit_t::dir),
 		"level", sol::readonly(&sa::map_unit_t::level),
 		"namecolor", sol::readonly(&sa::map_unit_t::nameColor),
