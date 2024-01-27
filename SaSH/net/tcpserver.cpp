@@ -519,7 +519,52 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 		return true;
 	}
 
+	if (preStr.startsWith("SEND|"))
+	{
+		dispatchSendMessage(badata.mid(5));
+
+		return true;
+	}
+
 	return false;
+}
+
+void Worker::dispatchSendMessage(const QByteArray& encoded) const
+{
+	QHash<long long, QByteArray> slices;
+	QByteArray buffer;
+	long long func = 0;
+	long long fieldcount = 0;
+
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	gamedevice.autil.util_DecodeMessage(buffer, encoded);
+	gamedevice.autil.util_SplitMessage(buffer, SEPARATOR, slices);
+	if (gamedevice.autil.util_GetFunctionFromSlice(slices, &func, &fieldcount, 13) != 1)
+		return;
+
+	if (func <= 0)
+		return;
+
+	qDebug() << "SEND" << func << fieldcount;
+	switch (func)
+	{
+	case sa::LSSPROTO_WN_SEND:
+	{
+		long long x = 0;
+		long long y = 0;
+		long long dialogid = 0;
+		long long unitid = 0;
+		long long select = 0;
+		char data[NETDATASIZE] = {};
+
+		if (!gamedevice.autil.util_Receive(slices, &x, &y, &dialogid, &unitid, &select, data))
+			return;
+
+		qDebug() << "LSSPROTO_WN_SEND" << "x" << x << "y" << y << "dialogid" << dialogid << "unitid" << unitid << "select" << select << "data" << util::toUnicode(data);
+
+		break;
+	}
+	}
 }
 
 //異步處理數據
@@ -603,7 +648,8 @@ void Worker::handleData(QByteArray badata)
 //經由 handleData 調用同步解析數據
 long long Worker::dispatchMessage(const QByteArray& encoded)
 {
-	long long func = 0, fieldcount = 0;
+	long long func = 0;
+	long long fieldcount = 0;
 
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	netRawBufferArray_.clear();
@@ -3768,7 +3814,7 @@ bool Worker::login(long long s)
 			{
 				gamedevice.leftDoubleClick(x, y);
 				break;
-		}
+			}
 			x -= 5;
 			if (x <= 0)
 				break;
@@ -3776,7 +3822,7 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1500))
 				break;
 
-	}
+		}
 #endif
 		break;
 	}
@@ -3931,11 +3977,11 @@ bool Worker::login(long long s)
 				if (timer.hasExpired(1500))
 					break;
 
+			}
 		}
-	}
 #endif
 		break;
-}
+	}
 	case util::kStatusSelectCharacter:
 	{
 		if (position < 0 || position > sa::MAX_CHARACTER)
@@ -6289,9 +6335,9 @@ inline bool Worker::checkFlagState(long long pos) const
 }
 
 //異步處理自動/快速戰鬥邏輯和發送封包
+#if 0
 void Worker::doBattleWork(bool canDelay)
 {
-#if 0
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	if (canDelay)
 	{
@@ -6372,8 +6418,8 @@ void Worker::doBattleWork(bool canDelay)
 		return;
 
 	gamedevice.battleActionFuture = QtConcurrent::run([this, canDelay]() { asyncBattleAction(canDelay); });
-#endif
 }
+#endif
 
 //異步戰鬥動作處理
 bool Worker::asyncBattleAction(bool canDelay)
@@ -6937,7 +6983,7 @@ bool Worker::conditionMatchTarget(QVector<sa::battle_object_t> btobjs, const QSt
 	return bret;
 }
 
-bool Worker::runBattleLua(const QString& name)
+bool Worker::runBattleLua(BattleScriptType type)
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -6948,33 +6994,16 @@ bool Worker::runBattleLua(const QString& name)
 		if (!gamedevice.getEnableHash(util::kBattleLuaModeEnable))
 			break;
 
-		QStringList battleLuaFiles;
-		util::searchFiles(util::applicationDirPath(), name, ".lua", &battleLuaFiles);
-		if (battleLuaFiles.isEmpty())
-			break;
-
-		QString fileName = battleLuaFiles.first();
-
-		if (fileName.isEmpty())
-			break;
-
-		std::string sfileName = util::toConstData(fileName);
-
-		if (nullptr == battleLua)
-		{
-			battleLua.reset(new CLua(getIndex()));
-			sash_assume(battleLua != nullptr);
-			if (nullptr == battleLua)
+		QFuture<bool> future = QtConcurrent::run([this, type]()
 			{
-				break;
-			}
+				std::string sscript;
+				if (kCharScript == type)
+					sscript = util::toConstData(battleCharLuaScript_);
+				else
+					sscript = util::toConstData(battlePetLuaScript_);
 
-			battleLua->setHookEnabled(true);
-			battleLua->setHookForBattle(true);
-			battleLua->openlibs();
-		}
-
-		QFuture<bool> future = QtConcurrent::run([this, sfileName]() { return battleLua->doFile(sfileName); });
+				return battleLua->doString(sscript);
+			});
 		future.waitForFinished();
 		bret = future.result();
 	} while (false);
@@ -6991,7 +7020,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 	tempCatchPetTargetIndex_.set(-1);
 	petEnableEscapeForTemp_.off(); //用於在必要的時候切換戰寵動作為逃跑模式
 
-	if (runBattleLua("battle_char"))
+	if (runBattleLua(kCharScript))
 		return true;
 
 	QStringList items;
@@ -8423,7 +8452,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 //寵物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
 bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 {
-	if (runBattleLua("battle_pet"))
+	if (runBattleLua(kPetScript))
 		return true;
 
 	using namespace util;
@@ -9476,8 +9505,8 @@ long long Worker::getBattleSelectableEnemyOneRowTarget(const sa::battle_data_t& 
 					targetIndex = i;
 					break;
 				}
-	}
-}
+			}
+		}
 	}
 
 	if (targetIndex >= 0 && targetIndex < enemies.size())
@@ -10749,7 +10778,7 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-	}
+		}
 #endif
 	}
 }
@@ -11465,6 +11494,51 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 		battleCurrentRound.set(-1);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 		emit signalDispatcher.battleTableAllItemResetColor();
+
+		long long currentIndex = getIndex();
+		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+
+		if (!gamedevice.getEnableHash(util::kBattleLuaModeEnable))
+			return;
+
+		auto getFilePath = [](const QString& name)->QString
+			{
+				QStringList battleLuaFiles;
+				util::searchFiles(util::applicationDirPath(), name, ".lua", &battleLuaFiles);
+				if (battleLuaFiles.isEmpty())
+					return "";
+
+				return battleLuaFiles.first();
+			};
+
+		if (!QFile::exists(battleCharLuaScriptPath_))
+			battleCharLuaScriptPath_ = getFilePath("battle_char");
+
+		if (!battleCharLuaScriptPath_.isEmpty())
+			util::readFile(battleCharLuaScriptPath_, &battleCharLuaScript_);
+
+		if (!QFile::exists(battlePetLuaScriptPath_))
+			battlePetLuaScriptPath_ = getFilePath("battle_pet");
+
+		if (!battlePetLuaScriptPath_.isEmpty())
+			util::readFile(battlePetLuaScriptPath_, &battlePetLuaScript_);
+
+		if (battleCharLuaScriptPath_.isEmpty() && battlePetLuaScriptPath_.isEmpty())
+			return;
+
+		if (nullptr == battleLua)
+		{
+			battleLua.reset(new CLua(getIndex()));
+			sash_assume(battleLua != nullptr);
+			if (nullptr == battleLua)
+			{
+				return;
+			}
+
+			battleLua->setHookEnabled(true);
+			battleLua->setHookForBattle(true);
+			battleLua->openlibs();
+		}
 	}
 }
 
@@ -11693,7 +11767,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 					if (i == battleCharCurrentPos.get())
 					{
 						qDebug() << QString("自己 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-	}
+					}
 					if (i == battleCharCurrentPos.get() + 5)
 					{
 						qDebug() << QString("戰寵 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
@@ -11705,8 +11779,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-	}
-}
+				}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11719,8 +11793,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 				}
 			}
 
-			bt.objects = objs;
-	}
+			bt.objects = std::move(objs);
+		}
 
 		setBattleData(bt);
 
@@ -11766,14 +11840,15 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		battleField.set(getIntegerToken(data, "|", 1));
 
-
 		auto matchPetByBattleInfo = [this](const sa::battle_object_t& obj, bool isRide)->long long
 			{
 				QHash<long long, sa::pet_t> hash = pet_.toHash();
+				long long key = -1;
+				sa::pet_t pet = {};
 				for (auto it = hash.begin(); it != hash.end(); ++it)
 				{
-					long long key = it.key();
-					sa::pet_t pet = it.value();
+					key = it.key();
+					pet = it.value();
 
 					if (!pet.valid)
 						continue;
@@ -11993,7 +12068,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 				emit signalDispatcher.updateBattleItemRowContents(obj.pos, preOutputInfo, preOutputInfoColor);
 
-
 				++i;
 			}
 
@@ -12111,6 +12185,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 	}
 	default:
 	{
+		break;
+#if 0
 		QStringList list = command.split(util::rexOR);
 		if (list.isEmpty())
 			break;
@@ -12223,8 +12299,6 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 		}
 		break;
-
-#if 0
 		long long size = list.size();
 		for (i = 0; i < size;)
 		{
@@ -12493,7 +12567,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 					++i;
 				++i;
 				break;
-		}
+			}
 			default:
 			{
 				while (!list.value(i).isEmpty() && !list.value(i).toUpper().startsWith("B") && list.value(i) != "FF")
@@ -12501,8 +12575,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 				++i;
 				break;
 			}
-	}
-}
+			}
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
@@ -13113,7 +13187,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-			}
+		}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13331,6 +13405,8 @@ void Worker::lssproto_C_recv(char* cdata)
 
 				pc.ridePetLevel = petlevel;
 
+				pc.modelid = modelid;
+
 				pc.nameColor = nameColor;
 				if (walkable != 0)
 				{
@@ -13425,7 +13501,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-			}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13682,15 +13758,15 @@ void Worker::lssproto_C_recv(char* cdata)
 						if (money > 1000)
 						{
 							//setMoneyCharObj(id, 24051, x, y, 0, money, info);
-		}
+						}
 						else
 						{
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
+					}
+				}
+			}
 		}
-	}
-}
-}
 #endif
 #pragma endregion
 	}
@@ -14130,6 +14206,34 @@ void Worker::lssproto_S_recv(char* cdata)
 			}
 			setCharacter(pc);
 
+			QStringList teamInfoList;
+			for (long long i = 0; i < sa::MAX_TEAM; ++i)
+			{
+				sa::team_t team = getTeam(i);
+				if (team.valid && team.id == pc.id)
+				{
+					if (team.level != pc.level)
+						team.level = pc.level;
+
+					if (team.hp != pc.hp)
+						team.hp = pc.hp;
+
+					if (team.maxHp != pc.maxHp)
+						team.maxHp = pc.maxHp;
+
+					if (team.hpPercent != pc.hpPercent)
+						team.hpPercent = pc.hpPercent;
+
+					team_.insert(i, team);
+				}
+
+				QString text = QString("%1 LV:%2 HP:%3/%4 MP:%5").arg(team.name).arg(team.level)
+					.arg(team.hp).arg(team.maxHp).arg(team.hpPercent);
+				teamInfoList.append(text);
+			}
+
+			emit signalDispatcher.updateTeamInfo(teamInfoList);
+
 			emit signalDispatcher.updateMainFormTitle(pc.name);//標題設置為人物名稱
 			emit signalDispatcher.updateCharHpProgressValue(pc.level, pc.hp, pc.maxHp);
 			emit signalDispatcher.updateCharMpProgressValue(pc.level, pc.mp, pc.maxMp);
@@ -14465,8 +14569,8 @@ void Worker::lssproto_S_recv(char* cdata)
 						++i;
 					}
 #endif
-					}
 				}
+			}
 
 
 			pet.power = (((static_cast<double>(pet.atk + pet.def + pet.agi) + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0);
@@ -14474,7 +14578,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-			}
+		}
 
 		sa::character_t pc = getCharacter();
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < sa::MAX_PET)
@@ -14532,7 +14636,7 @@ void Worker::lssproto_S_recv(char* cdata)
 
 		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 		gamedevice.setUserData(util::kUserPetNames, petNames);
-		}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -15147,7 +15251,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-	}
+}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)
@@ -15939,5 +16043,5 @@ bool Worker::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return false;
-	}
+}
 #endif

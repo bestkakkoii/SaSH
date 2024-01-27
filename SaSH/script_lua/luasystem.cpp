@@ -111,7 +111,7 @@ static bool setRemoteGlobal(const std::string& varname, const QVariant& value)
 	return false;
 }
 
-QVariant getRemoteGlobal(const std::string& varname)
+static QVariant getRemoteGlobal(const std::string& varname)
 {
 	QSystemSemaphore semaphore(kRemoteGlobalSemaphoreKey, 1, QSystemSemaphore::Open);
 	semaphore.acquire();
@@ -297,6 +297,15 @@ sol::object CLuaSystem::require(std::string sname, sol::this_state s)
 		return sol::lua_nil;
 	}
 
+	//compare with package.loaded
+	sol::table package = lua["package"];
+	sol::table loaded = package["loaded"];
+
+	sol::object obj = loaded[name.toStdString()];
+	if (obj.is<sol::table>())
+		return obj;
+
+	// load file
 	sol::protected_function loadfile = lua["loadfile"];
 	if (!loadfile.valid())
 	{
@@ -320,7 +329,7 @@ sol::object CLuaSystem::require(std::string sname, sol::this_state s)
 		return sol::lua_nil;
 	}
 
-	sol::object	obj = result;
+	obj = result;
 
 	if (obj.is<sol::function>())
 	{
@@ -355,7 +364,11 @@ sol::object CLuaSystem::require(std::string sname, sol::this_state s)
 
 	obj = result;
 	if (obj.is<sol::table>())
+	{
+		//save to package.loaded
+		loaded[name.toStdString()] = obj;
 		return obj;
+	}
 	else
 		return sol::lua_nil;
 }
@@ -406,24 +419,24 @@ long long CLuaSystem::logout(sol::this_state s)
 {
 	sol::state_view lua(s);
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
-	if (!gamedevice.worker.isNull())
+	if (gamedevice.worker.isNull())
 	{
-		return gamedevice.worker->logOut();
+		return FALSE;
 	}
 
-	return FALSE;
+	return gamedevice.worker->logOut();
 }
 
 long long CLuaSystem::logback(sol::this_state s)
 {
 	sol::state_view lua(s);
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
-	if (!gamedevice.worker.isNull())
+	if (gamedevice.worker.isNull())
 	{
-		return gamedevice.worker->logBack();
+		return FALSE;
 	}
 
-	return FALSE;
+	return gamedevice.worker->logBack();
 }
 
 long long CLuaSystem::eo(sol::this_state s)
@@ -443,9 +456,7 @@ long long CLuaSystem::eo(sol::this_state s)
 
 	bool bret = luadebug::waitfor(s, 2000, [currentIndex]() { return !GameDevice::getInstance(currentIndex).worker->isEOTTLSend.get(); });
 
-	long long result = bret ? gamedevice.worker->lastEOTime.get() : 0;
-
-	return result;
+	return bret ? gamedevice.worker->lastEOTime.get() : 0;
 }
 
 long long CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s)

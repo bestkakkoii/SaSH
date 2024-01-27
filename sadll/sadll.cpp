@@ -97,19 +97,18 @@ static LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 #pragma region New
 extern "C"
 {
+	//new send
+	static int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_send(s, buf, len, flags);
+	}
 #if 0
 	//new socket
 	static SOCKET WSAAPI New_socket(int af, int type, int protocol)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_socket(af, type, protocol);
-	}
-
-	//new send
-	static int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags)
-	{
-		GameService& g_GameService = GameService::getInstance();
-		return g_GameService.New_send(s, buf, len, flags);
 	}
 
 	//new connect
@@ -292,10 +291,17 @@ SOCKET GameService::New_socket(int af, int type, int protocol) const
 	return fd;
 }
 
-int GameService::New_send(SOCKET s, const char* buf, int len, int flags) const
+int GameService::New_send(SOCKET s, const char* buf, int len, int flags)
 {
-	int ret = psend(s, buf, len, flags);
-	return ret;
+	int snedlen = psend(s, buf, len, flags);
+	if (snedlen > 0)
+	{
+		std::string str = std::string(buf, snedlen);
+		//prepend a header SEND|
+		str = "SEND|" + str;
+		sendToServer(str + "\n");
+	}
+	return snedlen;
 }
 
 int GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen) const
@@ -1704,15 +1710,14 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 
 	DetourAttach(&(PVOID&)precv, ::New_recv);
 	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
+	DetourAttach(&(PVOID&)psend, ::New_send);
 
 #if 0
 	DetourAttach(&(PVOID&)psocket, ::New_socket);
-	DetourAttach(&(PVOID&)psend, ::New_send);
 	DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
 	DetourAttach(&(PVOID&)pconnect, ::New_connect);
 #endif
-
 
 	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourAttach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
@@ -1819,18 +1824,20 @@ BOOL GameService::uninitialize()
 	speedBoostValue = 1UL;
 	enableSleepAdjust.store(FALSE, std::memory_order_release);
 
-#if 1
 	DetourRestoreAfterWith();
 	DetourTransactionBegin();
 	DetourUpdateThread(g_MainThreadHandle);
 
-	//DetourDetach(&(PVOID&)psocket, ::New_socket);
-	//DetourDetach(&(PVOID&)psend, ::New_send);
+	DetourDetach(&(PVOID&)psend, ::New_send);
 	DetourDetach(&(PVOID&)precv, ::New_recv);
 	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
-	//DetourDetach(&(PVOID&)pinet_addr, ::New_inet_addr);
-	//DetourDetach(&(PVOID&)pntohs, ::New_ntohs);
-	//DetourDetach(&(PVOID&)pconnect, ::New_connect);
+
+#if 0
+	DetourDetach(&(PVOID&)psocket, ::New_socket);
+	DetourDetach(&(PVOID&)pinet_addr, ::New_inet_addr);
+	DetourDetach(&(PVOID&)pntohs, ::New_ntohs);
+	DetourDetach(&(PVOID&)pconnect, ::New_connect);
+#endif
 
 	DetourDetach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourDetach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
@@ -1851,7 +1858,6 @@ BOOL GameService::uninitialize()
 	DetourTransactionCommit();
 
 	util::undetour(pBattleCommandReady, oldBattleCommandReadyByte, sizeof(oldBattleCommandReadyByte));
-#endif
 
 	return TRUE;
 }

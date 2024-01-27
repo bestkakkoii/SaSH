@@ -71,7 +71,7 @@ public:
 public://hook
 	SOCKET __fastcall New_socket(int af, int type, int protocol) const;
 	int __fastcall New_closesocket(SOCKET s);
-	int __fastcall New_send(SOCKET s, const char* buf, int len, int flags) const;
+	int __fastcall New_send(SOCKET s, const char* buf, int len, int flags);
 	int __fastcall New_recv(SOCKET s, char* buf, int len, int flags);
 	int __fastcall New_connect(SOCKET s, const struct sockaddr* name, int namelen) const;
 	unsigned long __fastcall New_inet_addr(const char* cp) const;

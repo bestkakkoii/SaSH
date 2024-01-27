@@ -46,9 +46,11 @@ public:
 	void __fastcall util_Release(void);
 	void __fastcall util_Clear(void);
 	bool __fastcall util_SplitMessage(const QByteArray& source, char separator);
+	bool __fastcall util_SplitMessage(const QByteArray& source, char separator, QHash<long long, QByteArray>& dst) const;
 	void __fastcall util_EncodeMessage(char* dst, size_t dstlen, char* src);
 	void __fastcall util_DecodeMessage(QByteArray& dst, QByteArray src);
 	long long __fastcall util_GetFunctionFromSlice(long long* func, long long* fieldcount, long long offest = 23);
+	long long __fastcall util_GetFunctionFromSlice(const QHash<long long, QByteArray>& slices, long long* func, long long* fieldcount, long long offest = 23) const;
 	void __fastcall util_DiscardMessage(void);
 	bool __fastcall util_SendMesg(long long func, char* buffer);
 
@@ -68,26 +70,28 @@ public:
 	// -------------------------------------------------------------------
 	// Encrypting functions
 	long long __fastcall util_deint(long long sliceno, long long* value);
+	long long __fastcall util_deint(const QHash< long long, QByteArray >& slices, long long sliceno, long long* value);
 	long long __fastcall util_mkint(char* buffer, long long value);
 	long long __fastcall util_destring(long long sliceno, char* value);
+	long long __fastcall util_destring(const QHash< long long, QByteArray >& slices, long long sliceno, char* value);
 	long long __fastcall util_mkstring(char* buffer, char* value);
 
 	// 輔助函數，處理整數參數
 	template<typename Arg>
-	inline void util_SendProcessArg(long long& sum, char* buffer, Arg arg)
+	inline void __fastcall util_SendProcessArg(long long& sum, char* buffer, Arg arg)
 	{
 		sum += util_mkint(buffer, static_cast<int>(arg));
 	}
 
 	// 輔助函數，處理字符串參數（重載版本）
-	inline void util_SendProcessArg(long long& sum, char* buffer, char* arg)
+	inline void __fastcall util_SendProcessArg(long long& sum, char* buffer, char* arg)
 	{
 		sum += util_mkstring(buffer, arg);
 	}
 
 	// 輔助函數，遞歸處理參數
 	template<typename Arg, typename... Args>
-	inline void util_SendProcessArgs(long long& sum, char* buffer, Arg arg, Args... args)
+	inline void __fastcall util_SendProcessArgs(long long& sum, char* buffer, Arg arg, Args... args)
 	{
 		util_SendProcessArg(sum, buffer, arg);
 		util_SendProcessArgs(sum, buffer, args...);
@@ -95,14 +99,14 @@ public:
 
 	// 輔助函數，處理最後一個參數
 	template<typename Arg>
-	inline void util_SendProcessArgs(long long& sum, char* buffer, Arg arg)
+	inline void __fastcall util_SendProcessArgs(long long& sum, char* buffer, Arg arg)
 	{
 		util_SendProcessArg(sum, buffer, arg);
 	}
 
 	// 主發送函數
 	template<typename... Args>
-	inline bool util_Send(long long func, Args... args)
+	inline bool __fastcall util_Send(long long func, Args... args)
 	{
 		long long iChecksum = 0;
 		char buffer[NETDATASIZE] = {};
@@ -112,7 +116,7 @@ public:
 		return util_SendMesg(func, buffer);
 	}
 
-	inline bool util_SendArgs(long long func, std::vector<std::variant<long long, std::string>>& args)
+	inline bool __fastcall util_SendArgs(long long func, std::vector<std::variant<long long, std::string>>& args)
 	{
 		long long iChecksum = 0;
 		char buffer[NETDATASIZE] = {};
@@ -134,7 +138,7 @@ public:
 	}
 
 	template<typename... Args>
-	inline bool util_Receive(Args*... args)
+	inline bool __fastcall util_Receive(Args*... args)
 	{
 		long long iChecksum = 0;  // 局部變量
 		long long iChecksumrecv = 0;
@@ -159,7 +163,33 @@ public:
 		return (iChecksum == iChecksumrecv);
 	}
 
-	inline bool setKey(const std::string& key)
+	template<typename... Args>
+	inline bool __fastcall util_Receive(const QHash< long long, QByteArray >& slices, Args*... args)
+	{
+		long long iChecksum = 0;  // 局部變量
+		long long iChecksumrecv = 0;
+		long long nextSlice = 2;
+
+		// 解碼參數並累加到 iChecksum
+		auto decode_and_accumulate = [this, &slices, &iChecksum, &nextSlice](auto* val)
+			{
+				if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, long long>)
+				{
+					iChecksum += util_deint(slices, nextSlice++, val);
+				}
+				else if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, char>)
+				{
+					iChecksum += util_destring(slices, nextSlice++, val);
+				}
+			};
+		(decode_and_accumulate(args), ...);
+
+		// 獲取並校驗 iChecksum
+		util_deint(slices, nextSlice, &iChecksumrecv);
+		return (iChecksum == iChecksumrecv);
+	}
+
+	inline bool __fastcall setKey(const std::string& key)
 	{
 		std::unique_lock<std::shared_mutex> lock(keyMutex_);
 		if (strncmp(personalKey_, key.c_str(), key.size()) == 0)
@@ -174,7 +204,7 @@ private:
 	mutable std::shared_mutex keyMutex_;
 	char personalKey_[1024] = {};
 
-	[[nodiscard]] inline std::string getKey() const
+	[[nodiscard]] inline std::string __fastcall getKey() const
 	{
 		std::shared_lock<std::shared_mutex> lock(keyMutex_);
 		return personalKey_;

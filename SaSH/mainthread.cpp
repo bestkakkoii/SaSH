@@ -1436,6 +1436,9 @@ void MissionThread::autoWalk()
 	QPoint current_pos;
 	bool current_side = false;
 	QPoint posCache = current_pos;
+	bool enableAutoWalk = false;
+	bool enableFastAutoWalk = false;
+	long long i = 0;
 
 	for (;;)
 	{
@@ -1450,8 +1453,8 @@ void MissionThread::autoWalk()
 			break;
 
 		//取設置
-		bool enableAutoWalk = gamedevice.getEnableHash(util::kAutoWalkEnable);//走路遇敵開關
-		bool enableFastAutoWalk = gamedevice.getEnableHash(util::kFastAutoWalkEnable);//快速遇敵開關
+		enableAutoWalk = gamedevice.getEnableHash(util::kAutoWalkEnable);//走路遇敵開關
+		enableFastAutoWalk = gamedevice.getEnableHash(util::kFastAutoWalkEnable);//快速遇敵開關
 		if (!enableAutoWalk && !enableFastAutoWalk)
 		{
 			break;
@@ -1465,32 +1468,32 @@ void MissionThread::autoWalk()
 		if (!gamedevice.worker->getOnlineFlag())
 			break;
 
-		//如果人物在戰鬥中則進入循環等待
 		if (gamedevice.worker->getBattleFlag())
 		{
-			//先等一小段時間
-			QThread::msleep(500);
-
-			//如果已經退出戰鬥就等待1.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
-			if (!gamedevice.worker->getBattleFlag())
+			for (;;)
 			{
-				for (long long i = 0; i < 5; ++i)
+				if (gamedevice.isGameInterruptionRequested())
+					break;
+
+				if (gamedevice.worker.isNull())
+					break;
+
+				//如果主線程關閉則自動退出
+				if (isMissionInterruptionRequested())
+					break;
+
+				if (!gamedevice.worker->getOnlineFlag())
+					break;
+
+				//如果已經退出戰鬥就等待0.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
+				if (!gamedevice.worker->getBattleFlag())
 				{
-					if (gamedevice.isGameInterruptionRequested())
-						break;
-
-					if (gamedevice.worker.isNull())
-						break;
-
-					//如果主線程關閉則自動退出
-					if (isMissionInterruptionRequested())
-						break;
-
 					QThread::msleep(200);
+					break;
 				}
+
+				QThread::msleep(100);
 			}
-			else
-				continue;
 		}
 
 		long long walk_speed = gamedevice.getValueHash(util::kAutoWalkDelayValue);//走路速度
@@ -1507,7 +1510,7 @@ void MissionThread::autoWalk()
 			long long x = 0, y = 0;
 			QString dirStr;
 			QString steps;
-			for (long long i = 0; i < 4; ++i)//4個字母為一組
+			for (i = 0; i < 4; ++i)//4個字母為一組
 			{
 				if (walk_dir == 0)
 				{

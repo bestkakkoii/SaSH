@@ -83,6 +83,8 @@ public:
 	void handleData(QByteArray badata);
 
 private:
+	void __fastcall dispatchSendMessage(const QByteArray& encoded) const;
+
 	long long __fastcall dispatchMessage(const QByteArray& encoded);
 
 	bool __fastcall handleCustomMessage(const QByteArray& data);
@@ -221,7 +223,7 @@ public://actions
 	void __fastcall updateItemByMemory();
 	void __fastcall updateDatasFromMemory();
 
-	void __fastcall doBattleWork(bool canDelay);
+	//void __fastcall doBattleWork(bool canDelay);
 	bool asyncBattleAction(bool canDelay);
 
 	bool __fastcall downloadMap(long long floor = -1);
@@ -343,6 +345,7 @@ public://actions
 	inline [[nodiscard]] sa::team_t __fastcall getTeam(long long teamIndex) const { return team_.value(teamIndex); }
 	inline [[nodiscard]] QHash<long long, sa::team_t> __fastcall getTeams() const { return team_.toHash(); }
 
+
 	inline [[nodiscard]] sa::item_t __fastcall getPetEquip(long long petIndex, long long equipIndex) const { return petItem_.value(petIndex).value(equipIndex); }
 	inline [[nodiscard]] QHash<long long, sa::item_t> __fastcall getPetEquips(long long petIndex) const { return petItem_.value(petIndex); }
 
@@ -379,7 +382,12 @@ private:
 	[[nodiscard]] long long __fastcall getProfessionSkillIndexByName(const QString& names) const;
 
 #pragma region BattleFunctions
-	bool __fastcall runBattleLua(const QString& name);
+	enum BattleScriptType
+	{
+		kCharScript,
+		kPetScript,
+	};
+	bool __fastcall runBattleLua(BattleScriptType script);
 
 	long long __fastcall playerDoBattleWork(const sa::battle_data_t& bt);
 	bool __fastcall handleCharBattleLogics(const sa::battle_data_t& bt);
@@ -504,6 +512,11 @@ private:
 	safe::data<QPoint> nowPoint_; //當前人物座標
 
 	QFuture<void> battleBackupFuture_; //戰鬥動作備用線程管理器
+
+	QString battleCharLuaScript_;
+	QString battlePetLuaScript_;
+	QString battleCharLuaScriptPath_;
+	QString battlePetLuaScriptPath_;
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal

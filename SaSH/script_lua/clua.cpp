@@ -292,6 +292,9 @@ bool __fastcall luadebug::checkStopAndPause(const sol::this_state& s)
 bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
+
+	QThread::msleep(1);
+
 	sol::state_view lua(s.lua_state());
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 	bool bret = false;
@@ -310,13 +313,13 @@ bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 			if (gamedevice.worker->getOnlineFlag())
 				break;
 
-			if (timer.hasExpired(180000))
+			if (timer.hasExpired(300000))
 				break;
 
-			QThread::msleep(200);
+			QThread::msleep(500);
 		}
 
-		QThread::msleep(1000);
+		QThread::msleep(2000);
 	}
 	return bret;
 }
@@ -324,6 +327,8 @@ bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
+
+	QThread::msleep(1);
 
 	sol::state_view lua(s.lua_state());
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
@@ -345,10 +350,10 @@ bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 			if (timer.hasExpired(180000))
 				break;
 
-			QThread::msleep(200);
+			QThread::msleep(100);
 		}
 
-		QThread::msleep(1000);
+		QThread::msleep(500);
 	}
 	return bret;
 }
@@ -544,12 +549,8 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
-		processDelay(s);
-		if (gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
-		{
-			QThread::msleep(1);
-		}
-		else
+		//processDelay(s);
+		if (!gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
 		{
 			luadebug::checkStopAndPause(s);
 			return;
@@ -945,6 +946,25 @@ std::string luatool::format(std::string sformat, sol::this_state s)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma region luaclasses
+std::tuple<std::string, long long> CLuaChar::getServer()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return std::make_tuple("", -1);
+
+	long long subServer = static_cast<long long>(mem::read<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetSubServerIndex));
+	long long position = static_cast<long long>(mem::read<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetPositionIndex));
+
+	QString subServerName;
+	long long size = gamedevice.subServerNameList.get().size();
+	if (subServer >= 0 && subServer < size)
+		subServerName = gamedevice.subServerNameList.get().value(subServer);
+	else
+		subServerName = "????";
+
+	return std::make_tuple(util::toConstData(subServerName), position + 1);
+}
+
 class CLuaLog
 {
 public:
@@ -3808,7 +3828,8 @@ void CLua::open_charlibs(sol::state& lua)
 
 		"family", sol::property(&CLuaChar::getFamily),
 		"ridepetname", sol::property(&CLuaChar::getRidePetName),
-		"hash", sol::property(&CLuaChar::getHash)
+		"hash", sol::property(&CLuaChar::getHash),
+		"getserver", &CLuaChar::getServer
 	);
 
 	lua.safe_script("char = CharacterClass(__INDEX);", sol::script_pass_on_error);
@@ -4214,7 +4235,7 @@ collectgarbage("step", 1024);
 	}
 }
 
-bool CLua::doFile(std::string fileName)
+bool CLua::doString(const std::string& sstr)
 {
 	bool bret = false;
 
@@ -4222,7 +4243,7 @@ bool CLua::doFile(std::string fileName)
 	{
 		safe::auto_flag autoFlag(&isRunning_);
 
-		sol::protected_function_result loaded_chunk = lua_.safe_script_file(fileName, sol::script_pass_on_error);
+		sol::protected_function_result loaded_chunk = lua_.safe_script(sstr, sol::script_pass_on_error);
 		lua_.collect_garbage();
 
 		if (loaded_chunk.valid())

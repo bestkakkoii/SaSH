@@ -160,7 +160,14 @@ public:
 		if (dataLen <= 0)
 			return FALSE;
 
-		int result = ::send(clientSocket_, dataBuf, dataLen, 0);
+		//regular
+		//int result = ::send(clientSocket_, dataBuf, dataLen, 0);
+		//WSASend
+		WSABUF wsaBuf = {};
+		wsaBuf.buf = const_cast<char*>(dataBuf);
+		wsaBuf.len = dataLen;
+		DWORD dwSend = 0;
+		int result = WSASend(clientSocket_, &wsaBuf, 1, &dwSend, 0, nullptr, nullptr);
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
@@ -182,7 +189,14 @@ public:
 		if (str.empty())
 			return FALSE;
 
-		int result = ::send(clientSocket_, str.c_str(), str.length(), 0);
+		//regular
+		//int result = ::send(clientSocket_, str.c_str(), str.length(), 0);
+		//WSASend
+		WSABUF wsaBuf = {};
+		wsaBuf.buf = const_cast<char*>(str.c_str());
+		wsaBuf.len = str.length();
+		DWORD dwSend = 0;
+		int result = WSASend(clientSocket_, &wsaBuf, 1, &dwSend, 0, nullptr, nullptr);
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();

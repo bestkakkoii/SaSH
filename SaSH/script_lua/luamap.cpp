@@ -224,8 +224,6 @@ long long CLuaMap::walkpos(long long x, long long y, sol::object otimeout, sol::
 	if (!gamedevice.worker->move(p))
 		return FALSE;
 
-	QThread::msleep(1);
-
 	bool bret = luadebug::waitfor(s, timeout, [&s, this, &gamedevice, &p]()->bool
 		{
 			luadebug::checkBattleThenWait(s);

@@ -486,6 +486,7 @@ public:
 	std::string getFamily() { return util::toConstData(getCharacter().family); }
 	std::string getRidePetName() { return util::toConstData(getCharacter().ridePetName); }
 	std::string getHash() { return getCharacter().getHash(); }
+	std::tuple<std::string, long long> getServer();
 
 private:
 	long long index_ = -1;
@@ -624,7 +625,7 @@ public:
 	void __fastcall setHookForBattle(bool isHookForBattlle) { lua_["__HOOKFORBATTLE"] = isHookForBattlle; }
 	void __fastcall setRunningState(bool isRunning) { if (isRunning) isRunning_.on(); else isRunning_.off(); }
 
-	bool __fastcall doFile(std::string fileName);
+	bool __fastcall doString(const std::string& sstr);
 
 private:
 	void __fastcall open_enumlibs();

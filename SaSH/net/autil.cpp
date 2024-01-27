@@ -84,6 +84,20 @@ bool Autil::util_SplitMessage(const QByteArray& source, char separator)
 	return count > 0;
 }
 
+bool Autil::util_SplitMessage(const QByteArray& source, char separator, QHash<long long, QByteArray>& dst) const
+{
+	QByteArrayList list = source.split(separator);
+
+	long long count = 0;
+	for (QByteArray& slice : list)
+	{
+		dst.insert(count, std::move(slice));
+		++count;
+	}
+
+	return count > 0;
+}
+
 // -------------------------------------------------------------------
 // Encode the message
 //
@@ -179,6 +193,34 @@ long long Autil::util_GetFunctionFromSlice(long long* func, long long* fieldcoun
 
 	// 在QHash中查找DEFAULTFUNCEND
 	for (auto it = msgSlice_.constBegin(); it != msgSlice_.constEnd(); ++it)
+	{
+		if (it.value() == DEFAULTFUNCEND)
+		{
+			*fieldcount = it.key() - 2;	// - "&" - "#" - "func" 3 fields
+			return 1;
+		}
+	}
+
+	return 0;	// failed: message not complete
+}
+
+long long __fastcall Autil::util_GetFunctionFromSlice(const QHash<long long, QByteArray>& slices, long long* func, long long* fieldcount, long long offest) const
+{
+	QByteArray t1(NETDATASIZE, '\0');
+
+	// 從QHash中獲取第一个元素来替代msgSlice_[0]
+	QByteArray firstItem = slices.value(0);
+
+	if (firstItem != DEFAULTFUNCBEGIN)
+		return 0;
+
+	// 將第二个元素複製到t1中
+	QByteArray secondItem = slices.value(1);
+
+	*func = secondItem.toLongLong() - offest;
+
+	// 在QHash中查找DEFAULTFUNCEND
+	for (auto it = slices.constBegin(); it != slices.constEnd(); ++it)
 	{
 		if (it.value() == DEFAULTFUNCEND)
 		{
@@ -653,6 +695,35 @@ long long Autil::util_deint(long long sliceno, long long* value)
 	return 0;
 }
 
+long long Autil::util_deint(const QHash< long long, QByteArray >& slices, long long sliceno, long long* value)
+{
+	if (!slices.contains(sliceno))
+		return 0;
+
+	QByteArray slice = slices.value(sliceno);
+	int* t1 = nullptr;
+	int t2 = 0;
+	char t3[SBUFSIZE] = {}; // This buffer is enough for an integer.
+
+	std::string key(getKey());
+	util_shl_64to256(t3, slice.data(), const_cast<char*>(DEFAULTTABLE), const_cast<char*>(key.c_str()));
+	t1 = reinterpret_cast<int*>(t3);
+	t2 = *t1 ^ 0xffffffff;
+	int nvalue;
+	if (!isBackVersion)
+		util_swapint(&nvalue, &t2, const_cast<char*>("2413"));
+	else
+		util_swapint(&nvalue, &t2, const_cast<char*>("3421"));
+
+	if (value != nullptr)
+	{
+		*value = nvalue;
+		return nvalue;
+	}
+
+	return 0;
+}
+
 // -------------------------------------------------------------------
 // Pack a integer into buffer (a string).  Return a checksum.
 //
@@ -690,6 +761,18 @@ long long Autil::util_destring(long long sliceno, char* value)
 		return 0;
 
 	QByteArray slice = msgSlice_.value(sliceno);
+	std::string key(getKey());
+	util_shr_64to256(value, slice.data(), const_cast<char*>(DEFAULTTABLE), const_cast<char*>(key.c_str()));
+
+	return static_cast<long long>(strlen(value));
+}
+
+long long Autil::util_destring(const QHash< long long, QByteArray >& slices, long long sliceno, char* value)
+{
+	if (!slices.contains(sliceno))
+		return 0;
+
+	QByteArray slice = slices.value(sliceno);
 	std::string key(getKey());
 	util_shr_64to256(value, slice.data(), const_cast<char*>(DEFAULTTABLE), const_cast<char*>(key.c_str()));
 
