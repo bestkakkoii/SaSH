@@ -301,7 +301,11 @@ sol::object CLuaSystem::require(std::string sname, sol::this_state s)
 	sol::table package = lua["package"];
 	sol::table loaded = package["loaded"];
 
-	sol::object obj = loaded[name.toStdString()];
+	//make key as full path but replace '/' ot '\' to '_'
+	QByteArray hashStr = QCryptographicHash::hash(path.toUtf8(), QCryptographicHash::Sha3_512);
+	QByteArray hashStrHex = hashStr.toHex();
+	const char* ckey = hashStrHex.constData();
+	sol::object obj = loaded[ckey];
 	if (obj.is<sol::table>())
 		return obj;
 
@@ -366,7 +370,7 @@ sol::object CLuaSystem::require(std::string sname, sol::this_state s)
 	if (obj.is<sol::table>())
 	{
 		//save to package.loaded
-		loaded[name.toStdString()] = obj;
+		loaded[ckey] = obj;
 		return obj;
 	}
 	else
@@ -1743,6 +1747,7 @@ long long CLuaSystem::set(sol::object oenumStr,
 			{ "自動丟棄寵物攻防敏", util::kDropPetAggregateEnable },//{ "自動丟棄寵物攻防敏數值", util::kDropPetAggregateValue },
 
 			{ "自動加點", util::kAutoAbilityEnable },
+			{ "KNPC列表", util::kKNPCListString },
 
 			//ok
 			{ "標題", util::kTitleFormatString },
@@ -1881,6 +1886,7 @@ long long CLuaSystem::set(sol::object oenumStr,
 			{ "自动丢弃宠物攻防敏", util::kDropPetAggregateEnable },//{ "自动丢弃宠物攻防敏数值", util::kDropPetAggregateValue },
 
 			{ "自动加点", util::kAutoAbilityEnable },
+			{ "KNPC列表", util::kKNPCListString },
 
 
 			//ok
@@ -2701,6 +2707,7 @@ long long CLuaSystem::set(sol::object oenumStr,
 	case util::kMailWhiteListString:
 	case util::kBattleCatchPetNameString:
 	case util::kNormalMagicHealItemString:
+	case util::kKNPCListString:
 	{
 		QString text;
 		if (!p1.is<std::string>())

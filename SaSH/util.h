@@ -140,15 +140,15 @@ namespace mem
 #ifndef _WIN64
 	bool __fastcall injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd = nullptr);
 #endif
-	bool __fastcall injectBy64(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd = nullptr);//兼容64位注入32位
+	bool __fastcall injectBy64(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule, HWND hWnd = nullptr);//compitable x86 and x64
 #if 0
-	bool __fastcall inject(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//32注入32
+	bool __fastcall inject(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//x86 inject x86
 #endif
 	bool __fastcall enumProcess(QVector<long long>* pprocesses, const QString& moduleName, const QString& withoutModuleName = "");
 
 	bool __fastcall isProcessExist(long long pid);
 
-	//遠程虛擬內存申請、釋放、或申請+寫入字符串(ANSI | UNICODE)
+	// remote virtual memory allocation, release, or allocation + write string (ANSI | UNICODE)
 	class VirtualMemory
 	{
 	public:
@@ -716,6 +716,8 @@ namespace util
 
 		kAutoAbilityString,
 
+		kKNPCListString,
+
 		kSettingMaxString,
 
 		kScriptDebugModeEnable,
@@ -999,6 +1001,8 @@ namespace util
 		{ kBattleLogicsString , "BattleLogicsString" },
 
 		{ kAutoAbilityString , "AutoAbilityString" },
+
+		{ kKNPCListString , "KNPCListString" },
 
 		{ kSettingMaxString, "SettingMaxString" },
 
@@ -2050,8 +2054,8 @@ QGroupBox {
 			//setGenerateByteOrderMark(true);
 
 			setAutoDetectUnicode(true);
-		}
-	};
+	}
+};
 
 	//智能文件句柄類
 	class ScopedFile : public QFile

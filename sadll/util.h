@@ -164,6 +164,14 @@ namespace util
 		VirtualProtect((void*)dis, size, dwOldProtect, &dwOldProtect);
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <typeparam name="ToType"></typeparam>
+	/// <typeparam name="FromType"></typeparam>
+	/// <param name="addr"></param>
+	/// <param name="f"></param>
+	/// <returns></returns>
 	template <class ToType, class FromType>
 	void __stdcall getFuncAddr(ToType* addr, FromType f)
 	{
@@ -179,17 +187,17 @@ namespace util
 	}
 
 	/// <summary>
-	/// HOOK函數
+	/// HOOK Function
 	/// </summary>
-	/// <typeparam name="T">跳轉的全局或類函數或某個地址段</typeparam>
-	/// <typeparam name="T2">BYTE數組</typeparam>
-	/// <param name="pfnHookFunc">要 CALL 或 JMP 的函數或地址 </param>
-	/// <param name="bOri">要寫入HOOK的地址</param>
-	/// <param name="bOld">用於保存原始數據的BYTE數組，取決於寫入地址原始匯編占多大</param>
-	/// <param name="bNew">用於寫入跳轉或CALL的BYTE數組要預先填好需要填充的0x90或0xE8 0xE9</param>
-	/// <param name="nByteSize">bOld bNew數組的大小</param>
-	/// <param name="offest">有時候跳轉目標地址前面可能會有其他東西會需要跳過則需要偏移，大部分時候為 0 </param>
-	/// <returns></returns>
+	/// <typeparam name="T">A global or class function or a specific address segment to jump to</typeparam>
+	/// <typeparam name="T2">BYTE Array</typeparam>
+	/// <param name="pfnHookFunc">The function or address to CALL or JMP to</param>
+	/// <param name="bOri">The address where the HOOK will be written</param>
+	/// <param name="bOld">A BYTE array used to save the original data, depending on the size of the original assembly at the write address</param>
+	/// <param name="bNew">A BYTE array for writing the jump or CALL, pre-filled with necessary 0x90 or 0xE8 0xE9</param>
+	/// <param name="nByteSize">The size of the bOld and bNew arrays</param>
+	/// <param name="offset">Sometimes there might be other things before the jump target address that need to be skipped, hence an offset is needed, which most of the time is 0</param>
+	/// <returns>void</returns>
 	template<class T, class T2>
 	void __stdcall detour(T pfnHookFunc, DWORD bOri, T2* bOld, T2* bNew, const size_t nByteSize, const DWORD offest)
 	{
@@ -205,13 +213,13 @@ namespace util
 	}
 
 	/// <summary>
-	/// 取消HOOK
+	/// Cancel HOOK
 	/// </summary>
-	/// <typeparam name="T">BYTE數組</typeparam>
-	/// <param name="ori">要還原的地址段</param>
-	/// <param name="oldBytes">備份用的BYTE數組指針</param>
-	/// <param name="size">BYTE數組大小</param>
-	/// <returns></returns>
+	/// <typeparam name="T">BYTE Array</typeparam>
+	/// <param name="ori">The address segment to be restored</param>
+	/// <param name="oldBytes">A pointer to the BYTE array used for backup</param>
+	/// <param name="size">The size of the BYTE array</param>
+	/// <returns>void</returns>
 	template<class T>
 	void  __stdcall undetour(T ori, BYTE* oldBytes, SIZE_T size)
 	{

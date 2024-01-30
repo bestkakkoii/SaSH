@@ -226,13 +226,15 @@ void BattleSettingFrom::onButtonClicked()
 		if (conditionsStr.isEmpty() || action.isEmpty() || target.isEmpty())
 			return;
 
+		QStringList logic = QStringList{ tr("char"), conditionsStr, action, target };
+
 		//col: 1.conditions 2.action 3.target
 		long long row = ui.tableWidget_logics->rowCount();
 		ui.tableWidget_logics->insertRow(row);
-		ui.tableWidget_logics->setText(row, 0, tr("char"));
-		ui.tableWidget_logics->setText(row, 1, conditionsStr);
-		ui.tableWidget_logics->setText(row, 2, action);
-		ui.tableWidget_logics->setText(row, 3, target);
+		for (long long i = 0; i < logic.size(); ++i)
+		{
+			ui.tableWidget_logics->setText(row, i, logic[i]);
+		}
 		return;
 	}
 
@@ -254,13 +256,15 @@ void BattleSettingFrom::onButtonClicked()
 		if (conditionsStr.isEmpty() || action.isEmpty() || target.isEmpty())
 			return;
 
+		QStringList logic = QStringList{ tr("pet"), conditionsStr, action, target };
+
 		//col: 1.conditions 2.action 3.target
 		long long row = ui.tableWidget_logics->rowCount();
 		ui.tableWidget_logics->insertRow(row);
-		ui.tableWidget_logics->setText(row, 0, tr("pet"));
-		ui.tableWidget_logics->setText(row, 1, conditionsStr);
-		ui.tableWidget_logics->setText(row, 2, action);
-		ui.tableWidget_logics->setText(row, 3, target);
+		for (long long i = 0; i < logic.size(); ++i)
+		{
+			ui.tableWidget_logics->setText(row, i, logic[i]);
+		}
 	}
 }
 

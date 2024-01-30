@@ -659,7 +659,6 @@ void GameDevice::mouseMove(long long x, long long y) const
 	mem::write<int>(processHandle_, hGameModule_ + sa::kOffestMouseY, y);
 }
 
-//滑鼠移動 + 左鍵
 void GameDevice::leftClick(long long x, long long y) const
 {
 	//LPARAM data = MAKELPARAM(x, y);
@@ -809,7 +808,7 @@ void GameDevice::show() const
 	SetForegroundWindow(hWnd);
 }
 
-QString GameDevice::getPointFileName()
+QString GameDevice::getPointFileName() const
 {
 	const QString dirPath(QString("%1/lib/map/%2").arg(util::applicationDirPath()).arg(currentServerListIndex.get()));
 	QDir dir(dirPath);

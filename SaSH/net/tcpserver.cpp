@@ -450,6 +450,11 @@ void Worker::clear()
 	battleCurrentAnimeFlag.reset();
 	lastSecretChatName_.reset();
 
+	battleCharLuaScript_.clear();
+	battlePetLuaScript_.clear();
+	battleCharLuaScriptPath_.clear();
+	battlePetLuaScriptPath_.clear();
+
 	mapUnitHash.clear();
 	chatQueue.clear();
 
@@ -469,6 +474,7 @@ void Worker::clear()
 	IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 	isBattleDialogReady.off();
 	isEOTTLSend.off();
+	doNotChangeTitle_.off();
 	lastEOTime.reset();
 
 	battleCurrentRound.reset();
@@ -519,12 +525,12 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 		return true;
 	}
 
-	if (preStr.startsWith("SEND|"))
-	{
-		dispatchSendMessage(badata.mid(5));
+	//if (preStr.startsWith("SEND|"))
+	//{
+	//	dispatchSendMessage(badata.mid(5));
 
-		return true;
-	}
+	//	return true;
+	//}
 
 	return false;
 }
@@ -6983,6 +6989,7 @@ bool Worker::conditionMatchTarget(QVector<sa::battle_object_t> btobjs, const QSt
 	return bret;
 }
 
+//lua托管戰鬥
 bool Worker::runBattleLua(BattleScriptType type)
 {
 	long long currentIndex = getIndex();
@@ -6994,18 +7001,14 @@ bool Worker::runBattleLua(BattleScriptType type)
 		if (!gamedevice.getEnableHash(util::kBattleLuaModeEnable))
 			break;
 
-		QFuture<bool> future = QtConcurrent::run([this, type]()
-			{
-				std::string sscript;
-				if (kCharScript == type)
-					sscript = util::toConstData(battleCharLuaScript_);
-				else
-					sscript = util::toConstData(battlePetLuaScript_);
+		std::string sscript;
+		if (kCharScript == type)
+			sscript = util::toConstData(battleCharLuaScript_);
+		else
+			sscript = util::toConstData(battlePetLuaScript_);
 
-				return battleLua->doString(sscript);
-			});
-		future.waitForFinished();
-		bret = future.result();
+		bret = battleLua->doString(sscript);
+
 	} while (false);
 	return bret;
 }
@@ -10722,6 +10725,7 @@ void Worker::lssproto_FS_recv(long long flg)
 	emit signalDispatcher.applyHashSettingsToUI();
 }
 
+//新增名片
 void Worker::lssproto_AB_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
@@ -11209,15 +11213,15 @@ void Worker::lssproto_WN_recv(long long windowtype, long long buttontype, long l
 		 "安全密碼進行解鎖", "安全密码进行解锁"
 	};
 
-	static const QStringList KNPCList = {
-		//zh_TW
-		"如果能贏過我的"/*院藏*/, "如果想通過"/*近藏*/, "吼"/*紅暴*/, "你想找麻煩"/*七兄弟*/, "多謝～。",
-		"轉以上確定要出售？", "再度光臨", "已經太多",
+	//static const QStringList KNPCList = {
+	//	//zh_TW
+	//	"如果能贏過我的"/*院藏*/, "如果想通過"/*近藏*/, "吼"/*紅暴*/, "你想找麻煩"/*七兄弟*/, "多謝～。",
+	//	"轉以上確定要出售？", "再度光臨", "已經太多",
 
-		//zh_CN
-		"如果能赢过我的"/*院藏*/, "如果想通过"/*近藏*/, "吼"/*红暴*/, "你想找麻烦"/*七兄弟*/, "多謝～。",
-		"转以上确定要出售？", "再度光临", "已经太多",
-	};
+	//	//zh_CN
+	//	"如果能赢过我的"/*院藏*/, "如果想通过"/*近藏*/, "吼"/*红暴*/, "你想找麻烦"/*七兄弟*/, "多謝～。",
+	//	"转以上确定要出售？", "再度光临", "已经太多",
+	//};
 	static const QRegularExpression rexBankPet(R"(LV\.\s*(\d+)\s*MaxHP\s*(\d+)\s*(\S+))");
 
 	//這個是特殊訊息
@@ -11392,13 +11396,27 @@ void Worker::lssproto_WN_recv(long long windowtype, long long buttontype, long l
 		}
 	}
 
-	if (gamedevice.getEnableHash(util::kKNPCEnable))
+	QString knpcListString = gamedevice.getStringHash(util::kKNPCListString);
+	if (gamedevice.getEnableHash(util::kKNPCEnable) && !knpcListString.isEmpty())
 	{
-		for (const QString& str : KNPCList)
+		KNPCDevice knpcDevice(knpcListString);
+
+		for (const KNPCDevice::action_t& action : knpcDevice)
 		{
-			if (data.contains(str, Qt::CaseInsensitive))
+			if (data.contains(action.cmpText, Qt::CaseInsensitive))
 			{
-				press(sa::kButtonAuto, dialogid, unitid);
+				switch (action.type)
+				{
+				case KNPCDevice::Button:
+					press(static_cast<sa::ButtonType>(action.action.toLongLong()), dialogid, unitid);
+					break;
+				case KNPCDevice::RowButton:
+					press(action.action.toLongLong(), dialogid, unitid);
+					break;
+				case KNPCDevice::Inout:
+					inputtext(action.action.toString(), dialogid, unitid);
+					break;
+				}
 				break;
 			}
 		}
@@ -11542,6 +11560,7 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 	}
 }
 
+//戰場動態字串變量轉換
 QString Worker::battleStringFormat(const sa::battle_object_t& obj, QString formatStr) const
 {
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
@@ -15869,6 +15888,7 @@ void Worker::lssproto_DENGON_recv(char* data, long long colors, long long nums)
 }
 #pragma endregion
 
+//異步專用尋路
 void Worker::findPathAsync(const QPoint& dst, const std::function<bool()>& func)
 {
 	long long currentIndex = getIndex();

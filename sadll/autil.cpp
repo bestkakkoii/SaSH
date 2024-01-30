@@ -337,7 +337,7 @@ int __fastcall Autil::util_256to64_shr(char* dst, char* src, int len, char* tabl
 
 		dst[dwcounter++] = table[((dw & 0x3f) + key[j]) % 64];	// check!
 
-		j++;
+		++j;
 
 		if (!key[j])
 			j = 0;
@@ -347,7 +347,7 @@ int __fastcall Autil::util_256to64_shr(char* dst, char* src, int len, char* tabl
 		if (i % 3 == 2)
 		{
 			dst[dwcounter++] = table[((dw & 0x3f) + key[j]) % 64];// check!
-			j++;
+			++j;
 
 			if (!key[j])
 				j = 0;
@@ -407,7 +407,7 @@ int __fastcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* 
 			dw = (((static_cast<unsigned int>(ptr - table) & 0x3f) + 64 - key[j]) % 64)
 				<< ((4 - (i % 4)) << 1) | dw;
 
-			j++;
+			++j;
 
 			if (!key[j])
 				j = 0;
@@ -419,7 +419,7 @@ int __fastcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* 
 		{
 			// check!
 			dw = ((static_cast<unsigned int>(ptr - table) & 0x3f) + 64 - key[j]) % 64;
-			j++;
+			++j;
 
 			if (!key[j])
 				j = 0;
@@ -460,7 +460,7 @@ int __fastcall Autil::util_256to64_shl(char* dst, char* src, int len, char* tabl
 
 		dst[dwcounter++] = table[((dw & 0x3f) + 64 - key[j]) % 64];	// check!
 
-		j++;
+		++j;
 		if (!key[j])
 			j = 0;
 
@@ -469,7 +469,7 @@ int __fastcall Autil::util_256to64_shl(char* dst, char* src, int len, char* tabl
 		if (i % 3 == 2)
 		{
 			dst[dwcounter++] = table[((dw & 0x3f) + 64 - key[j]) % 64];	// check!
-			j++;
+			++j;
 
 			if (!key[j])
 				j = 0;
@@ -528,7 +528,7 @@ int __fastcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* 
 			// check!
 			dw = (((static_cast<unsigned int>(ptr - table) & 0x3f) + key[j]) % 64)
 				<< ((4 - (i % 4)) << 1) | dw;
-			j++;
+			++j;
 
 			if (!key[j])
 				j = 0;
@@ -540,7 +540,7 @@ int __fastcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* 
 		{
 			// check!
 			dw = ((static_cast<unsigned int>(ptr - table) & 0x3f) + key[j]) % 64;
-			j++;
+			++j;
 
 			if (!key[j]) j = 0;
 		}

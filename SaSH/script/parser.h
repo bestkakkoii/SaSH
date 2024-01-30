@@ -632,6 +632,10 @@ private:
 
 	bool stopByExit_ = false;								//是否因為exit命令而停止
 
+	bool battleProcOn_ = false;								//是否處於戰鬥中
+	bool offlineLabelOn_ = false;							//是否處於離線標記中
+	bool closeLabelOn_ = false;								//是否處於關閉標記中
+
 	//不輸出到列表也不做更動的全局變量名稱
 	QStringList g_lua_exception_var_list = {
 		"__THIS_CLUA", "__THIS_PARENT", "__HOOKFORSTOP", "__INDEX", "__HOOKFORSTOP", "__HOOKFORBATTLE",

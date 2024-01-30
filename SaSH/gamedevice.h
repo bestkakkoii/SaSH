@@ -221,7 +221,7 @@ public:
 
 	void __fastcall show() const;
 
-	QString __fastcall getPointFileName();
+	QString __fastcall getPointFileName() const;
 
 	inline void __fastcall setParentWidget(HWND parentWidget) { parentWidget_ = parentWidget; }
 
@@ -623,5 +623,100 @@ private:
 
 		{ util::kBattleActionOrderString, "1|2|3|4|5|6|7|8|9|10|11|12|13|14" },
 
+		{ util::kAutoAbilityString, "" },
+
+		{ util::kKNPCListString, "如果能贏過我的,auto|如果想通過,auto|吼,auto|你想找麻煩,auto|多謝～。,auto|轉以上確定要出售？,auto|再度光臨,auto|已經太多,auto|如果能赢过我的,auto|如果想通过,auto|你想找麻烦,auto|多謝～。,auto|转以上确定要出售？,auto|再度光临,auto|已经太多|auto" },
+
+
 	};
+};
+
+class KNPCDevice
+{
+public:
+	enum Type
+	{
+		Button,
+		RowButton,
+		Inout,
+	};
+
+	struct action_t
+	{
+		QString cmpText;
+		QVariant action;
+		Type type;
+	};
+
+	KNPCDevice(const QString& tests)
+	{
+		//divid util::kKNPCListString if is find in sa::ButtonType button = sa::buttonMap.value(text.toUpper(), sa::kButtonNone); or pure number then type as button alse type as inout
+		QStringList actionStrs = tests.split(util::rexOR, Qt::SkipEmptyParts);
+
+		for (const QString& actionStr : actionStrs)
+		{
+			//spilt by ,
+			QStringList pair = actionStr.split(util::rexComma, Qt::SkipEmptyParts);
+			if (pair.size() != 2)
+				continue;
+
+			action_t action;
+			action.cmpText = pair.front();
+			sa::ButtonType button = sa::buttonMap.value(pair.back().toUpper(), sa::kButtonNone);
+			if (button != sa::kButtonNone)
+			{
+				action.action = static_cast<long long>(button);
+				action.type = Type::Button;
+				actions_.append(action);
+				continue;
+			}
+
+			//check is pure number
+			bool isNumber = false;
+			long long number = pair.back().toLongLong(&isNumber);
+			if (isNumber)
+			{
+				if (number <= 0)
+					continue;
+
+				action.action = number - 1;
+				action.type = Type::RowButton;
+				actions_.append(action);
+				continue;
+			}
+
+			action.action = pair.back();
+			action.type = Type::Inout;
+			actions_.append(action);
+		}
+	}
+
+	~KNPCDevice() = default;
+
+	//begin
+	QVector<action_t>::const_iterator cbegin() const
+	{
+		return actions_.cbegin();
+	}
+
+	QVector<action_t>::iterator begin()
+	{
+		return actions_.begin();
+	}
+
+	//end
+	QVector<action_t>::const_iterator cend() const
+	{
+		return actions_.cend();
+	}
+
+	QVector<action_t>::iterator end()
+	{
+		return actions_.end();
+	}
+
+private:
+
+
+	QVector<action_t> actions_;
 };

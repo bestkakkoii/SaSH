@@ -67,7 +67,7 @@ namespace sacrypt
 		for (i = 0; i < 8; i++)
 		{
 			b = *key++;
-			for (j = 0; j < 7; j++)
+			for (j = 0; j < 7; ++j)
 			{
 				if (b & 0x80)
 				{
@@ -91,7 +91,7 @@ namespace sacrypt
 			/* PC-2 (Permuted Choice 2) */
 			k = w;
 			p = pc2_c;
-			for (j = 0; j < 4; j++)
+			for (j = 0; j < 4; ++j)
 			{
 				*k = 0;
 				for (mask = 0x20; mask > 0; mask >>= 1)
@@ -102,7 +102,7 @@ namespace sacrypt
 				k++;
 			}
 			p = pc2_d;
-			for (j = 0; j < 4; j++)
+			for (j = 0; j < 4; ++j)
 			{
 				*k = 0;
 				for (mask = 0x20; mask > 0; mask >>= 1)

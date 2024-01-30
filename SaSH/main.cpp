@@ -365,9 +365,9 @@ int main(int argc, char* argv[])
 	//調試相關設置
 	//qInstallMessageHandler(qtMessageHandler);
 #ifndef _DEBUG
-	SetUnhandledExceptionFilter(MinidumpCallback); //SEH
+	//SetUnhandledExceptionFilter(MinidumpCallback); //SEH
 	//AddVectoredExceptionHandler(1, MinidumpCallback); //VEH
-	preventSetUnhandledExceptionFilter();
+	//preventSetUnhandledExceptionFilter();
 #endif
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
 

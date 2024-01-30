@@ -212,7 +212,7 @@ static bool enumAllFile(QStringList* pfilePaths, const QString& directory)
 			pfilePaths->removeDuplicates();
 		}
 
-		i++;
+		++i;
 	} while (i < list.size());
 
 	return true;
@@ -257,8 +257,10 @@ static bool compress(Downloader* d, const QString& source, const QString& destin
 		zipper::ZRESULT ret = zipper::ZipAdd(hz, wfilename.c_str(), wfullpath.c_str());
 		if (ret != zipper::ZR_OK)
 		{
-			qDebug() << "ZipAdd failed" << szFullPath;
-			d->progressDialog_->setLabelText("ZipAdd failed: " + szFullPath);
+			char cret[1024] = {};
+			zipper::FormatZipMessageZ(ret, cret, sizeof(cret));
+			qDebug() << "ZipAdd failed" << szFullPath << cret;
+			d->progressDialog_->setLabelText("ZipAdd failed: " + szFullPath + " " + QString(cret));
 		}
 		d->progressDialog_->setValue(currentSize);
 		QApplication::processEvents();
@@ -284,13 +286,17 @@ static bool uncompress(Downloader* d, const QString& source, const QString& dest
 	QString newDestination = destination;
 	newDestination.replace("/", "\\");
 
+	wchar_t cret[1024] = {};
+
 	std::wstring wdestination = newDestination.toStdWString();
 
 	zipper::ZRESULT ret = zipper::SetUnzipBaseDir(hz, wdestination.c_str());
 	if (ret != zipper::ZR_OK)
 	{
-		qDebug() << "SetUnzipBaseDir failed" << newDestination;
-		d->progressDialog_->setLabelText("SetUnzipBaseDir failed: " + newDestination);
+		memset(cret, 0, sizeof(cret));
+		zipper::FormatZipMessageU(ret, cret, sizeof(cret));
+		qDebug() << "SetUnzipBaseDir failed" << newDestination << QString::fromWCharArray(cret);
+		d->progressDialog_->setLabelText("SetUnzipBaseDir failed: " + newDestination + " " + QString::fromWCharArray(cret));
 		zipper::CloseZipU(hz);
 		return false;
 	}
@@ -299,8 +305,10 @@ static bool uncompress(Downloader* d, const QString& source, const QString& dest
 	ret = GetZipItem(hz, -1, &ze);
 	if (ret != zipper::ZR_OK)
 	{
-		qDebug() << "GetZipItem failed" << ze.index;
-		d->progressDialog_->setLabelText("GetZipItem failed with index: " + QString::number(ze.index));
+		memset(cret, 0, sizeof(cret));
+		zipper::FormatZipMessageU(ret, cret, sizeof(cret));
+		qDebug() << "GetZipItem failed" << ze.index << QString::fromWCharArray(cret);
+		d->progressDialog_->setLabelText("GetZipItem failed with index: " + QString::number(ze.index) + " " + QString::fromWCharArray(cret));
 		zipper::CloseZipU(hz);
 		return false;
 	}
@@ -309,21 +317,25 @@ static bool uncompress(Downloader* d, const QString& source, const QString& dest
 	d->progressDialog_->reset();
 	d->progressDialog_->setMaximum(numitems);
 	long long currentSize = 0;
-	for (long long zi = 0; zi < numitems; zi++)
+	for (long long zi = 0; zi < numitems; ++zi)
 	{
 		ret = GetZipItem(hz, zi, &ze);
 		if (ret != zipper::ZR_OK)
 		{
-			qDebug() << "GetZipItem failed" << zi;
-			d->progressDialog_->setLabelText("GetZipItem failed with index: " + QString::number(zi));
+			memset(cret, 0, sizeof(cret));
+			zipper::FormatZipMessageU(ret, cret, sizeof(cret));
+			qDebug() << "GetZipItem failed" << zi << QString::fromWCharArray(cret);
+			d->progressDialog_->setLabelText("GetZipItem failed with index: " + QString::number(zi) + " " + QString::fromWCharArray(cret));
 			continue;
 		}
 
 		ret = UnzipItem(hz, zi, ze.name);
 		if (ret != zipper::ZR_OK)
 		{
-			qDebug() << "UnzipItem failed" << zi;
-			d->progressDialog_->setLabelText("UnzipItem failed with index: " + QString::number(zi));
+			memset(cret, 0, sizeof(cret));
+			zipper::FormatZipMessageU(ret, cret, sizeof(cret));
+			qDebug() << "UnzipItem failed" << zi << QString::fromWCharArray(cret);
+			d->progressDialog_->setLabelText("UnzipItem failed with index: " + QString::number(zi) + " " + QString::fromWCharArray(cret));
 			continue;
 		}
 

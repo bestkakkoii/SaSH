@@ -1616,6 +1616,10 @@ void Parser::processClean()
 	forStack_.clear();
 	callArgsStack_.clear();
 
+	battleProcOn_ = false;
+	offlineLabelOn_ = false;
+	closeLabelOn_ = false;
+
 	if (isSubScript() && getMode() == Parser::kSync)
 		return;
 
@@ -2492,6 +2496,96 @@ void Parser::processTokens()
 				long long status = callBack_(currentIndex, currentLine, currentLineTokens_);
 				if (status == kStop)
 					break;
+
+				if (gamedevice.worker.isNull())
+				{
+					if (!closeLabelOn_)
+					{
+						sol::state& lua = pLua_->getLua();
+						QString labelName = "_close_";
+						if (lua["close_label_name"].is<std::string>() && !lua["close_label_name"].get<std::string>().empty())
+							labelName = util::toQString(lua["close_label_name"].get<std::string>()).simplified();
+
+						long long jumpLine = matchLineFromLabel(labelName);
+						if (jumpLine != -1)
+						{
+							long long jumpLineCount = jumpLine - currentLine;
+
+							if (jump(jumpLineCount, true))
+							{
+								currentField.clear();
+								callStack_.clear();
+								jmpStack_.clear();
+								forStack_.clear();
+								callArgsStack_.clear();
+								closeLabelOn_ = true;
+								continue;
+							}
+						}
+					}
+				}
+				else
+					closeLabelOn_ = false;
+
+				if (!gamedevice.worker.isNull() && !gamedevice.worker->getOnlineFlag())
+				{
+					if (!offlineLabelOn_)
+					{
+						sol::state& lua = pLua_->getLua();
+						QString labelName = "_offline_";
+						if (lua["offline_label_name"].is<std::string>() && !lua["offline_label_name"].get<std::string>().empty())
+							labelName = util::toQString(lua["offline_label_name"].get<std::string>()).simplified();
+
+						long long jumpLine = matchLineFromLabel(labelName);
+						if (jumpLine != -1)
+						{
+							long long jumpLineCount = jumpLine - currentLine;
+
+							if (jump(jumpLineCount, true))
+							{
+								currentField.clear();
+								callStack_.clear();
+								jmpStack_.clear();
+								forStack_.clear();
+								callArgsStack_.clear();
+								offlineLabelOn_ = true;
+								continue;
+							}
+						}
+					}
+				}
+				else
+					offlineLabelOn_ = false;
+
+				if (!gamedevice.worker.isNull() && gamedevice.worker->getBattleFlag())
+				{
+					if (!battleProcOn_)
+					{
+						sol::state& lua = pLua_->getLua();
+						QString labelName = "_battle_";
+						if (lua["battle_label_name"].is<std::string>() && !lua["battle_label_name"].get<std::string>().empty())
+							labelName = util::toQString(lua["battle_label_name"].get<std::string>()).simplified();
+
+						long long jumpLine = matchLineFromLabel(labelName);
+						if (jumpLine != -1)
+						{
+							long long jumpLineCount = jumpLine - currentLine;
+
+							if (jump(jumpLineCount, true))
+							{
+								currentField.clear();
+								callStack_.clear();
+								jmpStack_.clear();
+								forStack_.clear();
+								callArgsStack_.clear();
+								battleProcOn_ = true;
+								continue;
+							}
+						}
+					}
+				}
+				else
+					battleProcOn_ = false;
 			}
 		}
 
@@ -2710,6 +2804,18 @@ void Parser::processTokens()
 			emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
 				.arg("'" + path + "' " + (isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok"))).arg(util::formatMilliseconds(timer.cost())));
 			gamedevice.log.close();
+
+			//clear package.loaded
+			sol::state& lua_ = pLua_->getLua();
+			sol::table package = lua_["package"];
+			if (package.valid())
+			{
+				sol::table loaded = package["loaded"];
+				if (loaded.valid())
+				{
+					loaded.clear();
+				}
+			}
 		}
 	}
 

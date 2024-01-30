@@ -173,194 +173,22 @@ bool __fastcall mem::writeString(HANDLE hProcess, unsigned long long baseAddress
 	return ret == TRUE;
 }
 
-class RemoteMemoryPool
-{
-public:
-	RemoteMemoryPool(HANDLE hProcess, SIZE_T size)
-		: hProcess(hProcess), poolSize(size), allocatedSize(0)
-	{
-		PVOID baseAddress = NULL;
-		NTSTATUS status = MINT::NtAllocateVirtualMemory(hProcess, &baseAddress, 0, &poolSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-		if (!NT_SUCCESS(status))
-		{
-			throw std::runtime_error("Failed to allocate memory pool");
-		}
-		poolBase = reinterpret_cast<unsigned char*>(baseAddress);
-	}
-
-	~RemoteMemoryPool()
-	{
-		if (poolBase)
-		{
-			SIZE_T size = 0;
-			MINT::NtFreeVirtualMemory(hProcess, reinterpret_cast<PVOID*>(&poolBase), &size, MEM_RELEASE);
-		}
-	}
-
-	void* __fastcall allocate(SIZE_T size)
-	{
-		std::unique_lock<std::shared_mutex> lock(mutex);
-
-		// Check free list first
-		for (auto it = freeBlocks.begin(); it != freeBlocks.end(); ++it)
-		{
-			if (it->second >= size)
-			{
-				void* allocatedMemory = it->first;
-				if (it->second > size)
-				{
-					it->first = static_cast<unsigned char*>(it->first) + size;
-					it->second -= size;
-				}
-				else
-				{
-					freeBlocks.erase(it);
-				}
-				allocationMap[allocatedMemory] = size;
-				return allocatedMemory;
-			}
-		}
-
-		// Allocate from the remaining pool space
-		if (allocatedSize + size > poolSize)
-		{
-			return nullptr; // Out of memory
-		}
-		void* allocatedMemory = poolBase + allocatedSize;
-		allocatedSize += size;
-		allocationMap[allocatedMemory] = size;
-		return allocatedMemory;
-	}
-
-	void deallocate(void* ptr)
-	{
-		std::unique_lock<std::shared_mutex> lock(mutex);
-
-		auto allocationEntry = allocationMap.find(ptr);
-		if (allocationEntry == allocationMap.end())
-		{
-			// Handle error: attempting to deallocate memory that was not allocated
-			return;
-		}
-
-		SIZE_T size = allocationEntry->second;
-		allocationMap.erase(allocationEntry);
-
-		// Zero out the memory in the remote process before deallocating
-		unsigned char* zeroBuffer = new unsigned char[size]();
-		SIZE_T bytesWritten;
-		BOOL result = WriteProcessMemory(hProcess, ptr, zeroBuffer, size, &bytesWritten);
-		delete[] zeroBuffer;
-
-		if (!result || bytesWritten != size)
-		{
-			// Handle error: memory write failed
-			return;
-		}
-
-		// Attempt to merge this block with existing free blocks
-		mergeFreeBlock(ptr, size);
-	}
-
-private:
-	HANDLE hProcess;
-	unsigned char* poolBase;
-	SIZE_T poolSize;
-	SIZE_T allocatedSize;
-	std::unordered_map<void*, SIZE_T> allocationMap;
-	std::list<std::pair<void*, SIZE_T>> freeBlocks;
-	std::shared_mutex mutex;
-
-	void mergeFreeBlock(void* ptr, SIZE_T size)
-	{
-		unsigned char* blockStart = reinterpret_cast<unsigned char*>(ptr);
-		unsigned char* blockEnd = blockStart + size;
-
-		for (auto it = freeBlocks.begin(); it != freeBlocks.end(); ++it)
-		{
-			unsigned char* currentBlockStart = reinterpret_cast<unsigned char*>(it->first);
-			unsigned char* currentBlockEnd = currentBlockStart + it->second;
-
-			if (blockEnd == currentBlockStart)
-			{
-				it->first = blockStart;
-				it->second += size;
-				mergeAdjacentFreeBlocks(it);
-				return;
-			}
-			else if (blockStart == currentBlockEnd)
-			{
-				it->second += size;
-				mergeAdjacentFreeBlocks(it);
-				return;
-			}
-		}
-
-		freeBlocks.emplace_back(ptr, size);
-	}
-
-	void mergeAdjacentFreeBlocks(std::list<std::pair<void*, SIZE_T>>::iterator startIt)
-	{
-		auto it = startIt;
-		auto nextIt = std::next(it);
-
-		while (nextIt != freeBlocks.end())
-		{
-			unsigned char* currentBlockEnd = reinterpret_cast<unsigned char*>(it->first) + it->second;
-			unsigned char* nextBlockStart = reinterpret_cast<unsigned char*>(nextIt->first);
-
-			if (currentBlockEnd == nextBlockStart)
-			{
-				it->second += nextIt->second;
-				nextIt = freeBlocks.erase(nextIt);
-			}
-			else
-			{
-				++it;
-				++nextIt;
-			}
-		}
-	}
-};
-
-namespace mem
-{
-	std::unordered_map<HANDLE, std::unique_ptr<RemoteMemoryPool>> memoryPoolMap;
-	std::shared_mutex mutex;
-}
-
 unsigned long long __fastcall mem::virtualAlloc(HANDLE hProcess, unsigned long long size)
 {
-	//if (hProcess == nullptr || size == 0)
-	//	throw std::invalid_argument("Invalid handle or size");
+	if (hProcess == nullptr || size == 0)
+		throw std::invalid_argument("Invalid handle or size");
 
-	//// Ensure size is aligned to page size
-	//size = (size + 4095) & ~4095ULL;
+	// Ensure size is aligned to page size
+	size = (size + 4095) & ~4095ULL;
 
-	//PVOID ptr = NULL;
-	//SIZE_T sizet = static_cast<SIZE_T>(size);
+	PVOID ptr = NULL;
+	SIZE_T sizet = static_cast<SIZE_T>(size);
 
-	//NTSTATUS status = MINT::NtAllocateVirtualMemory(hProcess, &ptr, NULL, &sizet, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-	//if (!NT_SUCCESS(status))
-	//	throw std::runtime_error("Memory allocation failed");
+	NTSTATUS status = MINT::NtAllocateVirtualMemory(hProcess, &ptr, NULL, &sizet, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	if (!NT_SUCCESS(status))
+		throw std::runtime_error("Memory allocation failed");
 
-	//return reinterpret_cast<unsigned long long>(ptr);
-
-	std::shared_lock<std::shared_mutex> lock(mutex);
-	auto it = memoryPoolMap.find(hProcess);
-	if (it == memoryPoolMap.end())
-	{
-		lock.unlock();
-		std::unique_lock<std::shared_mutex> lock(mutex);
-		it = memoryPoolMap.find(hProcess);
-		if (it == memoryPoolMap.end())
-		{
-			std::unique_ptr<RemoteMemoryPool> memoryPool(new RemoteMemoryPool(hProcess, 4096 * 32));
-			it = memoryPoolMap.insert(std::make_pair(hProcess, std::move(memoryPool))).first;
-		}
-	}
-
-	return reinterpret_cast<unsigned long long>(it->second->allocate(size));
+	return reinterpret_cast<unsigned long long>(ptr);
 }
 
 unsigned long long __fastcall mem::virtualAllocA(HANDLE hProcess, const QString& str)
@@ -371,7 +199,9 @@ unsigned long long __fastcall mem::virtualAllocA(HANDLE hProcess, const QString&
 		if (hProcess == nullptr)
 			break;
 
-		ret = virtualAlloc(hProcess, static_cast<unsigned long long>(str.toLocal8Bit().size()) * 2 * sizeof(char) + 1);
+		const std::string sstr = util::fromUnicode(str);
+
+		ret = virtualAlloc(hProcess, static_cast<unsigned long long>(sstr.length() + 1));
 		if (ret == FALSE)
 			break;
 		if (!writeString(hProcess, ret, str))
@@ -411,32 +241,16 @@ unsigned long long __fastcall mem::virtualAllocW(HANDLE hProcess, const QString&
 
 bool __fastcall mem::virtualFree(HANDLE hProcess, unsigned long long baseAddress)
 {
-	//if (hProcess == nullptr)
-	//	return false;
+	if (hProcess == nullptr)
+		return false;
 
-	//if (baseAddress == NULL)
-	//	return false;
+	if (baseAddress == NULL)
+		return false;
 
-	//SIZE_T size = 0;
-	//BOOL ret = NT_SUCCESS(MINT::NtFreeVirtualMemory(hProcess, reinterpret_cast<PVOID*>(&baseAddress), &size, MEM_RELEASE));
+	SIZE_T size = 0;
+	BOOL ret = NT_SUCCESS(MINT::NtFreeVirtualMemory(hProcess, reinterpret_cast<PVOID*>(&baseAddress), &size, MEM_RELEASE));
 
-	//return ret == TRUE;
-
-	std::shared_lock<std::shared_mutex> lock(mutex);
-	auto it = memoryPoolMap.find(hProcess);
-	if (it != memoryPoolMap.end())
-	{
-		lock.unlock();
-		std::unique_lock<std::shared_mutex> lock(mutex);
-		it = memoryPoolMap.find(hProcess);
-		if (it != memoryPoolMap.end())
-		{
-			it->second->deallocate(reinterpret_cast<void*>(baseAddress));
-			return true;
-		}
-	}
-
-	return false;
+	return ret == TRUE;
 }
 
 #ifndef _WIN64
@@ -510,7 +324,7 @@ HMODULE __fastcall mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, c
 
 	if (K32EnumProcessModulesEx(hProcess, hMods, sizeof(hMods), &cbNeeded, 3)) //http://msdn.microsoft.com/en-us/library/ms682633(v=vs.85).aspx
 	{
-		for (i = 0; i <= cbNeeded / sizeof(HMODULE); i++)
+		for (i = 0; i <= cbNeeded / sizeof(HMODULE); ++i)
 		{
 			if (K32GetModuleFileNameExW(hProcess, hMods[i], szModName, _countof(szModName)) == NULL)
 				continue;
@@ -566,7 +380,7 @@ long __fastcall mem::getProcessExportTable32(HANDLE hProcess, const QString& Mod
 		return 0;
 	}
 
-	for (i = 0; i < pExport->NumberOfNames; i++)
+	for (i = 0; i < pExport->NumberOfNames; ++i)
 	{
 		char bFuncName[100] = {};
 		ULONG64 ulPointer;
@@ -607,7 +421,7 @@ ULONG64 __fastcall mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QStr
 	if (!count)
 		return NULL;
 
-	for (long i = 0; i < count; i++)
+	for (long i = 0; i < count; ++i)
 	{
 		if (QString(pInfo[i].FuncName).toLower() == FuncName.toLower())
 		{
@@ -958,7 +772,7 @@ bool __fastcall mem::enumProcess(QVector<long long>* pprocesses, const QString& 
 				continue;
 
 			bool bret = false;
-			for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++)
+			for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); ++i)
 			{
 				TCHAR szModule[MAX_PATH];
 				if (K32GetModuleBaseNameW(hProcess, hModules[i], szModule, sizeof(szModule) / sizeof(TCHAR)) == 0)

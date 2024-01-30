@@ -97,13 +97,14 @@ static LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 #pragma region New
 extern "C"
 {
+#if 0
 	//new send
 	static int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_send(s, buf, len, flags);
 	}
-#if 0
+
 	//new socket
 	static SOCKET WSAAPI New_socket(int af, int type, int protocol)
 	{
@@ -1101,7 +1102,7 @@ BOOL GameService::WM_SetBoostSpeed(BOOL enable, int speed)
 	return TRUE;
 }
 
-//鎖定原地
+//lock character movement
 BOOL GameService::WM_EnableMoveLock(BOOL enable)
 {
 	if (!isInitialized_.load(std::memory_order_acquire))
@@ -1148,7 +1149,7 @@ BOOL GameService::WM_EnableMoveLock(BOOL enable)
 	return TRUE;
 }
 
-//公告
+//output annouce
 BOOL GameService::WM_Announce(char* str, int color)
 {
 	if (!isInitialized_.load(std::memory_order_acquire))
@@ -1169,7 +1170,7 @@ BOOL GameService::WM_Announce(char* str, int color)
 	return TRUE;
 }
 
-//移動
+//Move character 
 BOOL GameService::WM_Move(int x, int y)
 {
 	if (!isInitialized_.load(std::memory_order_acquire))
@@ -1200,7 +1201,7 @@ BOOL GameService::WM_Move(int x, int y)
 	return TRUE;
 }
 
-//銷毀NPC對話框
+//Force to distory dialog
 BOOL GameService::WM_DistoryDialog()
 {
 	if (!isInitialized_.load(std::memory_order_acquire))
@@ -1230,7 +1231,7 @@ BOOL GameService::WM_DistoryDialog()
 	return TRUE;
 }
 
-//清空聊天緩存
+//Clear chat history
 BOOL GameService::WM_CleanChatHistory()
 {
 	if (!isInitialized_.load(std::memory_order_acquire))
@@ -1268,7 +1269,7 @@ BOOL GameService::WM_CleanChatHistory()
 	return TRUE;
 }
 
-//創建對話框
+//Create a custom dialog
 BOOL GameService::WM_CreateDialog(int type, int button, const char* data)
 {
 	if (!isInitialized_.load(std::memory_order_acquire))
@@ -1295,6 +1296,7 @@ BOOL GameService::WM_CreateDialog(int type, int button, const char* data)
 	return TRUE;
 }
 
+//Enable/Disable the tcp packet block
 BOOL GameService::WM_SetBlockPacket(BOOL enable)
 {
 	if (!isInitialized_.load(std::memory_order_acquire))
@@ -1710,9 +1712,9 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 
 	DetourAttach(&(PVOID&)precv, ::New_recv);
 	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
-	DetourAttach(&(PVOID&)psend, ::New_send);
 
 #if 0
+	DetourAttach(&(PVOID&)psend, ::New_send);
 	DetourAttach(&(PVOID&)psocket, ::New_socket);
 	DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
@@ -1780,7 +1782,11 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 #endif
 }
 
-//這裡的東西其實沒有太大必要，一般外掛斷開就直接關遊戲了，如果需要設計能重連才需要
+/*
+	This stuff is actually not necessary.
+	Generally, the game will be turned off directly when it disconnected.
+	If you need to design to reconnect, then you will need it.
+*/
 BOOL GameService::uninitialize()
 {
 	if (isInitialized_.load(std::memory_order_acquire) == FALSE)
@@ -1828,11 +1834,11 @@ BOOL GameService::uninitialize()
 	DetourTransactionBegin();
 	DetourUpdateThread(g_MainThreadHandle);
 
-	DetourDetach(&(PVOID&)psend, ::New_send);
 	DetourDetach(&(PVOID&)precv, ::New_recv);
 	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
 
 #if 0
+	DetourDetach(&(PVOID&)psend, ::New_send);
 	DetourDetach(&(PVOID&)psocket, ::New_socket);
 	DetourDetach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	DetourDetach(&(PVOID&)pntohs, ::New_ntohs);
