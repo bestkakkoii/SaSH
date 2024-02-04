@@ -3935,8 +3935,14 @@ void CLua::open_petlibs(sol::state& lua)
 		sol::call_constructor,
 		sol::constructors<CLuaPet(long long)>(),
 		sol::meta_function::index, &CLuaPet::operator[],
-		"count", sol::property(&CLuaPet::count),
-		"数量", sol::property(&CLuaPet::count)
+		"count", sol::overload(
+			sol::resolve<long long()>(&CLuaPet::count),
+			sol::resolve<long long(std::string)>(&CLuaPet::count)
+		),
+		"数量", sol::overload(
+			sol::resolve<long long()>(&CLuaPet::count),
+			sol::resolve<long long(std::string)>(&CLuaPet::count)
+		)
 	);
 
 	lua.safe_script("pet = PetClass(__INDEX);", sol::script_pass_on_error);

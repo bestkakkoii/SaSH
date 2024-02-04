@@ -2978,19 +2978,23 @@ void Worker::setBattleFlag(bool enable)
 	isBattleDialogReady.off();
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	if (!gamedevice.worker.isNull())
+		return;
+
 	HANDLE hProcess = gamedevice.getProcess();
 	long long hModule = gamedevice.getProcessModule();
 
 	//這裡關乎頭上是否會出現V.S.圖標
 	long long status = mem::read<short>(hProcess, hModule + sa::kOffsetCharStatus);
+	bool result = util::checkAND(status, sa::kCharacterStatus_InBattle);
 	if (enable)
 	{
-		if (!util::checkAND(status, sa::kCharacterStatus_InBattle))
+		if (!result)
 			status |= sa::kCharacterStatus_InBattle;
 	}
 	else
 	{
-		if (util::checkAND(status, sa::kCharacterStatus_InBattle))
+		if (result)
 			status &= ~sa::kCharacterStatus_InBattle;
 	}
 
@@ -3007,6 +3011,15 @@ void Worker::setBattleFlag(bool enable)
 	mem::write<int>(hProcess, hModule + 0x41829F8, 0);
 
 	mem::write<int>(hProcess, hModule + 0x415F4EC, 30);
+
+	if (enable || gamedevice.getEnableHash(util::kLockMoveEnable))
+	{
+		gamedevice.sendMessage(kEnableMoveLock, true, NULL);
+	}
+	else if (!enable && !gamedevice.getEnableHash(util::kLockMoveEnable))
+	{
+		gamedevice.sendMessage(kEnableMoveLock, false, NULL);
+	}
 }
 
 void Worker::setOnlineFlag(bool enable)
@@ -4905,17 +4918,30 @@ bool Worker::dropPet(long long petIndex)
 //自動鎖寵
 void Worker::checkAutoLockPet()
 {
-	qDebug() << "checkAutoLockPet";
+	//qDebug() << "checkAutoLockPet";
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	bool enableLockRide = gamedevice.getEnableHash(util::kLockRideEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
-	bool enableLockPet = gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
-	if (!enableLockRide && !enableLockPet)
-		return;
-
 	if (gamedevice.isGameInterruptionRequested())
 		return;
 
 	if (getBattleFlag())
+		return;
+
+	bool enableSwitchPet = GameDevice::getInstance(getIndex()).getEnableHash(util::kBattleAutoSwitchEnable);
+	if (enableSwitchPet)
+	{
+		for (long long i = 0; i < sa::MAX_PET; ++i)
+		{
+			sa::pet_t pet = getPet(i);
+			if (pet.state != sa::PetState::kRest)
+				continue;
+
+			setPetState(i, sa::kStandby);
+		}
+	}
+
+	bool enableLockRide = gamedevice.getEnableHash(util::kLockRideEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
+	bool enableLockPet = gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
+	if (!enableLockRide && !enableLockPet)
 		return;
 
 	long long lockedIndex = -1;
@@ -6306,10 +6332,6 @@ void Worker::setBattleEnd()
 		lssproto_EO_send(0);
 	eoTTLTimer_.restart();
 	lssproto_Echo_send(const_cast<char*>("hoge"));
-
-	//重置動作人寵標誌避免重複發送
-	//battleCharAlreadyActed.on();
-	//battlePetAlreadyActed.on();
 
 	long long battleDuation = battleDurationTimer.cost();
 	if (battleDuation > 0ll)

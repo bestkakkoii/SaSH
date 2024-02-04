@@ -503,6 +503,8 @@ public:
 
 	long long count();
 
+	long long count(std::string sname);
+
 	long long learn(long long petIndex, long long fromSkillIndex, long long toSkillIndex, sol::object ounitid, sol::object odialogid, sol::this_state s);
 
 private:

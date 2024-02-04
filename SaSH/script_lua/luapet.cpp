@@ -37,14 +37,30 @@ sa::pet_t CLuaPet::operator[](long long index)
 long long CLuaPet::count()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
-	if (!gamedevice.worker.isNull())
-	{
-		gamedevice.worker->updateItemByMemory();
-		return gamedevice.worker->getPetSize();
-	}
+	if (gamedevice.worker.isNull())
+		return 0;
 
-	return 0;
+	gamedevice.worker->updateItemByMemory();
+	return gamedevice.worker->getPetSize();
 }
+
+long long CLuaPet::count(std::string sname)
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	gamedevice.worker->updateItemByMemory();
+
+	QString name = util::toQString(sname);
+
+	QVector< long long> indexs;
+	if (!gamedevice.worker->getPetIndexsByName(name, &indexs))
+		return 0;
+
+	return indexs.size();
+}
+
 
 long long CLuaPet::learn(long long petIndex, long long fromSkillIndex, long long toSkillIndex, sol::object ounitid, sol::object odialogid, sol::this_state s)
 {
