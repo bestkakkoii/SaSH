@@ -1,7 +1,7 @@
 ﻿/*
 				GNU GENERAL PUBLIC LICENSE
 				   Version 2, June 1991
-COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+COPYRIGHT (C) Bestkakkoii 2024 All Rights Reserved.
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
@@ -1934,6 +1934,23 @@ long long CLuaItem::getSpace()
 	gamedevice.worker->getItemEmptySpotIndexs(&itemIndexs);
 
 	return itemIndexs.size();
+}
+
+long long CLuaItem::getSize()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+		return 0;
+
+	QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
+	long long size = 0;
+	for (const sa::item_t& it : items)
+	{
+		if (it.valid)
+			++size;
+	}
+
+	return size;
 }
 
 long long CLuaItem::getSpaceIndex()

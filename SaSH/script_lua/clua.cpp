@@ -1,7 +1,7 @@
 ﻿/*
 				GNU GENERAL PUBLIC LICENSE
 				   Version 2, June 1991
-COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+COPYRIGHT (C) Bestkakkoii 2024 All Rights Reserved.
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
@@ -1231,7 +1231,7 @@ public:
 		return false;
 	}
 
-	long long count()
+	long long size()
 	{
 		GameDevice& gamedevice = GameDevice::getInstance(index_);
 		if (gamedevice.worker.isNull())
@@ -3538,9 +3538,9 @@ void CLua::open_syslibs(sol::state& lua)
 		sol::constructors<CLuaTeam(long long)>(),
 		sol::meta_function::index, &CLuaTeam::operator[],
 		"contains", &CLuaTeam::contains,
-		"count", sol::property(&CLuaTeam::count),
+		"size", sol::property(&CLuaTeam::size),
 		"包含", &CLuaTeam::contains,
-		"数量", sol::property(&CLuaTeam::count)
+		"大小", sol::property(&CLuaTeam::size)
 	);
 
 	lua.safe_script("team = TeamClass(__INDEX);", sol::script_pass_on_error);
@@ -3642,6 +3642,7 @@ void CLua::open_itemlibs(sol::state& lua)
 		"space", sol::property(&CLuaItem::getSpace),
 		"spaceindex", sol::property(&CLuaItem::getSpaceIndex),
 		"isfull", sol::property(&CLuaItem::getIsFull),
+		"size", sol::property(&CLuaItem::getSize),
 		"count", &CLuaItem::count,
 		"indexof", &CLuaItem::indexof,
 		"find", &CLuaItem::find
@@ -3818,7 +3819,7 @@ void CLua::open_charlibs(sol::state& lua)
 
 		//custom
 		"maxload", sol::property(&CLuaChar::getMaxload),
-		"point ", sol::property(&CLuaChar::getPoint),
+		"point", sol::property(&CLuaChar::getPoint),
 
 		"name", sol::property(&CLuaChar::getName),
 		"fname", sol::property(&CLuaChar::getFreeName),
@@ -3935,14 +3936,10 @@ void CLua::open_petlibs(sol::state& lua)
 		sol::call_constructor,
 		sol::constructors<CLuaPet(long long)>(),
 		sol::meta_function::index, &CLuaPet::operator[],
-		"count", sol::overload(
-			sol::resolve<long long()>(&CLuaPet::count),
-			sol::resolve<long long(std::string)>(&CLuaPet::count)
-		),
-		"数量", sol::overload(
-			sol::resolve<long long()>(&CLuaPet::count),
-			sol::resolve<long long(std::string)>(&CLuaPet::count)
-		)
+		"size", sol::property(&CLuaPet::size),
+		"大小", sol::property(&CLuaPet::size),
+		"count", &CLuaPet::count,
+		"数量", &CLuaPet::count
 	);
 
 	lua.safe_script("pet = PetClass(__INDEX);", sol::script_pass_on_error);

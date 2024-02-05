@@ -1,7 +1,7 @@
 ﻿/*
 				GNU GENERAL PUBLIC LICENSE
 				   Version 2, June 1991
-COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+COPYRIGHT (C) Bestkakkoii 2024 All Rights Reserved.
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
@@ -136,7 +136,7 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	const QString AuthorName("Philip飞");
 	const QString webUrl("https://www.lovesa.cc");
 	constexpr long long nowSysBit = QSysInfo::WordSize;
-	constexpr long long yearStart = 2023;
+	constexpr long long yearStart = 2024;
 	const QString qqImage(R"(:/image/icon_group.png)");
 	const QString qqLink("https://qm.qq.com/cgi-bin/qm/qr?"
 		"k=Mm_Asx4CFMhLWttW10ScuPngFPFgGNFP" \

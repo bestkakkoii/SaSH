@@ -1,7 +1,7 @@
 ﻿/*
 				GNU GENERAL PUBLIC LICENSE
 				   Version 2, June 1991
-COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+COPYRIGHT (C) Bestkakkoii 2024 All Rights Reserved.
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
@@ -6322,8 +6322,8 @@ static sa::LSTimeSection getLSTime(sa::ls_time_t* lstime)
 //設置戰鬥結束
 void Worker::setBattleEnd()
 {
-	if (!getBattleFlag())
-		return;
+	//if (!getBattleFlag())
+	//	return;
 
 	battleBackupThreadFlag_.on();
 
@@ -6352,6 +6352,43 @@ void Worker::setBattleEnd()
 	battlePetDisableList_.clear();
 
 	waitfor_C_recv_.on();
+
+	std::ignore = QtConcurrent::run([this]()
+		{
+			util::timer timer;
+			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+			long long W = 0;
+
+			for (;;)
+			{
+				if (gamedevice.isGameInterruptionRequested())
+					return;
+
+				if (gamedevice.worker.isNull())
+					return;
+
+				if (getBattleFlag())
+					return;
+
+				if (!getOnlineFlag())
+					return;
+
+				W = getWorldStatus();
+				if (W != 10)
+					return;
+
+				if (timer.hasExpired(5000))
+					break;
+
+				QThread::msleep(200);
+			}
+
+			if (W == 10)
+			{
+				setGameStatus(7);
+			}
+
+		});
 }
 
 //戰鬥BA包標誌位檢查
