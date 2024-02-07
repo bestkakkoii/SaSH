@@ -2915,7 +2915,7 @@ void Worker::updateBattleTimeInfo()
 
 	battle_time_text = QString(QObject::tr("%1 count no %2 round duration: %3 sec cost: %4 sec total time: %5 minues"))
 		.arg(battle_total.get())
-		.arg(battleCurrentRound.get() + 1)
+		.arg(battleCurrentRound.get())
 		.arg(util::toQString(time))
 		.arg(util::toQString(cost))
 		.arg(util::toQString(total_time));
@@ -2970,36 +2970,13 @@ void Worker::setGameStatus(long long g) const
 //切換是否在戰鬥中的標誌
 void Worker::setBattleFlag(bool enable)
 {
-	isBattle_.set(enable);
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-	emit signalDispatcher.updateStatusLabelTextChanged(enable ? util::kLabelStatusInBattle : util::kLabelStatusInNormal);
-
-	isBattleDialogReady.off();
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	if (!gamedevice.worker.isNull())
+	if (gamedevice.worker.isNull())
 		return;
 
 	HANDLE hProcess = gamedevice.getProcess();
 	long long hModule = gamedevice.getProcessModule();
-
-	//這裡關乎頭上是否會出現V.S.圖標
-	long long status = mem::read<short>(hProcess, hModule + sa::kOffsetCharStatus);
-	bool result = util::checkAND(status, sa::kCharacterStatus_InBattle);
-	if (enable)
-	{
-		if (!result)
-			status |= sa::kCharacterStatus_InBattle;
-	}
-	else
-	{
-		if (result)
-			status &= ~sa::kCharacterStatus_InBattle;
-	}
-
-	mem::write<int>(hProcess, hModule + sa::kOffsetCharStatus, status);
-	mem::write<int>(hProcess, hModule + sa::kOffsetBattleStatus, enable ? 1 : 0);
 
 	mem::write<int>(hProcess, hModule + 0x4169B6C, 0);
 
@@ -3020,6 +2997,28 @@ void Worker::setBattleFlag(bool enable)
 	{
 		gamedevice.sendMessage(kEnableMoveLock, false, NULL);
 	}
+
+	//這裡關乎頭上是否會出現V.S.圖標
+	long long status = mem::read<short>(hProcess, hModule + sa::kOffsetCharStatus);
+	bool result = util::checkAND(status, sa::kCharacterStatus_InBattle);
+	if (enable)
+	{
+		if (!result)
+			status |= sa::kCharacterStatus_InBattle;
+	}
+	else
+	{
+		if (result)
+			status &= ~sa::kCharacterStatus_InBattle;
+	}
+	mem::write<int>(hProcess, hModule + sa::kOffsetCharStatus, status);
+	mem::write<int>(hProcess, hModule + sa::kOffsetBattleStatus, enable ? 1 : 0);
+
+	isBattle_.set(enable);
+	isBattleDialogReady.off();
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	emit signalDispatcher.updateStatusLabelTextChanged(enable ? util::kLabelStatusInBattle : util::kLabelStatusInNormal);
 }
 
 void Worker::setOnlineFlag(bool enable)
@@ -6322,8 +6321,8 @@ static sa::LSTimeSection getLSTime(sa::ls_time_t* lstime)
 //設置戰鬥結束
 void Worker::setBattleEnd()
 {
-	//if (!getBattleFlag())
-	//	return;
+	if (!getBattleFlag())
+		return;
 
 	battleBackupThreadFlag_.on();
 
@@ -6410,7 +6409,7 @@ void Worker::doBattleWork(bool canDelay)
 		long long recordedRound = battleCurrentRound.get();
 		long long delay = gamedevice.getValueHash(util::kBattleActionDelayValue);
 		long long resendDelay = gamedevice.getValueHash(util::kBattleResendDelayValue);
-		if ((delay + resendDelay) >= 1000 && battleCurrentRound.get() > 0 && !battleBackupFuture_.isRunning() && gamedevice.worker->getBattleFlag())
+		if ((delay + resendDelay) >= 1000 && battleCurrentRound.get() > 1 && !battleBackupFuture_.isRunning() && gamedevice.worker->getBattleFlag())
 		{
 			battleBackupFuture_ = QtConcurrent::run([this, canDelay](long long round)
 				{
@@ -6448,7 +6447,7 @@ void Worker::doBattleWork(bool canDelay)
 						if (!fastChecked && !normalChecked)
 							return;
 
-						if (round != battleCurrentRound.get())
+						if (round + 1 != battleCurrentRound.get())
 							return;
 
 						if (!getOnlineFlag())
@@ -7404,7 +7403,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				if (atRoundIndex <= 0)
 					break;
 
-				if (atRoundIndex != battleCurrentRound.get() + 1)
+				if (atRoundIndex != battleCurrentRound.get())
 					break;
 
 				long long tempTarget = -1;
@@ -7915,7 +7914,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				long long tempTarget = -1;
 
 				long long round = gamedevice.getValueHash(util::kBattleCharCrossActionRoundValue) + 1;
-				if ((battleCurrentRound.get() + 1) % round)
+				if ((battleCurrentRound.get()) % round)
 				{
 					break;
 				}
@@ -8819,7 +8818,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		long long tempTarget = -1;
 
 		long long round = gamedevice.getValueHash(util::kBattlePetCrossActionRoundValue) + 1;
-		if ((battleCurrentRound.get() + 1) % round)
+		if ((battleCurrentRound.get()) % round)
 		{
 			break;
 		}
@@ -9715,7 +9714,11 @@ bool Worker::fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget
 	if (magicIndex < 0 || magicIndex >= sa::MAX_MAGIC)
 		return false;
 
-	long long magicType = getMagic(magicIndex).target;
+	sa::magic_t magic = getMagic(magicIndex);
+	if (!magic.valid)
+		return false;
+
+	long long magicType = magic.target;
 
 	switch (magicType)
 	{
@@ -9727,34 +9730,34 @@ bool Worker::fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget
 	}
 	case sa::MAGIC_TARGET_OTHER://雙方任意單體
 	{
-		if (oldtarget < 0 || oldtarget >= 20)
+		if (oldtarget < 0 || oldtarget >= sa::MAX_ENEMY)
 		{
 			if (battleCharCurrentPos.get() < 10)
-				oldtarget = 15;
+				oldtarget = 19;
 			else
-				oldtarget = 5;
+				oldtarget = 9;
 		}
 		break;
 	}
 	case sa::MAGIC_TARGET_ALLMYSIDE://我方全體
 	{
 		if (battleCharCurrentPos.get() < 10)
-			oldtarget = 20;
+			oldtarget = sa::TARGET_SIDE_0;
 		else
-			oldtarget = 21;
+			oldtarget = sa::TARGET_SIDE_1;
 		break;
 	}
 	case sa::MAGIC_TARGET_ALLOTHERSIDE://敵方全體
 	{
 		if (battleCharCurrentPos.get() < 10)
-			oldtarget = 21;
+			oldtarget = sa::TARGET_SIDE_1;
 		else
-			oldtarget = 20;
+			oldtarget = sa::TARGET_SIDE_0;
 		break;
 	}
 	case sa::MAGIC_TARGET_ALL://雙方全體同時(場地)
 	{
-		oldtarget = 22;
+		oldtarget = sa::TARGET_ALL;
 		break;
 	}
 	case sa::MAGIC_TARGET_NONE://無
@@ -9810,9 +9813,9 @@ bool Worker::fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget
 		if (oldtarget < 10 || oldtarget >= sa::MAX_ENEMY)
 		{
 			if (battleCharCurrentPos.get() < 10)
-				oldtarget = 15;
+				oldtarget = 19;
 			else
-				oldtarget = 5;
+				oldtarget = 9;
 		}
 		break;
 	}
@@ -9820,34 +9823,23 @@ bool Worker::fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget
 	{
 		if (battleCharCurrentPos.get() < 10)
 		{
-			if (oldtarget < 5)
-				oldtarget = sa::MAX_ENEMY + 5;
-			else if (oldtarget < 10)
-				oldtarget = sa::MAX_ENEMY + 6;
-			else if (oldtarget < 15)
-				oldtarget = sa::MAX_ENEMY + 3;
-			else
-				oldtarget = sa::MAX_ENEMY + 4;
+			oldtarget = sa::TARGET_SIDE_1_F_ROW;
 		}
 		else
 		{
-			if (oldtarget < 5)
-				oldtarget = sa::MAX_ENEMY + 5 - 10;
-			else if (oldtarget < 10)
-				oldtarget = sa::MAX_ENEMY + 6 - 10;
-			else if (oldtarget < 15)
-				oldtarget = sa::MAX_ENEMY + 3 - 10;
-			else
-				oldtarget = sa::MAX_ENEMY + 4 - 10;
+			oldtarget = sa::TARGET_SIDE_0_F_ROW;
 		}
 		break;
 	}
 	case sa::MAGIC_TARGET_ALL_ROWS:				// 針對敵方所有人
 	{
-		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_1;
-		else
-			oldtarget = sa::TARGET_SIDE_0;
+		if (oldtarget < 0 || oldtarget >= sa::MAX_ENEMY)
+		{
+			if (battleCharCurrentPos.get() < 10)
+				oldtarget = 19;
+			else
+				oldtarget = 9;
+		}
 		break;
 	}
 	default:
@@ -9867,7 +9859,16 @@ bool Worker::fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget
 	if (magicIndex < 0 || magicIndex >= sa::MAX_PROFESSION_SKILL)
 		return false;
 
-	long long magicType = getSkill(magicIndex).target;
+	sa::profession_skill_t skill = getSkill(magicIndex);
+	if (!skill.valid)
+		return false;
+
+	long long magicType = skill.target;
+
+	//exception
+	if (skill.name == "火星球")
+	{
+	}
 
 	switch (magicType)
 	{
@@ -9882,9 +9883,9 @@ bool Worker::fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget
 		if (oldtarget < 0 || oldtarget >= sa::MAX_ENEMY)
 		{
 			if (battleCharCurrentPos.get() < 10)
-				oldtarget = 15;
+				oldtarget = 19;
 			else
-				oldtarget = 5;
+				oldtarget = 9;
 		}
 		break;
 	}
@@ -9939,7 +9940,7 @@ bool Worker::fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget
 	}
 	case sa::MAGIC_TARGET_WHOLEOTHERSIDE://敵方全體 或 我方全體
 	{
-		if (oldtarget != 20 && oldtarget != 21)
+		if (oldtarget != sa::TARGET_SIDE_0 && oldtarget != sa::TARGET_SIDE_1)
 		{
 			if (oldtarget >= 0 && oldtarget <= 9)
 			{
@@ -9959,14 +9960,14 @@ bool Worker::fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget
 
 		break;
 	}
-	case sa::MAGIC_TARGET_SINGLE:				// 針對敵方某一方
+	case sa::MAGIC_TARGET_SINGLE: // 針對敵方某一方
 	{
 		if (oldtarget < 10 || oldtarget >= sa::MAX_ENEMY)
 		{
 			if (battleCharCurrentPos.get() < 10)
-				oldtarget = 15;
+				oldtarget = 19;
 			else
-				oldtarget = 5;
+				oldtarget = 9;
 		}
 		break;
 	}
@@ -9974,34 +9975,23 @@ bool Worker::fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget
 	{
 		if (battleCharCurrentPos.get() < 10)
 		{
-			if (oldtarget < 5)
-				oldtarget = sa::MAX_ENEMY + 5;
-			else if (oldtarget < 10)
-				oldtarget = sa::MAX_ENEMY + 6;
-			else if (oldtarget < 15)
-				oldtarget = sa::MAX_ENEMY + 3;
-			else
-				oldtarget = sa::MAX_ENEMY + 4;
+			oldtarget = sa::TARGET_SIDE_1_F_ROW;
 		}
 		else
 		{
-			if (oldtarget < 5)
-				oldtarget = sa::MAX_ENEMY + 5 - 10;
-			else if (oldtarget < 10)
-				oldtarget = sa::MAX_ENEMY + 6 - 10;
-			else if (oldtarget < 15)
-				oldtarget = sa::MAX_ENEMY + 3 - 10;
-			else
-				oldtarget = sa::MAX_ENEMY + 4 - 10;
+			oldtarget = sa::TARGET_SIDE_0_F_ROW;
 		}
 		break;
 	}
 	case sa::MAGIC_TARGET_ALL_ROWS:				// 針對敵方所有人
 	{
-		if (battleCharCurrentPos.get() < 10)
-			oldtarget = 21;
-		else
-			oldtarget = 20;
+		if (oldtarget < 0 || oldtarget >= sa::MAX_ENEMY)
+		{
+			if (battleCharCurrentPos.get() < 10)
+				oldtarget = 19;
+			else
+				oldtarget = 9;
+		}
 		break;
 	}
 	default:
@@ -10021,7 +10011,12 @@ bool Worker::fixCharTargetByItemIndex(long long itemIndex, long long oldtarget, 
 	if (itemIndex < sa::CHAR_EQUIPSLOT_COUNT || itemIndex >= sa::MAX_ITEM)
 		return false;
 
-	long long itemType = getItem(itemIndex).target;
+	sa::item_t item = getItem(itemIndex);
+
+	if (!item.valid)
+		return false;
+
+	long long itemType = item.target;
 
 	switch (itemType)
 	{
@@ -10036,9 +10031,9 @@ bool Worker::fixCharTargetByItemIndex(long long itemIndex, long long oldtarget, 
 		if (oldtarget < 0 || oldtarget >= sa::MAX_ENEMY)
 		{
 			if (battleCharCurrentPos.get() < 10)
-				oldtarget = 15;
+				oldtarget = 19;
 			else
-				oldtarget = 5;
+				oldtarget = 9;
 		}
 		break;
 	}
@@ -10115,7 +10110,11 @@ bool Worker::fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget,
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET)
 		return false;
 
-	long long skillType = getPetSkill(pc.battlePetNo, skillIndex).target;
+	sa::pet_skill_t petSkill = getPetSkill(pc.battlePetNo, skillIndex);
+	if (!petSkill.valid)
+		return false;
+
+	long long skillType = petSkill.target;
 
 	switch (skillType)
 	{
@@ -11568,7 +11567,7 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
 		oneRoundDurationTimer.restart();
-		battleCurrentRound.set(-1);
+		battleCurrentRound.reset();
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 		emit signalDispatcher.battleTableAllItemResetColor();
 
@@ -11826,7 +11825,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		tmpValue = list.value(1).toLongLong(&ok, 16);
 		if (ok)
-			battleCurrentRound.set(tmpValue);
+			battleCurrentRound.set(tmpValue + 1);
 
 		if (battleCurrentAnimeFlag.get() <= 0)
 			break;
@@ -11876,7 +11875,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		setBattleData(bt);
 
-		asyncBattleAction(true);
+		if (!battleCharAlreadyActed.get() || !battlePetAlreadyActed.get())
+			asyncBattleAction(true);
 		break;
 	}
 	case 'C':

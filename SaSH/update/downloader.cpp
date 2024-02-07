@@ -37,7 +37,7 @@ constexpr const char* kBackupExecuteFileTmp = "SaSH_x86.tmp";
 static const QStringList preBackupFileNames = { util::applicationName(), QString(SASH_INJECT_DLLNAME) + ".dll", "settings", "script" };
 
 QString g_etag;
-constexpr long long UPDATE_TIME_MIN = 5 * 60;
+constexpr long long UPDATE_TIME_MIN = 30 * 60;
 
 static void setHeader(QNetworkRequest* prequest)
 {

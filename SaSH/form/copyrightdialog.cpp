@@ -198,7 +198,7 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	ui.label_txt->setText(QObject::tr("All right reserved."));
 
 	ui.label_link->setText(QString(R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;"><strong>%2</strong> by %3</a>)")
-		.arg(webUrl).arg("lovesa").arg(AuthorName));
+		.arg(webUrl).arg("https://www.lovesa.cc").arg(AuthorName));
 	ui.label_link->setOpenExternalLinks(true);
 
 	ui.label_group->setText(QString(R"(<a target="_blank" href="%1"><img border="0" src="%2" alt="%3" title="%4"></a>)")
@@ -219,6 +219,32 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	ui.label_ad->setText(QString(R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;">%2</a>)")
 		.arg("https://mysa.cc").arg("盖亚石器攻略网"));
 	ui.label_ad->setOpenExternalLinks(true);
+
+	auto labelStylesheet = ui.label_ad->styleSheet();
+
+	//addition label
+	QLabel* label = q_check_ptr(new QLabel(this));
+	sash_assume(label != nullptr);
+	if (label != nullptr)
+	{
+		label->setText(QString(R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;"><strong>%2</strong> to %3</a>)")
+			.arg("https://gitee.com/Bestkakkoii/sash/issues").arg(QObject::tr("Welcome report Bug to")).arg("Gitee"));
+		label->setStyleSheet(labelStylesheet);
+		label->setOpenExternalLinks(true);
+		ui.verticalLayout->addWidget(label);
+	}
+
+
+	QLabel* labelPR = q_check_ptr(new QLabel(this));
+	sash_assume(labelPR != nullptr);
+	if (labelPR != nullptr)
+	{
+		labelPR->setText(QString(R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;"><strong>%2</strong> to %3</a>)")
+			.arg("https://github.com/bestkakkoii/SaSH/pulls").arg(QObject::tr("Welcome request PR to")).arg("Github"));
+		labelPR->setStyleSheet(labelStylesheet);
+		labelPR->setOpenExternalLinks(true);
+		ui.verticalLayout->addWidget(labelPR);
+	}
 
 
 	QString stylesheet = R"(

@@ -212,7 +212,7 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat</Command>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <ControlFlowGuard>
       </ControlFlowGuard>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -235,13 +235,13 @@ copy "qt_zh_CN.qm "$(OutputPath)lib\translations\qt_zh_CN.qm"
 copy "qt_zh_TW.qm" "$(SolutionDir)$(Platform)\Debug\lib\translations\qt_zh_TW.qm"
 copy "qt_zh_CN.qm" "$(SolutionDir)$(Platform)\Debug\lib\translations\qt_zh_CN.qm"
 
-copy "qt_zh_TW.qm "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_TW.qm"
-copy "qt_zh_CN.qm "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_CN.qm"
+copy "qt_zh_TW.qm "$(SolutionDir)ReleaseTool\$(ProjectName)x64\lib\translations\qt_zh_TW.qm"
+copy "qt_zh_CN.qm "$(SolutionDir)ReleaseTool\$(ProjectName)x64\lib\translations\qt_zh_CN.qm"
 
-cd "$(OutputPath)lib"
-copy "sadll.dll" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\sadll.dll"
+cd "$(SolutionDir)Win32\$(Configaration)lib"
+copy "sadll.dll" "$(SolutionDir)ReleaseTool\$(ProjectName)x64\lib\sadll.dll"
 cd "$(OutputPath)"
-copy "$(ProjectName)$(Platform).exe" "$(SolutionDir)ReleaseTool\$(ProjectName)\$(ProjectName)$(Platform).exe"
+copy "$(ProjectName)$(Platform).exe" "$(SolutionDir)ReleaseTool\$(ProjectName)x64\$(ProjectName)$(Platform).exe"
 
 $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     </PostBuildEvent>
@@ -363,7 +363,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>None</DebugInformationFormat>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -380,7 +380,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>None</DebugInformationFormat>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>

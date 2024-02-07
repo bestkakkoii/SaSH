@@ -181,11 +181,8 @@ void SelectObjectForm::deleteItem()
 void SelectObjectForm::appendItem()
 {
 	QString currentText = ui.comboBox->currentText().simplified();
-	currentText.remove(" ");
 	if (currentText.isEmpty())
 		return;
-
-	currentText.remove(" ");
 
 	std::unique_ptr<QListWidgetItem> newItem(q_check_ptr(new QListWidgetItem(currentText)));
 	sash_assume(newItem != nullptr);

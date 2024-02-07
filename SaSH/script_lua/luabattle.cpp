@@ -70,7 +70,7 @@ long long CLuaBattle::round()
 	if (!gamedevice.worker->getBattleFlag())
 		return 0;
 
-	return gamedevice.worker->battleCurrentRound.get() + 1;
+	return gamedevice.worker->battleCurrentRound.get();
 }
 
 std::string CLuaBattle::field()
