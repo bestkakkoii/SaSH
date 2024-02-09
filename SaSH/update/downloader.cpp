@@ -422,7 +422,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformate
 	if (!getHeader(zipUrl, &headers))
 		return false;
 
-	bool bret = false;
+	bool bret[2] = { false, false };
 	// 获取修改时间
 	QDateTime zipModified;
 	QDateTime exeModified;
@@ -436,7 +436,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformate
 		{
 			qDebug() << "New version available!" << newEtag;
 			g_etag = newEtag;
-			bret = true;
+			bret[0] = true;
 		}
 		else
 		{
@@ -493,31 +493,29 @@ bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformate
 		*pformated = szTimeDiff;
 	}
 
-	if (!bret)
+	if (timeDiffInSeconds > UPDATE_TIME_MIN)
 	{
-		if (timeDiffInSeconds > UPDATE_TIME_MIN)
+		if (zipModified > exeModified)
 		{
-			if (zipModified > exeModified)
-			{
-				qDebug() << "SaSH.7z newer than SaSH.exe" << szTimeDiff;
-				bret = true;
-			}
-			else
-			{
-				qDebug() << "SaSH.exe newer than SaSH.7z, time diff:" << szTimeDiff;
-			}
-		}
-		else if (timeDiffInSeconds >= 0)
-		{
-			qDebug() << "SaSH.exe and SaSH.7z are almost the same, time diff:" << szTimeDiff;
+			qDebug() << "SaSH.7z newer than SaSH.exe" << szTimeDiff;
+			bret[1] = true;
 		}
 		else
 		{
 			qDebug() << "SaSH.exe newer than SaSH.7z, time diff:" << szTimeDiff;
 		}
 	}
+	else if (timeDiffInSeconds >= 0)
+	{
+		qDebug() << "SaSH.exe and SaSH.7z are almost the same, time diff:" << szTimeDiff;
+	}
+	else
+	{
+		qDebug() << "SaSH.exe newer than SaSH.7z, time diff:" << szTimeDiff;
+	}
 
-	return bret;
+	//只要ETag不一樣或者SaSH.7z比SaSH.exe新，就返回true
+	return bret[0] || bret[1];
 }
 
 Downloader::Downloader()
@@ -961,6 +959,7 @@ void Downloader::overwriteCurrentExecutable()
 		util::asyncRunBat(szSysTmpDir_, bat);
 	}
 
+	if (!g_etag.isEmpty())
 	{
 		progressDialog_->setLabelText("recording new ETag...");
 		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));

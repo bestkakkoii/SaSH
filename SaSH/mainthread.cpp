@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "map/mapdevice.h"
 #include "update/downloader.h"
 
+#pragma region UniqueIdManager
 QSharedMemory g_sharedMemory;
 
 static void DNSInitialize()
@@ -265,7 +266,9 @@ void UniqueIdManager::updateSharedMemory(const QSet<long long>& allocatedIds)
 		g_sharedMemory.unlock();
 	}
 }
+#pragma endregion
 
+#pragma region ThreadManager
 bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* parent)
 {
 	std::ignore = parent;
@@ -326,7 +329,9 @@ void ThreadManager::close(long long index)
 		GameDevice::reset(index);
 	}
 }
+#pragma endregion
 
+#pragma region MainThread
 MainObject::MainObject(long long index, QObject* parent)
 	: Indexer(index)
 #ifndef LEAK_TEST
@@ -1102,7 +1107,9 @@ void MainObject::checkEtcFlag() const
 	if (hasChange)
 		gamedevice.worker->setSwitchers(flg);
 }
+#pragma endregion
 
+#pragma region MissionThread
 MissionThread::MissionThread(long long index, long long type, QObject* parent)
 	: Indexer(index)
 	, type_(type)
@@ -1583,7 +1590,7 @@ void MissionThread::autoSortItem()
 	//qDebug() << "autoSortItem() start";
 
 	long long i = 0;
-	constexpr long long duration = 50;
+	constexpr long long duration = 10;
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
 	for (;;)
@@ -2277,3 +2284,5 @@ void MainObject::checkAutoLockSchedule()
 
 }
 #endif
+
+#pragma endregion

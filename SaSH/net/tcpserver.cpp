@@ -3042,6 +3042,8 @@ bool Worker::setWindowTitle(QString formatStr)
 	if (!gamedevice.isValid())
 		return false;
 
+	long long serverIndex = static_cast<long long>(mem::read<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetServerIndex));
+	QString serverName = mem::readString(gamedevice.getProcess(), gamedevice.getProcessModule() + 0x4ABED30 + (0x48 * serverIndex), 72, true);
 	long long subServer = static_cast<long long>(mem::read<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetSubServerIndex));
 	long long position = static_cast<long long>(mem::read<int>(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetPositionIndex));
 
@@ -3053,13 +3055,13 @@ bool Worker::setWindowTitle(QString formatStr)
 		subServerName = "????";
 
 	QString positionName;
-	if (position >= 0 && position < sa::MAX_CHARACTER - 1)
-		positionName = position == 0 ? QObject::tr("left") : QObject::tr("right");
+	if (position >= 1 && position < sa::MAX_CHARACTER)
+		positionName = position == 1 ? QObject::tr("left") : QObject::tr("right");
 	else
 		positionName = util::toQString(position);
 
 	formatStr.replace("%(index)", util::toQString(currentIndex));
-	formatStr.replace("%(sser)", subServerName);
+	formatStr.replace("%(sser)", serverName);
 	formatStr.replace("%(pos)", positionName);
 
 	sa::character_t pc = getCharacter();
@@ -3425,6 +3427,14 @@ bool Worker::isDialogVisible() const
 	bool custombret = mem::read<int>(hProcess, hModule + sa::kOffsetDialogValid) > 0;
 	return bret && custombret;
 }
+
+sa::SATime Worker::getSaTime() const
+{
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	long long hModule = gamedevice.getProcessModule();
+	HANDLE hProcess = gamedevice.getProcess();
+	return static_cast<sa::SATime>(mem::read<int>(hProcess, hModule + sa::kOffsetGameTime));
+}
 #pragma endregion
 
 #pragma region Connection
@@ -3704,10 +3714,10 @@ bool Worker::login(long long s)
 		{
 			gamedevice.leftDoubleClick(315, 253);
 			config.writeArray<long long>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
-		}
+	}
 #endif
 		break;
-	}
+}
 	case util::kStatusInputUser:
 	{
 		if (!input())
@@ -3840,10 +3850,10 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1500))
 				break;
 
-		}
+	}
 #endif
 		break;
-	}
+}
 	case util::kStatusSelectSubServer:
 	{
 		if (!input())
@@ -3995,8 +4005,8 @@ bool Worker::login(long long s)
 				if (timer.hasExpired(1500))
 					break;
 
-			}
-		}
+	}
+	}
 #endif
 		break;
 	}
@@ -9577,7 +9587,7 @@ long long Worker::getBattleSelectableEnemyOneRowTarget(const sa::battle_data_t& 
 
 	return defaultTarget;
 #endif
-}
+	}
 
 //取戰鬥隊友可選目標編號
 long long Worker::getBattleSelectableAllieTarget(const sa::battle_data_t& bt) const
@@ -10839,10 +10849,10 @@ void Worker::lssproto_AB_recv(char* cdata)
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
 				}
-			}
-		}
-#endif
 	}
+}
+#endif
+}
 }
 
 //名片數據
@@ -10900,8 +10910,8 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
 			}
-		}
-	}
+}
+}
 #endif
 }
 
@@ -11852,12 +11862,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
+			}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-				}
-			}
+		}
+	}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11871,14 +11881,14 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = std::move(objs);
-		}
+	}
 
 		setBattleData(bt);
 
 		if (!battleCharAlreadyActed.get() || !battlePetAlreadyActed.get())
 			asyncBattleAction(true);
 		break;
-	}
+}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12654,7 +12664,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-		}
+	}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
@@ -13179,7 +13189,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -13229,7 +13239,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -13271,7 +13281,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
@@ -13540,9 +13550,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+		}
 #endif
-			}
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13579,7 +13589,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+	}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13843,8 +13853,8 @@ void Worker::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-			}
-		}
+}
+}
 #endif
 #pragma endregion
 	}

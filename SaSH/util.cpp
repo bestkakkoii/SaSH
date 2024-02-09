@@ -2084,13 +2084,16 @@ bool __fastcall util::fileDialogShow(const QString& name, long long acceptType, 
 	if (retstring != nullptr)
 		retstring->clear();
 
+	QFileInfo fileInfo(name);
+
+#if 0
 	QFileDialog dialog(pparent);
 
 	dialog.setAttribute(Qt::WA_QuitOnClose);
 	dialog.setModal(false);
 	dialog.setAcceptMode(static_cast<QFileDialog::AcceptMode>(acceptType));
 
-	QFileInfo fileInfo(name);
+
 	dialog.setDefaultSuffix(fileInfo.suffix());
 
 	dialog.setFileMode(QFileDialog::AnyFile);
@@ -2129,14 +2132,59 @@ bool __fastcall util::fileDialogShow(const QString& name, long long acceptType, 
 	dialog.setSidebarUrls(urls);
 	dialog.setSupportedSchemes(QStringList());
 	dialog.setViewMode(QFileDialog::ViewMode::List);
-
+#endif
 	//directory
 	//自身目錄往上一層
 	QString directory = util::applicationDirPath();
 	directory = QDir::toNativeSeparators(directory);
 	directory = QDir::cleanPath(directory + QDir::separator() + "..");
-	dialog.setDirectory(directory);
+	//dialog.setDirectory(directory);
 
+	cx::FileDialogAcceptMode mode;
+	switch (acceptType)
+	{
+	case QFileDialog::AcceptOpen:
+		mode = cx::FileDialogAcceptMode::OpenFile;
+		break;
+	case QFileDialog::AcceptSave:
+		mode = cx::FileDialogAcceptMode::SaveFile;
+		break;
+	default:
+		return false;
+	}
+
+	QStringList nameFileter = { "TXT|*.txt", "LUA|*.lua", "JSON|*.json", "EXE|*.exe" };
+
+	cx::file_dialog dialog(mode);
+	dialog.setDirectory(directory);
+	dialog.setDefaultExtension(fileInfo.suffix());
+
+	if (!name.isEmpty())
+	{
+		nameFileter.clear();
+		nameFileter.append(QString("%1|%1").arg(name).arg(name));
+	}
+	dialog.setFilter(nameFileter);
+	do
+	{
+		if (!dialog.exec())
+			break;
+
+		QStringList fileNames = dialog.selectedFiles();
+		if (fileNames.isEmpty())
+			break;
+
+		QString fileName = fileNames.front();
+		if (fileName.isEmpty())
+			break;
+
+		if (retstring != nullptr)
+			*retstring = fileName;
+
+		return true;
+	} while (false);
+
+#if 0
 	do
 	{
 		if (dialog.exec() != QDialog::Accepted)
@@ -2155,6 +2203,7 @@ bool __fastcall util::fileDialogShow(const QString& name, long long acceptType, 
 
 		return true;
 	} while (false);
+#endif
 
 	return false;
 }

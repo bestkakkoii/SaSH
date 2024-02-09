@@ -309,6 +309,7 @@ namespace sa
 		kOffsetMousePointedIndex = 0x41F1B90,
 		kOffsetWorldStatus = 0x4230DD8,
 		kOffsetGameStatus = 0x4230DF0,
+		kOffsetGameTime = 0x1AB740,
 		kOffsetBattleStatus = 0x41829AC,
 		kOffsetCharStatus = 0x422BF2C,
 		kOffsetNowX = 0x4181D3C,
@@ -794,6 +795,15 @@ namespace sa
 		kTimeEvening,
 		kTimeNight,
 		kTimeMorning,
+	};
+
+	enum SATime
+	{
+		kAfternoon = 0, //下午
+		kDusk = 256, //黃昏
+		kMidnight = 512, //午夜
+		kMorning = 768, //早晨
+		kNoon = 1024, //中午
 	};
 
 	enum FamilyPosition

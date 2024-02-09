@@ -3397,13 +3397,14 @@ void CLua::open_syslibs(sol::state& lua)
 				return "";
 
 			static const QHash<long long, QString> hash = {
-				{ sa::kTimeNoon, QObject::tr("noon") },
-				{ sa::kTimeEvening, QObject::tr("evening") },
-				{ sa::kTimeNight , QObject::tr("night") },
-				{ sa::kTimeMorning, QObject::tr("morning") },
+				{ sa::kAfternoon, QObject::tr("afternoon") },
+				{ sa::kDusk, QObject::tr("dusk") },
+				{ sa::kMidnight, QObject::tr("midnight") },
+				{ sa::kMorning, QObject::tr("morning") },
+				{  sa::kNoon, QObject::tr("noon") },
 			};
 
-			long long satime = gamedevice.worker->saCurrentGameTime.get();
+			long long satime = gamedevice.worker->getSaTime();
 			QString timeStr = hash.value(satime, QObject::tr("unknown"));
 			return util::toConstData(timeStr);
 		});

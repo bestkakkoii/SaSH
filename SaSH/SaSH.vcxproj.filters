@@ -288,6 +288,9 @@
     <ClCompile Include="script\crypto.cpp">
       <Filter>Source Files\script</Filter>
     </ClCompile>
+    <ClCompile Include="form\cxfiledialog.cpp">
+      <Filter>Source Files\forms\dialog</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -510,6 +513,9 @@
     </ClInclude>
     <ClInclude Include="globalmicro.h">
       <Filter>Source Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="form\cxfiledialog.h">
+      <Filter>Source Files\forms\dialog</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

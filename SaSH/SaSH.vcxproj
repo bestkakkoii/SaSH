@@ -412,6 +412,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     </ClCompile>
     <ClCompile Include="form\chatinfoform.cpp" />
     <ClCompile Include="form\copyrightdialog.cpp" />
+    <ClCompile Include="form\cxfiledialog.cpp" />
     <ClCompile Include="form\findandreplaceform.cpp" />
     <ClCompile Include="form\generalform.cpp" />
     <ClCompile Include="form\infoform.cpp" />
@@ -514,6 +515,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <QtMoc Include="form\battlesettingfrom.h" />
     <QtMoc Include="form\settingfiledialog.h" />
     <QtMoc Include="form\findandreplaceform.h" />
+    <ClInclude Include="form\cxfiledialog.h" />
     <ClInclude Include="globalmicro.h" />
     <ClInclude Include="gamedevice.h" />
     <QtMoc Include="interfacer.h" />

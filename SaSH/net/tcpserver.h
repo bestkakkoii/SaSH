@@ -358,6 +358,8 @@ public://actions
 	inline [[nodiscard]] sa::char_list_data_t __fastcall getCharListTable(long long index) const { return charListData_.value(index); }
 	inline [[nodiscard]] sa::mail_history_t __fastcall getMailHistory(long long index) const { return mailHistory_.value(index); }
 
+	sa::SATime getSaTime() const;
+
 	[[nodiscard]] long long __fastcall findInjuriedAllie() const;
 
 	void __fastcall refreshItemInfo();

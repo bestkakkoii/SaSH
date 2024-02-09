@@ -264,6 +264,7 @@
 #include <model/treewidget.h>
 #include <model/treewidgetitem.h>
 #include <model/tablewidget.h>
+#include <form/cxfiledialog.h>
 
 #include <model/safe.h>
 
