@@ -176,7 +176,7 @@ bool __fastcall mem::writeString(HANDLE hProcess, unsigned long long baseAddress
 unsigned long long __fastcall mem::virtualAlloc(HANDLE hProcess, unsigned long long size)
 {
 	if (hProcess == nullptr || size == 0)
-		throw std::invalid_argument("Invalid handle or size");
+		return 0;
 
 	// Ensure size is aligned to page size
 	size = (size + 4095) & ~4095ULL;
@@ -186,7 +186,10 @@ unsigned long long __fastcall mem::virtualAlloc(HANDLE hProcess, unsigned long l
 
 	NTSTATUS status = MINT::NtAllocateVirtualMemory(hProcess, &ptr, NULL, &sizet, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 	if (!NT_SUCCESS(status))
-		throw std::runtime_error("Memory allocation failed");
+		return 0;
+
+	if (ptr == nullptr)
+		return 0;
 
 	return reinterpret_cast<unsigned long long>(ptr);
 }

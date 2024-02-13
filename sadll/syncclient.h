@@ -65,6 +65,11 @@ public:
 		WSACleanup();
 	}
 
+	void setHWnd(HWND hwnd)
+	{
+		mainHwnd_ = hwnd;
+	}
+
 	inline BOOL __fastcall Connect(unsigned short type, unsigned short serverPort)
 	{
 		ADDRESS_FAMILY family = AF_UNSPEC;
@@ -243,8 +248,7 @@ public:
 			clientSocket_ = INVALID_SOCKET;
 		}
 
-		extern HWND g_MainHwnd;
-		PostMessageW(g_MainHwnd, kUninitialize, NULL, NULL);
+		PostMessageW(mainHwnd_, kUninitialize, NULL, NULL);
 	}
 
 	inline std::wstring __fastcall getLastError()
@@ -278,6 +282,7 @@ private:
 	long long index_;
 	SOCKET clientSocket_ = INVALID_SOCKET;
 	HWND parendHwnd_ = nullptr;
+	HWND mainHwnd_ = nullptr;
 	int(__stdcall* pclosesocket_)(SOCKET s) = nullptr;
 	//recv
 	int(__stdcall* precv_)(SOCKET s, char* buf, int len, int flags) = nullptr;

@@ -16,15 +16,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-#include <shared_mutex>
 #ifndef SADLL_H
 #define SADLL_H
 
-#ifdef SADLL_EXPORTS
-#define SADLL_API __declspec(dllexport)
-#else
-#define SADLL_API __declspec(dllimport)
-#endif
+#include <shared_mutex>
+
+//#ifdef SADLL_EXPORTS
+//#define SADLL_API __declspec(dllexport)
+//#else
+//#define SADLL_API __declspec(dllimport)
+//#endif
 
 #ifdef USE_ASYNC_TCP
 class AsyncClient;
@@ -83,16 +84,16 @@ public://hook
 	DWORD __fastcall New_TimeGetTime() const;
 	void __fastcall New_Sleep(DWORD dwMilliseconds);
 
-	void __cdecl New_PlaySound(int a, int b, int c) const;
-	void __cdecl New_BattleProc() const;
-	void __cdecl New_BattleCommandReady();
-	void __cdecl New_TimeProc(int fd) const;
-	void __cdecl New_lssproto_EN_recv(int fd, int result, int field) const;
-	void __cdecl New_lssproto_B_recv(int fd, char* command) const;
-	void __cdecl New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, const char* data);
-	void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area);
-	void __cdecl New_lssproto_W2_send(int fd, int x, int y, const char* dir) const;
-	void __cdecl New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data) const;
+	void __fastcall New_PlaySound(int a, int b, int c) const;
+	void __fastcall New_BattleProc() const;
+	void __fastcall New_BattleCommandReady();
+	void __fastcall New_TimeProc(int fd) const;
+	void __fastcall New_lssproto_EN_recv(int fd, int result, int field) const;
+	void __fastcall New_lssproto_B_recv(int fd, char* command) const;
+	void __fastcall New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, const char* data);
+	void __fastcall New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area);
+	void __fastcall New_lssproto_W2_send(int fd, int x, int y, const char* dir) const;
+	void __fastcall New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data) const;
 
 public:
 	//setwindowtexta
@@ -169,11 +170,27 @@ public://g-var
 
 	HWND g_consoleHwnd = nullptr;
 
+	WNDPROC g_OldWndProc = nullptr;
+	HMODULE g_hGameModule = nullptr;
+	HMODULE g_hDllModule = nullptr;
+	WCHAR g_szGameModulePath[MAX_PATH] = {};
+	DWORD g_MainThreadId = 0;
+	HANDLE g_MainThreadHandle = nullptr;
+
+	HWND g_ParenthWnd = nullptr;
+	HWND g_MainHwnd = nullptr;
+
 	mutable std::shared_mutex g_statusLock;
 
-	int __fastcall getWorldStatue() const { /*lock read*/ std::shared_lock<std::shared_mutex> lock(g_statusLock); return *g_world_status; }
-	int __fastcall getGameStatue() const { /*lock read*/ std::shared_lock<std::shared_mutex> lock(g_statusLock); return *g_game_status; }
+	inline int __fastcall getWorldStatue() const { /*lock read*/ std::shared_lock<std::shared_mutex> lock(g_statusLock); return *g_world_status; }
+	inline int __fastcall getGameStatue() const { /*lock read*/ std::shared_lock<std::shared_mutex> lock(g_statusLock); return *g_game_status; }
 
+	template<typename T>
+	inline T __fastcall CONVERT_GAMEVAR(ULONG_PTR offset) const { return (T)((reinterpret_cast<ULONG_PTR>(g_hGameModule) + offset)); }
+
+	inline LRESULT __fastcall callWindowProc(UINT Msg, WPARAM wParam, LPARAM lParam) const { return CallWindowProc(g_OldWndProc, g_MainHwnd, Msg, wParam, lParam); }
+	inline BOOL __fastcall postMessage(UINT Msg, WPARAM wParam, LPARAM lParam) const { return PostMessage(g_MainHwnd, Msg, wParam, lParam); }
+	inline BOOL __fastcall sendMessage(UINT Msg, WPARAM wParam, LPARAM lParam) const { return SendMessage(g_MainHwnd, Msg, wParam, lParam); }
 
 private:
 	BOOL __fastcall sendToServer(const std::string& text);

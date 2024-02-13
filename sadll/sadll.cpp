@@ -13,18 +13,6 @@
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "winmm.lib")
 
-WNDPROC g_OldWndProc = nullptr;
-HWND g_MainHwnd = nullptr;
-HMODULE g_hGameModule = nullptr;
-HMODULE g_hDllModule = nullptr;
-WCHAR g_szGameModulePath[MAX_PATH] = {};
-DWORD g_MainThreadId = 0;
-HANDLE g_MainThreadHandle = nullptr;
-HWND g_ParenthWnd = nullptr;
-
-template<typename T>
-inline static T CONVERT_GAMEVAR(ULONG_PTR offset) { return (T)((reinterpret_cast<ULONG_PTR>(g_hGameModule) + offset)); }
-
 #pragma region Debug
 #ifdef USE_MINIDUMP
 #include <DbgHelp.h>
@@ -530,14 +518,14 @@ void GameService::New_lssproto_TK_send(int fd, int x, int y, const char* message
 //W2移動收包攔截
 void GameService::New_lssproto_W2_send(int fd, int x, int y, const char* message) const
 {
-	//PostMessageW(g_ParenthWnd, kSetMove, NULL, MAKELPARAM(x, y));
+	//postMessage(kSetMove, NULL, MAKELPARAM(x, y));
 	pLssproto_W2_send(fd, x, y, message);
 }
 
 void GameService::New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data) const
 {
 	pCreateDialog(unk, type, button, unitid, dialogid, data);
-	*CONVERT_GAMEVAR<int*>(0x4200004ul) = 1;
+	*(CONVERT_GAMEVAR<int*>(0x4200004ul)) = 1;
 
 }
 #pragma endregion
@@ -1325,7 +1313,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	case WM_MOUSEMOVE:
 	{
 		//通知外掛更新當前鼠標坐標顯示
-		PostMessageW(g_ParenthWnd, message + static_cast<UINT>(WM_USER), wParam, lParam);
+		g_GameService.postMessage(message + static_cast<UINT>(WM_USER), wParam, lParam);
 		break;
 	}
 	case WM_KEYDOWN:
@@ -1346,19 +1334,19 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 						{
 							constexpr size_t inputBoxBufSize = 20u;
 
-							int index = *CONVERT_GAMEVAR<int*>(0x415EF50ul);
+							int index = *g_GameService.CONVERT_GAMEVAR<int*>(0x415EF50ul);
 
-							if ((index == 0) || (strlen(CONVERT_GAMEVAR<char*>(0x414F278ul)) == 0))
+							if ((index == 0) || (strlen(g_GameService.CONVERT_GAMEVAR<char*>(0x414F278ul)) == 0))
 							{
 								//account
-								memset(CONVERT_GAMEVAR<char*>(0x414F278ul), 0, inputBoxBufSize);
-								_snprintf_s(CONVERT_GAMEVAR<char*>(0x414F278ul), inputBoxBufSize, _TRUNCATE, "%s", pszText);
+								memset(g_GameService.CONVERT_GAMEVAR<char*>(0x414F278ul), 0, inputBoxBufSize);
+								_snprintf_s(g_GameService.CONVERT_GAMEVAR<char*>(0x414F278ul), inputBoxBufSize, _TRUNCATE, "%s", pszText);
 							}
 							else
 							{
 								//password
-								memset(CONVERT_GAMEVAR<char*>(0x415AA58ul), 0, inputBoxBufSize);
-								_snprintf_s(CONVERT_GAMEVAR<char*>(0x415AA58ul), inputBoxBufSize, _TRUNCATE, "%s", pszText);
+								memset(g_GameService.CONVERT_GAMEVAR<char*>(0x415AA58ul), 0, inputBoxBufSize);
+								_snprintf_s(g_GameService.CONVERT_GAMEVAR<char*>(0x415AA58ul), inputBoxBufSize, _TRUNCATE, "%s", pszText);
 							}
 						}
 
@@ -1369,7 +1357,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 				return CloseClipboard();
 			}
 
-			return SendMessageW(hWnd, WM_PASTE, NULL, NULL);
+			return g_GameService.sendMessage(WM_PASTE, NULL, NULL);
 		}
 		break;
 	}
@@ -1379,10 +1367,10 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		{
 		case VK_DELETE:		//檢查是否為delete
 		{
-			if (nullptr == g_ParenthWnd)
+			if (nullptr == g_GameService.g_ParenthWnd)
 				break;
 
-			PostMessageW(g_ParenthWnd, message + static_cast<UINT>(WM_USER + VK_DELETE), wParam, lParam);
+			g_GameService.postMessage(message + static_cast<UINT>(WM_USER + VK_DELETE), wParam, lParam);
 			break;
 		}
 		default:
@@ -1537,7 +1525,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		break;
 	}
 
-	return CallWindowProcW(g_OldWndProc, g_MainHwnd, message, wParam, lParam);
+	return g_GameService.callWindowProc(message, wParam, lParam);
 }
 #pragma endregion
 
@@ -1545,33 +1533,35 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 {
 	if (DLL_PROCESS_ATTACH == ul_reason_for_call)
 	{
+		GameService& g_GameService = GameService::getInstance();
+
 		DWORD dwThreadId = GetCurrentThreadId();
 
-		if ((g_MainThreadId > 0UL) && (g_MainThreadId != dwThreadId))
+		if ((g_GameService.g_MainThreadId > 0UL) && (g_GameService.g_MainThreadId != dwThreadId))
 			return TRUE;
 
 		HWND hWnd = util::GetCurrentWindowHandle();
 		if (nullptr == hWnd)
 			return TRUE;
 
-		GetModuleFileNameW(nullptr, g_szGameModulePath, MAX_PATH);
+		GetModuleFileNameW(nullptr, g_GameService.g_szGameModulePath, MAX_PATH);
 
-		GameService& g_GameService = GameService::getInstance();
+
 		g_GameService.g_consoleHwnd = util::createConsole();
 		if (g_GameService.g_consoleHwnd != nullptr)
 			ShowWindow(g_GameService.g_consoleHwnd, SW_HIDE);
 
-		g_hGameModule = GetModuleHandleW(nullptr);
+		g_GameService.g_hGameModule = GetModuleHandleW(nullptr);
 
-		g_MainThreadId = dwThreadId;
+		g_GameService.g_MainThreadId = dwThreadId;
 
-		g_MainThreadHandle = GetCurrentThread();
+		g_GameService.g_MainThreadHandle = GetCurrentThread();
 
-		g_hDllModule = hModule;
+		g_GameService.g_hDllModule = hModule;
 
-		g_MainHwnd = hWnd;
+		g_GameService.g_MainHwnd = hWnd;
 
-		g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongW(hWnd, GWL_WNDPROC));
+		g_GameService.g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongW(hWnd, GWL_WNDPROC));
 
 		SetWindowLongW(hWnd, GWL_WNDPROC, reinterpret_cast<LONG>(WndProc));
 
@@ -1585,11 +1575,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		if (g_GameService.uninitialize() == TRUE)
-			SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG>(g_OldWndProc));
+			SetWindowLongW(g_GameService.g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG>(g_GameService.g_OldWndProc));
 	}
 
 	return TRUE;
-}
+	}
 
 BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short type, unsigned short port)
 {
@@ -1769,6 +1759,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	if (nullptr == syncClient_)
 		return FALSE;
 
+	syncClient_->setHWnd(g_MainHwnd);
 	syncClient_->setCloseSocketFunction(pclosesocket);
 	syncClient_->setRecvFunction(precv);
 	if (syncClient_->Connect(type, port) == TRUE)
@@ -1780,7 +1771,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 
 	return FALSE;
 #endif
-}
+	}
 
 /*
 	This stuff is actually not necessary.
