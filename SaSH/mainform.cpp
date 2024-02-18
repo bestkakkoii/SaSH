@@ -986,32 +986,35 @@ void MainForm::moveEvent(QMoveEvent* e)
 		if (e == nullptr)
 			return;
 
-
-		QPoint pos = e->pos();
 		long long currentIndex = getIndex();
 		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+		if (!gamedevice.getEnableHash(util::kWindowDockEnable))
+			break;
+
 		HWND hWnd = gamedevice.getProcessWindow();
 		if (hWnd == nullptr)
 			break;
 
-		if (!gamedevice.getEnableHash(util::kWindowDockEnable))
-			break;
+		QPoint pos = e->pos();
 
 		//HWND獲取寬度
 		RECT rect;
 		GetWindowRect(hWnd, &rect);
 
 		//窗口如果不可見則恢復
-		if (!IsWindowVisible(hWnd))
+		if (FALSE == IsWindowVisible(hWnd))
 		{
 			ShowWindow(hWnd, SW_RESTORE);
 			ShowWindow(hWnd, SW_SHOW);
 		}
 
-		//將目標窗口吸附在本窗口左側
+		//將目標窗口吸附在本窗口左側 if rect is below 3840*2160
 		long long width = static_cast<long long>(rect.right - rect.left);
 		//654 for win11
-		SetWindowPos(hWnd, HWND_TOP, pos.x() - width + 2, pos.y() - 31, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
+		if (width < 3840)
+			SetWindowPos(hWnd, HWND_TOP, (pos.x() - width) + 2, pos.y() - 31, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
+		else // if rect is above 3840*2160 than make x bigger
+			SetWindowPos(hWnd, HWND_TOP, (pos.x() - width) + 140, pos.y() - 31, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
 
 	} while (false);
 
@@ -1880,7 +1883,6 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 	msgBox.setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint);
 	msgBox.setModal(true);
 	msgBox.setAttribute(Qt::WA_QuitOnClose);
-	msgBox.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
 	msgBox.setIcon(icon);
 	msgBox.setTextFormat(Qt::TextFormat::RichText);
 	msgBox.setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard | Qt::LinksAccessibleByMouse | Qt::LinksAccessibleByKeyboard);

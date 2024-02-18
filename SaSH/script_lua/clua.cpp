@@ -1664,7 +1664,7 @@ public:
 		return gamedevice.worker->mapUnitHash.value(index);
 	}
 
-	sol::object find(sol::object p1, sol::this_state s)
+	sol::object find(sol::object p1, sol::object p2, sol::this_state s)
 	{
 		GameDevice& gamedevice = GameDevice::getInstance(index_);
 		if (gamedevice.worker.isNull())
@@ -1685,19 +1685,71 @@ public:
 			return sol::lua_nil;
 
 		sa::map_unit_t unit = {};
-		if (!gamedevice.worker->findUnit(name, sa::kObjectNPC, &unit, "", modelid))
+		do
 		{
-			if (!gamedevice.worker->findUnit("", sa::kObjectNPC, &unit, name, modelid))
+			if (!p2.is<long long>())
 			{
-				if (!gamedevice.worker->findUnit(name, sa::kObjectHuman, &unit, "", modelid))
+				if (-1 == modelid)
 				{
-					if (!gamedevice.worker->findUnit("", sa::kObjectHuman, &unit, name, modelid))
+					if (gamedevice.worker->findUnit(name, sa::kObjectNPC, &unit, "", -1))
 					{
-						return sol::lua_nil;
+						break;
+					}
+
+					if (gamedevice.worker->findUnit(name, sa::kObjectHuman, &unit, "", -1))
+					{
+						break;
+					}
+
+					if (gamedevice.worker->findUnit("", sa::kObjectNPC, &unit, name, -1))
+					{
+						break;
+					}
+
+					if (gamedevice.worker->findUnit("", sa::kObjectHuman, &unit, name, -1))
+					{
+						break;
+					}
+				}
+				else
+				{
+					if (gamedevice.worker->findUnit("", sa::kObjectNPC, &unit, "", modelid))
+					{
+						break;
+					}
+
+					if (gamedevice.worker->findUnit("", sa::kObjectHuman, &unit, "", modelid))
+					{
+						break;
+					}
+				}
+
+			}
+			else
+			{
+				sa::ObjectType type = static_cast<sa::ObjectType>(p2.as<long long>());
+				if (-1 == modelid)
+				{
+
+					if (gamedevice.worker->findUnit(name, type, &unit, "", -1))
+					{
+						break;
+					}
+
+					if (gamedevice.worker->findUnit("", type, &unit, name, -1))
+					{
+						break;
+					}
+				}
+				else
+				{
+					if (gamedevice.worker->findUnit("", type, &unit, "", modelid))
+					{
+						break;
 					}
 				}
 			}
-		}
+		} while (false);
 
 		return sol::make_object(s, unit);
 	}
@@ -2674,7 +2726,7 @@ void CLua::open_utillibs(sol::state& lua)
 			{
 				long long depth = kMaxLuaTableDepth;
 				title = getLuaTableString(otitle.as<sol::table>(), depth);
-			}
+		}
 
 			long long type = 1;
 			if (otype.is<long long>())
@@ -2684,7 +2736,7 @@ void CLua::open_utillibs(sol::state& lua)
 			long long nret = QMessageBox::StandardButton::NoButton;
 			emit signalDispatcher.messageBoxShow(text, type, title, &nret);
 			return nret == QMessageBox::StandardButton::Yes ? "yes" : "no";
-		});
+});
 #endif
 
 	lua.set_function("dlg", [this](std::string buttonstr, std::string stext, sol::object otype, sol::object otimeout, sol::this_state s)->sol::object
@@ -4365,11 +4417,11 @@ void CLua::proc()
 					//emit this->logMessageExport(s, );
 					if (isDebug_ && !isSubScript_)
 						tableStrs << ">";
+					}
 				}
-			}
 
 			tableStrs.append(qstrErr);
-		}
+			}
 		else
 		{
 #ifdef _DEBUG
@@ -4465,11 +4517,11 @@ void CLua::proc()
 		}
 
 		luadebug::logExport(s, tableStrs, 0);
-	} while (false);
+		} while (false);
 
-	emit finished();
+		emit finished();
 
-	long long currentIndex = getIndex();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.scriptFinished();
-}
+		long long currentIndex = getIndex();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+		emit signalDispatcher.scriptFinished();
+	}

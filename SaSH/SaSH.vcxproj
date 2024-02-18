@@ -67,7 +67,7 @@
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="QtSettings">
-    <QtInstall>6.7.0_msvc2019_64</QtInstall>
+    <QtInstall>6.8.0_msvc2019_64</QtInstall>
     <QtModules>core;gui;network;widgets;core5compat;concurrent;openglwidgets</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
@@ -77,7 +77,7 @@
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="QtSettings">
-    <QtInstall>6.7.0_msvc2019_64</QtInstall>
+    <QtInstall>6.8.0_msvc2019_64</QtInstall>
     <QtModules>core;gui;network;widgets;core5compat;concurrent;openglwidgets</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
