@@ -178,9 +178,7 @@ private:
 	bool flagSwitcherJobEnable_ = false;
 	bool flagSwitcherWorldEnable_ = false;
 
-#ifndef LEAK_TEST
 	safe::vector<MissionThread*> autoThreads_;
-#endif
 };
 
 class ThreadManager : public QObject
@@ -224,11 +222,15 @@ private:
 public:
 	bool createThread(long long index, MainObject** ppObj, QObject* parent);
 
+
 	[[nodiscard]] inline long long size() const
 	{
 		QMutexLocker locker(&mutex_);
 		return objects_.size();
 	}
+
+private slots:
+	void onThreadFinished();
 
 private:
 	mutable QMutex mutex_;

@@ -3,10 +3,8 @@
 #include <QHash>
 #include <QVector>
 #include <QQueue>
-#define SAFEFLAG_USE_MUTEX
-#ifdef SAFEFLAG_USE_MUTEX
+
 #include <shared_mutex>
-#endif
 
 namespace safe
 {
@@ -731,4 +729,4 @@ namespace safe
 		mutable std::shared_mutex mutex_;
 	};
 #pragma endregion
-}
+	}

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <tchar.h>
+#include <string>
 #include "unzip.h"
 
 namespace zipper
@@ -3811,7 +3812,7 @@ void zfree(void *buf)
 	class TUnzip
 	{
 	public:
-		TUnzip(const char* pwd) : uf(0), unzbuf(0), currentfile(-1), czei(-1), password(0) { if (pwd != 0) { password = new char[strlen(pwd) + 1]; strcpy(password, pwd); } }
+		TUnzip(const char* pwd) : uf(0), unzbuf(0), currentfile(-1), czei(-1), password(0) { if (pwd != 0) { password = new char[strlen(pwd) + 1]; strcpy_s(password, strlen(pwd), pwd); } }
 		~TUnzip() { if (password != 0) delete[] password; password = 0; if (unzbuf != 0) delete[] unzbuf; unzbuf = 0; }
 
 		unzFile uf; int currentfile; ZIPENTRY cze; int czei;
@@ -3838,7 +3839,7 @@ void zfree(void *buf)
 		_tcscpy(rootdir, _T("\\"));
 #endif
 		TCHAR lastchar = rootdir[_tcslen(rootdir) - 1];
-		if (lastchar != '\\' && lastchar != '/') _tcscat(rootdir, _T("\\"));
+		if (lastchar != '\\' && lastchar != '/') _tcscat_s(rootdir, _T("\\"));
 		//
 		if (flags == ZIP_HANDLE)
 		{ // test if we can seek on it. We can't use GetFileType(h)==FILE_TYPE_DISK since it's not on CE.
@@ -3855,9 +3856,9 @@ void zfree(void *buf)
 
 	ZRESULT TUnzip::SetUnzipBaseDir(const TCHAR* dir)
 	{
-		_tcscpy(rootdir, dir);
+		_tcscpy_s(rootdir, dir);
 		TCHAR lastchar = rootdir[_tcslen(rootdir) - 1];
-		if (lastchar != '\\' && lastchar != '/') _tcscat(rootdir, _T("\\"));
+		if (lastchar != '\\' && lastchar != '/') _tcscat_s(rootdir, _T("\\"));
 		return ZR_OK;
 	}
 
@@ -3917,7 +3918,7 @@ void zfree(void *buf)
 			c = _tcsstr(sfn, _T("/..\\")); if (c != 0) { sfn = c + 4; continue; }
 			break;
 		}
-		_tcscpy(ze->name, sfn);
+		_tcscpy_s(ze->name, sfn);
 
 
 		// zip has an 'attribute' 32bit value. Its lower half is windows stuff
@@ -4032,7 +4033,7 @@ void zfree(void *buf)
 			EnsureDirectory(rootdir, tmp);
 			name++;
 		}
-		TCHAR cd[MAX_PATH]; *cd = 0; if (rootdir != 0) _tcscpy(cd, rootdir); _tcscat(cd, dir);
+		TCHAR cd[MAX_PATH]; *cd = 0; if (rootdir != 0) _tcscpy_s(cd, rootdir); _tcscat_s(cd, dir);
 		if (GetFileAttributes(cd) == 0xFFFFFFFF) CreateDirectory(cd, NULL);
 	}
 
@@ -4088,7 +4089,7 @@ void zfree(void *buf)
 			// a malicious zip could unzip itself into c:\windows. Our solution is that GetZipItem (which
 			// is how the user retrieve's the file's name within the zip) never returns absolute paths.
 			const TCHAR* name = ufn; const TCHAR* c = name; while (*c != 0) { if (*c == '/' || *c == '\\') name = c + 1; c++; }
-			TCHAR dir[MAX_PATH]; _tcscpy(dir, ufn); if (name == ufn) *dir = 0; else dir[name - ufn] = 0;
+			TCHAR dir[MAX_PATH]; _tcscpy_s(dir, ufn); if (name == ufn) *dir = 0; else dir[name - ufn] = 0;
 			TCHAR fn[MAX_PATH];
 			bool isabsolute = (dir[0] == '/' || dir[0] == '\\' || (dir[0] != 0 && dir[1] == ':'));
 			if (isabsolute) { wsprintf(fn, _T("%s%s"), dir, name); EnsureDirectory(0, dir); }
@@ -4163,7 +4164,7 @@ void zfree(void *buf)
 		unsigned int mlen = (unsigned int)_tcslen(msg);
 		if (buf == 0 || len == 0) return mlen;
 		unsigned int n = mlen; if (n + 1 > len) n = len - 1;
-		_tcsncpy(buf, msg, n); buf[n] = 0;
+		_tcsncpy_s(buf, len, msg, n); buf[n] = 0;
 		return mlen;
 	}
 
@@ -4250,4 +4251,67 @@ void zfree(void *buf)
 		TUnzipHandleData* han = (TUnzipHandleData*)hz;
 		return (han->flag == 1);
 	}
-}
+
+	bool uncompress(const std::wstring& source, const std::wstring& destination)
+	{
+		std::wstring newSource = source;
+		std::replace(newSource.begin(), newSource.end(), L'/', L'\\');
+
+		zipper::HZIP hz = zipper::OpenZip(newSource.c_str(), 0);
+		if (hz == nullptr)
+			return false;
+
+		std::wstring newDestination = destination;
+
+		std::replace(newDestination.begin(), newDestination.end(), L'/', L'\\');
+
+		wchar_t cret[1024] = {};
+
+
+		zipper::ZRESULT ret = zipper::SetUnzipBaseDir(hz, newDestination.c_str());
+		if (ret != zipper::ZR_OK)
+		{
+			memset(cret, 0, sizeof(cret));
+			zipper::FormatZipMessageU(ret, cret, sizeof(cret));
+			zipper::CloseZipU(hz);
+			return false;
+		}
+
+		zipper::ZIPENTRY ze = {};
+		ret = GetZipItem(hz, -1, &ze);
+		if (ret != zipper::ZR_OK)
+		{
+			memset(cret, 0, sizeof(cret));
+			zipper::FormatZipMessageU(ret, cret, sizeof(cret));
+			zipper::CloseZipU(hz);
+			return false;
+		}
+
+		long long numitems = ze.index;
+		long long currentSize = 0;
+		for (long long zi = 0; zi < numitems; ++zi)
+		{
+			ret = GetZipItem(hz, zi, &ze);
+			if (ret != zipper::ZR_OK)
+			{
+				memset(cret, 0, sizeof(cret));
+				zipper::FormatZipMessageU(ret, cret, sizeof(cret));
+				continue;
+			}
+
+			ret = UnzipItem(hz, zi, ze.name);
+			if (ret != zipper::ZR_OK)
+			{
+				memset(cret, 0, sizeof(cret));
+				zipper::FormatZipMessageU(ret, cret, sizeof(cret));
+				continue;
+			}
+
+			++currentSize;
+		}
+
+		zipper::CloseZipU(hz);
+
+		return true;
+	}
+} // namespace zipper

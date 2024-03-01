@@ -30,7 +30,7 @@ private slots:
 
 	void onResetControlTextLanguage();
 
-	void onGameStart();
+	void onGameStart(long long delay = 5000);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override;
@@ -40,7 +40,8 @@ private:
 	void serverListReLoad();
 	void reloadPaths();
 
-	Q_INVOKABLE void startGameAsync();
+private slots:
+	void onMainThradDestroyed();
 
 public:
 	AfkForm pAfkForm_;

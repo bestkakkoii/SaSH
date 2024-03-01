@@ -1,5 +1,6 @@
 ﻿#ifndef _unzip_H
 #define _unzip_H
+
 namespace zipper
 {
 	// UNZIPPING functions -- for unzipping.
@@ -218,5 +219,9 @@ namespace zipper
 #define FormatZipMessage FormatZipMessageU
 #endif
 #endif
+
+
+	//bestkakkoii added
+	bool uncompress(const std::wstring& source, const std::wstring& destination);
 }
 #endif // _unzip_H

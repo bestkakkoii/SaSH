@@ -80,7 +80,7 @@ signals:
 	void saveHashSettings(const QString& name = "default", bool isFullPath = false);
 	void loadHashSettings(const QString& name = "default", bool isFullPath = false);
 
-	void gameStarted();
+	void gameStarted(long long delay = 5000);
 
 	//mainform
 	void updateMainFormTitle(const QString& text);
@@ -115,8 +115,6 @@ signals:
 	void notifyBattleActionState(long long index);
 	void battleTableItemForegroundColorChanged(long long index, const QColor& color);
 	void battleTableAllItemResetColor();
-
-	void setStartButtonEnabled(bool enable);
 
 	//mapform
 	void updateNpcList(long long floor);

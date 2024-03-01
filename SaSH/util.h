@@ -43,6 +43,7 @@ constexpr long long SASH_MAX_THREAD = 65535;
 constexpr long long SASH_MAX_SHARED_MEM = 655350;
 constexpr const char* SASH_INJECT_DLLNAME = "sadll";
 constexpr const char* SASH_SUPPORT_GAMENAME = "sa_8001.exe";
+constexpr const char* EXECUTIVE_FILE_SUFFIX = ".exe";
 
 typedef struct break_marker_s
 {

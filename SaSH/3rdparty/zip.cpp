@@ -2,6 +2,8 @@
 #include <windows.h>
 #include <stdio.h>
 #include <tchar.h>
+#include <string>
+#include <vector>
 #include "zip.h"
 namespace zipper
 {
@@ -2640,7 +2642,7 @@ namespace zipper
 		int passex = 0; if (password != 0 && flags != ZIP_FOLDER) passex = 12;
 
 		// zip has its own notion of what its names should look like: i.e. dir/file.stuff
-		TCHAR dstzn[MAX_PATH]; _tcscpy(dstzn, odstzn);
+		TCHAR dstzn[MAX_PATH]; _tcscpy_s(dstzn, odstzn);
 		if (*dstzn == 0) return ZR_ARGS;
 		TCHAR* d = dstzn; while (*d != 0) { if (*d == '\\') *d = '/'; d++; }
 		bool isdir = (flags == ZIP_FOLDER);
@@ -2661,15 +2663,15 @@ namespace zipper
 
 		// Initialize the local header
 		TZipFileInfo zfi; zfi.nxt = NULL;
-		strcpy(zfi.name, "");
+		strcpy_s(zfi.name, "");
 #ifdef UNICODE
 		WideCharToMultiByte(CP_UTF8, 0, dstzn, -1, zfi.iname, MAX_PATH, 0, 0);
 #else
 		strcpy(zfi.iname, dstzn);
 #endif
 		zfi.nam = strlen(zfi.iname);
-		if (needs_trailing_slash) { strcat(zfi.iname, "/"); zfi.nam++; }
-		strcpy(zfi.zname, "");
+		if (needs_trailing_slash) { strcat_s(zfi.iname, "/"); zfi.nam++; }
+		strcpy_s(zfi.zname, "");
 		zfi.extra = NULL; zfi.ext = 0;   // extra header to go after this compressed data, and its length
 		zfi.cextra = NULL; zfi.cext = 0; // extra header to go in the central end-of-zip directory, and its length
 		zfi.comment = NULL; zfi.com = 0; // comment, and its length
@@ -2850,7 +2852,7 @@ namespace zipper
 		unsigned int mlen = (unsigned int)strlen(msg);
 		if (buf == 0 || len == 0) return mlen;
 		unsigned int n = mlen; if (n + 1 > len) n = len - 1;
-		strncpy(buf, msg, n); buf[n] = 0;
+		strncpy_s(buf, len, msg, n); buf[n] = 0;
 		return mlen;
 	}
 
@@ -2921,4 +2923,87 @@ namespace zipper
 		TZipHandleData* han = (TZipHandleData*)hz;
 		return (han->flag == 2);
 	}
-}
+
+	bool _enumAllFiles(const std::wstring& source, const std::wstring& pattern, std::vector<std::pair<std::wstring, std::wstring>>* list)
+	{
+		std::wstring newSource = source;
+		std::replace(newSource.begin(), newSource.end(), '/', '\\');
+
+		std::wstring newPattern = pattern;
+		std::replace(newPattern.begin(), newPattern.end(), '/', '\\');
+
+		WIN32_FIND_DATAW findFileData;
+		HANDLE hFind = FindFirstFileW((newSource + L"\\*").c_str(), &findFileData);
+		if (hFind == INVALID_HANDLE_VALUE)
+		{
+			return false;
+		}
+
+		do
+		{
+			if (findFileData.cFileName[0] == '.')
+			{
+				continue;
+			}
+
+			if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			{
+				if (!_enumAllFiles(newSource + L"\\" + findFileData.cFileName, newPattern, list))
+				{
+					FindClose(hFind);
+					return false;
+				}
+			}
+			else
+			{
+				if (newPattern.empty() || findFileData.cFileName == newPattern)
+				{
+					list->push_back(std::make_pair(findFileData.cFileName, newSource + L"\\" + findFileData.cFileName));
+				}
+			}
+		} while (FindNextFileW(hFind, &findFileData));
+
+		FindClose(hFind);
+		return true;
+	}
+
+	bool compress(const std::wstring& source, const std::wstring& destination)
+	{
+		std::vector<std::pair<std::wstring, std::wstring>> list;
+		if (_enumAllFiles(source, L"", &list))
+		{
+			return  false;
+		}
+
+		std::wstring newDestination = destination;
+		std::replace(newDestination.begin(), newDestination.end(), '/', '\\');
+
+		zipper::HZIP hz = zipper::CreateZip(newDestination.c_str(), 0);
+		if (hz == nullptr)
+			return false;
+
+		long long totalSize = list.size();
+		long long currentSize = 0;
+		for (const std::pair<std::wstring, std::wstring>& pair : list)
+		{
+			std::wstring szFileName = pair.first;
+			std::wstring szFullPath = pair.second;
+			std::replace(szFullPath.begin(), szFullPath.end(), '/', '\\');
+
+			std::wstring relativePath = szFullPath.substr(source.length());
+			std::replace(relativePath.begin(), relativePath.end(), '/', '\\');
+
+			zipper::ZRESULT ret = zipper::ZipAdd(hz, szFullPath.c_str(), relativePath.c_str());
+			if (ret != zipper::ZR_OK)
+			{
+				char cret[1024] = {};
+				zipper::FormatZipMessageZ(ret, cret, sizeof(cret));
+			}
+			++currentSize;
+		}
+
+		zipper::CloseZipZ(hz);
+
+		return true;
+	}
+}// namespace zipper

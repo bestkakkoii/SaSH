@@ -163,6 +163,9 @@ public:
 	using pfnCreateDialog = void(_cdecl*)(int, int type, int button, int unitid, int dialogid, const char* data);
 	pfnCreateDialog pCreateDialog = nullptr;
 
+	using pfnecb_crypt = int(__cdecl*)(const char* key, char* buf, unsigned int len, unsigned int mode);
+	pfnecb_crypt pecb_crypt = nullptr;
+
 public://g-var
 	int* g_sockfd = nullptr;
 	int* g_world_status = nullptr;
@@ -182,15 +185,41 @@ public://g-var
 
 	mutable std::shared_mutex g_statusLock;
 
-	inline int __fastcall getWorldStatue() const { /*lock read*/ std::shared_lock<std::shared_mutex> lock(g_statusLock); return *g_world_status; }
-	inline int __fastcall getGameStatue() const { /*lock read*/ std::shared_lock<std::shared_mutex> lock(g_statusLock); return *g_game_status; }
+	int __fastcall getWorldStatue() const { /*lock read*/ std::shared_lock<std::shared_mutex> lock(g_statusLock); return *g_world_status; }
+	int __fastcall getGameStatue() const { /*lock read*/ std::shared_lock<std::shared_mutex> lock(g_statusLock); return *g_game_status; }
 
 	template<typename T>
-	inline T __fastcall CONVERT_GAMEVAR(ULONG_PTR offset) const { return (T)((reinterpret_cast<ULONG_PTR>(g_hGameModule) + offset)); }
+	T __fastcall CONVERT_GAMEVAR(ULONG_PTR offset) const { return (T)((reinterpret_cast<ULONG_PTR>(g_hGameModule) + offset)); }
 
-	inline LRESULT __fastcall callWindowProc(UINT Msg, WPARAM wParam, LPARAM lParam) const { return CallWindowProc(g_OldWndProc, g_MainHwnd, Msg, wParam, lParam); }
-	inline BOOL __fastcall postMessage(UINT Msg, WPARAM wParam, LPARAM lParam) const { return PostMessage(g_MainHwnd, Msg, wParam, lParam); }
-	inline BOOL __fastcall sendMessage(UINT Msg, WPARAM wParam, LPARAM lParam) const { return SendMessage(g_MainHwnd, Msg, wParam, lParam); }
+	LRESULT __fastcall callWindowProc(UINT Msg, WPARAM wParam, LPARAM lParam) const { return CallWindowProcW(g_OldWndProc, g_MainHwnd, Msg, wParam, lParam); }
+
+	BOOL __fastcall postMessage(UINT Msg, WPARAM wParam, LPARAM lParam, HWND hWnd = nullptr) const
+	{
+		if (hWnd == nullptr)
+			hWnd = g_MainHwnd;
+
+		BOOL ret = PostMessageW(hWnd, Msg, wParam, lParam);
+		if (!ret)
+		{
+			std::wcout << L"PostMessageW failed: " << GetLastError() << std::endl;
+			std::wcout << L"HWND: " << (int)g_MainHwnd << L", Msg: " << Msg << L", wParam: " << wParam << L", lParam:" << lParam << std::endl;
+		}
+		return ret;
+	}
+
+	BOOL __fastcall sendMessage(UINT Msg, WPARAM wParam, LPARAM lParam, HWND hWnd = nullptr) const
+	{
+		if (hWnd == nullptr)
+			hWnd = g_MainHwnd;
+
+		BOOL ret = SendMessageTimeoutW(hWnd, Msg, wParam, lParam, SMTO_NORMAL | SMTO_ERRORONEXIT, 1000, nullptr);
+		if (!ret)
+		{
+			std::wcout << L"SendMessageW failed: " << GetLastError() << std::endl;
+			std::wcout << L"HWND: " << (int)g_MainHwnd << L", Msg: " << Msg << L", wParam: " << wParam << L", lParam:" << lParam << std::endl;
+		}
+		return ret;
+	}
 
 private:
 	BOOL __fastcall sendToServer(const std::string& text);

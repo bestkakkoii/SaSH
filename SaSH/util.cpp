@@ -269,17 +269,15 @@ DWORD __fastcall mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& mo
 	moduleEntry.dwSize = sizeof(MODULEENTRY32W);
 	if (!Module32FirstW(hSnapshot, &moduleEntry))
 		return NULL;
-	else
-	{
-		const QString str(util::toQString(moduleEntry.szModule));
-		if (str == moduleName)
-			return reinterpret_cast<DWORD>(moduleEntry.hModule);
-	}
+
+	const QString str(util::toQString(moduleEntry.szModule));
+	if (!str.isEmpty() && !moduleName.isEmpty() && str == moduleName)
+		return reinterpret_cast<DWORD>(moduleEntry.hModule);
 
 	do
 	{
 		const QString str(util::toQString(moduleEntry.szModule));
-		if (str == moduleName)
+		if (!str.isEmpty() && !moduleName.isEmpty() && str == moduleName)
 			return reinterpret_cast<DWORD>(moduleEntry.hModule);
 	} while (Module32NextW(hSnapshot, &moduleEntry));
 
@@ -458,7 +456,7 @@ bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hPr
 		return false;
 	}
 
-	DWORD hGameModule = mem::getRemoteModuleHandle(dwProcessId, QString(SASH_SUPPORT_GAMENAME));
+	constexpr DWORD hGameModule = 0x400000;//mem::getRemoteModuleHandle(dwProcessId, QString(SASH_SUPPORT_GAMENAME));
 	if (phGameModule != nullptr)
 		*phGameModule = static_cast<unsigned long long>(hGameModule);
 
@@ -2140,7 +2138,7 @@ bool __fastcall util::fileDialogShow(const QString& name, long long acceptType, 
 	//自身目錄往上一層
 	QString directory = util::applicationDirPath();
 	directory = QDir::toNativeSeparators(directory);
-	directory = QDir::cleanPath(directory + QDir::separator() + "..");
+	directory = QDir::cleanPath(directory + QDir::separator() + "../");
 	//dialog.setDirectory(directory);
 
 	cx::FileDialogAcceptMode mode;
@@ -2160,12 +2158,19 @@ bool __fastcall util::fileDialogShow(const QString& name, long long acceptType, 
 
 	cx::file_dialog dialog(mode);
 	dialog.setDirectory(directory);
-	dialog.setDefaultExtension(fileInfo.suffix());
+
+	if (!fileInfo.suffix().isEmpty() && !name.startsWith("."))
+		dialog.setDefaultExtension(fileInfo.suffix());
+	else
+		dialog.setDefaultExtension("*" + name);
 
 	if (!name.isEmpty())
 	{
 		nameFileter.clear();
-		nameFileter.append(QString("%1|%1").arg(name).arg(name));
+		if (!name.startsWith("."))
+			nameFileter.append(QString("%1|%1").arg(name).arg(name));
+		else
+			nameFileter.append(QString("%1|%1").arg("*" + name).arg("*" + name));
 	}
 	dialog.setFilter(nameFileter);
 	do

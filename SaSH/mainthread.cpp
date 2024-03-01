@@ -57,11 +57,11 @@ UniqueIdManager::~UniqueIdManager()
 
 long long UniqueIdManager::allocateUniqueId(long long id)
 {
-	if (id < 0 || id >= SASH_MAX_THREAD)
-		id = -1;
-
 	QSystemSemaphore semaphore("UniqueIdManagerSystemSemaphore", 1, QSystemSemaphore::Open);
 	semaphore.acquire();
+
+	if (id < 0 || id >= SASH_MAX_THREAD)
+		id = -1;
 
 	long long allocatedId = -1;
 
@@ -125,11 +125,14 @@ long long UniqueIdManager::allocateUniqueId(long long id)
 
 void UniqueIdManager::deallocateUniqueId(long long id)
 {
-	if (id < 0 || id >= SASH_MAX_THREAD)
-		return;
-
 	QSystemSemaphore semaphore("UniqueIdManagerSystemSemaphore", 1, QSystemSemaphore::Open);
 	semaphore.acquire();
+
+	if (id < 0 || id >= SASH_MAX_THREAD)
+	{
+		semaphore.release();
+		return;
+	}
 
 	// 嘗試連接到共享內存，如果不存在則創建
 	if (g_sharedMemory.key().isEmpty())
@@ -241,26 +244,27 @@ bool UniqueIdManager::readSharedMemory(QSet<long long>* pAllocatedIds)
 
 void UniqueIdManager::updateSharedMemory(const QSet<long long>& allocatedIds)
 {
-	// 將分配的ID保存為JSON字符串，並寫入共享內存
-	QJsonObject obj;
-	QJsonArray idArray;
-	for (long long id : allocatedIds)
-	{
-		idArray.append(id);
-	}
-
-	obj[jsonKey_] = idArray;
-
-	QJsonDocument doc(obj);
-
-	// 將 JSON 文檔轉換為 UTF-8 編碼的 QByteArray
-	QByteArray data = doc.toJson(QJsonDocument::Compact);
-	QString str = QString::fromUtf8(data).simplified();
-	data = str.toUtf8();
-	data.replace(" ", "");
-
 	if (g_sharedMemory.lock())
 	{
+		// 將分配的ID保存為JSON字符串，並寫入共享內存
+		QJsonObject obj;
+		QJsonArray idArray;
+		for (long long id : allocatedIds)
+		{
+			idArray.append(id);
+		}
+
+		obj[jsonKey_] = idArray;
+
+		QJsonDocument doc(obj);
+
+		// 將 JSON 文檔轉換為 UTF-8 編碼的 QByteArray
+		QByteArray data = doc.toJson(QJsonDocument::Compact);
+		QString str = QString::fromUtf8(data).simplified();
+		data = str.toUtf8();
+		data.replace(" ", "");
+
+
 		const char* from = data.constData();
 		write(from);
 		g_sharedMemory.unlock();
@@ -286,25 +290,7 @@ bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* p
 		objects_.insert(index, object);
 
 		//after delete must set nullptr
-		connect(object, &MainObject::finished, this, [this]()
-			{
-				MainObject* object = qobject_cast<MainObject*>(sender());
-				if (nullptr == object)
-					return;
-
-				long long index = object->getIndex();
-				objects_.remove(index);
-
-				qDebug() << "recv MainObject::finished, start cleanning";
-				object->thread.quit();
-				object->thread.wait();
-				object->deleteLater();
-				object = nullptr;
-				GameDevice::reset(index);
-
-			}, Qt::QueuedConnection);
-
-		object->thread.start();
+		connect(object, &MainObject::finished, this, &ThreadManager::onThreadFinished, Qt::QueuedConnection);
 
 		if (ppObj != nullptr)
 			*ppObj = object;
@@ -312,6 +298,23 @@ bool ThreadManager::createThread(long long index, MainObject** ppObj, QObject* p
 	} while (false);
 
 	return false;
+}
+
+void ThreadManager::onThreadFinished()
+{
+	MainObject* object = qobject_cast<MainObject*>(sender());
+	if (nullptr == object)
+		return;
+
+	long long index = object->getIndex();
+	objects_.remove(index);
+
+	qDebug() << "recv MainObject::finished, start cleanning";
+	object->thread.quit();
+	object->thread.wait();
+	delete object;
+	object = nullptr;
+	GameDevice::reset(index);
 }
 
 void ThreadManager::close(long long index)
@@ -334,9 +337,7 @@ void ThreadManager::close(long long index)
 #pragma region MainThread
 MainObject::MainObject(long long index, QObject* parent)
 	: Indexer(index)
-#ifndef LEAK_TEST
 	, autoThreads_(MissionThread::kMaxAutoMission, nullptr)
-#endif
 {
 	std::ignore = parent;
 	moveToThread(&thread);
@@ -347,8 +348,6 @@ MainObject::MainObject(long long index, QObject* parent)
 MainObject::~MainObject()
 {
 	qDebug() << "MainObject is destroyed!!";
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-	emit signalDispatcher.setStartButtonEnabled(true);
 }
 
 void MainObject::run()
@@ -422,9 +421,6 @@ void MainObject::run()
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
-		if (gamedevice.IS_SCRIPT_FLAG.get())
-			emit signalDispatcher.scriptResumed();
-
 		//進入主循環
 		mainProc();
 	} while (false);
@@ -439,8 +435,7 @@ void MainObject::run()
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 	}
 
-#ifndef LEAK_TEST
-	//關閉自動組隊線程
+	//關閉所有子任務線程
 	for (auto& pthread : autoThreads_)
 	{
 		if (pthread != nullptr)
@@ -450,8 +445,8 @@ void MainObject::run()
 			pthread = nullptr;
 		}
 	}
+
 	autoThreads_.clear();
-#endif
 
 	//通知線程結束
 	emit finished();
@@ -460,6 +455,7 @@ void MainObject::run()
 
 void MainObject::mainProc()
 {
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 	util::timer freeMemTimer;
 
@@ -473,6 +469,16 @@ void MainObject::mainProc()
 	long long value = 0;
 	long long status = 0;
 	long long W = 0;
+
+	//判斷是否需要自動啟動腳本
+	if (gamedevice.getEnableHash(util::kAutoStartScriptEnable))
+	{
+		//如果非腳本啟動中，則發送腳本啟動信號
+		if (!gamedevice.IS_SCRIPT_FLAG.get())
+			emit signalDispatcher.scriptStarted();
+		else //否則發送腳本恢復信號
+			emit signalDispatcher.scriptResumed();
+	}
 
 	for (;;)
 	{
@@ -759,7 +765,6 @@ long long MainObject::checkAndRunFunctions()
 	//更新掛機數據到UI
 	updateAfkInfos();
 
-#ifndef LEAK_TEST
 	//批次開啟子任務線程
 	for (long long i = 0; i < MissionThread::kMaxAutoMission; ++i)
 	{
@@ -788,7 +793,6 @@ long long MainObject::checkAndRunFunctions()
 		autoThreads_[i] = p;
 		p->start();
 	}
-#endif
 
 	//平時
 	if (!gamedevice.worker->getBattleFlag())
@@ -1210,7 +1214,7 @@ void MissionThread::start()
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &MissionThread::requestMissionInterruption);
 
 	thread_->start();
-}
+	}
 
 void MissionThread::autoJoin()
 {
@@ -1501,6 +1505,13 @@ void MissionThread::autoWalk()
 
 				QThread::msleep(100);
 			}
+
+			enableAutoWalk = gamedevice.getEnableHash(util::kAutoWalkEnable);//走路遇敵開關
+			enableFastAutoWalk = gamedevice.getEnableHash(util::kFastAutoWalkEnable);//快速遇敵開關
+			if (!enableAutoWalk && !enableFastAutoWalk)
+			{
+				break;
+			}
 		}
 
 		long long walk_speed = gamedevice.getValueHash(util::kAutoWalkDelayValue);//走路速度
@@ -1590,7 +1601,7 @@ void MissionThread::autoSortItem()
 	//qDebug() << "autoSortItem() start";
 
 	long long i = 0;
-	constexpr long long duration = 10;
+	constexpr long long duration = 2;
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
 	for (;;)
@@ -1629,6 +1640,9 @@ void MissionThread::autoSortItem()
 
 		if (!gamedevice.worker->getOnlineFlag())
 			break;
+
+		if (gamedevice.worker->getBattleFlag())
+			continue;
 
 		gamedevice.worker->sortItem();
 	}

@@ -29,6 +29,7 @@ GameDevice::GameDevice(long long index)
 	: Indexer(index)
 	, log(index, nullptr)
 	, autil(index)
+	, isWin7OrLower_(QOperatingSystemVersion::current() <= QOperatingSystemVersion::Windows7)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &GameDevice::gameRequestInterruption);
@@ -111,13 +112,20 @@ GameDevice::CreateProcessResult GameDevice::createProcess(GameDevice::process_in
 				ScopedHandle hProcess(pid);
 				QString remoteUserNameKey = mem::readString(hProcess, hGameModule_ + sa::kOffsetPersonalKey, 32);
 				QString remoteUserName = mem::readString(hProcess, hGameModule_ + sa::kOffsetAccount, 32);
-				if (!remoteUserNameKey.isEmpty() && remoteUserNameKey.contains(userName)
-					|| !remoteUserName.isEmpty() && remoteUserName == userName)
+
+				QString remoteUserNameEx = ecbDecrypt(sa::kOffsetAccountECB);
+
+				if (!remoteUserNameKey.isEmpty() &&
+					(remoteUserNameKey.contains(userName)
+						|| (!remoteUserName.isEmpty() && remoteUserName == userName)
+						|| (!remoteUserNameEx.isEmpty() && remoteUserNameEx == userName)))
 				{
 					pi.dwProcessId = pid;
 					processHandle_.reset(pi.dwProcessId);
 					return CreateProcessResult::CreateWithExistingProcessNoDll;
 				}
+
+
 			}
 		}
 	}
@@ -310,13 +318,7 @@ bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigne
 	injectdate.index = getIndex();
 	injectdate.parentHWnd = reinterpret_cast<long long>(getParentWidget());
 	injectdate.port = port;
-
-	//get windows version
-	QOperatingSystemVersion version = QOperatingSystemVersion::current();
-	if (version > QOperatingSystemVersion::Windows7)
-		injectdate.type = kIPv6;
-	else
-		injectdate.type = kIPv4;
+	injectdate.type = kIPv6;
 
 	if (!mem::isProcessExist(pi.dwProcessId))
 	{
@@ -520,8 +522,6 @@ bool GameDevice::injectLibrary(GameDevice::process_information_t& pi, unsigned s
 		}
 
 		timer.restart();
-		QOperatingSystemVersion version = QOperatingSystemVersion::current();
-		//Win7
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		if (mem::injectByWin7(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_, pi.hWnd))
@@ -583,71 +583,104 @@ bool GameDevice::injectLibrary(GameDevice::process_information_t& pi, unsigned s
 	return bret;
 }
 
+// 判斷特定進程的UI線程是否無響應
+bool GameDevice::IsUIThreadHung() const
+{
+	ULONG length = 0;
+	NTSTATUS status = MINT::NtQuerySystemInformation(MINT::SystemProcessInformation, nullptr, 0, &length);
+
+	if (status != STATUS_INFO_LENGTH_MISMATCH)
+	{
+		return false; // 無法獲取所需的長度
+	}
+
+	QScopedArrayPointer<BYTE> buffer(new BYTE[length]);
+
+	MINT::PSYSTEM_PROCESS_INFORMATION spi = reinterpret_cast<MINT::PSYSTEM_PROCESS_INFORMATION>(buffer.data());
+	if (!spi)
+	{
+		return false; // 內存分配失敗
+	}
+
+	status = MINT::NtQuerySystemInformation(MINT::SystemProcessInformation, spi, length, &length);
+	if (!NT_SUCCESS(status))
+	{
+		return false; // API 調用失敗
+	}
+
+	MINT::PSYSTEM_PROCESS_INFORMATION current = spi;
+	for (;;)
+	{
+		if (current->UniqueProcessId == (HANDLE)(ULONG_PTR)pi_.dwProcessId)
+		{
+			// 找到了指定的進程，檢查它的所有線程
+			for (ULONG i = 0; i < current->NumberOfThreads; i++)
+			{
+				MINT::SYSTEM_THREAD_INFORMATION& thread = current->Threads[i];
+				//如果thread id不正確
+				if (pi_.dwThreadId != (long long)thread.ClientId.UniqueThread)
+					continue;
+
+				// 檢查線程狀態和等待原因，這里以檢查是否為等待用戶輸入為例
+				if (thread.ThreadState == MINT::KTHREAD_STATE::Waiting
+					&& (thread.WaitReason == MINT::KWAIT_REASON::Suspended
+						|| thread.WaitReason == MINT::KWAIT_REASON::WrSuspended
+						|| thread.WaitReason == MINT::KWAIT_REASON::WrMutex
+						|| thread.WaitReason == MINT::KWAIT_REASON::WrFastMutex
+						|| thread.WaitReason == MINT::KWAIT_REASON::WrGuardedMutex
+						))
+				{
+					return true; // 線程可能無響應
+				}
+			}
+
+			break; // 已處理指定進程
+		}
+
+		if (current->NextEntryOffset == 0)
+		{
+			break;
+		}
+
+		current = (MINT::PSYSTEM_PROCESS_INFORMATION)((LPBYTE)current + current->NextEntryOffset);
+	}
+
+	return false; // 沒有檢測到無響應的UI線程
+}
+
+
 bool GameDevice::isWindowAlive() const
 {
 	if (!isValid())
 		return false;
 
-	DWORD_PTR dwResult = 0L;
-	if (IsWindow(pi_.hWnd) == TRUE)
+	do
 	{
-		if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ERRORONEXIT, MessageTimeout, &dwResult) <= 0
-			|| IsHungAppWindow(pi_.hWnd) == TRUE
-			|| dwResult != 1234)
+		DWORD_PTR dwResult = 0L;
+		if (IsWindow(pi_.hWnd) == FALSE)
 		{
-			close();
-			return false;
+			break;
+		}
+
+		if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ERRORONEXIT | SMTO_ABORTIFHUNG, MessageTimeout, &dwResult) <= 0 || dwResult != 1234)
+		{
+			break;
+		}
+
+		if (IsHungAppWindow(pi_.hWnd) == TRUE)
+		{
+			break;
+		}
+
+		if (IsUIThreadHung())
+		{
+			break;
 		}
 
 		return true;
-	}
+	} while (false);
 
-	DWORD dwProcessId = NULL;
-	ScopedHandle hSnapshop(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPPROCESS, dwProcessId);
-	if (!hSnapshop.isValid())
-	{
-		return false;
-	}
-
-	PROCESSENTRY32W program_info = {};
-	program_info.dwSize = sizeof(PROCESSENTRY32W);
-	BOOL bResult = Process32FirstW(hSnapshop, &program_info);
-	if (FALSE == bResult)
-	{
-		return false;
-	}
-	else
-	{
-		if (program_info.th32ProcessID == pi_.dwProcessId)
-		{
-			//進一步檢查是否無響應
-			if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ERRORONEXIT, MessageTimeout, &dwResult) <= 0 || dwResult != 1234)
-			{
-				close();
-				return false;
-			}
-
-			return true;
-		}
-	}
-
-	while (TRUE == bResult)
-	{
-		if (program_info.th32ProcessID == pi_.dwProcessId)
-		{
-			//進一步檢查是否無響應
-			if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ERRORONEXIT, MessageTimeout, &dwResult) <= 0 || dwResult != 1234)
-			{
-				if (getEnableHash(util::kAutoRestartGameEnable))
-					close();
-				return false;
-			}
-
-			return true;
-		}
-
-		bResult = Process32NextW(hSnapshop, &program_info);
-	}
+	close();
 	return false;
 }
 
@@ -720,12 +753,6 @@ void GameDevice::hide(long long mode) const
 	if (hWnd == nullptr)
 		return;
 
-	bool isWin7 = false;
-	//get windows version
-	QOperatingSystemVersion version = QOperatingSystemVersion::current();
-	if (version <= QOperatingSystemVersion::Windows7)
-		isWin7 = true;
-
 	LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
 
 	//retore before hide
@@ -733,7 +760,7 @@ void GameDevice::hide(long long mode) const
 
 	//add tool window style to hide from taskbar
 
-	if (!isWin7)
+	if (!isWin7OrLower())
 	{
 		if (!util::checkAND(exstyle, WS_EX_TOOLWINDOW))
 			exstyle |= WS_EX_TOOLWINDOW;
@@ -774,15 +801,9 @@ void GameDevice::show() const
 
 	sendMessage(kEnableWindowHide, false, NULL);
 
-	bool isWin7 = false;
-	//get windows version
-	QOperatingSystemVersion version = QOperatingSystemVersion::current();
-	if (version <= QOperatingSystemVersion::Windows7)
-		isWin7 = true;
-
 	LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
 
-	if (!isWin7)
+	if (!isWin7OrLower())
 	{
 		//remove tool window style to show from taskbar
 		if (util::checkAND(exstyle, WS_EX_TOOLWINDOW))

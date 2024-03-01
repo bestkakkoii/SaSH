@@ -26,6 +26,8 @@ enum UserMessage
 	kBattleTimeExtend,
 	kEnableOptimize,
 	kEnableWindowHide,
+	kECBCrypt,
+	kECBEncrypt,
 
 	//Action
 	kSendAnnounce,

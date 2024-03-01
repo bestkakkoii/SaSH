@@ -2726,7 +2726,7 @@ void CLua::open_utillibs(sol::state& lua)
 			{
 				long long depth = kMaxLuaTableDepth;
 				title = getLuaTableString(otitle.as<sol::table>(), depth);
-		}
+			}
 
 			long long type = 1;
 			if (otype.is<long long>())
@@ -2736,7 +2736,7 @@ void CLua::open_utillibs(sol::state& lua)
 			long long nret = QMessageBox::StandardButton::NoButton;
 			emit signalDispatcher.messageBoxShow(text, type, title, &nret);
 			return nret == QMessageBox::StandardButton::Yes ? "yes" : "no";
-});
+		});
 #endif
 
 	lua.set_function("dlg", [this](std::string buttonstr, std::string stext, sol::object otype, sol::object otimeout, sol::this_state s)->sol::object
@@ -3448,17 +3448,21 @@ void CLua::open_syslibs(sol::state& lua)
 			if (gamedevice.worker.isNull())
 				return "";
 
-			static const QHash<long long, QString> hash = {
-				{ sa::kAfternoon, QObject::tr("afternoon") },
-				{ sa::kDusk, QObject::tr("dusk") },
-				{ sa::kMidnight, QObject::tr("midnight") },
-				{ sa::kMorning, QObject::tr("morning") },
-				{  sa::kNoon, QObject::tr("noon") },
-			};
-
 			long long satime = gamedevice.worker->getSaTime();
-			QString timeStr = hash.value(satime, QObject::tr("unknown"));
-			return util::toConstData(timeStr);
+
+			//0~255 sa::kAfternoon
+			if (satime >= sa::kAfternoon && satime < sa::kDusk)
+				return util::toConstData(QObject::tr("afternoon"));
+			else if (satime >= sa::kDusk && satime < sa::kMidnight)
+				return util::toConstData(QObject::tr("dusk"));
+			else if (satime >= sa::kMidnight && satime < sa::kMorning)
+				return util::toConstData(QObject::tr("midnight"));
+			else if (satime >= sa::kMorning && satime < sa::kNoon)
+				return util::toConstData(QObject::tr("morning"));
+			else if (satime >= sa::kNoon)
+				return util::toConstData(QObject::tr("noon"));
+
+			return util::toConstData(QObject::tr("unknown"));
 		});
 
 	lua.set_function("isvalid", [](sol::this_state s) ->bool
@@ -4297,7 +4301,7 @@ bool CLua::doString(const std::string& sstr)
 
 	do
 	{
-		safe::auto_flag autoFlag(&isRunning_);
+		isRunning_.on();
 
 		sol::protected_function_result loaded_chunk = lua_.safe_script(sstr, sol::script_pass_on_error);
 		lua_.collect_garbage();
@@ -4333,6 +4337,8 @@ bool CLua::doString(const std::string& sstr)
 			catch (...) {}
 		}
 	} while (false);
+
+	isRunning_.off();
 
 	return bret;
 }
@@ -4417,11 +4423,11 @@ void CLua::proc()
 					//emit this->logMessageExport(s, );
 					if (isDebug_ && !isSubScript_)
 						tableStrs << ">";
-					}
 				}
+			}
 
 			tableStrs.append(qstrErr);
-			}
+		}
 		else
 		{
 #ifdef _DEBUG
@@ -4517,11 +4523,11 @@ void CLua::proc()
 		}
 
 		luadebug::logExport(s, tableStrs, 0);
-		} while (false);
+	} while (false);
 
-		emit finished();
+	emit finished();
 
-		long long currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.scriptFinished();
-	}
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.scriptFinished();
+}

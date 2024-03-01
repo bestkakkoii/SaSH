@@ -308,7 +308,7 @@ void Socket::onReadyRead()
 			GameDevice& gamedevice = GameDevice::getInstance(index_);
 
 			if (!gamedevice.isGameInterruptionRequested())
-				std::ignore = QtConcurrent::run([this, badata]()
+				future_ = QtConcurrent::run([this, badata]()
 					{
 						QMutexLocker locker(&socketLock_);
 						GameDevice& gamedevice = GameDevice::getInstance(index_);
@@ -365,6 +365,8 @@ void Socket::onWrite(QByteArray ba, long long size)
 
 Socket::~Socket()
 {
+	future_.cancel();
+	future_.waitForFinished();
 	qDebug() << "Socket is distroyed!!";
 }
 
@@ -594,8 +596,12 @@ void Worker::handleData(QByteArray badata)
 		return;
 	}
 
-
-	QString key = mem::readString(gamedevice.getProcess(), gamedevice.getProcessModule() + sa::kOffsetPersonalKey, PERSONALKEYSIZE, true, true);
+	QString key = mem::readString(
+		gamedevice.getProcess(),
+		gamedevice.getProcessModule() + sa::kOffsetPersonalKey,
+		PERSONALKEYSIZE,
+		true, true
+	);
 	gamedevice.autil.setKey(util::toConstData(key));
 
 	if (!splitLinesFromReadBuf(netDataArrayList_))
@@ -1546,6 +1552,7 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	QThread::yieldCurrentThread();
 	return kBufferAboutToEnd;
 }
+
 #pragma endregion
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3564,7 +3571,7 @@ bool Worker::login(long long s)
 			setGameStatus(0);
 		};
 
-	auto input = [this, &signalDispatcher, &gamedevice, hProcess, hModule, &backToFirstPage, s, &account, &password]()->bool
+	auto input = [this, &signalDispatcher, &gamedevice, hProcess, hModule, &backToFirstPage, s, &account, &password, &status]()->bool
 		{
 
 			QString acct = mem::readString(hProcess, hModule + sa::kOffsetAccount, 32);
@@ -3629,6 +3636,22 @@ bool Worker::login(long long s)
 			{
 				backToFirstPage();
 				return false;
+			}
+
+			if (status == util::kStatusInputUser) // 位於帳密輸入頁面
+			{
+				return true;
+			}
+
+			// 加密
+			QByteArray accountECB = gamedevice.ecbEncrypt(account);
+			QByteArray passwordECB = gamedevice.ecbEncrypt(password);
+
+			if (acct.isEmpty() && pwd.isEmpty() && accountECB.size() > 0 && passwordECB.size() > 0
+				&& acctECB.toUtf8() != accountECB && pwdECB.toUtf8() != passwordECB)
+			{
+				mem::write(hProcess, hModule + sa::kOffsetAccountECB, accountECB.data(), accountECB.size());
+				mem::write(hProcess, hModule + sa::kOffsetPasswordECB, passwordECB.data(), passwordECB.size());
 			}
 
 			return true;
@@ -3714,10 +3737,10 @@ bool Worker::login(long long s)
 		{
 			gamedevice.leftDoubleClick(315, 253);
 			config.writeArray<long long>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
-	}
+		}
 #endif
 		break;
-}
+	}
 	case util::kStatusInputUser:
 	{
 		if (!input())
@@ -3850,10 +3873,10 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1500))
 				break;
 
-	}
+		}
 #endif
 		break;
-}
+	}
 	case util::kStatusSelectSubServer:
 	{
 		if (!input())
@@ -4005,8 +4028,8 @@ bool Worker::login(long long s)
 				if (timer.hasExpired(1500))
 					break;
 
-	}
-	}
+			}
+		}
 #endif
 		break;
 	}
@@ -5762,57 +5785,119 @@ void Worker::sortItem()
 	QHash<long long, sa::item_t> items = getItems();
 	sa::character_t pc = getCharacter();
 
+	//檢查人物負重是否不正確
+	if (pc.maxload <= 0)
+		return;
+
+	//从最后一个道具开始遍历
 	for (i = sa::MAX_ITEM - 1; i > sa::CHAR_EQUIPSLOT_COUNT; --i)
 	{
+		sa::item_t itemBackMost = items.value(i);
+
+		// 檢查道具是否存在
+		if (!itemBackMost.valid)
+			continue;
+
+		// 檢查道具名稱是否為空
+		if (itemBackMost.name.isEmpty())
+			continue;
+
+		QString key = QString("%1_%2_%3").arg(itemBackMost.name).arg(itemBackMost.memo).arg(itemBackMost.modelid);
+
+		//如果key存在且不可堆疊則跳過
+		if (itemStackFlagHash_.contains(key) && itemStackFlagHash_.value(key) == kItemUnableSort)
+			continue;
+
+		//從第一個道具開始遍歷
 		for (j = sa::CHAR_EQUIPSLOT_COUNT; j < i; ++j)
 		{
-			if (!items.value(i).valid)
-				continue;
+			sa::item_t itemFrontMost = items.value(j);
 
-			if (items.value(i).name.isEmpty())
-				continue;
-
-			if (items.value(i).name != items.value(j).name)
-				continue;
-
-			if (items.value(i).memo != items.value(j).memo)
-				continue;
-
-			if (items.value(i).modelid != items.value(j).modelid)
-				continue;
-
-			if (pc.maxload <= 0)
-				continue;
-
-			QString key = QString("%1|%2|%3").arg(items.value(j).name).arg(items.value(j).memo).arg(items.value(j).modelid);
-			if (items.value(j).stack > 1 && !itemStackFlagHash_.contains(key))
-				itemStackFlagHash_.insert(key, true);
-			else
+#if 0
+			//如果 j 位置为空则直接交換，将道具塞到最前面
+			if (!itemFrontMost.valid)
 			{
 				swapItem(i, j);
-				itemStackFlagHash_.insert(key, false);
+				continue;
+			}
+#endif
+
+			// 檢查 i 位置道具名稱 是否與 j 位置道具名稱相同
+			if (itemBackMost.name != itemFrontMost.name)
+				continue;
+
+			// 檢查 i 位置道具備註 是否與 j 位置道具備註相同
+			if (itemBackMost.memo != itemFrontMost.memo)
+				continue;
+
+			// 檢查 i 位置道具模型編號 是否與 j 位置道具模型編號相同
+			if (itemBackMost.modelid != itemFrontMost.modelid)
+				continue;
+
+			//首先檢查 j 道具 是否為可堆疊道具
+			if (itemFrontMost.stack > 1 && itemStackFlagHash_.value(key) != kItemEnableSort)
+			{
+				itemStackFlagHash_.insert(key, kItemEnableSort); //將該道具標記為可堆疊
+			}
+
+			//如果key不存在 先嘗試疊一次
+			if (!itemStackFlagHash_.contains(key))
+			{
+				swapItem(i, j);
+				itemStackFlagHash_.insert(key, kItemFirstSort); //將其先標記为首次堆叠
 				continue;
 			}
 
-			if (itemStackFlagHash_.contains(key) && !itemStackFlagHash_.value(key) && items.value(j).stack == 1)
+			//如果標記不可堆疊且實際堆疊數量為1則跳過
+			if (itemStackFlagHash_.value(key) == kItemUnableSort && itemFrontMost.stack == 1)
 				continue;
 
-			if (items.value(j).stack >= pc.maxload)
+			//檢查如果實際堆疊數量大於人物負重
+			if (itemFrontMost.stack > pc.maxload)
 			{
-				pc.maxload = items.value(j).stack;
-				if (items.value(j).stack != items.value(j).maxStack)
+				//將人物負重設為該道具堆疊數量
+				pc.maxload = itemFrontMost.stack;
+				setCharacter(pc);
+				//如果道具 j 堆疊數量 不同於 道具 j 最大堆疊數量
+				if (itemFrontMost.stack != itemMaxStackHash_.value(key))
 				{
-					items[j].maxStack = items.value(j).stack;
+					//將道具 j 最大堆疊數量設為道具 j 堆疊數量
+					itemMaxStackHash_.insert(key, itemFrontMost.stack);
+
+					//嘗試交換道具
 					swapItem(i, j);
 				}
 				continue;
 			}
 
-			if (items.value(i).stack > items.value(j).stack)
+			//如果道具 前面的道具大於後面的道具 則交換道具
+			if (itemBackMost.stack < itemFrontMost.stack)
+			{
+				if (!itemMaxStackHash_.contains(key))
+				{
+					itemMaxStackHash_.insert(key, itemFrontMost.stack);
+					swapItem(i, j);
+					itemTryStackHash_[key] = 0;
+				}
+
+				if (itemMaxStackHash_.value(key) < itemFrontMost.stack)
+				{
+					itemMaxStackHash_.insert(key, itemFrontMost.stack);
+					swapItem(i, j);
+					itemTryStackHash_[key] = 0;
+				}
+				else if (itemMaxStackHash_.value(key) > itemFrontMost.stack)
+				{
+					swapItem(i, j);
+					itemTryStackHash_[key] = 0;
+				}
+
+				swapItem(i, j);
+
 				continue;
+			}
 
-			items[j].maxStack = items.value(j).stack;
-
+			//嘗試交換道具 将后面较多的道具移到前面
 			swapItem(i, j);
 		}
 	}
@@ -6396,6 +6481,11 @@ void Worker::setBattleEnd()
 			{
 				setGameStatus(7);
 			}
+
+			if (gamedevice.getEnableHash(util::kLockMoveEnable))
+				return;
+
+			gamedevice.sendMessage(kEnableMoveLock, false, NULL);
 
 		});
 }
@@ -9587,7 +9677,7 @@ long long Worker::getBattleSelectableEnemyOneRowTarget(const sa::battle_data_t& 
 
 	return defaultTarget;
 #endif
-	}
+}
 
 //取戰鬥隊友可選目標編號
 long long Worker::getBattleSelectableAllieTarget(const sa::battle_data_t& bt) const
@@ -9757,6 +9847,7 @@ bool Worker::fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget
 			oldtarget = sa::TARGET_SIDE_1;
 		break;
 	}
+	case sa::MAGIC_TARGET_WHOLEOTHERSIDE:// 全体
 	case sa::MAGIC_TARGET_ALLOTHERSIDE://敵方全體
 	{
 		if (battleCharCurrentPos.get() < 10)
@@ -9794,28 +9885,19 @@ bool Worker::fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget
 		{
 			oldtarget = -1;
 		}
-		break;
-	}
-	case sa::MAGIC_TARGET_WHOLEOTHERSIDE://敵方全體 或 我方全體
-	{
-		if (oldtarget != sa::TARGET_SIDE_0 && oldtarget != sa::TARGET_SIDE_1)
+		else
 		{
-			if (oldtarget >= 0 && oldtarget <= 9)
+			if (battleCharCurrentPos.get() < 10)
 			{
-				if (battleCharCurrentPos.get() < 10)
-					oldtarget = sa::TARGET_SIDE_0;
-				else
-					oldtarget = sa::TARGET_SIDE_1;
+				if (oldtarget >= 10)
+					oldtarget = -1;
 			}
 			else
 			{
-				if (battleCharCurrentPos.get() < 10)
-					oldtarget = sa::TARGET_SIDE_1;
-				else
-					oldtarget = sa::TARGET_SIDE_0;
+				if (oldtarget < 10)
+					oldtarget = -1;
 			}
 		}
-
 		break;
 	}
 	case sa::MAGIC_TARGET_SINGLE:				// 針對敵方某一方
@@ -9829,15 +9911,30 @@ bool Worker::fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget
 		}
 		break;
 	}
-	case sa::MAGIC_TARGET_ONE_ROW:				// 針對敵方某一列
+	case sa::MAGIC_TARGET_ONE_ROW:				// 針對某一列
 	{
-		if (battleCharCurrentPos.get() < 10)
+		if (oldtarget >= 0 && oldtarget <= 4)//右側後排
+		{
+			oldtarget = sa::TARGET_SIDE_0_B_ROW;
+		}
+		else if (oldtarget >= 5 && oldtarget <= 9)//右側前排
+		{
+			oldtarget = sa::TARGET_SIDE_0_F_ROW;
+		}
+		else if (oldtarget >= 10 && oldtarget <= 14)//左側後排
+		{
+			oldtarget = sa::TARGET_SIDE_1_B_ROW;
+		}
+		else if (oldtarget >= 15 && oldtarget <= 19)//左側前排
 		{
 			oldtarget = sa::TARGET_SIDE_1_F_ROW;
 		}
 		else
 		{
-			oldtarget = sa::TARGET_SIDE_0_F_ROW;
+			if (battleCharCurrentPos.get() < 10)
+				oldtarget = sa::TARGET_SIDE_1_F_ROW;
+			else
+				oldtarget = sa::TARGET_SIDE_0_F_ROW;
 		}
 		break;
 	}
@@ -9875,20 +9972,19 @@ bool Worker::fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget
 
 	long long magicType = skill.target;
 
-	//exception
-	if (skill.name == "火星球")
-	{
-	}
-
 	switch (magicType)
 	{
-	case sa::MAGIC_TARGET_MYSELF:
-	{
-		if (oldtarget != 0)
-			oldtarget = 0;
+	case sa::PETSKILL_TARGET_NONE:
+	case sa::PETSKILL_TARGET_MYSELF:
+		oldtarget = battleCharCurrentPos.get();
 		break;
-	}
-	case sa::MAGIC_TARGET_OTHER://雙方任意單體
+	case sa::PETSKILL_TARGER_DEATH:
+		oldtarget = -1;
+		break;
+	case sa::PETSKILL_TARGET_OTHER:
+	case sa::PETSKILL_TARGET_OTHERWITHOUTMYSELF:
+	case sa::PETSKILL_TARGET_WITHOUTMYSELFANDPET:
+	case sa::PETSKILL_TARGET_ONE_LINE:
 	{
 		if (oldtarget < 0 || oldtarget >= sa::MAX_ENEMY)
 		{
@@ -9899,15 +9995,7 @@ bool Worker::fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget
 		}
 		break;
 	}
-	case sa::MAGIC_TARGET_ALLMYSIDE://我方全體
-	{
-		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_0;
-		else
-			oldtarget = sa::TARGET_SIDE_1;
-		break;
-	}
-	case sa::MAGIC_TARGET_ALLOTHERSIDE://敵方全體
+	case sa::PETSKILL_TARGET_ALLMYSIDE:
 	{
 		if (battleCharCurrentPos.get() < 10)
 			oldtarget = sa::TARGET_SIDE_1;
@@ -9915,97 +10003,47 @@ bool Worker::fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget
 			oldtarget = sa::TARGET_SIDE_0;
 		break;
 	}
-	case sa::MAGIC_TARGET_ALL://雙方全體同時(場地)
+	case sa::PETSKILL_TARGET_ALLOTHERSIDE:
+	{
+		if (battleCharCurrentPos.get() < 10)
+			oldtarget = sa::TARGET_SIDE_0;
+		else
+			oldtarget = sa::TARGET_SIDE_1;
+		break;
+	}
+	case sa::PETSKILL_TARGET_ALL:
 	{
 		oldtarget = sa::TARGET_ALL;
 		break;
 	}
-	case sa::MAGIC_TARGET_NONE://無
+	case sa::PETSKILL_TARGET_ONE_ROW:
+	case sa::PETSKILL_TARGET_ONE_ROW_ALL:
 	{
-		//oldtarget = -1;
-		//break;
-		if (oldtarget != 0)
-			oldtarget = 0;
-		break;
-	}
-	case sa::MAGIC_TARGET_OTHERWITHOUTMYSELF://我方任意除了自己
-	{
-		if (oldtarget == battleCharCurrentPos.get())
+		if (oldtarget >= 0 && oldtarget <= 4)//右側後排
 		{
-			oldtarget = -1;
+			oldtarget = sa::TARGET_SIDE_0_B_ROW;
 		}
-		break;
-	}
-	case sa::MAGIC_TARGET_WITHOUTMYSELFANDPET://我方任意除了自己和寵物
-	{
-		if (oldtarget == battleCharCurrentPos.get())
+		else if (oldtarget >= 5 && oldtarget <= 9)//右側前排
 		{
-			oldtarget = -1;
+			oldtarget = sa::TARGET_SIDE_0_F_ROW;
 		}
-		else if (oldtarget == (battleCharCurrentPos.get() + 5))
+		else if (oldtarget >= 10 && oldtarget <= 14)//左側後排
 		{
-			oldtarget = -1;
+			oldtarget = sa::TARGET_SIDE_1_B_ROW;
 		}
-		break;
-	}
-	case sa::MAGIC_TARGET_WHOLEOTHERSIDE://敵方全體 或 我方全體
-	{
-		if (oldtarget != sa::TARGET_SIDE_0 && oldtarget != sa::TARGET_SIDE_1)
-		{
-			if (oldtarget >= 0 && oldtarget <= 9)
-			{
-				if (battleCharCurrentPos.get() < 10)
-					oldtarget = sa::TARGET_SIDE_0;
-				else
-					oldtarget = sa::TARGET_SIDE_1;
-			}
-			else
-			{
-				if (battleCharCurrentPos.get() < 10)
-					oldtarget = sa::TARGET_SIDE_1;
-				else
-					oldtarget = sa::TARGET_SIDE_0;
-			}
-		}
-
-		break;
-	}
-	case sa::MAGIC_TARGET_SINGLE: // 針對敵方某一方
-	{
-		if (oldtarget < 10 || oldtarget >= sa::MAX_ENEMY)
-		{
-			if (battleCharCurrentPos.get() < 10)
-				oldtarget = 19;
-			else
-				oldtarget = 9;
-		}
-		break;
-	}
-	case sa::MAGIC_TARGET_ONE_ROW:				// 針對敵方某一列
-	{
-		if (battleCharCurrentPos.get() < 10)
+		else if (oldtarget >= 15 && oldtarget <= 19)//左側前排
 		{
 			oldtarget = sa::TARGET_SIDE_1_F_ROW;
 		}
 		else
 		{
-			oldtarget = sa::TARGET_SIDE_0_F_ROW;
-		}
-		break;
-	}
-	case sa::MAGIC_TARGET_ALL_ROWS:				// 針對敵方所有人
-	{
-		if (oldtarget < 0 || oldtarget >= sa::MAX_ENEMY)
-		{
 			if (battleCharCurrentPos.get() < 10)
-				oldtarget = 19;
+				oldtarget = sa::TARGET_SIDE_1_F_ROW;
 			else
-				oldtarget = 9;
+				oldtarget = sa::TARGET_SIDE_0_F_ROW;
 		}
 		break;
 	}
-	default:
-		break;
 	}
 
 	*target = oldtarget;
@@ -10134,10 +10172,6 @@ bool Worker::fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget,
 			oldtarget = battleCharCurrentPos.get() + 5;
 		break;
 	}
-	case sa::PETSKILL_TARGET_OTHER:
-	{
-		break;
-	}
 	case sa::PETSKILL_TARGET_ALLMYSIDE:
 	{
 		if (battleCharCurrentPos.get() < 10)
@@ -10161,14 +10195,46 @@ bool Worker::fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget,
 	}
 	case sa::PETSKILL_TARGET_NONE:
 	{
-		oldtarget = 0;
+		oldtarget = battleCharCurrentPos.get() + 5;
 		break;
 	}
+	case sa::PETSKILL_TARGET_OTHER:
 	case sa::PETSKILL_TARGET_OTHERWITHOUTMYSELF:
 	{
-		if (oldtarget == (battleCharCurrentPos.get() + 5))
+		if (oldtarget < 0 || oldtarget >= sa::MAX_ENEMY)
 		{
-			oldtarget = -1;
+			if (battleCharCurrentPos.get() < 10)
+				oldtarget = 19;
+			else
+				oldtarget = 9;
+		}
+		break;
+	}
+	case sa::PETSKILL_TARGET_ONE_ROW:
+	case sa::PETSKILL_TARGET_ONE_ROW_ALL:
+	{
+		if (oldtarget >= 0 && oldtarget <= 4)//右側後排
+		{
+			oldtarget = sa::TARGET_SIDE_0_B_ROW;
+		}
+		else if (oldtarget >= 5 && oldtarget <= 9)//右側前排
+		{
+			oldtarget = sa::TARGET_SIDE_0_F_ROW;
+		}
+		else if (oldtarget >= 10 && oldtarget <= 14)//左側後排
+		{
+			oldtarget = sa::TARGET_SIDE_1_B_ROW;
+		}
+		else if (oldtarget >= 15 && oldtarget <= 19)//左側前排
+		{
+			oldtarget = sa::TARGET_SIDE_1_F_ROW;
+		}
+		else
+		{
+			if (battleCharCurrentPos.get() < 10)
+				oldtarget = sa::TARGET_SIDE_1_F_ROW;
+			else
+				oldtarget = sa::TARGET_SIDE_0_F_ROW;
 		}
 		break;
 	}
@@ -10188,7 +10254,7 @@ bool Worker::fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget,
 		{
 			oldtarget = -1;
 		}
-		else if (oldtarget == (battleCharCurrentPos.get() + 5))
+		else if (oldtarget == (battleCharCurrentPos.get() + 5) || oldtarget == battleCharCurrentPos.get())
 		{
 			oldtarget = -1;
 		}
@@ -10849,10 +10915,10 @@ void Worker::lssproto_AB_recv(char* cdata)
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
 				}
-	}
-}
+			}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -10910,8 +10976,8 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
 			}
-}
-}
+		}
+	}
 #endif
 }
 
@@ -11311,6 +11377,8 @@ void Worker::lssproto_WN_recv(long long windowtype, long long buttontype, long l
 	}
 
 	currentDialog.set(sa::dialog_t{ windowtype, buttontype, dialogid, unitid, data, linedatas, strList });
+
+	IS_WAITFOR_DIALOG_FLAG.off();
 
 	for (const QString& it : BankPetList)
 	{
@@ -11862,12 +11930,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-			}
+					}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
-		}
-	}
+				}
+			}
 
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -11881,14 +11949,14 @@ void Worker::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = std::move(objs);
-	}
+		}
 
 		setBattleData(bt);
 
 		if (!battleCharAlreadyActed.get() || !battlePetAlreadyActed.get())
 			asyncBattleAction(true);
 		break;
-}
+	}
 	case 'C':
 	{
 		sa::battle_data_t bt = getBattleData();
@@ -12664,7 +12732,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-	}
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
@@ -13189,7 +13257,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -13239,7 +13307,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -13281,7 +13349,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
@@ -13550,9 +13618,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-		}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13589,7 +13657,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-	}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13853,8 +13921,8 @@ void Worker::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-}
-}
+			}
+		}
 #endif
 #pragma endregion
 	}
@@ -14696,10 +14764,38 @@ void Worker::lssproto_S_recv(char* cdata)
 			QVariantList varList;
 			if (pet.valid)
 			{
+				QString ele;
+				if (pet.earth > 0 || pet.water > 0 || pet.fire > 0 || pet.wind > 0)
+				{
+					ele = "";
+					if (pet.earth > 0)
+					{
+						ele += "地";
+						ele += util::toQString(pet.earth / 10);
+					}
+					if (pet.water > 0)
+					{
+						ele += "水";
+						ele += util::toQString(pet.water / 10);
+					}
+					if (pet.fire > 0)
+					{
+						ele += "火";
+						ele += util::toQString(pet.fire / 10);
+					}
+					if (pet.wind > 0)
+					{
+						ele += "風";
+						ele += util::toQString(pet.wind / 10);
+					}
+				}
+
+				QString first = (QObject::tr("%1(%2tr)").arg(pet.level).arg(pet.transmigration) + QString("[%1]").arg(ele));
+
 				varList = QVariantList{
 					pet.name,
 					pet.freeName,
-					QObject::tr("%1(%2tr)").arg(pet.level).arg(pet.transmigration),
+					first ,
 					pet.exp, pet.maxExp, pet.maxExp - pet.exp,
 					QString("%1/%2").arg(pet.hp).arg(pet.maxHp),
 					"",

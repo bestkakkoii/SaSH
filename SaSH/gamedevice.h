@@ -133,6 +133,8 @@ public:
 
 	[[nodiscard]] bool __fastcall isWindowAlive() const;
 
+	[[nodiscard]] bool __fastcall IsUIThreadHung() const;
+
 	long long __fastcall sendMessage(long long msg, long long wParam, long long lParam) const;
 
 	bool __fastcall postMessage(long long msg, long long wParam, long long lParam) const;
@@ -175,7 +177,7 @@ public:
 
 	void __fastcall dragto(long long x1, long long y1, long long x2, long long y2) const;
 
-	bool capture(const QString& fileName)
+	bool __fastcall capture(const QString& fileName) const
 	{
 		if (!isValid())
 			return false;
@@ -222,6 +224,24 @@ public:
 	void __fastcall show() const;
 
 	QString __fastcall getPointFileName() const;
+
+	QString __fastcall ecbDecrypt(long long address) const
+	{
+		mem::VirtualMemory lpDst(processHandle_, 32, true);
+		sendMessage(kECBCrypt, getProcessModule() + address, lpDst);
+		return mem::readString(processHandle_, lpDst, 32);
+	}
+
+	QByteArray __fastcall ecbEncrypt(const QString& str) const
+	{
+		mem::VirtualMemory lpSrc(processHandle_, str, mem::VirtualMemory::kAnsi, true);
+		mem::VirtualMemory lpDst(processHandle_, 32, true);
+
+		sendMessage(kECBEncrypt, lpSrc, lpDst);
+		QByteArray result(32, '\0');
+		mem::read(processHandle_, lpDst, 32, result.data());
+		return result;
+	}
 
 	inline void __fastcall setParentWidget(HWND parentWidget) { parentWidget_ = parentWidget; }
 
@@ -300,6 +320,8 @@ private:
 	DWORD WINAPI __fastcall getFunAddr(const DWORD* DllBase, const char* FunName);
 #endif
 
+	bool __fastcall isWin7OrLower() const { return isWin7OrLower_.get(); }
+
 public:
 	safe::flag IS_INJECT_OK = false;//是否注入成功
 
@@ -350,6 +372,8 @@ private:
 	ScopedHandle processHandle_;
 	HWND parentWidget_ = nullptr;//主窗口句柄
 	HMODULE hookdllModule_ = nullptr;
+
+	safe::flag isWin7OrLower_ = false;
 
 private:
 	safe::flag isScriptPaused_ = false;
@@ -714,9 +738,6 @@ public:
 	{
 		return actions_.end();
 	}
-
 private:
-
-
 	QVector<action_t> actions_;
 };

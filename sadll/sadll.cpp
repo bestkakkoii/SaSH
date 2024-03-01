@@ -121,6 +121,23 @@ extern "C"
 		return g_GameService.New_ntohs(netshort);
 	}
 
+	static DWORD WINAPI New_GetTickCount()
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_GetTickCount();
+	}
+
+	static BOOL WINAPI New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_QueryPerformanceCounter(lpPerformanceCount);
+	}
+
+	static DWORD WINAPI New_TimeGetTime()
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_TimeGetTime();
+	}
 #endif
 
 	//new recv
@@ -142,24 +159,6 @@ extern "C"
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_SetWindowTextA(hWnd, lpString);
-	}
-
-	static DWORD WINAPI New_GetTickCount()
-	{
-		GameService& g_GameService = GameService::getInstance();
-		return g_GameService.New_GetTickCount();
-	}
-
-	static BOOL WINAPI New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
-	{
-		GameService& g_GameService = GameService::getInstance();
-		return g_GameService.New_QueryPerformanceCounter(lpPerformanceCount);
-	}
-
-	static DWORD WINAPI New_TimeGetTime()
-	{
-		GameService& g_GameService = GameService::getInstance();
-		return g_GameService.New_TimeGetTime();
 	}
 
 	static void WINAPI New_Sleep(DWORD dwMilliseconds)
@@ -484,7 +483,7 @@ void GameService::New_lssproto_TK_send(int fd, int x, int y, const char* message
 	//查找是否包含'//'
 	if (!msg.empty() && msg.find("//") != std::string::npos)
 	{
-		if (msg.find("//console"))
+		if (msg.find("//console") != std::string::npos)
 		{
 			if (g_consoleHwnd == nullptr)
 				g_consoleHwnd = util::createConsole();
@@ -1313,7 +1312,8 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	case WM_MOUSEMOVE:
 	{
 		//通知外掛更新當前鼠標坐標顯示
-		g_GameService.postMessage(message + static_cast<UINT>(WM_USER), wParam, lParam);
+		g_GameService.postMessage(static_cast<UINT>(message + WM_USER), wParam, lParam, g_GameService.g_ParenthWnd);
+
 		break;
 	}
 	case WM_KEYDOWN:
@@ -1370,7 +1370,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			if (nullptr == g_GameService.g_ParenthWnd)
 				break;
 
-			g_GameService.postMessage(message + static_cast<UINT>(WM_USER + VK_DELETE), wParam, lParam);
+			g_GameService.postMessage(message + static_cast<UINT>(WM_USER + VK_DELETE), wParam, lParam, g_GameService.g_ParenthWnd);
 			break;
 		}
 		default:
@@ -1515,11 +1515,35 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	{
 		return g_GameService.WM_CleanChatHistory();
 	}
-	case kCreateDialog:
+	case kCreateDialog://創建對話框
 	{
 		int type = LOWORD(wParam);
 		int button = HIWORD(wParam);
 		return g_GameService.WM_CreateDialog(type, button, reinterpret_cast<const char*>(lParam));
+	}
+	case kECBCrypt://ECB解密
+	{
+		const char* pSrc = reinterpret_cast<const char*>(wParam);
+		char* pDst = reinterpret_cast<char*>(lParam);
+		if (nullptr == pSrc || nullptr == pDst)
+			return FALSE;
+
+		memset(pDst, 0, 32);
+		memcpy(pDst, pSrc, 32);
+		g_GameService.pecb_crypt("f;encor1c", pDst, 32, 1);//mode = DES_DECRYPT(1)
+		return TRUE;
+	}
+	case kECBEncrypt://ECB加密
+	{
+		const char* pSrc = reinterpret_cast<const char*>(wParam);
+		char* pDst = reinterpret_cast<char*>(lParam);
+		if (nullptr == pSrc || nullptr == pDst)
+			return FALSE;
+
+		memset(pDst, 0, 32);
+		memcpy(pDst, pSrc, 32);
+		g_GameService.pecb_crypt("f;encor1c", pDst, 32, 0);//mode = DES_ENCRYPT(0)
+		return TRUE;
 	}
 	default:
 		break;
@@ -1546,22 +1570,27 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 
 		GetModuleFileNameW(nullptr, g_GameService.g_szGameModulePath, MAX_PATH);
 
-
 		g_GameService.g_consoleHwnd = util::createConsole();
 		if (g_GameService.g_consoleHwnd != nullptr)
 			ShowWindow(g_GameService.g_consoleHwnd, SW_HIDE);
 
 		g_GameService.g_hGameModule = GetModuleHandleW(nullptr);
+		std::wcout << L"GameModule: 0x" << g_GameService.g_hGameModule << std::endl;
 
 		g_GameService.g_MainThreadId = dwThreadId;
+		std::wcout << L"MainThreadId: " << (int)g_GameService.g_MainThreadId << std::endl;
 
 		g_GameService.g_MainThreadHandle = GetCurrentThread();
+		std::wcout << L"MainThreadHandle: " << (int)g_GameService.g_MainThreadHandle << std::endl;
 
 		g_GameService.g_hDllModule = hModule;
+		std::wcout << L"DLLModule: 0x" << g_GameService.g_hDllModule << std::endl;
 
 		g_GameService.g_MainHwnd = hWnd;
+		std::wcout << L"MainHwnd: " << (int)g_GameService.g_MainHwnd << std::endl;
 
 		g_GameService.g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongW(hWnd, GWL_WNDPROC));
+		std::wcout << L"OldWndProc: 0x" << g_GameService.g_OldWndProc << std::endl;
 
 		SetWindowLongW(hWnd, GWL_WNDPROC, reinterpret_cast<LONG>(WndProc));
 
@@ -1579,7 +1608,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 	}
 
 	return TRUE;
-	}
+}
 
 BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short type, unsigned short port)
 {
@@ -1621,6 +1650,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	pLssproto_TK_send = CONVERT_GAMEVAR<pfnLssproto_TK_send>(0x8F7C0ul);//喊話發送封包
 	pLssproto_W2_send = CONVERT_GAMEVAR<pfnLssproto_W2_send>(0x8EEA0ul);//喊話發送封包
 	pCreateDialog = CONVERT_GAMEVAR<pfnCreateDialog>(0x64AC0ul);//創建對話框
+	pecb_crypt = CONVERT_GAMEVAR<pfnecb_crypt>(0x8BB90ul);//ECB加解密
 
 	/*
 		sa_8001.exe+91710 - FF 25 08C04900        - jmp dword ptr [sa_8001.exe+9C008] { ->DINPUT.DirectInputCreateA }
@@ -1712,9 +1742,9 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 #endif
 
 	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
-	DetourAttach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
-	DetourAttach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
-	DetourAttach(&(PVOID&)pTimeGetTime, ::New_TimeGetTime);
+	//DetourAttach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
+	//DetourAttach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
+	//DetourAttach(&(PVOID&)pTimeGetTime, ::New_TimeGetTime);
 	DetourAttach(&(PVOID&)pSleep, ::New_Sleep);
 
 	DetourAttach(&(PVOID&)pPlaySound, ::New_PlaySound);
@@ -1771,7 +1801,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 
 	return FALSE;
 #endif
-	}
+}
 
 /*
 	This stuff is actually not necessary.
@@ -1837,9 +1867,9 @@ BOOL GameService::uninitialize()
 #endif
 
 	DetourDetach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
-	DetourDetach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
-	DetourDetach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
-	DetourDetach(&(PVOID&)pTimeGetTime, ::New_TimeGetTime);
+	//DetourDetach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
+	//DetourDetach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
+	//DetourDetach(&(PVOID&)pTimeGetTime, ::New_TimeGetTime);
 	DetourDetach(&(PVOID&)pSleep, ::New_Sleep);
 
 	DetourDetach(&(PVOID&)pPlaySound, ::New_PlaySound);

@@ -207,6 +207,7 @@ namespace zipper
 #endif
 #endif
 
-
+	//bestkakkoii added
+	bool compress(const std::wstring& source, const std::wstring& destination);
 }
 #endif

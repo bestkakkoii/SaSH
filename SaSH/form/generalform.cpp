@@ -24,7 +24,6 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 	setFont(util::getFont());
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::setStartButtonEnabled, ui.pushButton_start, &PushButton::setEnabled, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &GeneralForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::gameStarted, this, &GeneralForm::onGameStart, Qt::QueuedConnection);
 
@@ -217,7 +216,7 @@ void GeneralForm::reloadPaths()
 		{
 			QString path;
 
-			if (!util::fileDialogShow(SASH_SUPPORT_GAMENAME, QFileDialog::AcceptOpen, &path, this) || path.isEmpty())
+			if (!util::fileDialogShow(EXECUTIVE_FILE_SUFFIX, QFileDialog::AcceptOpen, &path, this) || path.isEmpty())
 				return;
 
 			paths.append(path);
@@ -225,7 +224,7 @@ void GeneralForm::reloadPaths()
 
 		for (const QString& path : paths)
 		{
-			if (path.contains(SASH_SUPPORT_GAMENAME, Qt::CaseInsensitive) && QFile::exists(path) && !newPaths.contains(path, Qt::CaseInsensitive))
+			if (path.contains(EXECUTIVE_FILE_SUFFIX, Qt::CaseInsensitive) && QFile::exists(path) && !newPaths.contains(path, Qt::CaseInsensitive))
 			{
 				newPaths.append(path);
 			}
@@ -276,11 +275,11 @@ void GeneralForm::onButtonClicked()
 	{
 		QString newPath;
 
-		if (!util::fileDialogShow(SASH_SUPPORT_GAMENAME, QFileDialog::AcceptOpen, &newPath, this)
+		if (!util::fileDialogShow(EXECUTIVE_FILE_SUFFIX, QFileDialog::AcceptOpen, &newPath, this)
 			|| newPath.isEmpty())
 			return;
 
-		if (!newPath.contains(SASH_SUPPORT_GAMENAME, Qt::CaseInsensitive) || !QFile::exists(newPath))
+		if (!newPath.contains(EXECUTIVE_FILE_SUFFIX, Qt::CaseInsensitive) || !QFile::exists(newPath))
 			return;
 
 		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
@@ -289,7 +288,7 @@ void GeneralForm::onButtonClicked()
 
 		for (const QString& path : paths)
 		{
-			if (path.contains(SASH_SUPPORT_GAMENAME, Qt::CaseInsensitive) && QFile::exists(path) && !newPaths.contains(path, Qt::CaseInsensitive))
+			if (path.contains(EXECUTIVE_FILE_SUFFIX, Qt::CaseInsensitive) && QFile::exists(path) && !newPaths.contains(path, Qt::CaseInsensitive))
 			{
 				newPaths.append(path);
 			}
@@ -361,7 +360,7 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_start")
 	{
-		onGameStart();
+		onGameStart(0);
 		return;
 	}
 
@@ -1073,21 +1072,21 @@ void GeneralForm::onApplyHashSettingsToUI()
 	ui.checkBox_switcher_world->setChecked(enableHash.value(util::kSwitcherWorldEnable));
 }
 
-void GeneralForm::onGameStart()
+void GeneralForm::onGameStart(long long delay)
 {
 	ui.pushButton_start->setEnabled(false);
-	QMetaObject::invokeMethod(this, "startGameAsync", Qt::QueuedConnection);
-}
 
-void GeneralForm::startGameAsync()
-{
-	//QTimer + QEventLoop wait for 5s
-	QTimer timer;
-	timer.setSingleShot(true);
-	QEventLoop loop;
-	connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-	timer.start(3000);
-	loop.exec();
+	//視情況延遲啟動
+	if (delay > 0)
+	{
+		//創建一個定時器和事件循環器
+		QTimer timer;
+		timer.setSingleShot(true);
+		QEventLoop loop;
+		connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+		timer.start(delay);
+		loop.exec(); //進入事件循環，等待定時器超時，這裡用途是防止阻塞等待時造成界面無響應
+	}
 
 	do
 	{
@@ -1114,26 +1113,29 @@ void GeneralForm::startGameAsync()
 		if (!thread_manager.createThread(currentIndex, &pMainObject, nullptr) || (nullptr == pMainObject))
 			break;
 
-		connect(pMainObject, &MainObject::finished, this, [this]()
-			{
-				GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-				if (!gamedevice.getEnableHash(util::kAutoRestartGameEnable))
-					ui.pushButton_start->setEnabled(true);
-				else
-				{
-					QMetaObject::invokeMethod(this, "startGameAsync", Qt::QueuedConnection);
-				}
-			}, Qt::QueuedConnection);
+		connect(pMainObject, &MainObject::destroyed, this, &GeneralForm::onMainThradDestroyed, Qt::QueuedConnection);
 
-		if (gamedevice.getEnableHash(util::kAutoStartScriptEnable))
-		{
-			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-			if (!gamedevice.IS_SCRIPT_FLAG.get())
-				emit signalDispatcher.scriptStarted();
-		}
+		pMainObject->thread.start();
+
+
+
 		return;
 	} while (false);
 
+	ui.pushButton_start->setEnabled(true);
+}
+
+//遊戲主線程銷毀之後判斷是否需要重啟遊戲
+void GeneralForm::onMainThradDestroyed()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.getEnableHash(util::kAutoRestartGameEnable))
+	{
+		onGameStart(5000);
+		return;
+	}
+
+	//不需要重啟遊戲的話就啟用開始按鈕
 	ui.pushButton_start->setEnabled(true);
 }
 

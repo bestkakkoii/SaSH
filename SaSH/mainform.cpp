@@ -296,7 +296,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 		++interfaceCount_;
 		updateStatusText();
-		interpreter->doString(script);
+
+		std::shared_ptr<Interpreter>interpreterPtr = interpreter_hash_.value(id);
+		if (interpreterPtr != nullptr)
+		{
+			interpreterPtr->doString(script);
+		}
 		*result = 1;
 		return true;
 	}
@@ -409,7 +414,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
-		emit signalDispatcher.gameStarted();
+		emit signalDispatcher.gameStarted(0);
 
 		++interfaceCount_;
 		updateStatusText();
@@ -489,7 +494,6 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		long long arg = HIWORD(msg->lParam);
 		*result = 0;
 
-#ifndef LEAK_TEST
 		switch (type)
 		{
 		case WindowInfo:
@@ -608,7 +612,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		default:
 			break;
 		}
-#endif
+
 		return true;
 	}
 	case InterfaceMessage::kSortWindow:
@@ -1066,24 +1070,29 @@ MainForm* MainForm::createNewWindow(long long idToAllocate, long long* pId)
 		if (pMainForm == nullptr)
 			break;
 
-		pMainForm->show();
-
 		g_mainFormHash.insert(uniqueId, pMainForm);
 
 		if (pId != nullptr)
 			*pId = pMainForm->getIndex();
 
-		std::ignore = QtConcurrent::run([uniqueId]()
-			{
-				QThread::msleep(500);
-				QStringList paths;
-				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(uniqueId);
-				util::searchFiles(util::applicationDirPath(), "default", ".json", &paths, false);
-				if (!paths.isEmpty())
-					emit signalDispatcher.loadHashSettings(paths.front(), true);
-				else
-					emit signalDispatcher.saveHashSettings(util::applicationDirPath() + "/settings/default.json", true);
-			});
+		QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+
+		//QTimer singleShotTimer;
+		//singleShotTimer.setSingleShot(true);
+		//QEventLoop eventLoop;
+		//QObject::connect(&singleShotTimer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
+		//singleShotTimer.start(500);
+		//eventLoop.exec();
+
+		QStringList paths;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(uniqueId);
+		util::searchFiles(util::applicationDirPath(), "default", ".json", &paths, false);
+		if (!paths.isEmpty())
+			emit signalDispatcher.loadHashSettings(paths.front(), true);
+		else
+			emit signalDispatcher.saveHashSettings(util::applicationDirPath() + "/settings/default.json", true);
+
+		pMainForm->show();
 
 		return pMainForm;
 	} while (false);
@@ -1095,14 +1104,12 @@ MainForm::MainForm(long long index, QWidget* parent)
 	: QMainWindow(parent)
 	, Indexer(index)
 	, pGeneralForm_(index, nullptr)
-#ifndef LEAK_TEST
 	, pMapForm_(index, nullptr)
 	, pOtherForm_(index, nullptr)
 	, pScriptForm_(index, nullptr)
 	, pInfoForm_(index, -1, nullptr)
 	, mapWidget_(index, nullptr)
 	, pScriptEditor_(index, nullptr)
-#endif
 {
 	ui.setupUi(this);
 	setFont(util::getFont());
@@ -1121,11 +1128,9 @@ MainForm::MainForm(long long index, QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
-#ifndef LEAK_TEST
 	pInfoForm_.hide();
 	mapWidget_.hide();
 	pScriptEditor_.hide();
-#endif
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	signalDispatcher.setParent(this);
@@ -1174,13 +1179,11 @@ MainForm::MainForm(long long index, QWidget* parent)
 
 	ui.tabWidget_main->addTab(&pGeneralForm_, tr("general"));
 
-#ifndef LEAK_TEST
 	ui.tabWidget_main->addTab(&pMapForm_, tr("map"));
 
 	ui.tabWidget_main->addTab(&pOtherForm_, tr("other"));
 
 	ui.tabWidget_main->addTab(&pScriptForm_, tr("script"));
-#endif
 
 	util::setTab(ui.tabWidget_main);
 
@@ -1213,8 +1216,8 @@ MainForm::~MainForm()
 
 void MainForm::showEvent(QShowEvent* e)
 {
-	setUpdatesEnabled(true);
-	blockSignals(false);
+	//setUpdatesEnabled(true);
+	//blockSignals(false);
 
 	setAttribute(Qt::WA_Mapped);
 	QMainWindow::showEvent(e);
@@ -1462,7 +1465,6 @@ void MainForm::onMenuActionTriggered()
 	//other
 	if (actionName == "actionOtherInfo")
 	{
-#ifndef LEAK_TEST
 		if (pInfoForm_.isVisible())
 		{
 			pInfoForm_.hide();
@@ -1472,7 +1474,6 @@ void MainForm::onMenuActionTriggered()
 		pInfoForm_.hide();
 		pInfoForm_.show();
 		setFocus();
-#endif
 		return;
 	}
 
@@ -1490,7 +1491,6 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionMap")
 	{
-#ifndef LEAK_TEST
 		if (mapWidget_.isVisible())
 		{
 			mapWidget_.hide();
@@ -1500,13 +1500,11 @@ void MainForm::onMenuActionTriggered()
 		mapWidget_.hide();
 		mapWidget_.show();
 		setFocus();
-#endif
 		return;
 	}
 
 	if (actionName == "actionScriptEditor")
 	{
-#ifndef LEAK_TEST
 		if (pScriptEditor_.isVisible())
 		{
 			pScriptEditor_.hide();
@@ -1515,7 +1513,6 @@ void MainForm::onMenuActionTriggered()
 		pScriptEditor_.hide();
 		pScriptEditor_.show();
 		setFocus();
-#endif
 		return;
 	}
 
@@ -1891,7 +1888,9 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 
 	msgBox.setWindowTitle(title);
 	if (!detail.isEmpty())
+	{
 		msgBox.setDetailedText(detail);
+	}
 
 	if (topText.isEmpty())
 		msgBox.setText(text);
@@ -1911,6 +1910,18 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 	msgBox.addButton(tr("yes"), QMessageBox::ButtonRole::YesRole);
 	msgBox.addButton(tr("no"), QMessageBox::ButtonRole::NoRole);
 #endif
+
+	if (!detail.isEmpty())
+	{
+		for (QAbstractButton*& button : msgBox.buttons())
+		{
+			if (msgBox.buttonRole(button) == QMessageBox::ActionRole && !button->text().isEmpty() && button->text() == "Show Details...")
+			{
+				emit button->clicked();
+				break;
+			}
+		}
+	}
 
 	long long ret = msgBox.exec();
 	if (pnret != nullptr)
@@ -2084,6 +2095,6 @@ bool MainForm::createWinapiFileDialog(const QString& startDir, QStringList filte
 	else
 	{
 		return false; // 用戶取消了操作或發生錯誤
-	}
+}
 }
 #endif

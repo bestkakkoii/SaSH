@@ -761,6 +761,11 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
+	luadebug::waitfor(s, 50, [&gamedevice]()->bool
+		{
+			return gamedevice.worker->isDialogVisible();
+		});
+
 	long long ext = 0;
 	if (oext.is<long long>())
 		ext = oext.as<long long>();
@@ -803,12 +808,25 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 		return gamedevice.worker->press(row, dialogid, unitid);
 	}
 
+
 	if (button == sa::kButtonNone)
 	{
-		sa::dialog_t dialog = gamedevice.worker->currentDialog.get();
-		QStringList textList = dialog.linebuttontext;
-		if (!textList.isEmpty())
+		bool isOk = false;
+		sa::dialog_t dialog = {};
+		QStringList textList;
+		for (;;)
 		{
+			if (gamedevice.worker.isNull())
+				return FALSE;
+
+			dialog = gamedevice.worker->currentDialog.get();
+			textList = dialog.linebuttontext;
+
+			if (textList.isEmpty())
+			{
+				break;
+			}
+
 			bool isExact = true;
 			QString newText = text.toUpper();
 			if (newText.startsWith(""))
@@ -817,20 +835,55 @@ long long CLuaSystem::press(sol::object obutton, sol::object ounitid, sol::objec
 				isExact = false;
 			}
 
+			newText.remove(" ");
+
 			for (long long i = 0; i < textList.size(); ++i)
 			{
-				if (!isExact && textList.value(i).toUpper().contains(newText))
+				QString cmpStr = textList.value(i).toUpper();
+				cmpStr.remove(" ");
+
+				if (!isExact && cmpStr.contains(newText))
 				{
-					row = i;
+					row = i + 1;
+					isOk = true;
 					break;
 				}
-				else if (isExact && textList.value(i).toUpper() == newText)
+				else if (isExact && cmpStr == newText)
 				{
-					row = i;
+					row = i + 1;
+					isOk = true;
 					break;
 				}
 			}
+
+			if (isOk)
+				break;
+
+			if ((dialog.buttontype & sa::ButtonType::kButtonNext) != sa::ButtonType::kButtonNext)
+				break;
+
+			gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.on();
+
+			gamedevice.worker->press(sa::kButtonNext, dialogid, unitid);
+			bool bret = luadebug::waitfor(s, 1000, [&gamedevice]()->bool
+				{
+					return !gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.get() && gamedevice.worker->isDialogVisible();
+				});
+
+			if (!bret)
+			{
+				gamedevice.worker->IS_WAITFOR_DIALOG_FLAG.off();
+				break;
+			}
 		}
+
+		if (isOk)
+		{
+			unitid += ext;
+			return gamedevice.worker->press(row, dialogid, unitid);
+		}
+
+		return FALSE;
 	}
 
 	unitid += ext;

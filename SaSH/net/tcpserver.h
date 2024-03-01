@@ -49,6 +49,7 @@ private:
 	long long index_ = -1;
 	bool init = false;
 	mutable QMutex socketLock_;
+	QFuture<void> future_;
 };
 
 class CLua;
@@ -331,6 +332,7 @@ public://actions
 
 	inline [[nodiscard]] sa::item_t __fastcall getItem(long long index) const { QReadLocker locker(&itemInfoLock_);  return item_.value(index); }
 	inline [[nodiscard]] QHash<long long, sa::item_t> __fastcall getItems() const { QReadLocker locker(&itemInfoLock_);  return item_.toHash(); }
+	inline void setItems(const QHash<long long, sa::item_t>& items) { QWriteLocker locker(&itemInfoLock_);  item_ = items; }
 
 	inline [[nodiscard]] sa::pet_skill_t __fastcall getPetSkill(long long petIndex, long long skillIndex) const { return petSkill_.value(petIndex).value(skillIndex); }
 	inline [[nodiscard]] QHash<long long, sa::pet_skill_t> __fastcall getPetSkills(long long petIndex) const { return petSkill_.value(petIndex); }
@@ -505,7 +507,15 @@ private:
 	safe::hash<long long, sa::profession_skill_t> professionSkill_ = {};
 	safe::hash<long long, QHash<long long, sa::pet_skill_t>> petSkill_ = {};
 
-	QHash<QString, bool> itemStackFlagHash_ = {};
+	enum
+	{
+		kItemUnableSort = -1,
+		kItemFirstSort = 0,
+		kItemEnableSort = 1,
+	};
+	QHash<QString, long long> itemStackFlagHash_ = {};
+	QHash<QString, long long> itemMaxStackHash_ = {};
+	QHash<QString, long long> itemTryStackHash_ = {};
 
 	safe::vector<bool> battlePetDisableList_ = {};
 
