@@ -351,7 +351,6 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 	if (skip)
 	{
-		QThread::yieldCurrentThread();
 		return 1;
 	}
 
@@ -371,7 +370,6 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 
 	if (!gamedevice.IS_SCRIPT_DEBUG_ENABLE.get())
 	{
-		QThread::yieldCurrentThread();
 		return 1;
 	}
 
@@ -380,7 +378,6 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 	const safe::hash<long long, break_marker_t> stepMarkers = gamedevice.step_markers.value(scriptFileName);
 	if (!breakMarkers.contains(currentLine) && !stepMarkers.contains(currentLine))
 	{
-		QThread::yieldCurrentThread();
 		return 1;//檢查是否有中斷點
 	}
 
@@ -407,7 +404,6 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 	if (gamedevice.IS_SCRIPT_INTERRUPT.get())
 		return 0;
 
-	QThread::yieldCurrentThread();
 	return 1;
 }
 

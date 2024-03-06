@@ -293,8 +293,6 @@ bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
 
-	QThread::msleep(1);
-
 	sol::state_view lua(s.lua_state());
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
 	bool bret = false;
@@ -327,8 +325,6 @@ bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
-
-	QThread::msleep(1);
 
 	sol::state_view lua(s.lua_state());
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
@@ -497,13 +493,11 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 {
 	if (nullptr == L)
 	{
-		QThread::yieldCurrentThread();
 		return;
 	}
 
 	if (nullptr == ar)
 	{
-		QThread::yieldCurrentThread();
 		return;
 	}
 
@@ -561,7 +555,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		CLua* pLua = lua["__THIS_CLUA"].get<CLua*>();
 		if (pLua == nullptr)
 		{
-			QThread::yieldCurrentThread();
 			return;
 		}
 
@@ -571,7 +564,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		const safe::hash<long long, break_marker_t> stepMarkers = gamedevice.step_markers.value(scriptFileName);
 		if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 		{
-			QThread::yieldCurrentThread();
 			return;
 		}
 
@@ -617,8 +609,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	default:
 		break;
 	}
-
-	QThread::yieldCurrentThread();
 }
 #pragma endregion
 
@@ -1980,7 +1970,7 @@ void CLua::open_utillibs(sol::state& lua)
 
 	lua.set_function("format", &luatool::format);
 
-	lua.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->long long
+	lua.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->sol::object
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			QString mission = util::toQString(smisson);
@@ -1990,9 +1980,17 @@ void CLua::open_utillibs(sol::state& lua)
 				timeout = otimeout.as<long long>();
 
 			if (!gamedevice.worker.isNull())
-				return gamedevice.worker->checkJobDailyState(mission, timeout);
-			else
-				return -1;
+				return sol::lua_nil;
+
+			QVector<long long> v = gamedevice.worker->checkJobDailyState(mission, timeout);
+			if (v.isEmpty())
+				return sol::lua_nil;
+
+			sol::table t = lua_.create_table();
+			for (const int& it : v)
+				t.add(it);
+
+			return t;
 		});
 
 
@@ -2016,6 +2014,7 @@ void CLua::open_utillibs(sol::state& lua)
 			return sender.SetAutoLogin(id, server - 1, subserver - 1, position - 1, acc, pwd);
 		});
 
+	//检查某串字符串或表内是否包含某个字符串或元素
 	lua.set_function("contains", [this](sol::object data, sol::object ocmp_data, sol::this_state s)->bool
 		{
 			auto toVariant = [](const sol::object& o)->QVariant
@@ -2095,6 +2094,92 @@ void CLua::open_utillibs(sol::state& lua)
 
 			return false;
 
+		}
+	);
+
+	//检查某串字符串或或数值在一个字符串或表内的出现的次数
+	lua.set_function("count", [this](sol::object data, sol::object ocmp_data, sol::this_state s)->long long
+		{
+			long long count = 0;
+			auto toVariant = [](const sol::object& o)->QVariant
+				{
+					QVariant out;
+					if (o.is<std::string>())
+						out = util::toQString(o).simplified();
+					else if (o.is<long long>())
+						out = o.as<long long>();
+					else if (o.is<double>())
+						out = o.as<double>();
+					else if (o.is<bool>())
+						out = o.as<bool>();
+
+					return out;
+				};
+
+			if (data.is<sol::table>() && ocmp_data.is<sol::table>())
+			{
+				sol::table table = data.as<sol::table>();
+				sol::table table2 = ocmp_data.as<sol::table>();
+				QStringList a;
+				QStringList b;
+
+				for (const std::pair<sol::object, sol::object>& pair : table)
+					a.append(toVariant(pair.second).toString().simplified());
+
+				for (const std::pair<sol::object, sol::object>& pair : table2)
+					b.append(toVariant(pair.second).toString().simplified());
+
+				for (const QString& it : b)
+					count += a.count(it);
+
+				return count;
+			}
+			else if (data.is<sol::table>() && !ocmp_data.is<sol::table>())
+			{
+				QStringList a;
+				QString b = toVariant(ocmp_data).toString().simplified();
+				sol::table table = data.as<sol::table>();
+				for (const std::pair<sol::object, sol::object>& pair : table)
+					a.append(toVariant(pair.second).toString().simplified());
+
+				if (b.isEmpty())
+					return 0;
+
+				return a.count(b);
+			}
+
+			QString qcmp_data;
+			QVariant adata = toVariant(ocmp_data);
+			QVariant bdata = toVariant(data);
+
+			if (adata.type() == QVariant::Type::String)
+				qcmp_data = adata.toString().simplified();
+			else if (adata.type() == QVariant::Type::LongLong)
+				qcmp_data = util::toQString(adata.toLongLong());
+			else if (adata.type() == QVariant::Type::Double)
+				qcmp_data = util::toQString(adata.toDouble());
+			else if (adata.type() == QVariant::Type::Bool)
+				qcmp_data = util::toQString(adata.toBool());
+			else
+				return 0;
+
+			if (adata.toString().isEmpty() && !bdata.toString().isEmpty())
+				return 0;
+			else if (!adata.toString().isEmpty() && bdata.toString().isEmpty())
+				return 0;
+
+			if (bdata.type() == QVariant::Type::String)
+				return bdata.toString().simplified().count(qcmp_data);
+			else if (bdata.type() == QVariant::Type::LongLong)
+				return util::toQString(bdata.toLongLong()).count(qcmp_data);
+			else if (bdata.type() == QVariant::Type::Double)
+				return util::toQString(bdata.toDouble()).count(qcmp_data);
+			else if (bdata.type() == QVariant::Type::Bool)
+				return util::toQString(bdata.toBool()).count(qcmp_data);
+			else
+				return 0;
+
+			return 0;
 		}
 	);
 
@@ -4282,11 +4367,11 @@ collectgarbage("step", 1024);
 
 	lua_["package"]["path"] = std::string(util::toConstData(paths.join(";")));
 
-	lua_.safe_script(R"(
-		require('translations');
-		set('init');
-	)", sol::script_pass_on_error);
-	lua_.collect_garbage();
+	//lua_.safe_script(R"(
+	//	-- require('translations');
+	//	set('init');
+	//)", sol::script_pass_on_error);
+	//lua_.collect_garbage();
 
 	if (isHookEnabled_)
 	{

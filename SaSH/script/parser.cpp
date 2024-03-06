@@ -84,13 +84,11 @@ static void hookProc(lua_State* L, lua_Debug* ar)
 {
 	if (L == nullptr)
 	{
-		QThread::yieldCurrentThread();
 		return;
 	}
 
 	if (ar == nullptr)
 	{
-		QThread::yieldCurrentThread();
 		return;
 	}
 
@@ -99,20 +97,16 @@ static void hookProc(lua_State* L, lua_Debug* ar)
 
 	if (ar->event == LUA_MASKRET || ar->event == LUA_MASKLINE || ar->event == LUA_MASKCALL)
 	{
-		if (ar->event == LUA_MASKRET)
-			QThread::msleep(1);
 		luadebug::checkStopAndPause(s);
 
 		if (!lua["__THIS_PARSER"].valid())
 		{
-			QThread::yieldCurrentThread();
 			return;
 		}
 
 		Parser* pparser = lua["__THIS_PARSER"].get<Parser*>();
 		if (pparser == nullptr)
 		{
-			QThread::yieldCurrentThread();
 			return;
 		}
 
@@ -161,8 +155,6 @@ static void hookProc(lua_State* L, lua_Debug* ar)
 
 		luadebug::checkStopAndPause(s);
 	}
-
-	QThread::yieldCurrentThread();
 }
 
 Parser::Parser(long long index)

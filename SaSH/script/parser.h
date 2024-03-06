@@ -27,7 +27,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 static const QStringList g_sysConstVarName = {
 	"char", "pet", "item", "map", "magic", "skill", "petskill", "petequip", "dialog", "chat", "battle", "point", "team", "card", "unit", "mails",
-	"INDEX", "_VERSION", "isbattle", "isonline", "isnormal"
+	"INDEX", "_VERSION", "MAXCARD", "MAXCHAR", "MAXCHAT", "MAXDIR", "MAXDLG", "MAXENEMY", "MAXEQUIP", "MAXITEM", "MAXMAGIC",
+	"INFINITE", "MAXPET", "MAXPETSKILL", "MAXSKILL", "MAXTHREAD", "TID", "PID", "LINE", "HWND", "GAMEPID", "GAMEHWND", "GAMEHANDLE", "FILE",
+	"CURRENTSCRIPTDIR", "CURRENTDIR", "SCRIPTDIR", "SETTINGDIR"
 };
 
 using CommandRegistry = std::function<long long(long long currentIndex, long long currentLine, const TokenMap& token)>;
@@ -650,6 +652,10 @@ private:
 		"rawget", "rawlen", "rawset", "rclick", "regex", "replace", "require", "rex", "rexg", "rnd", "saveset", "select", "set", "setmetatable",
 		"skill", "sleep", "split", "string", "table", "tadd", "tback", "tfront", "tjoin", "tmerge", "todb", "toint", "tonumber", "tostr",
 		"tostring", "tpadd", "tpopback", "tpopfront", "trim", "trotate", "trsort", "tshuffle", "tsleft", "tsort", "tsright", "tswap", "tunique", "type",
-		"unit", "upper", "utf8", "warn", "xpcall"
+		"unit", "upper", "utf8", "warn", "xpcall",
+		"UnitStruct", "TeamStruct", "BattleStruct", "CardStruct", "CharacterStruct", "DialogStruct", "PetSkillStruct", "PetStruct",
+		"SkillStruct", "MagicStruct", "ItemStruct"
+
+
 	};
 };

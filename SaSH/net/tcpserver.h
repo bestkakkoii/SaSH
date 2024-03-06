@@ -272,7 +272,7 @@ public://actions
 	[[nodiscard]] bool __fastcall checkTeammateHp(long long cmpvalue, long long* target) const;
 
 	[[nodiscard]] bool __fastcall isPetSpotEmpty() const;
-	[[nodiscard]] long long __fastcall checkJobDailyState(const QString& missionName, long long timeout);
+	[[nodiscard]] QVector<long long> __fastcall checkJobDailyState(const QString& missionName, long long timeout);
 
 	[[nodiscard]] bool __fastcall isDialogVisible() const;
 

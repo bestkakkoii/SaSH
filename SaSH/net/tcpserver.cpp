@@ -313,12 +313,9 @@ void Socket::onReadyRead()
 						QMutexLocker locker(&socketLock_);
 						GameDevice& gamedevice = GameDevice::getInstance(index_);
 						gamedevice.worker->handleData(std::move(badata));
-						QThread::yieldCurrentThread();
 					});
 			//gamedevice.worker->handleData(std::move(badata));
 		}
-
-		QThread::yieldCurrentThread();
 		return;
 	}
 
@@ -345,8 +342,6 @@ void Socket::onReadyRead()
 		qDebug() << "tcp ok";
 		gamedevice.IS_TCP_CONNECTION_OK_TO_USE.on();
 	}
-
-	QThread::yieldCurrentThread();
 }
 
 //異步發送數據
@@ -1549,7 +1544,6 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 	}
 
 	gamedevice.autil.util_DiscardMessage();
-	QThread::yieldCurrentThread();
 	return kBufferAboutToEnd;
 }
 
@@ -2314,11 +2308,12 @@ QString Worker::getFloorName()
 }
 
 //檢查指定任務狀態，並同步等待封包返回
-long long Worker::checkJobDailyState(const QString& missionName, long long timeout)
+QVector<long long> Worker::checkJobDailyState(const QString& missionName, long long timeout)
 {
+	QVector<long long> states;
 	QString newMissionName = missionName.simplified();
 	if (newMissionName.isEmpty())
-		return 0;
+		return states;
 
 	if (timeout <= 0)
 		timeout = 5000;
@@ -2328,7 +2323,7 @@ long long Worker::checkJobDailyState(const QString& missionName, long long timeo
 	if (!lssproto_missionInfo_send(const_cast<char*>("dyedye")))
 	{
 		IS_WAITFOR_missionInfo_FLAG.off();
-		return -1;
+		return states;
 	}
 
 	util::timer timer;
@@ -2340,40 +2335,44 @@ long long Worker::checkJobDailyState(const QString& missionName, long long timeo
 		if (gamedevice.isGameInterruptionRequested())
 		{
 			IS_WAITFOR_missionInfo_FLAG.off();
-			return -1;
+			return states;
 		}
 
 		if (timer.hasExpired(timeout))
 		{
 			IS_WAITFOR_missionInfo_FLAG.off();
-			return -1;
+			return states;
 		}
 
 		if (!IS_WAITFOR_missionInfo_FLAG.get())
 			break;
 
-		QThread::msleep(200);
+		QThread::msleep(10);
 	}
 
+	bool isExist = true;
 	if (newMissionName.startsWith("?"))
 	{
 		newMissionName = newMissionName.mid(1);
+		isExist = false;
 	}
 
 	QHash<long long, sa::mission_data_t> jobdaily = getMissionInfos();
-	long long state = 0;
+
+	//如果是完成則直接退出，如果是進行中則繼續搜索以防出現同時有兩種進度的情況
 	for (const sa::mission_data_t& it : jobdaily)
 	{
-		if (it.name.contains(newMissionName))
+		if (isExist && it.name == newMissionName)
 		{
-			state = it.state;
-			//如果是完成則直接退出，如果是進行中則繼續搜索以防出現同時有兩種進度的情況
-			if (state == 2)
-				break;
+			states.append(it.state);
+		}
+		else if (newMissionName.contains(it.name))
+		{
+			states.append(it.state);
 		}
 	}
 
-	return state;
+	return states;
 }
 
 //查找指定類型和名稱的單位
@@ -9848,6 +9847,13 @@ bool Worker::fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget
 		break;
 	}
 	case sa::MAGIC_TARGET_WHOLEOTHERSIDE:// 全体
+	{
+		if (battleCharCurrentPos.get() < 10)
+			oldtarget = sa::TARGET_SIDE_0;
+		else
+			oldtarget = sa::TARGET_SIDE_1;
+		break;
+	}
 	case sa::MAGIC_TARGET_ALLOTHERSIDE://敵方全體
 	{
 		if (battleCharCurrentPos.get() < 10)
@@ -13012,11 +13018,11 @@ void Worker::lssproto_missionInfo_recv(char* cdata)
 			{
 				QString stateStr = perdata.simplified();
 				if (stateStr.contains("行"))
-					jobdaily.state = 1;
+					jobdaily.state = sa::DailyJobState::kOnGoing;
 				else if (stateStr.contains("完"))
-					jobdaily.state = 2;
+					jobdaily.state = sa::DailyJobState::kFinished;
 				else
-					jobdaily.state = 0;
+					jobdaily.state = sa::DailyJobState::kNone;
 				break;
 			}
 			default: /*StockChatBufferLine("每筆資料內參數有錯誤", FONT_PAL_RED);*/

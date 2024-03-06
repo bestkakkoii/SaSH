@@ -504,7 +504,6 @@ void MainObject::mainProc()
 
 		if (gamedevice.worker.isNull())
 		{
-			QThread::yieldCurrentThread();
 			continue;
 		}
 
@@ -579,8 +578,6 @@ void MainObject::mainProc()
 		{
 			break;
 		}
-
-		QThread::yieldCurrentThread();
 	}
 }
 
@@ -1206,7 +1203,7 @@ void MissionThread::start()
 	}
 	default:
 		return;
-	}
+}
 
 	moveToThread(thread_);
 
@@ -1214,7 +1211,7 @@ void MissionThread::start()
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &MissionThread::requestMissionInterruption);
 
 	thread_->start();
-	}
+}
 
 void MissionThread::autoJoin()
 {

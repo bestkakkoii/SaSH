@@ -1004,6 +1004,13 @@ namespace sa
 		kTalkGlobal,
 		kTalkModeMax,
 	};
+
+	enum DailyJobState : long long
+	{
+		kNone = 0x1,
+		kFinished = 0x2,
+		kOnGoing = 0x4,
+	};
 #pragma endregion
 
 #pragma region Structs
