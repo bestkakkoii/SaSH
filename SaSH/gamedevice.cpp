@@ -275,6 +275,102 @@ bool GameDevice::isHandleValid(long long pid)
 	return true;
 }
 
+bool GameDevice::capture(const QString& fileName) const
+{
+	if (!isValid())
+		return false;
+
+	QFileInfo fileInfo(fileName);
+	//check is a valid path
+	if (fileInfo.absolutePath().isEmpty() || fileInfo.fileName().isEmpty())
+		return false;
+
+	//check png suffix
+	if (fileInfo.suffix().toLower() != "png")
+		return false;
+
+	long long currentIndex = getIndex();
+
+	//取桌面指針
+	QScreen* screen = QGuiApplication::primaryScreen();
+	if (nullptr == screen)
+	{
+		return false;
+	}
+
+	//遊戲後臺滑鼠一移動到左上
+	LPARAM data = MAKELPARAM(0, 0);
+	sendMessage(WM_MOUSEMOVE, NULL, data);
+
+	//根據HWND擷取窗口後臺圖像
+	QPixmap pixmap = screen->grabWindow(reinterpret_cast<WId>(getProcessWindow()));
+
+	//轉存為QImage
+	QImage image = pixmap.toImage();
+
+	//only take middle part of the image
+	image = image.copy(269, 226, 102, 29);//368,253
+
+	if (QFile::exists(fileName))
+		QFile::remove(fileName);
+
+	return image.save(fileName, "PNG");
+}
+
+QString GameDevice::ecbDecrypt(long long address) const
+{
+	mem::VirtualMemory lpDst(processHandle_, 32, true);
+	sendMessage(kECBCrypt, getProcessModule() + address, lpDst);
+	return mem::readString(processHandle_, lpDst, 32);
+}
+
+QByteArray GameDevice::ecbEncrypt(const QString& str) const
+{
+	mem::VirtualMemory lpSrc(processHandle_, str, mem::VirtualMemory::kAnsi, true);
+	mem::VirtualMemory lpDst(processHandle_, 32, true);
+
+	sendMessage(kECBEncrypt, lpSrc, lpDst);
+	QByteArray result(32, '\0');
+	mem::read(processHandle_, lpDst, 32, result.data());
+	return result;
+}
+
+void GameDevice::paused()
+{
+	if (isScriptPaused())
+		return;
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	emit signalDispatcher.scriptPaused();
+
+	{
+		std::unique_lock<std::mutex> lock(scriptPausedMutex_);
+		isScriptPaused_.on();
+	}
+}
+
+void GameDevice::resumed()
+{
+	if (!isScriptPaused())
+		return;
+
+	{
+		std::unique_lock<std::mutex> lock(scriptPausedMutex_);
+		isScriptPaused_.off();
+	}
+
+	scriptPausedCondition_.notify_all();
+}
+
+void GameDevice::checkScriptPause()
+{
+	if (isScriptPaused())
+	{
+		std::unique_lock<std::mutex> lock(scriptPausedMutex_);
+		scriptPausedCondition_.wait(lock);
+	}
+}
+
 #if 0
 DWORD WINAPI GameDevice::getFunAddr(const DWORD* DllBase, const char* FunName)
 {

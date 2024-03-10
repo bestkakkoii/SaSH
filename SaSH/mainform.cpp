@@ -1845,10 +1845,8 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 	emit signalDispatcher.applyHashSettingsToUI();
 }
 
-//消息框
-void MainForm::onMessageBoxShow(const QString& text, long long type, QString title, long long* pnret, QString topText, QString detail)
+static QString trim(QString newText)
 {
-	QString newText = text;
 	newText.replace("\\r\\n", "\r\n");
 	newText.replace("\\n", "\n");
 	newText.replace("\\t", "\t");
@@ -1856,6 +1854,25 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 	newText.replace("\\b", "\b");
 	newText.replace("\\f", "\f");
 	newText.replace("\\a", "\a");
+
+	newText.replace("\\\\r\\\\n", "\r\n");
+	newText.replace("\\\\n", "\n");
+	newText.replace("\\\\t", "\t");
+	newText.replace("\\\\v", "\v");
+	newText.replace("\\\\b", "\b");
+	newText.replace("\\\\f", "\f");
+	newText.replace("\\\\a", "\a");
+
+	return newText;
+}
+
+//消息框
+void MainForm::onMessageBoxShow(const QString& text, long long type, QString title, long long* pnret, QString topText, QString detail)
+{
+
+	QString newText = trim(text);
+	QString newTopText = trim(topText);
+	QString newDetail = trim(detail);
 
 	if (title.isEmpty())
 	{
@@ -1889,15 +1906,19 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 	msgBox.setWindowTitle(title);
 	if (!detail.isEmpty())
 	{
-		msgBox.setDetailedText(detail);
+		msgBox.setDetailedText(newDetail);
 	}
 
 	if (topText.isEmpty())
-		msgBox.setText(text);
+	{
+		newText.replace("\r\n", "<br>");
+		newText.replace("\n", "<br>");
+		msgBox.setText(newText);
+	}
 	else
 	{
-		msgBox.setInformativeText(text);
-		msgBox.setText(topText);
+		msgBox.setInformativeText(newText);
+		msgBox.setText(newTopText);
 	}
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -1936,14 +1957,7 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 	if (retvalue == nullptr)
 		return;
 
-	QString newText = text;
-	newText.replace("\\r\\n", "\r\n");
-	newText.replace("\\n", "\n");
-	newText.replace("\\t", "\t");
-	newText.replace("\\v", "\v");
-	newText.replace("\\b", "\b");
-	newText.replace("\\f", "\f");
-	newText.replace("\\a", "\a");
+	QString newText = trim(text);
 
 	QInputDialog inputDialog(this);
 
@@ -2095,6 +2109,6 @@ bool MainForm::createWinapiFileDialog(const QString& startDir, QStringList filte
 	else
 	{
 		return false; // 用戶取消了操作或發生錯誤
-}
+	}
 }
 #endif

@@ -56,7 +56,11 @@ private slots:
 
 	void onScriptPaused();
 
+	void onScriptPausedMode();
+
 	void onScriptResumed();
+
+	void onScriptResumedMode();
 
 	void onScriptStoped();
 

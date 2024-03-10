@@ -360,7 +360,6 @@ long long Interpreter::scriptCallBack(long long currentIndex, long long currentL
 	if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 	{
 		gamedevice.paused();
-		emit signalDispatcher.scriptPaused();
 	}
 
 	gamedevice.checkScriptPause();
@@ -457,7 +456,7 @@ bool Interpreter::checkBattleThenWait()
 
 			gamedevice.checkScriptPause();
 
-			if (!gamedevice.worker->getBattleFlag())
+			if (!gamedevice.worker->getBattleFlag() && gamedevice.worker->isColloectionFinished())
 				break;
 
 			if (timer.hasExpired(180000))

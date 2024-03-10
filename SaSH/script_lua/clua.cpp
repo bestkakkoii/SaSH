@@ -278,6 +278,8 @@ bool __fastcall luadebug::checkStopAndPause(const sol::this_state& s)
 	sol::state_view lua(s.lua_state());
 
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+
+
 	gamedevice.checkScriptPause();
 
 	bool isStop = gamedevice.IS_SCRIPT_INTERRUPT.get();
@@ -341,7 +343,7 @@ bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 			if (!gamedevice.worker.isNull())
 				break;
 
-			if (!gamedevice.worker->getBattleFlag())
+			if (!gamedevice.worker->getBattleFlag() && gamedevice.worker->isColloectionFinished())
 				break;
 			if (timer.hasExpired(180000))
 				break;
@@ -1925,6 +1927,15 @@ void CLua::open_enumlibs()
 		}
 	);
 	//在腳本中的使用方法: Target.Self Target.Pet
+
+
+	lua_.new_enum< sa::DailyJobState>("DAILY",
+		{
+			{ "FAILED", sa::DailyJobState::kFailed },
+			{ "NONE", sa::DailyJobState::kNone },
+			{ "ONGOING", sa::DailyJobState::kOnGoing },
+			{ "FINISHED", sa::DailyJobState::kFinished }
+		});
 }
 
 //以Metatable方式註冊函數 支援函數多載、運算符重載，面向對象，常量
@@ -1970,27 +1981,48 @@ void CLua::open_utillibs(sol::state& lua)
 
 	lua.set_function("format", &luatool::format);
 
-	lua.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->sol::object
+	lua.set_function("checkdaily", [this](std::string smisson, sol::object otimeout)->long long
 		{
 			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-			QString mission = util::toQString(smisson);
+			QString missionStr = util::toQString(smisson);
+
+			QStringList missions = missionStr.split(util::rexOR, Qt::SkipEmptyParts);
+			if (gamedevice.worker.isNull())
+				return sa::DailyJobState::kFailed;
 
 			long long timeout = 5000;
 			if (otimeout.is<long long>())
 				timeout = otimeout.as<long long>();
 
-			if (!gamedevice.worker.isNull())
-				return sol::lua_nil;
+			bool doNotWait = false;
 
-			QVector<long long> v = gamedevice.worker->checkJobDailyState(mission, timeout);
-			if (v.isEmpty())
-				return sol::lua_nil;
+			QVector<long long> results;
+			for (const auto& mission : missions)
+			{
+				QVector<long long> v = gamedevice.worker->checkJobDailyState(mission, timeout, doNotWait);
 
-			sol::table t = lua_.create_table();
-			for (const int& it : v)
-				t.add(it);
+				if (v.isEmpty())
+					continue;
 
-			return t;
+				if (!doNotWait)
+					doNotWait = true;
+
+				if (v.contains(sa::DailyJobState::kFinished))
+					results.append(sa::DailyJobState::kFinished);
+				else if (v.contains(sa::DailyJobState::kOnGoing))
+					results.append(sa::DailyJobState::kOnGoing);
+				else
+					results.append(sa::DailyJobState::kNone);
+			}
+
+			if (results.contains(sa::DailyJobState::kNone))
+				return sa::DailyJobState::kNone;
+			else if (results.contains(sa::DailyJobState::kOnGoing))
+				return sa::DailyJobState::kOnGoing;
+			else if (results.contains(sa::DailyJobState::kFinished))
+				return sa::DailyJobState::kFinished;
+
+			return sa::DailyJobState::kNone;
 		});
 
 
@@ -2780,7 +2812,6 @@ void CLua::open_utillibs(sol::state& lua)
 			return sender.LoadSettings(id, util::toQString(content));
 		});
 
-#if 0
 	lua_.set_function("msg", [this](sol::object otext, sol::object otitle, sol::object otype, sol::this_state s)->std::string
 		{
 			QString text;
@@ -2792,10 +2823,9 @@ void CLua::open_utillibs(sol::state& lua)
 				text = util::toQString(otext.as<double>());
 			else if (otext.is<bool>())
 				text = util::toQString(otext.as<bool>());
-			else if (otext.is<sol::table>())
+			else
 			{
-				long long depth = kMaxLuaTableDepth;
-				text = getLuaTableString(otext.as<sol::table>(), depth);
+				return "";
 			}
 
 			QString title;
@@ -2807,10 +2837,9 @@ void CLua::open_utillibs(sol::state& lua)
 				title = util::toQString(otitle.as<double>());
 			else if (otitle.is<bool>())
 				title = util::toQString(otitle.as<bool>());
-			else if (otitle.is<sol::table>())
+			else
 			{
-				long long depth = kMaxLuaTableDepth;
-				title = getLuaTableString(otitle.as<sol::table>(), depth);
+				return "";
 			}
 
 			long long type = 1;
@@ -2822,7 +2851,6 @@ void CLua::open_utillibs(sol::state& lua)
 			emit signalDispatcher.messageBoxShow(text, type, title, &nret);
 			return nret == QMessageBox::StandardButton::Yes ? "yes" : "no";
 		});
-#endif
 
 	lua.set_function("dlg", [this](std::string buttonstr, std::string stext, sol::object otype, sol::object otimeout, sol::this_state s)->sol::object
 		{

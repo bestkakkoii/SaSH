@@ -2308,46 +2308,59 @@ QString Worker::getFloorName()
 }
 
 //檢查指定任務狀態，並同步等待封包返回
-QVector<long long> Worker::checkJobDailyState(const QString& missionName, long long timeout)
+QVector<long long> Worker::checkJobDailyState(const QString& missionName, long long timeout, bool doNotWait)
 {
 	QVector<long long> states;
 	QString newMissionName = missionName.simplified();
+	std::wstring wstr = newMissionName.toStdWString();
+	LCMapStringW(LOCALE_SYSTEM_DEFAULT, LCMAP_HALFWIDTH, wstr.c_str(), -1, &wstr[0], wstr.size());
+	newMissionName = QString::fromStdWString(wstr);
+	newMissionName = newMissionName.simplified();
+	newMissionName.remove("　");
+	newMissionName.remove(" ");
+
 	if (newMissionName.isEmpty())
-		return states;
+		return (QVector<long long>() << sa::DailyJobState::kFailed);
 
-	if (timeout <= 0)
-		timeout = 5000;
+	if (newMissionName.isEmpty())
+		return (QVector<long long>() << sa::DailyJobState::kFailed);
 
-	IS_WAITFOR_missionInfo_FLAG.on();
-
-	if (!lssproto_missionInfo_send(const_cast<char*>("dyedye")))
+	if (!doNotWait)
 	{
-		IS_WAITFOR_missionInfo_FLAG.off();
-		return states;
-	}
+		if (timeout <= 0)
+			timeout = 5000;
 
-	util::timer timer;
+		IS_WAITFOR_missionInfo_FLAG.on();
 
-	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-
-	for (;;)
-	{
-		if (gamedevice.isGameInterruptionRequested())
+		if (!lssproto_missionInfo_send(const_cast<char*>("dyedye")))
 		{
 			IS_WAITFOR_missionInfo_FLAG.off();
-			return states;
+			return (QVector<long long>() << sa::DailyJobState::kFailed);
 		}
 
-		if (timer.hasExpired(timeout))
+		util::timer timer;
+
+		GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+
+		for (;;)
 		{
-			IS_WAITFOR_missionInfo_FLAG.off();
-			return states;
+			if (gamedevice.isGameInterruptionRequested())
+			{
+				IS_WAITFOR_missionInfo_FLAG.off();
+				return (QVector<long long>() << sa::DailyJobState::kFailed);
+			}
+
+			if (timer.hasExpired(timeout))
+			{
+				IS_WAITFOR_missionInfo_FLAG.off();
+				return (QVector<long long>() << sa::DailyJobState::kFailed);
+			}
+
+			if (!IS_WAITFOR_missionInfo_FLAG.get())
+				break;
+
+			QThread::msleep(10);
 		}
-
-		if (!IS_WAITFOR_missionInfo_FLAG.get())
-			break;
-
-		QThread::msleep(10);
 	}
 
 	bool isExist = true;
@@ -2362,14 +2375,23 @@ QVector<long long> Worker::checkJobDailyState(const QString& missionName, long l
 	//如果是完成則直接退出，如果是進行中則繼續搜索以防出現同時有兩種進度的情況
 	for (const sa::mission_data_t& it : jobdaily)
 	{
-		if (isExist && it.name == newMissionName)
+		if (it.name.isEmpty())
+			continue;
+
+		qDebug() << "id:" << it.id << ",state:" << it.state << ",str:" << it.stateStr << ",name:" << it.name << ",memo:" << it.memo;
+		if (isExist && it.name.simplified() == newMissionName)
 		{
 			states.append(it.state);
 		}
-		else if (newMissionName.contains(it.name))
+		else if (!isExist && it.name.simplified().contains(newMissionName))
 		{
 			states.append(it.state);
 		}
+	}
+
+	if (states.isEmpty())
+	{
+		states.append(sa::DailyJobState::kFailed);
 	}
 
 	return states;
@@ -6418,6 +6440,7 @@ void Worker::setBattleEnd()
 	if (!getBattleFlag())
 		return;
 
+	waitForCollection_.on();
 	battleBackupThreadFlag_.on();
 
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
@@ -6431,25 +6454,33 @@ void Worker::setBattleEnd()
 		battle_total_time.add(battleDurationTimer.cost());
 	setBattleFlag(false);
 
-	normalDurationTimer.restart();
-
-	//強退戰鬥畫面
-	//if (getWorldStatus() == 10)
-		//setGameStatus(7);
-
-	bool enableLockRide = gamedevice.getEnableHash(util::kLockRideEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
-	bool enableLockPet = gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
-	if ((enableLockRide || enableLockPet))
-		checkAutoLockPet();
-
-	battlePetDisableList_.clear();
-
-	waitfor_C_recv_.on();
-
-	std::ignore = QtConcurrent::run([this]()
+	std::ignore = QtConcurrent::run([this, &gamedevice]()
 		{
+			normalDurationTimer.restart();
+
+			//強退戰鬥畫面
+			//if (getWorldStatus() == 10)
+				//setGameStatus(7);
+
+			bool enableLockRide = gamedevice.getEnableHash(util::kLockRideEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
+			bool enableLockPet = gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
+			if ((enableLockRide || enableLockPet))
+				checkAutoLockPet();
+
+			if (gamedevice.getEnableHash(util::kAutoDropMeatEnable))
+				checkAutoDropMeat();
+
+			if (gamedevice.getEnableHash(util::kDropPetEnable))
+				checkAutoDropPet();
+
+			if (gamedevice.getEnableHash(util::kAutoAbilityEnable))
+				checkAutoAbility();
+
+			waitForCollection_.off();
+
+			battlePetDisableList_.clear();
+
 			util::timer timer;
-			GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 			long long W = 0;
 
 			for (;;)
@@ -6470,10 +6501,10 @@ void Worker::setBattleEnd()
 				if (W != 10)
 					return;
 
-				if (timer.hasExpired(5000))
+				if (timer.hasExpired(3000))
 					break;
 
-				QThread::msleep(200);
+				QThread::msleep(10);
 			}
 
 			if (W == 10)
@@ -6485,7 +6516,7 @@ void Worker::setBattleEnd()
 				return;
 
 			gamedevice.sendMessage(kEnableMoveLock, false, NULL);
-
+			echo();
 		});
 }
 
@@ -6496,93 +6527,6 @@ inline bool Worker::checkFlagState(long long pos) const
 		return false;
 	return util::checkAND(battleCurrentAnimeFlag.get(), 1ll << pos);
 }
-
-//異步處理自動/快速戰鬥邏輯和發送封包
-#if 0
-void Worker::doBattleWork(bool canDelay)
-{
-	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	if (canDelay)
-	{
-		//紀錄動作前的回合
-		long long recordedRound = battleCurrentRound.get();
-		long long delay = gamedevice.getValueHash(util::kBattleActionDelayValue);
-		long long resendDelay = gamedevice.getValueHash(util::kBattleResendDelayValue);
-		if ((delay + resendDelay) >= 1000 && battleCurrentRound.get() > 1 && !battleBackupFuture_.isRunning() && gamedevice.worker->getBattleFlag())
-		{
-			battleBackupFuture_ = QtConcurrent::run([this, canDelay](long long round)
-				{
-					GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-					for (long long i = 0; i < 50; ++i)
-					{
-						QThread::msleep(200);
-						if (gamedevice.isGameInterruptionRequested())
-							return;
-
-						if (gamedevice.worker.isNull())
-							return;
-
-						if (!gamedevice.worker->getBattleFlag())
-							return;
-					}
-
-					//備用
-					long long delay = gamedevice.getValueHash(util::kBattleActionDelayValue);
-					long long resendDelay = gamedevice.getValueHash(util::kBattleResendDelayValue);
-					if (resendDelay <= 0)
-						return;
-
-					util::timer timer;
-					for (;;)
-					{
-						if (gamedevice.isGameInterruptionRequested())
-							return;
-
-						if (battleBackupThreadFlag_.get())
-							return;
-
-						bool fastChecked = gamedevice.getEnableHash(util::kFastBattleEnable);
-						bool normalChecked = gamedevice.getEnableHash(util::kAutoBattleEnable);
-						if (!fastChecked && !normalChecked)
-							return;
-
-						if (round + 1 != battleCurrentRound.get())
-							return;
-
-						if (!getOnlineFlag())
-							return;
-
-						if (!getBattleFlag())
-							return;
-
-						if (timer.hasExpired(resendDelay + delay))
-						{
-							announce(QObject::tr("[warn]Battle command transmission timeout, initiating backup instructions."));
-							break;
-						}
-
-						QThread::msleep(200);
-					}
-
-					if (battleCharAlreadyActed.get())
-						battleCharAlreadyActed.off();
-					if (battlePetAlreadyActed.get())
-						battlePetAlreadyActed.off();
-
-					if (gamedevice.battleActionFuture.isRunning())
-						return;
-
-					gamedevice.battleActionFuture = QtConcurrent::run([this, canDelay]() { asyncBattleAction(canDelay); });
-				}, recordedRound);
-		}
-	}
-
-	if (gamedevice.battleActionFuture.isRunning())
-		return;
-
-	gamedevice.battleActionFuture = QtConcurrent::run([this, canDelay]() { asyncBattleAction(canDelay); });
-}
-#endif
 
 //異步戰鬥動作處理
 bool Worker::asyncBattleAction(bool canDelay)
@@ -6657,23 +6601,32 @@ bool Worker::asyncBattleAction(bool canDelay)
 	long long nret = -1;
 
 	//人物和寵物分開發 TODO 修正多個BA人物多次發出戰鬥指令的問題
-	if (!battleCharAlreadyActed.get())
+	//if (!battleCharAlreadyActed.get())
 	{
 		if (canDelay)
 			delay();
 		//解析人物戰鬥邏輯並發送指令
 		nret = playerDoBattleWork(bt);
 		if (1 == nret)
+		{
 			battleCharAlreadyActed.on();
+			sa::character_t pc = getCharacter();
+			if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET)
+			{
+				setCurrentRoundEnd();
+				return true;
+			}
+		}
 	}
 
 	//TODO 修正寵物指令在多個BA時候重覆發送的問題
-	if (!battlePetAlreadyActed.get())
+	//if (!battlePetAlreadyActed.get())
 	{
 		long long nret = petDoBattleWork(bt);
 		if (1 == nret || -1 == nret)
 		{
-			battlePetAlreadyActed.on();
+			if (1 == nret)
+				battlePetAlreadyActed.on();
 			setCurrentRoundEnd();
 		}
 
@@ -7545,13 +7498,13 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				unsigned long long targetFlags = gamedevice.getValueHash(util::kBattleCharRoundActionTargetValue);
 				QHash<long long, long long> tagetHash = {
 					{ kSelectEnemyAny, target == -1 ? getBattleSelectableEnemyTarget(bt) : target },
-					{ kSelectEnemyAll, sa::TARGET_SIDE_1 },
+					{ kSelectEnemyAll, sa::TARGET_SIDE_LEFT },
 					{ kSelectEnemyFront, getBattleSelectableEnemyOneRowTarget(bt, true) },
 					{ kSelectEnemyBack, getBattleSelectableEnemyOneRowTarget(bt, false) },
 					{ kSelectSelf, battleCharCurrentPos.get() },
 					{ kSelectPet, battleCharCurrentPos.get() + 5 },
 					{ kSelectAllieAny, getBattleSelectableAllieTarget(bt) },
-					{ kSelectAllieAll, sa::TARGET_SIDE_0 },
+					{ kSelectAllieAll, sa::TARGET_SIDE_RIGHT },
 				};
 
 				tempTarget = tagetHash.value(targetFlags, -1);
@@ -8031,13 +7984,13 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				unsigned long long targetFlags = gamedevice.getValueHash(util::kBattleCharCrossActionTargetValue);
 				QHash<long long, long long> tagetHash = {
 					{ kSelectEnemyAny, target == -1 ? getBattleSelectableEnemyTarget(bt) : target },
-					{ kSelectEnemyAll, sa::TARGET_SIDE_1 },
+					{ kSelectEnemyAll, sa::TARGET_SIDE_LEFT },
 					{ kSelectEnemyFront, getBattleSelectableEnemyOneRowTarget(bt, true) },
 					{ kSelectEnemyBack, getBattleSelectableEnemyOneRowTarget(bt, false)},
 					{ kSelectSelf, battleCharCurrentPos.get() },
 					{ kSelectPet, battleCharCurrentPos.get() + 5 },
 					{ kSelectAllieAny, getBattleSelectableAllieTarget(bt) },
-					{ kSelectAllieAll, sa::TARGET_SIDE_0 },
+					{ kSelectAllieAll, sa::TARGET_SIDE_RIGHT },
 				};
 
 				tempTarget = tagetHash.value(targetFlags, -1);
@@ -8544,13 +8497,13 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 
 		QHash<long long, long long> tagetHash = {
 			{ kSelectEnemyAny, target == -1 ? getBattleSelectableEnemyTarget(bt) : target },
-			{ kSelectEnemyAll, sa::TARGET_SIDE_1 },
+			{ kSelectEnemyAll, sa::TARGET_SIDE_LEFT },
 			{ kSelectEnemyFront, getBattleSelectableEnemyOneRowTarget(bt, true) },
 			{ kSelectEnemyBack, getBattleSelectableEnemyOneRowTarget(bt, false) },
 			{ kSelectSelf, battleCharCurrentPos.get() },
 			{ kSelectPet, battleCharCurrentPos.get() + 5 },
 			{ kSelectAllieAny, getBattleSelectableAllieTarget(bt) },
-			{ kSelectAllieAll, sa::TARGET_SIDE_0 },
+			{ kSelectAllieAll, sa::TARGET_SIDE_RIGHT },
 		};
 
 		tempTarget = tagetHash.value(targetFlags, -1);
@@ -8850,7 +8803,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		}
 		else if (util::checkAND(targetFlags, kSelectAllieAll))
 		{
-			tempTarget = sa::TARGET_SIDE_0;
+			tempTarget = sa::TARGET_SIDE_RIGHT;
 		}
 		else if (util::checkAND(targetFlags, kSelectLeader))
 		{
@@ -8932,7 +8885,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		}
 		else if (util::checkAND(targetFlags, kSelectEnemyAll))
 		{
-			tempTarget = sa::TARGET_SIDE_1;
+			tempTarget = sa::TARGET_SIDE_LEFT;
 		}
 		else if (util::checkAND(targetFlags, kSelectEnemyFront))
 		{
@@ -8962,7 +8915,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		}
 		else if (util::checkAND(targetFlags, kSelectAllieAll))
 		{
-			tempTarget = sa::TARGET_SIDE_0;
+			tempTarget = sa::TARGET_SIDE_RIGHT;
 		}
 		else if (util::checkAND(targetFlags, kSelectLeader))
 		{
@@ -9216,7 +9169,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		}
 		else if (util::checkAND(targetFlags, kSelectEnemyAll))
 		{
-			tempTarget = sa::TARGET_SIDE_1;
+			tempTarget = sa::TARGET_SIDE_LEFT;
 		}
 		else if (util::checkAND(targetFlags, kSelectEnemyFront))
 		{
@@ -9246,7 +9199,7 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 		}
 		else if (util::checkAND(targetFlags, kSelectAllieAll))
 		{
-			tempTarget = sa::TARGET_SIDE_0;
+			tempTarget = sa::TARGET_SIDE_RIGHT;
 		}
 		else if (util::checkAND(targetFlags, kSelectLeader))
 		{
@@ -9841,25 +9794,39 @@ bool Worker::fixCharTargetByMagicIndex(long long magicIndex, long long oldtarget
 	case sa::MAGIC_TARGET_ALLMYSIDE://我方全體
 	{
 		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_0;
+			oldtarget = sa::TARGET_SIDE_LEFT;
 		else
-			oldtarget = sa::TARGET_SIDE_1;
+			oldtarget = sa::TARGET_SIDE_RIGHT;
 		break;
 	}
-	case sa::MAGIC_TARGET_WHOLEOTHERSIDE:// 全体
+	case sa::MAGIC_TARGET_WHOLEOTHERSIDE:// 其中一方全体
 	{
-		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_0;
+		// 如果是恩惠则判断只施放于我方
+		if (magic.name.contains("恩"))
+		{
+			if (battleCharCurrentPos.get() < 10)
+				oldtarget = sa::TARGET_SIDE_RIGHT;
+			else
+				oldtarget = sa::TARGET_SIDE_LEFT;
+			break;
+		}
+
+		if (oldtarget < 10)
+		{
+			oldtarget = sa::TARGET_SIDE_RIGHT;
+		}
 		else
-			oldtarget = sa::TARGET_SIDE_1;
+		{
+			oldtarget = sa::TARGET_SIDE_LEFT;
+		}
 		break;
 	}
 	case sa::MAGIC_TARGET_ALLOTHERSIDE://敵方全體
 	{
 		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_1;
+			oldtarget = sa::TARGET_SIDE_LEFT;
 		else
-			oldtarget = sa::TARGET_SIDE_0;
+			oldtarget = sa::TARGET_SIDE_RIGHT;
 		break;
 	}
 	case sa::MAGIC_TARGET_ALL://雙方全體同時(場地)
@@ -10004,17 +9971,21 @@ bool Worker::fixCharTargetBySkillIndex(long long magicIndex, long long oldtarget
 	case sa::PETSKILL_TARGET_ALLMYSIDE:
 	{
 		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_1;
+			oldtarget = sa::TARGET_SIDE_LEFT;
 		else
-			oldtarget = sa::TARGET_SIDE_0;
+			oldtarget = sa::TARGET_SIDE_RIGHT;
 		break;
 	}
 	case sa::PETSKILL_TARGET_ALLOTHERSIDE:
 	{
-		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_0;
+		if (oldtarget < 10)
+		{
+			oldtarget = sa::TARGET_SIDE_RIGHT;
+		}
 		else
-			oldtarget = sa::TARGET_SIDE_1;
+		{
+			oldtarget = sa::TARGET_SIDE_LEFT;
+		}
 		break;
 	}
 	case sa::PETSKILL_TARGET_ALL:
@@ -10094,17 +10065,21 @@ bool Worker::fixCharTargetByItemIndex(long long itemIndex, long long oldtarget, 
 	case sa::ITEM_TARGET_ALLMYSIDE://我方全體
 	{
 		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_0;
+			oldtarget = sa::TARGET_SIDE_RIGHT;
 		else
-			oldtarget = sa::TARGET_SIDE_1;
+			oldtarget = sa::TARGET_SIDE_LEFT;
 		break;
 	}
 	case sa::ITEM_TARGET_ALLOTHERSIDE://敵方全體
 	{
-		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_1;
+		if (oldtarget < 10)
+		{
+			oldtarget = sa::TARGET_SIDE_RIGHT;
+		}
 		else
-			oldtarget = sa::TARGET_SIDE_0;
+		{
+			oldtarget = sa::TARGET_SIDE_LEFT;
+		}
 		break;
 	}
 	case sa::ITEM_TARGET_ALL://雙方全體同時(場地)
@@ -10181,17 +10156,21 @@ bool Worker::fixPetTargetBySkillIndex(long long skillIndex, long long oldtarget,
 	case sa::PETSKILL_TARGET_ALLMYSIDE:
 	{
 		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_0;
+			oldtarget = sa::TARGET_SIDE_RIGHT;
 		else
-			oldtarget = sa::TARGET_SIDE_1;
+			oldtarget = sa::TARGET_SIDE_LEFT;
 		break;
 	}
 	case sa::PETSKILL_TARGET_ALLOTHERSIDE:
 	{
-		if (battleCharCurrentPos.get() < 10)
-			oldtarget = sa::TARGET_SIDE_1;
+		if (oldtarget < 10)
+		{
+			oldtarget = sa::TARGET_SIDE_RIGHT;
+		}
 		else
-			oldtarget = sa::TARGET_SIDE_0;
+		{
+			oldtarget = sa::TARGET_SIDE_LEFT;
+		}
 		break;
 	}
 	case sa::PETSKILL_TARGET_ALL:
@@ -10357,8 +10336,8 @@ bool Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 		{
 			//不可補敵方
 			if (target >= bt.enemymin && target <= bt.enemymax
-				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
-				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
+				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_LEFT)
+				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_RIGHT))
 				return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
 			color = QColor("#49BF45");
@@ -10419,8 +10398,8 @@ bool Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 		{
 			//不可補敵方
 			if (target >= bt.enemymin && target <= bt.enemymax
-				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
-				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
+				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_LEFT)
+				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_RIGHT))
 				return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
 			color = QColor("#49BF45");
@@ -10483,8 +10462,8 @@ bool Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 		{
 			//不可補敵方
 			if (target >= bt.enemymin && target <= bt.enemymax
-				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
-				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
+				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_LEFT)
+				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_RIGHT))
 				return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
 
 			color = QColor("#49BF45");
@@ -10712,8 +10691,8 @@ bool Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 		{
 			//不可補敵方
 			if (target >= bt.enemymin && target <= bt.enemymax
-				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_1)
-				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_0))
+				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_LEFT)
+				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_RIGHT))
 				return sendBattlePetDoNothing();
 
 			color = QColor("#49BF45");
@@ -10994,8 +10973,6 @@ void Worker::lssproto_RS_recv(char* cdata)
 	if (data.isEmpty())
 		return;
 
-	setBattleEnd();
-
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 
@@ -11123,19 +11100,7 @@ void Worker::lssproto_RS_recv(char* cdata)
 			announce(texts.join(" "));
 	} while (false);
 
-
-	if (gamedevice.getEnableHash(util::kAutoDropMeatEnable))
-		checkAutoDropMeat();
-	if (gamedevice.getEnableHash(util::kAutoAbilityEnable))
-	{
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-		std::ignore = QtConcurrent::run(&Worker::checkAutoAbility, this);
-#else
-		std::ignore = QtConcurrent::run(this, &Worker::checkAutoAbility);
-#endif
-	}
-	if (gamedevice.getEnableHash(util::kDropPetEnable))
-		checkAutoDropPet();
+	setBattleEnd();
 }
 
 //戰後積分改變
@@ -11959,8 +11924,27 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		setBattleData(bt);
 
-		if (!battleCharAlreadyActed.get() || !battlePetAlreadyActed.get())
-			asyncBattleAction(true);
+		ok = true;
+		for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
+		{
+			sa::battle_object_t obj = bt.objects.value(i);
+			if (obj.hp == 0)
+				continue;
+
+			if (!checkFlagState(i) || !obj.ready)
+			{
+				ok = false;
+				break;
+			}
+
+		}
+
+		if (ok)
+		{
+			if (!battleCharAlreadyActed.get() || !battlePetAlreadyActed.get())
+				asyncBattleAction(true);
+		}
+
 		break;
 	}
 	case 'C':
@@ -13017,6 +13001,7 @@ void Worker::lssproto_missionInfo_recv(char* cdata)
 			case 3:
 			{
 				QString stateStr = perdata.simplified();
+				jobdaily.stateStr = stateStr.toUpper();
 				if (stateStr.contains("行"))
 					jobdaily.state = sa::DailyJobState::kOnGoing;
 				else if (stateStr.contains("完"))
@@ -13033,6 +13018,12 @@ void Worker::lssproto_missionInfo_recv(char* cdata)
 			++j;
 		}
 
+		std::wstring wstr = jobdaily.name.toStdWString();
+		LCMapStringW(LOCALE_SYSTEM_DEFAULT, LCMAP_HALFWIDTH, wstr.c_str(), -1, &wstr[0], wstr.size());
+		jobdaily.name = QString::fromStdWString(wstr);
+		jobdaily.name = jobdaily.name.simplified();
+		jobdaily.name.remove("　");
+		jobdaily.name.remove(" ");
 		missionInfo_.insert(i - 1, jobdaily);
 		getdata.clear();
 		j = 1;
@@ -13440,10 +13431,6 @@ void Worker::lssproto_C_recv(char* cdata)
 		return;
 
 	setOnlineFlag(true);
-	if (waitfor_C_recv_.get())
-	{
-		waitfor_C_recv_.off();
-	}
 
 	long long i = 0, j = 0, id = 0, x = 0, y = 0, dir = 0;
 	long long modelid = 0, level = 0, nameColor = 0, walkable = 0, height = 0, classNo = 0, money = 0, charType = 0, charNameColor = 0;

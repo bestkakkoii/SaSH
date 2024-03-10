@@ -272,7 +272,7 @@ public://actions
 	[[nodiscard]] bool __fastcall checkTeammateHp(long long cmpvalue, long long* target) const;
 
 	[[nodiscard]] bool __fastcall isPetSpotEmpty() const;
-	[[nodiscard]] QVector<long long> __fastcall checkJobDailyState(const QString& missionName, long long timeout);
+	[[nodiscard]] QVector<long long> __fastcall checkJobDailyState(const QString& missionName, long long timeout, bool doNotWait = false);
 
 	[[nodiscard]] bool __fastcall isDialogVisible() const;
 
@@ -371,6 +371,9 @@ public://actions
 	bool __fastcall setWindowTitle(QString formatStr);
 
 	void addNetQueue(const QByteArray& data) { readQueue_.enqueue(data); }
+
+	bool __fastcall isColloectionFinished() const { return !waitForCollection_.get(); }
+
 private:
 	bool __fastcall setCharModelDirection(long long dir) const;
 
@@ -457,6 +460,7 @@ private:
 
 	//自動丟寵
 	void __fastcall checkAutoDropPet(); //Async concurrent, DO NOT change calling convention
+
 #pragma endregion
 
 #pragma region SAClientOriginal
@@ -476,8 +480,8 @@ private: //lockers
 private:
 	safe::flag isBattle_ = false;//是否在戰鬥中
 	safe::flag isOnline_ = false;//是否在線上
-	safe::flag waitfor_C_recv_ = false;//等待接收C封包
 	safe::flag doNotChangeTitle_ = false; //不要更改窗口標題
+	safe::flag waitForCollection_ = false;//等待戰鬥後動作完成
 
 	util::timer eoTTLTimer_;//伺服器響應時間(MS)
 	util::timer connectingTimer_;//登入連接時間(MS)

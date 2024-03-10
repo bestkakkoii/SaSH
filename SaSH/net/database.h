@@ -88,8 +88,14 @@ namespace sa
 	constexpr long long MAP_READ_FLAG = 0x8000;
 	constexpr long long MAP_SEE_FLAG = 0x4000;
 
-	constexpr long long TARGET_SIDE_0 = 20;	// 右下
-	constexpr long long TARGET_SIDE_1 = 21;	// 左上
+	/// <summary>
+	/// 右下
+	/// </summary>
+	constexpr long long TARGET_SIDE_RIGHT = 20;	// 右下
+	/// <summary>
+	/// 左上
+	/// </summary>
+	constexpr long long TARGET_SIDE_LEFT = 21;	// 左上
 	constexpr long long TARGET_ALL = 22;// 全體
 	constexpr long long TARGET_SIDE_0_B_ROW = 26;  // 右下後一列
 	constexpr long long TARGET_SIDE_0_F_ROW = 25;  // 右下前一列
@@ -1007,9 +1013,10 @@ namespace sa
 
 	enum DailyJobState : long long
 	{
-		kNone = 0x1,
-		kFinished = 0x2,
-		kOnGoing = 0x4,
+		kFailed = -1,
+		kNone = 0,
+		kOnGoing = 1,
+		kFinished = 2,
 	};
 #pragma endregion
 
@@ -1385,6 +1392,7 @@ namespace sa
 		long long state = 0;							//0無 1進行中 2已完成
 		QString name = "";						// 任務說明
 		QString memo = "";						// 任務說明
+		QString stateStr = "";
 	}mission_data_t;
 
 	typedef struct show_item_s

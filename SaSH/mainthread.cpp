@@ -1203,7 +1203,7 @@ void MissionThread::start()
 	}
 	default:
 		return;
-}
+	}
 
 	moveToThread(thread_);
 
@@ -1497,7 +1497,8 @@ void MissionThread::autoWalk()
 				if (!gamedevice.worker->getBattleFlag())
 				{
 					QThread::msleep(200);
-					break;
+					if (gamedevice.worker->isColloectionFinished())
+						break;
 				}
 
 				QThread::msleep(100);

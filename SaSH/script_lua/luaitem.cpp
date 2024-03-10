@@ -900,12 +900,9 @@ long long CLuaItem::droppet(sol::object oname, sol::this_state s)
 	{
 		if (petName.count("-") == 1)
 		{
-			long long min = 0, max = 0;
+			long long min = 0, max = sa::MAX_PET - 1;
 			if (!luatool::checkRange(oname, min, max, nullptr))
 				return FALSE;
-
-			min -= 1;
-			max -= 1;
 
 			QVector<long long> v;
 			for (long long i = min; i <= max; ++i)

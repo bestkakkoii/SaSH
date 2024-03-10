@@ -346,7 +346,7 @@ long long CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 		QDir dir(exePath);
 		dir.setFilter(QDir::Files | QDir::NoSymLinks);
 		QFileInfoList fileInfoList = dir.entryInfoList();
-		static const QRegularExpression reg("(\\d+).dat");
+		static const QRegularExpression reg("(\\d+)\\.dat");
 		QString fileName;
 		QRegularExpressionMatch match;
 		QString szfl;

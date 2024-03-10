@@ -55,9 +55,15 @@ ScriptForm::ScriptForm(long long index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::loadFileToTable, this, &ScriptForm::loadFile, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::reloadScriptList, this, &ScriptForm::onReloadScriptList, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, this, &ScriptForm::onScriptStarted, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptStoped, this, &ScriptForm::onScriptStoped, Qt::QueuedConnection);
+
+	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptForm::onScriptPausedMode, Qt::QueuedConnection);
+
 	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptForm::onScriptPaused, Qt::QueuedConnection);
+
+	connect(&signalDispatcher, &SignalDispatcher::scriptResumed, this, &ScriptForm::onScriptResumedMode, Qt::QueuedConnection);
+
 	connect(&signalDispatcher, &SignalDispatcher::scriptResumed, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
+
 	connect(&signalDispatcher, &SignalDispatcher::scriptBreaked, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
 
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
@@ -127,14 +133,13 @@ void ScriptForm::onScriptPaused()
 	if (!gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
-	if (interpreter_ != nullptr)
-	{
-		if (!gamedevice.isScriptPaused())
-		{
-			ui.pushButton_script_pause->setText(tr("resume"));
-			gamedevice.paused();
-		}
-	}
+	if (interpreter_ == nullptr)
+		return;
+
+	if (gamedevice.isScriptPaused())
+		return;
+
+	gamedevice.paused();
 }
 
 void ScriptForm::onScriptResumed()
@@ -143,15 +148,37 @@ void ScriptForm::onScriptResumed()
 	if (!gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
-	if (interpreter_ != nullptr)
-	{
+	if (interpreter_ == nullptr)
+		return;
 
-		if (gamedevice.isScriptPaused())
-		{
-			ui.pushButton_script_pause->setText(tr("pause"));
-			gamedevice.resumed();
-		}
-	}
+	if (!gamedevice.isScriptPaused())
+		return;
+
+	gamedevice.resumed();
+}
+
+void ScriptForm::onScriptPausedMode()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (!gamedevice.IS_SCRIPT_FLAG.get())
+		return;
+
+	if (!gamedevice.isScriptPaused())
+		return;
+
+	ui.pushButton_script_pause->setText(tr("resume"));
+}
+
+void ScriptForm::onScriptResumedMode()
+{
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (!gamedevice.IS_SCRIPT_FLAG.get())
+		return;
+
+	if (gamedevice.isScriptPaused())
+		return;
+
+	ui.pushButton_script_pause->setText(tr("pause"));
 }
 
 void ScriptForm::onScriptStoped()

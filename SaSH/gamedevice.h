@@ -177,47 +177,7 @@ public:
 
 	void __fastcall dragto(long long x1, long long y1, long long x2, long long y2) const;
 
-	bool __fastcall capture(const QString& fileName) const
-	{
-		if (!isValid())
-			return false;
-
-		QFileInfo fileInfo(fileName);
-		//check is a valid path
-		if (fileInfo.absolutePath().isEmpty() || fileInfo.fileName().isEmpty())
-			return false;
-
-		//check png suffix
-		if (fileInfo.suffix().toLower() != "png")
-			return false;
-
-		long long currentIndex = getIndex();
-
-		//取桌面指針
-		QScreen* screen = QGuiApplication::primaryScreen();
-		if (nullptr == screen)
-		{
-			return false;
-		}
-
-		//遊戲後臺滑鼠一移動到左上
-		LPARAM data = MAKELPARAM(0, 0);
-		sendMessage(WM_MOUSEMOVE, NULL, data);
-
-		//根據HWND擷取窗口後臺圖像
-		QPixmap pixmap = screen->grabWindow(reinterpret_cast<WId>(getProcessWindow()));
-
-		//轉存為QImage
-		QImage image = pixmap.toImage();
-
-		//only take middle part of the image
-		image = image.copy(269, 226, 102, 29);//368,253
-
-		if (QFile::exists(fileName))
-			QFile::remove(fileName);
-
-		return image.save(fileName, "PNG");
-	}
+	bool __fastcall capture(const QString& fileName) const;
 
 	void __fastcall hide(long long mode = 0) const;
 
@@ -225,23 +185,9 @@ public:
 
 	QString __fastcall getPointFileName() const;
 
-	QString __fastcall ecbDecrypt(long long address) const
-	{
-		mem::VirtualMemory lpDst(processHandle_, 32, true);
-		sendMessage(kECBCrypt, getProcessModule() + address, lpDst);
-		return mem::readString(processHandle_, lpDst, 32);
-	}
+	QString __fastcall ecbDecrypt(long long address) const;
 
-	QByteArray __fastcall ecbEncrypt(const QString& str) const
-	{
-		mem::VirtualMemory lpSrc(processHandle_, str, mem::VirtualMemory::kAnsi, true);
-		mem::VirtualMemory lpDst(processHandle_, 32, true);
-
-		sendMessage(kECBEncrypt, lpSrc, lpDst);
-		QByteArray result(32, '\0');
-		mem::read(processHandle_, lpDst, 32, result.data());
-		return result;
-	}
+	QByteArray __fastcall ecbEncrypt(const QString& str) const;
 
 	inline void __fastcall setParentWidget(HWND parentWidget) { parentWidget_ = parentWidget; }
 
@@ -249,43 +195,13 @@ public:
 
 	inline bool __fastcall isScriptPaused() const { return isScriptPaused_.get(); }
 
-	inline void __fastcall checkScriptPause()
-	{
-		if (isScriptPaused())
-		{
-			std::unique_lock<std::mutex> lock(scriptPausedMutex_);
-			scriptPausedCondition_.wait(lock);
-		}
-	}
+	void __fastcall checkScriptPause();
 
-	inline void __fastcall paused()
-	{
-		if (isScriptPaused())
-			return;
+	void __fastcall paused();
 
-		{
-			std::unique_lock<std::mutex> lock(scriptPausedMutex_);
-			isScriptPaused_.on();
-		}
-	}
+	void __fastcall resumed();
 
-	inline void __fastcall resumed()
-	{
-		if (!isScriptPaused())
-			return;
-
-		{
-			std::unique_lock<std::mutex> lock(scriptPausedMutex_);
-			isScriptPaused_.off();
-		}
-
-		scriptPausedCondition_.notify_all();
-	}
-
-	inline void stopScript()
-	{
-		IS_SCRIPT_INTERRUPT.on();
-	}
+	inline void __fastcall stopScript() { IS_SCRIPT_INTERRUPT.on(); }
 
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
