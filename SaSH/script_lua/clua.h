@@ -584,9 +584,9 @@ public:
 	long long bwait(sol::object otimeout, sol::object jump, sol::this_state s);
 
 
-	long long count();
-	long long dura();
-	long long time();
+	double count();
+	double dura();
+	double time();
 	long long cost();
 	long long round();
 	std::string field();

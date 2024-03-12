@@ -48,19 +48,13 @@ private slots:
 
 	void onScriptContentChanged(const QString& fileName, const QVariant& tokens);
 
-	void onScriptTableWidgetClicked(QTableWidgetItem* item);
-
 	void onScriptLabelRowTextChanged(long long row, long long max, bool noSelect);
 
 	void onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous);
 
 	void onScriptPaused();
 
-	void onScriptPausedMode();
-
 	void onScriptResumed();
-
-	void onScriptResumedMode();
 
 	void onScriptStoped();
 

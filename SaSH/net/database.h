@@ -805,20 +805,20 @@ namespace sa
 
 	enum SATime
 	{
-		kAfternoon = 0, //下午
-		kDusk = 256, //黃昏
-		kMidnight = 512, //午夜
-		kMorning = 768, //早晨
-		kNoon = 1024, //中午
+		kAfternoon = 0,  // 下午
+		kDusk = 256,     // 黃昏
+		kMidnight = 512, // 午夜
+		kMorning = 768,  // 早晨
+		kNoon = 1024,    // 中午
 	};
 
 	enum FamilyPosition
 	{
-		kFamilyPositionNone = -1,    // 未加入任何家族
-		kFamilyPositionMember = 1,   // 一般成員
-		kFamilyPositionApplying,     // 申請加入家族
-		kFamilyPositionLeader,       // 家族族長
-		kFamilyPositionElder,        // 長老
+		kFamilyPositionNone = -1,      // 未加入任何家族
+		kFamilyPositionMember = 1,     // 一般成員
+		kFamilyPositionApplying,       // 申請加入家族
+		kFamilyPositionLeader,         // 家族族長
+		kFamilyPositionElder,          // 長老
 		//kFamilyPositionInvite,       // 祭司
 		//kFamilyPositionBailee,       // 財務長
 		//kFamilyPositionViceLeader,   // 副族長

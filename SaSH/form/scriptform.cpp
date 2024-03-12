@@ -46,7 +46,6 @@ ScriptForm::ScriptForm(long long index, QWidget* parent)
 	connect(ui.treeWidget_script->header(), &QHeaderView::sectionClicked, this, &ScriptForm::onScriptTreeWidgetHeaderClicked);
 	connect(ui.treeWidget_script, &QTreeWidget::itemDoubleClicked, this, &ScriptForm::onScriptTreeWidgetDoubleClicked);
 
-	connect(ui.tableWidget_script, &QTableWidget::itemClicked, this, &ScriptForm::onScriptTableWidgetClicked);
 	connect(ui.tableWidget_script, &QTableWidget::currentItemChanged, this, &ScriptForm::onCurrentTableWidgetItemChanged);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
@@ -55,17 +54,10 @@ ScriptForm::ScriptForm(long long index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::loadFileToTable, this, &ScriptForm::loadFile, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::reloadScriptList, this, &ScriptForm::onReloadScriptList, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, this, &ScriptForm::onScriptStarted, Qt::QueuedConnection);
-
-	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptForm::onScriptPausedMode, Qt::QueuedConnection);
-
 	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptForm::onScriptPaused, Qt::QueuedConnection);
-
-	connect(&signalDispatcher, &SignalDispatcher::scriptResumed, this, &ScriptForm::onScriptResumedMode, Qt::QueuedConnection);
-
 	connect(&signalDispatcher, &SignalDispatcher::scriptResumed, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
-
 	connect(&signalDispatcher, &SignalDispatcher::scriptBreaked, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
-
+	connect(&signalDispatcher, &SignalDispatcher::scriptStoped, this, &ScriptForm::onScriptStoped, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 	emit signalDispatcher.reloadScriptList();
 
@@ -136,6 +128,8 @@ void ScriptForm::onScriptPaused()
 	if (interpreter_ == nullptr)
 		return;
 
+	ui.pushButton_script_pause->setText(tr("resume"));
+
 	if (gamedevice.isScriptPaused())
 		return;
 
@@ -151,34 +145,12 @@ void ScriptForm::onScriptResumed()
 	if (interpreter_ == nullptr)
 		return;
 
+	ui.pushButton_script_pause->setText(tr("pause"));
+
 	if (!gamedevice.isScriptPaused())
 		return;
 
 	gamedevice.resumed();
-}
-
-void ScriptForm::onScriptPausedMode()
-{
-	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	if (!gamedevice.IS_SCRIPT_FLAG.get())
-		return;
-
-	if (!gamedevice.isScriptPaused())
-		return;
-
-	ui.pushButton_script_pause->setText(tr("resume"));
-}
-
-void ScriptForm::onScriptResumedMode()
-{
-	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
-	if (!gamedevice.IS_SCRIPT_FLAG.get())
-		return;
-
-	if (gamedevice.isScriptPaused())
-		return;
-
-	ui.pushButton_script_pause->setText(tr("pause"));
 }
 
 void ScriptForm::onScriptStoped()
@@ -187,9 +159,10 @@ void ScriptForm::onScriptStoped()
 	if (!gamedevice.IS_SCRIPT_FLAG.get())
 		return;
 
-	gamedevice.stopScript();
 	if (gamedevice.isScriptPaused())
 		gamedevice.resumed();
+
+	gamedevice.stopScript();
 }
 
 //腳本結束信號槽
@@ -387,6 +360,7 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 	}
 }
 
+//表格項目單擊事件
 void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem*)
 {
 	if (!current)
@@ -411,17 +385,12 @@ void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTab
 	onScriptLabelRowTextChanged(row + 1, rowCount, true);
 }
 
-void ScriptForm::onScriptTableWidgetClicked(QTableWidgetItem*)
-{
-}
-
 //樹型框雙擊事件
-void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int column)
+void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int)
 {
 	if (!item)
 		return;
 
-	std::ignore = column;
 	if (item->text(0).isEmpty())
 		return;
 

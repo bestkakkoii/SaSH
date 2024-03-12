@@ -466,6 +466,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <ClCompile Include="model\highlighter.cpp" />
     <ClCompile Include="model\listview.cpp" />
     <ClCompile Include="model\mapglwidget.cpp" />
+    <ClCompile Include="model\messagewidget.cpp" />
     <ClCompile Include="model\pushbutton.cpp" />
     <ClCompile Include="model\scopedhandle.cpp" />
     <ClCompile Include="model\qthumbnailform.cpp" />
@@ -538,6 +539,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <QtMoc Include="model\openglwidget.h" />
     <QtMoc Include="model\logger.h" />
     <QtMoc Include="model\listwidget.h" />
+    <QtMoc Include="model\messagewidget.h" />
     <ClInclude Include="model\safe.h" />
     <ClInclude Include="model\scopedhandle.h" />
     <QtMoc Include="model\tablewidget.h" />

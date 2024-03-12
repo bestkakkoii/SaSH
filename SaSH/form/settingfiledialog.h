@@ -20,5 +20,6 @@ private slots:
 private:
 	Ui::settingfiledialogClass ui;
 	QListWidgetItem* firstItem_ = nullptr;
+	QListWidgetItem* defaultItem_ = nullptr;
 	QLineEdit* lineEdit_ = nullptr;
 };

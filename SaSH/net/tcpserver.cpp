@@ -2941,6 +2941,8 @@ void Worker::updateBattleTimeInfo()
 	cost = battle_one_round_time.get() / 1000.0;
 	total_time = battle_total_time.get() / 1000.0 / 60.0;
 
+	battleDurationTime.set(time);
+
 	battle_time_text = QString(QObject::tr("%1 count no %2 round duration: %3 sec cost: %4 sec total time: %5 minues"))
 		.arg(battle_total.get())
 		.arg(battleCurrentRound.get())
@@ -3758,10 +3760,10 @@ bool Worker::login(long long s)
 		{
 			gamedevice.leftDoubleClick(315, 253);
 			config.writeArray<long long>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
-		}
+	}
 #endif
 		break;
-	}
+}
 	case util::kStatusInputUser:
 	{
 		if (!input())
@@ -3894,7 +3896,7 @@ bool Worker::login(long long s)
 			if (timer.hasExpired(1500))
 				break;
 
-		}
+	}
 #endif
 		break;
 	}
@@ -4049,7 +4051,7 @@ bool Worker::login(long long s)
 				if (timer.hasExpired(1500))
 					break;
 
-			}
+	}
 		}
 #endif
 		break;
@@ -5364,10 +5366,12 @@ void Worker::checkAutoDropPet()
 	bool strLowAtEnable = gamedevice.getEnableHash(util::kDropPetStrEnable);
 	bool defLowAtEnable = gamedevice.getEnableHash(util::kDropPetDefEnable);
 	bool agiLowAtEnable = gamedevice.getEnableHash(util::kDropPetAgiEnable);
+	bool hpLowAtEnable = gamedevice.getEnableHash(util::kDropPetHpEnable);
 	bool aggregateLowAtEnable = gamedevice.getEnableHash(util::kDropPetAggregateEnable);
 	double strLowAtValue = gamedevice.getValueHash(util::kDropPetStrValue);
 	double defLowAtValue = gamedevice.getValueHash(util::kDropPetDefValue);
 	double agiLowAtValue = gamedevice.getValueHash(util::kDropPetAgiValue);
+	double hpLowAtValue = gamedevice.getValueHash(util::kDropPetHpValue);
 	double aggregateLowAtValue = gamedevice.getValueHash(util::kDropPetAggregateValue);
 	QString text = gamedevice.getStringHash(util::kDropPetNameString);
 	QStringList nameList;
@@ -5386,6 +5390,7 @@ void Worker::checkAutoDropPet()
 		double str = pet.atk;
 		double def = pet.def;
 		double agi = pet.agi;
+		double hp = pet.maxHp;
 		double aggregate = ((str + def + agi + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0;
 
 		bool okDrop = false;
@@ -5398,6 +5403,10 @@ void Worker::checkAutoDropPet()
 			okDrop = true;
 		}
 		else if (agiLowAtEnable && (agi < agiLowAtValue))
+		{
+			okDrop = true;
+		}
+		else if (hpLowAtEnable && (hp < hpLowAtValue))
 		{
 			okDrop = true;
 		}
@@ -5798,6 +5807,8 @@ bool Worker::setCharFaceDirection(const QString& dirStr, bool noWindow)
 //物品排序
 void Worker::sortItem()
 {
+	waitForCollection_.on();
+
 	updateItemByMemory();
 	getCharMaxCarryingCapacity();
 
@@ -5806,11 +5817,11 @@ void Worker::sortItem()
 	QHash<long long, sa::item_t> items = getItems();
 	sa::character_t pc = getCharacter();
 
-	//檢查人物負重是否不正確
+	// 檢查人物負重是否不正確
 	if (pc.maxload <= 0)
 		return;
 
-	//从最后一个道具开始遍历
+	// 從最後一個道具開始遍歷
 	for (i = sa::MAX_ITEM - 1; i > sa::CHAR_EQUIPSLOT_COUNT; --i)
 	{
 		sa::item_t itemBackMost = items.value(i);
@@ -5823,25 +5834,28 @@ void Worker::sortItem()
 		if (itemBackMost.name.isEmpty())
 			continue;
 
-		QString key = QString("%1_%2_%3").arg(itemBackMost.name).arg(itemBackMost.memo).arg(itemBackMost.modelid);
+		QString key = QString("%1%2%3%4%5%6%7%8%9")
+			.arg(itemBackMost.name)
+			.arg(itemBackMost.name2)
+			.arg(itemBackMost.memo)
+			.arg(itemBackMost.color)
+			.arg(itemBackMost.modelid)
+			.arg(itemBackMost.level)
+			.arg(itemBackMost.type)
+			.arg(itemBackMost.field)
+			.arg(itemBackMost.target);
 
-		//如果key存在且不可堆疊則跳過
+		// 轉換hash
+		key = QString::fromUtf8(QCryptographicHash::hash(key.toUtf8(), QCryptographicHash::Md5).toHex().toUpper());
+
+		// 如果key存在且不可堆疊則跳過
 		if (itemStackFlagHash_.contains(key) && itemStackFlagHash_.value(key) == kItemUnableSort)
 			continue;
 
-		//從第一個道具開始遍歷
+		// 從第一個道具開始遍歷
 		for (j = sa::CHAR_EQUIPSLOT_COUNT; j < i; ++j)
 		{
 			sa::item_t itemFrontMost = items.value(j);
-
-#if 0
-			//如果 j 位置为空则直接交換，将道具塞到最前面
-			if (!itemFrontMost.valid)
-			{
-				swapItem(i, j);
-				continue;
-			}
-#endif
 
 			// 檢查 i 位置道具名稱 是否與 j 位置道具名稱相同
 			if (itemBackMost.name != itemFrontMost.name)
@@ -5855,43 +5869,53 @@ void Worker::sortItem()
 			if (itemBackMost.modelid != itemFrontMost.modelid)
 				continue;
 
-			//首先檢查 j 道具 是否為可堆疊道具
-			if (itemFrontMost.stack > 1 && itemStackFlagHash_.value(key) != kItemEnableSort)
+			// 首先檢查 j 道具 是否為可堆疊道具，堆疊數本身大於 1 代表可堆疊
+			if (itemFrontMost.stack > 1 && itemStackFlagHash_.value(key) < kItemEnableSort)
 			{
-				itemStackFlagHash_.insert(key, kItemEnableSort); //將該道具標記為可堆疊
+				itemStackFlagHash_.insert(key, kItemEnableSort); // 將該道具標記為可堆疊
 			}
 
-			//如果key不存在 先嘗試疊一次
+			// 如果key不存在 先嘗試疊一次
 			if (!itemStackFlagHash_.contains(key))
 			{
+				itemStackFlagHash_.insert(key, kItemFirstSort); // 將其先標記为首次堆叠
 				swapItem(i, j);
-				itemStackFlagHash_.insert(key, kItemFirstSort); //將其先標記为首次堆叠
+				++itemTryStackHash_[key];
 				continue;
 			}
 
-			//如果標記不可堆疊且實際堆疊數量為1則跳過
-			if (itemStackFlagHash_.value(key) == kItemUnableSort && itemFrontMost.stack == 1)
-				continue;
+			if (itemFrontMost.stack == 1)
+			{
+				// 如果道具堆疊三次數量依然沒有變化
+				if (itemStackFlagHash_.value(key) == kItemFirstSort && itemTryStackHash_.value(key) >= 3)
+				{
+					itemStackFlagHash_.insert(key, kItemUnableSort); // 將其標記為不可堆疊
+					continue;
+				}
+				// 如果標記不可堆疊且實際堆疊數量為1則跳過
+				else if (itemStackFlagHash_.value(key) == kItemUnableSort)
+					continue;
+			}
 
-			//檢查如果實際堆疊數量大於人物負重
+			// 檢查如果實際堆疊數量大於人物負重
 			if (itemFrontMost.stack > pc.maxload)
 			{
-				//將人物負重設為該道具堆疊數量
+				// 將人物負重設為該道具堆疊數量
 				pc.maxload = itemFrontMost.stack;
 				setCharacter(pc);
-				//如果道具 j 堆疊數量 不同於 道具 j 最大堆疊數量
+				// 如果道具 j 堆疊數量 不同於 道具 j 最大堆疊數量，則嘗試堆疊至最大數量，這里真實最大數量是未知的
 				if (itemFrontMost.stack != itemMaxStackHash_.value(key))
 				{
-					//將道具 j 最大堆疊數量設為道具 j 堆疊數量
+					// 將道具 j 最大堆疊數量設為道具 j 堆疊數量
 					itemMaxStackHash_.insert(key, itemFrontMost.stack);
 
-					//嘗試交換道具
+					// 嘗試交換道具
 					swapItem(i, j);
 				}
 				continue;
 			}
 
-			//如果道具 前面的道具大於後面的道具 則交換道具
+			// 如果道具，前面的道具大於後面的道具，則交換道具
 			if (itemBackMost.stack < itemFrontMost.stack)
 			{
 				if (!itemMaxStackHash_.contains(key))
@@ -5914,12 +5938,12 @@ void Worker::sortItem()
 				}
 
 				swapItem(i, j);
-
 				continue;
 			}
 
-			//嘗試交換道具 将后面较多的道具移到前面
+			// 嘗試交換道具 將後面較多的道具移到前面
 			swapItem(i, j);
+			++itemTryStackHash_[key];
 		}
 	}
 }
@@ -6454,13 +6478,11 @@ void Worker::setBattleEnd()
 		battle_total_time.add(battleDurationTimer.cost());
 	setBattleFlag(false);
 
+	normalDurationTimer.restart();
+
 	std::ignore = QtConcurrent::run([this, &gamedevice]()
 		{
-			normalDurationTimer.restart();
 
-			//強退戰鬥畫面
-			//if (getWorldStatus() == 10)
-				//setGameStatus(7);
 
 			bool enableLockRide = gamedevice.getEnableHash(util::kLockRideEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
 			bool enableLockPet = gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
@@ -6475,6 +6497,9 @@ void Worker::setBattleEnd()
 
 			if (gamedevice.getEnableHash(util::kAutoAbilityEnable))
 				checkAutoAbility();
+
+			if (gamedevice.getEnableHash(util::kAutoStackEnable))
+				sortItem();
 
 			waitForCollection_.off();
 
@@ -6507,6 +6532,7 @@ void Worker::setBattleEnd()
 				QThread::msleep(10);
 			}
 
+			// 強退戰鬥畫面
 			if (W == 10)
 			{
 				setGameStatus(7);
@@ -6525,7 +6551,7 @@ inline bool Worker::checkFlagState(long long pos) const
 {
 	if (pos < 0 || pos >= sa::MAX_ENEMY)
 		return false;
-	return util::checkAND(battleCurrentAnimeFlag.get(), 1ll << pos);
+	return util::checkAND(battleCurrentAnimeFlag.get(), 1LL << pos);
 }
 
 //異步戰鬥動作處理
@@ -6600,8 +6626,7 @@ bool Worker::asyncBattleAction(bool canDelay)
 	sa::battle_data_t bt = getBattleData();
 	long long nret = -1;
 
-	//人物和寵物分開發 TODO 修正多個BA人物多次發出戰鬥指令的問題
-	//if (!battleCharAlreadyActed.get())
+	if (!battleCharAlreadyActed.get() && !checkFlagState(battleCharCurrentPos.get()))
 	{
 		if (canDelay)
 			delay();
@@ -6619,8 +6644,8 @@ bool Worker::asyncBattleAction(bool canDelay)
 		}
 	}
 
-	//TODO 修正寵物指令在多個BA時候重覆發送的問題
-	//if (!battlePetAlreadyActed.get())
+	else if (battleCharAlreadyActed.get() && checkFlagState(battleCharCurrentPos.get()) // 人物已经出手
+		&& !battlePetAlreadyActed.get() && !checkFlagState(battleCharCurrentPos.get() + 5)) // 寵物未出手
 	{
 		long long nret = petDoBattleWork(bt);
 		if (1 == nret || -1 == nret)
@@ -7100,7 +7125,7 @@ bool Worker::conditionMatchTarget(QVector<sa::battle_object_t> btobjs, const QSt
 }
 
 //lua托管戰鬥
-bool Worker::runBattleLua(BattleScriptType type)
+bool Worker::runBattleLua(BattleScriptType type) const
 {
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -7966,10 +7991,13 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 				long long tempTarget = -1;
 
 				long long round = gamedevice.getValueHash(util::kBattleCharCrossActionRoundValue) + 1;
-				if ((battleCurrentRound.get()) % round)
+				if (battleCrossActionCounter_.get() < round)
 				{
+					battleCrossActionCounter_.inc();
 					break;
 				}
+
+				battleCrossActionCounter_.reset();
 
 				long long actionType = gamedevice.getValueHash(util::kBattleCharCrossActionTypeValue);
 				if (actionType == 1)
@@ -9629,7 +9657,7 @@ long long Worker::getBattleSelectableEnemyOneRowTarget(const sa::battle_data_t& 
 
 	return defaultTarget;
 #endif
-}
+	}
 
 //取戰鬥隊友可選目標編號
 long long Worker::getBattleSelectableAllieTarget(const sa::battle_data_t& bt) const
@@ -10900,10 +10928,10 @@ void Worker::lssproto_AB_recv(char* cdata)
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
 				}
-			}
-		}
-#endif
 	}
+}
+#endif
+}
 }
 
 //名片數據
@@ -10961,8 +10989,8 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
 			}
-		}
-	}
+}
+}
 #endif
 }
 
@@ -11246,6 +11274,8 @@ void Worker::lssproto_I_recv(char* cdata)
 	checkAutoEatBoostExpItem();
 
 	checkAutoDropItems();
+
+	checkAutoDropMeat();
 }
 
 //對話框
@@ -11617,6 +11647,7 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 		battleDurationTimer.restart();
 		oneRoundDurationTimer.restart();
 		battleCurrentRound.reset();
+		battleCrossActionCounter_.reset();
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 		emit signalDispatcher.battleTableAllItemResetColor();
 
@@ -11882,27 +11913,17 @@ void Worker::lssproto_B_recv(char* ccommand)
 		sa::battle_data_t bt = getBattleData();
 		if (!bt.objects.isEmpty())
 		{
-			QVector<sa::battle_object_t> objs = bt.objects;
+			QVector<sa::battle_object_t>& objs = bt.objects;
+
 			for (long long i = bt.alliemin; i <= bt.alliemax; ++i)
 			{
 				if (i >= bt.objects.size())
 					break;
-				if (checkFlagState(i) && !bt.objects.value(i).ready)
+
+				sa::battle_object_t& obj = objs[i];
+
+				if (obj.hp > 0 && checkFlagState(i) && !obj.ready)
 				{
-#if 0
-					if (i == battleCharCurrentPos.get())
-					{
-						qDebug() << QString("自己 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
-					if (i == battleCharCurrentPos.get() + 5)
-					{
-						qDebug() << QString("戰寵 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
-					else
-					{
-						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
-#endif
 					emit signalDispatcher.notifyBattleActionState(i);//標上我方已出手
 					objs[i].ready = true;
 				}
@@ -11912,14 +11933,15 @@ void Worker::lssproto_B_recv(char* ccommand)
 			{
 				if (i >= bt.objects.size())
 					break;
-				if (checkFlagState(i) && !bt.objects.value(i).ready)
+
+				sa::battle_object_t& obj = objs[i];
+
+				if (obj.hp > 0 && checkFlagState(i) && !obj.ready)
 				{
 					emit signalDispatcher.notifyBattleActionState(i); //標上敵方已出手
 					objs[i].ready = true;
 				}
 			}
-
-			bt.objects = std::move(objs);
 		}
 
 		setBattleData(bt);
@@ -11931,7 +11953,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 			if (obj.hp == 0)
 				continue;
 
-			if (!checkFlagState(i) || !obj.ready)
+			if (!obj.ready)
 			{
 				ok = false;
 				break;
@@ -11941,8 +11963,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		if (ok)
 		{
-			if (!battleCharAlreadyActed.get() || !battlePetAlreadyActed.get())
-				asyncBattleAction(true);
+			asyncBattleAction(true);
 		}
 
 		break;
@@ -12721,13 +12742,13 @@ void Worker::lssproto_B_recv(char* ccommand)
 				++i;
 				break;
 			}
-			}
-		}
+	}
+}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-	}
+}
 }
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
@@ -13254,7 +13275,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -13304,7 +13325,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -13346,7 +13367,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
@@ -13611,9 +13632,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+		}
 #endif
-			}
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13650,7 +13671,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+	}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13914,8 +13935,8 @@ void Worker::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-			}
-		}
+}
+}
 #endif
 #pragma endregion
 	}
@@ -15170,6 +15191,10 @@ void Worker::lssproto_S_recv(char* cdata)
 		checkAutoEatBoostExpItem();
 
 		checkAutoDropItems();
+
+		checkAutoDropMeat();
+
+		sortItem();
 	}
 #pragma endregion
 #pragma region PetSkill

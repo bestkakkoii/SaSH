@@ -596,12 +596,6 @@ void AfkForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
-	if (name == "checkBox_autodroppet_hp")
-	{
-		gamedevice.setEnableHash(util::kDropPetHpEnable, isChecked);
-		return;
-	}
-
 	if (name == "checkBox_autodroppet_aggregate")
 	{
 		gamedevice.setEnableHash(util::kDropPetAggregateEnable, isChecked);

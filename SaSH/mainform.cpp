@@ -1199,6 +1199,13 @@ MainForm::MainForm(long long index, QWidget* parent)
 	//RPC& rpc = RPC::getInstance();
 	//QSharedPointer<sol::state> device = rpc.getDevice(getIndex());
 	//device->set_function("print", &MainForm::print, this);
+
+	// Every 30 minutes check for update
+	connect(&checkUpdateTimer_, &QTimer::timeout, this, &MainForm::checkUpdate);
+	checkUpdateTimer_.start(30 * 60 * 1000);
+
+	// First check for update after 3 seconds
+	QTimer::singleShot(1500, this, &MainForm::checkUpdate);
 }
 
 std::string MainForm::print(std::string str)
@@ -1216,8 +1223,8 @@ MainForm::~MainForm()
 
 void MainForm::showEvent(QShowEvent* e)
 {
-	//setUpdatesEnabled(true);
-	//blockSignals(false);
+	if (!checkUpdateTimer_.isActive())
+		checkUpdateTimer_.start(30 * 60 * 1000);
 
 	setAttribute(Qt::WA_Mapped);
 	QMainWindow::showEvent(e);
@@ -1249,6 +1256,8 @@ void MainForm::closeEvent(QCloseEvent* e)
 			return;
 		}
 	}
+
+	checkUpdateTimer_.stop();
 
 	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
@@ -1322,6 +1331,17 @@ void MainForm::createTrayIcon()
 		delete closeAction;
 		closeAction = nullptr;
 	}
+}
+
+void MainForm::checkUpdate()
+{
+	checkUpdateResult_ = Downloader::checkUpdate(&currentVersion_, &resultVersion_, &formatedDiffVersion_);
+	if (!checkUpdateResult_)
+		return;
+
+	QString detail = tr("Has new: %1!").arg(currentVersion_).trimmed();
+
+	onMessageWidgetShow(detail);
 }
 
 //菜單點擊事件
@@ -1540,32 +1560,29 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionUpdate")
 	{
-		QString current;
-		QString result;
-		QString formatedDiff;
 		long long ret;
 
-		bool bret = Downloader::checkUpdate(&current, &result, &formatedDiff);
-		QString detail = tr("Current version:%1\nNew version:%2").arg(current).arg(result);
-		if (bret)
+		checkUpdateResult_ = Downloader::checkUpdate(&currentVersion_, &resultVersion_, &formatedDiffVersion_);
+		detailVersion_ = tr("Current version:%1\nNew version:%2").arg(currentVersion_).arg(resultVersion_);
+		if (checkUpdateResult_)
 		{
 			onMessageBoxShow(\
 				tr("Update process will cause all the games to be closed, are you sure to continue?"), \
 				2,
-				formatedDiff, \
+				formatedDiffVersion_, \
 				& ret, \
 				tr("New version were found"),
-				detail);
+				detailVersion_);
 		}
 		else
 		{
 			onMessageBoxShow(\
 				tr("Do you still want to update?"), \
 				1,
-				formatedDiff, \
+				formatedDiffVersion_, \
 				& ret, \
 				tr("No new version available"),
-				detail);
+				detailVersion_);
 		}
 
 		if (ret != QMessageBox::Yes)
@@ -1577,7 +1594,7 @@ void MainForm::onMenuActionTriggered()
 	}
 }
 
-bool MainForm::onResetControlTextLanguage()
+void MainForm::onResetControlTextLanguage()
 {
 	this->ui.retranslateUi(this);
 
@@ -1611,8 +1628,6 @@ bool MainForm::onResetControlTextLanguage()
 	ui.progressBar_pcmp->onCurrentValueChanged(255, 9999, 9999);
 	ui.progressBar_pethp->onCurrentValueChanged(255, 9999, 9999);
 	ui.progressBar_ridehp->onCurrentValueChanged(255, 9999, 9999);
-
-	return true;
 }
 
 void MainForm::onUpdateStatusLabelTextChanged(long long status)
@@ -1894,7 +1909,8 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 		icon = QMessageBox::Icon::Information;
 
 	QMessageBox msgBox(this);
-	msgBox.setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint);
+	//移除问号
+
 	msgBox.setModal(true);
 	msgBox.setAttribute(Qt::WA_QuitOnClose);
 	msgBox.setIcon(icon);
@@ -1938,12 +1954,16 @@ void MainForm::onMessageBoxShow(const QString& text, long long type, QString tit
 		{
 			if (msgBox.buttonRole(button) == QMessageBox::ActionRole && !button->text().isEmpty() && button->text() == "Show Details...")
 			{
+				// 将 button 设置成透明
+				button->setStyleSheet("background-color: rgba(0, 0, 0, 0); color: rgba(0, 0, 0, 0);");
 				emit button->clicked();
+				button->setEnabled(false);
 				break;
 			}
 		}
 	}
 
+	msgBox.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
 	long long ret = msgBox.exec();
 	if (pnret != nullptr)
 		*pnret = ret;
@@ -1962,7 +1982,6 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 	QInputDialog inputDialog(this);
 
 	inputDialog.setAttribute(Qt::WA_QuitOnClose);
-	inputDialog.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
 	inputDialog.setModal(true);
 	inputDialog.setMinimumWidth(300);
 	inputDialog.setLabelText(newText);
@@ -1988,7 +2007,7 @@ void MainForm::onInputBoxShow(const QString& text, long long type, QVariant* ret
 			inputDialog.setTextValue(retvalue->toString());
 	}
 
-	inputDialog.setWindowFlags(inputDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+	inputDialog.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);// & ~Qt::WindowContextHelpButtonHint
 	int ret = inputDialog.exec();
 	if (ret != QDialog::Accepted)
 	{
@@ -2043,6 +2062,53 @@ void MainForm::onAppendChatLog(const QString& text, long long color)
 
 	gamedevice.chatLogModel.append(text, color);
 	emit gamedevice.chatLogModel.dataAppended();
+}
+
+void MainForm::onMessageWidgetShow(const QString& text)
+{
+	if (pMessageWidget_ == nullptr)
+	{
+		pMessageWidget_ = new QMessageWidget(text, this);
+		connect(pMessageWidget_, &QMessageWidget::destroyed, [this]() { pMessageWidget_ = nullptr; });
+		connect(pMessageWidget_->getCustonButton(), &QPushButton::clicked, this, &MainForm::onMessageWidgetCustomButtonClicked);
+		pMessageWidget_->show();
+	}
+}
+
+void MainForm::onMessageWidgetCustomButtonClicked()
+{
+	if (pMessageWidget_ != nullptr)
+	{
+		pMessageWidget_->close();
+	}
+
+	long long ret;
+	detailVersion_ = tr("Current version:%1\nNew version:%2").arg(currentVersion_).arg(resultVersion_);
+	if (checkUpdateResult_)
+	{
+		onMessageBoxShow(\
+			tr("Update process will cause all the games to be closed, are you sure to continue?"), \
+			2,
+			formatedDiffVersion_, \
+			& ret, \
+			tr("New version were found"),
+			detailVersion_);
+	}
+	else
+	{
+		onMessageBoxShow(\
+			tr("Do you still want to update?"), \
+			1,
+			formatedDiffVersion_, \
+			& ret, \
+			tr("No new version available"),
+			detailVersion_);
+	}
+
+	if (ret != QMessageBox::Yes)
+		return;
+
+	downloader_.start(Downloader::Source::SaSHServer);
 }
 
 #if 0

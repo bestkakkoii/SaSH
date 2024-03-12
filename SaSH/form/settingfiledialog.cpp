@@ -22,41 +22,81 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 	if (list.isEmpty())
 		return;
 
-	if (!defaultName.isEmpty())
-	{
-		QFileInfo info(defaultName);
-		firstItem_ = q_check_ptr(new QListWidgetItem(info.fileName()));
-		sash_assume(firstItem_ != nullptr);
-		if (firstItem_ != nullptr)
+	list.removeDuplicates();
+
+	QCollator collator = util::getCollator();
+	std::sort(list.begin(), list.end(), collator);
+
+	auto createItem = [&](const QString& text, const QString& colorStr = "", const QString& userText = "", QListWidgetItem** pitem = nullptr)->bool
 		{
-			firstItem_->setData(Qt::UserRole, QString("custom"));
-			firstItem_->setForeground(QColor("#BD5F5F"));
-			ui.listWidget->addItem(firstItem_);
-			lineEdit_ = q_check_ptr(new QLineEdit(info.fileName()));
-			sash_assume(lineEdit_ != nullptr);
-			if (lineEdit_ != nullptr)
-			{
-				util::setLineEdit(lineEdit_);
-				connect(lineEdit_, &QLineEdit::textChanged, this, &settingfiledialog::onLineEditTextChanged);
-				this->layout()->addWidget(lineEdit_);
-			}
+			QFileInfo info(text);
+			QListWidgetItem* item = q_check_ptr(new QListWidgetItem(info.fileName()));
+			sash_assume(item != nullptr);
+			if (item == nullptr)
+				return false;
 
-		}
-	}
+			if (userText.isEmpty())
+				item->setData(Qt::UserRole, text);
+			else
+				item->setData(Qt::UserRole, userText);
 
-	for (const QString& str : list)
+			if (!colorStr.isEmpty())
+				item->setForeground(QColor(colorStr));
+
+			ui.listWidget->addItem(item);
+
+			if (pitem != nullptr)
+				*pitem = item;
+
+			return true;
+		};
+
+	do
 	{
-		if (str.contains("system.json"))
+		if (defaultName.isEmpty())
+			break;
+
+		if (!createItem(defaultName, "#BD5F5F", "custom", &firstItem_))
+			break;
+
+		if (!defaultName.contains("default.json"))
+		{
+			if (!createItem("default.json", "#5F5FBD", "default.json", &defaultItem_))
+				break;
+		}
+
+
+		lineEdit_ = q_check_ptr(new QLineEdit(firstItem_->text()));
+		sash_assume(lineEdit_ != nullptr);
+		if (lineEdit_ == nullptr)
+		{
+			delete firstItem_;
+			firstItem_ = nullptr;
+			break;
+		}
+
+		util::setLineEdit(lineEdit_);
+		connect(lineEdit_, &QLineEdit::textChanged, this, &settingfiledialog::onLineEditTextChanged);
+		this->layout()->addWidget(lineEdit_);
+
+	} while (false);
+
+	for (const QString& path : list)
+	{
+		if (path.contains("system.json"))
 			continue;
 
-		QFileInfo info(str);
-
-		QListWidgetItem* item = q_check_ptr(new QListWidgetItem(info.fileName()));
-		sash_assume(item != nullptr);
-		if (item == nullptr)
+		if (defaultName == path)
+			continue;
+		if (path.contains("default.json"))
 			continue;
 
-		item->setData(Qt::UserRole, str);
+		QFileInfo info(path);
+
+		QListWidgetItem* item = nullptr;
+		if (!createItem(path, "", "", &item))
+			continue;
+
 		ui.listWidget->addItem(item);
 	}
 
@@ -64,6 +104,7 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 	QPoint centerPos = parentRect.center();
 	QSize thisSize = size();
 	QPoint newPos = centerPos - QPoint(thisSize.width() / 2, thisSize.height() / 2);
+
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
 	move(newPos);

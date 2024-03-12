@@ -291,6 +291,9 @@
     <ClCompile Include="form\cxfiledialog.cpp">
       <Filter>Source Files\forms\dialog</Filter>
     </ClCompile>
+    <ClCompile Include="model\messagewidget.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -439,6 +442,9 @@
     </QtMoc>
     <QtMoc Include="form\findandreplaceform.h">
       <Filter>Source Files\forms\dialog</Filter>
+    </QtMoc>
+    <QtMoc Include="model\messagewidget.h">
+      <Filter>Source Files\model</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

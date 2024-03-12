@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <gamedevice.h>
 #include "signaldispatcher.h"
 
-long long CLuaBattle::count()
+double CLuaBattle::count()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
@@ -30,16 +30,16 @@ long long CLuaBattle::count()
 	return gamedevice.worker->battle_total.get();
 }
 
-long long CLuaBattle::dura()
+double CLuaBattle::dura()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
 		return 0;
 
-	return gamedevice.worker->battleDurationTimer.cost() / 1000.0;
+	return gamedevice.worker->battleDurationTime.get();
 }
 
-long long CLuaBattle::time()
+double CLuaBattle::time()
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
@@ -55,7 +55,7 @@ long long CLuaBattle::cost()
 	if (gamedevice.worker.isNull())
 		return 0;
 
-	return gamedevice.worker->battle_one_round_time.get() / 1000.0;
+	return gamedevice.worker->battle_one_round_time.get();
 }
 
 long long CLuaBattle::round()

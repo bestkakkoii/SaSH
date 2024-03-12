@@ -394,7 +394,7 @@ private:
 		kCharScript,
 		kPetScript,
 	};
-	bool __fastcall runBattleLua(BattleScriptType script);
+	bool __fastcall runBattleLua(BattleScriptType script) const;
 
 	long long __fastcall playerDoBattleWork(const sa::battle_data_t& bt);
 	bool __fastcall handleCharBattleLogics(const sa::battle_data_t& bt);
@@ -534,6 +534,8 @@ private:
 	QString battleCharLuaScriptPath_;
 	QString battlePetLuaScriptPath_;
 
+	safe::integer battleCrossActionCounter_;
+
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
 	safe::data<QString> lastSecretChatName_;//最後一次收到密語的發送方名稱
@@ -626,6 +628,8 @@ public:
 	util::timer battleDurationTimer;
 	util::timer normalDurationTimer;
 	util::timer oneRoundDurationTimer;
+
+	safe::integer battleDurationTime;
 
 	safe::integer battleCurrentRound = 0;
 	safe::integer battle_total_time = 0;

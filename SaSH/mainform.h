@@ -84,11 +84,17 @@ private:
 	void createMenu(QMenuBar* pMenuBar);
 	void createTrayIcon();
 
+
+
 signals:
 	void resetControlTextLanguage();
 
 private slots:
-	bool onResetControlTextLanguage();
+	void checkUpdate();
+
+	void onMessageWidgetCustomButtonClicked();
+
+	void onResetControlTextLanguage();
 
 	void onMenuActionTriggered();
 
@@ -109,6 +115,7 @@ private slots:
 	void onAppendScriptLog(const QString& text, long long color = 0);
 	void onAppendChatLog(const QString& text, long long color = 0);
 
+	void onMessageWidgetShow(const QString& text);
 signals:
 	void messageBoxFinished();
 	void inputBoxFinished();
@@ -129,6 +136,9 @@ private:
 	ScriptEditor pScriptEditor_;
 	MapWidget mapWidget_;
 
+	QMessageWidget* pMessageWidget_ = nullptr;
+	QTimer checkUpdateTimer_;
+
 	long long interfaceCount_ = 0;
 
 	Downloader downloader_;
@@ -140,4 +150,10 @@ private:
 	QHash<long long, std::shared_ptr<Interpreter>> interpreter_hash_;
 
 	QAction* hideTrayAction_ = nullptr;
+
+	QString currentVersion_;
+	QString resultVersion_;
+	QString formatedDiffVersion_;
+	QString detailVersion_;
+	bool checkUpdateResult_ = false;
 };

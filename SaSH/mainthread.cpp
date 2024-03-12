@@ -1191,11 +1191,6 @@ void MissionThread::start()
 		connect(thread_, &QThread::started, this, &MissionThread::autoRecordNPC);
 		break;
 	}
-#if 0
-	case kAutoBattle:
-		connect(&thread_, &QThread::started, this, &MissionThread::autoBattle);
-		break;
-#endif
 	case kAsyncFindPath:
 	{
 		connect(thread_, &QThread::started, this, &MissionThread::asyncFindPath);
@@ -1203,7 +1198,7 @@ void MissionThread::start()
 	}
 	default:
 		return;
-	}
+}
 
 	moveToThread(thread_);
 
@@ -1642,7 +1637,8 @@ void MissionThread::autoSortItem()
 		if (gamedevice.worker->getBattleFlag())
 			continue;
 
-		gamedevice.worker->sortItem();
+		if (!gamedevice.worker->isColloectionFinished())
+			gamedevice.worker->sortItem();
 	}
 
 	emit finished();
@@ -1867,7 +1863,7 @@ void MissionThread::autoHeal()
 
 			if (magicIndex == -1)
 			{
-				magicIndex = gamedevice.getValueHash(util::kNormalMagicHealMagicValue);
+				magicIndex = gamedevice.getValueHash(util::kNormalMagicHealMagicValue) - 3;
 				if (magicIndex >= 0 && magicIndex < sa::CHAR_EQUIPSLOT_COUNT)
 				{
 					long long targetType = gamedevice.worker->getMagic(magicIndex).target;

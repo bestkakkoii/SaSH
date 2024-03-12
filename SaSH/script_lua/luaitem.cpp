@@ -1941,9 +1941,14 @@ long long CLuaItem::getSize()
 
 	QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
 	long long size = 0;
-	for (const sa::item_t& it : items)
+	sa::item_t item;
+	for (auto it = items.begin(); it != items.end(); ++it)
 	{
-		if (it.valid)
+		item = it.value();
+		if (it.key() < sa::CHAR_EQUIPSLOT_COUNT || it.key() >= sa::MAX_ITEM)
+			continue;
+
+		if (it->valid)
 			++size;
 	}
 

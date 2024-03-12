@@ -37,7 +37,7 @@ constexpr const char* kBackupExecuteFileTmp = "SaSH_x86.tmp";
 static const QStringList preBackupFileNames = { util::applicationName(), QString(SASH_INJECT_DLLNAME) + ".dll", "settings", "script" };
 
 QString g_etag;
-constexpr long long UPDATE_TIME_MIN = 30 * 60;
+constexpr long long UPDATE_TIME_MIN = 10 * 60;
 
 static void setHeader(QNetworkRequest* prequest)
 {
@@ -515,7 +515,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformate
 	}
 
 	//只要ETag不一樣或者SaSH.7z比SaSH.exe新，就返回true
-	return bret[0] || bret[1];
+	return bret[1];
 }
 
 Downloader::Downloader()

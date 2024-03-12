@@ -3565,15 +3565,15 @@ void CLua::open_syslibs(sol::state& lua)
 
 			//0~255 sa::kAfternoon
 			if (satime >= sa::kAfternoon && satime < sa::kDusk)
-				return util::toConstData(QObject::tr("afternoon"));
+				return util::toConstData("afternoon");
 			else if (satime >= sa::kDusk && satime < sa::kMidnight)
-				return util::toConstData(QObject::tr("dusk"));
+				return util::toConstData("dusk");
 			else if (satime >= sa::kMidnight && satime < sa::kMorning)
-				return util::toConstData(QObject::tr("midnight"));
+				return util::toConstData("midnight");
 			else if (satime >= sa::kMorning && satime < sa::kNoon)
-				return util::toConstData(QObject::tr("morning"));
+				return util::toConstData("morning");
 			else if (satime >= sa::kNoon)
-				return util::toConstData(QObject::tr("noon"));
+				return util::toConstData("noon");
 
 			return util::toConstData(QObject::tr("unknown"));
 		});
