@@ -1645,24 +1645,11 @@ class CLuaMapUnit
 public:
 	CLuaMapUnit(long long index) : index_(index) {}
 
-	sa::map_unit_t operator[](long long index)
-	{
-		--index;
-
-		GameDevice& gamedevice = GameDevice::getInstance(index_);
-		if (gamedevice.worker.isNull())
-			return sa::map_unit_t();
-
-		return gamedevice.worker->mapUnitHash.value(index);
-	}
-
 	sol::object find(sol::object p1, sol::object p2, sol::this_state s)
 	{
 		GameDevice& gamedevice = GameDevice::getInstance(index_);
 		if (gamedevice.worker.isNull())
 			return sol::lua_nil;
-
-
 
 		QString name = "";
 		long long modelid = -1;
@@ -1671,9 +1658,6 @@ public:
 		else if (p1.is<long long>())
 			modelid = p1.as<long long>();
 		else
-			return sol::lua_nil;
-
-		if (name.isEmpty())
 			return sol::lua_nil;
 
 		sa::map_unit_t unit = {};
@@ -1719,28 +1703,46 @@ public:
 			}
 			else
 			{
-				sa::ObjectType type = static_cast<sa::ObjectType>(p2.as<long long>());
-				if (-1 == modelid)
+				if (p2.as<long long>() >= sa::kObjectMaxCount)
 				{
+					modelid = p2.as<long long>();
 
-					if (gamedevice.worker->findUnit(name, type, &unit, "", -1))
+					if (gamedevice.worker->findUnit(name, sa::kObjectNPC, &unit, "", modelid))
 					{
 						break;
 					}
 
-					if (gamedevice.worker->findUnit("", type, &unit, name, -1))
+					if (gamedevice.worker->findUnit(name, sa::kObjectHuman, &unit, "", modelid))
 					{
 						break;
 					}
 				}
 				else
 				{
-					if (gamedevice.worker->findUnit("", type, &unit, "", modelid))
+					sa::ObjectType type = static_cast<sa::ObjectType>(p2.as<long long>());
+					if (-1 == modelid)
 					{
-						break;
+						if (gamedevice.worker->findUnit(name, type, &unit, "", -1))
+						{
+							break;
+						}
+
+						if (gamedevice.worker->findUnit("", type, &unit, name, -1))
+						{
+							break;
+						}
+					}
+					else
+					{
+						if (gamedevice.worker->findUnit("", type, &unit, "", modelid))
+						{
+							break;
+						}
 					}
 				}
 			}
+
+			return sol::lua_nil;
 		} while (false);
 
 		return sol::make_object(s, unit);
@@ -3429,35 +3431,34 @@ void CLua::open_syslibs(sol::state& lua)
 
 			sol::protected_function_result result;
 
-			if (ovalue.is<std::string>())
+			do
 			{
+				if (!ovalue.is<std::string>())
+					break;
+
+				std::string src = ovalue.as<std::string>();
+
 				sol::protected_function format = lua["format"];
-				if (format.valid())
-				{
-					sol::object o = format.call(ovalue.as<std::string>());
-					if (!o.valid())
-						return 0;
+				if (!format.valid()
+					|| (src.find("{:") == std::string::npos && src.find("}") == std::string::npos))
+					break;
 
-					result = print.call(o, ocolor);
-				}
-				else
-				{
-					result = print.call(ovalue, ocolor);
-				}
-			}
-			else
-			{
-				result = print.call(ovalue, ocolor);
-			}
+				sol::object o = format.call(src);
+				if (!o.valid())
+					break;
 
-			if (!result.valid())
-				return 0;
+				result = print.call(o, ocolor);
+				return result.valid() ? 1 : 0;
+			} while (false);
 
-			return 1;
+			result = print.call(ovalue, ocolor);
+
+			return result.valid() ? 1 : 0;
 		});
 
 	//直接覆蓋print會無效,改成在腳本內中轉覆蓋
 	lua.safe_script(R"(
+		__oldprint = print;
 		print = printf;
 	)", sol::script_pass_on_error);
 	lua.collect_garbage();
@@ -4202,7 +4203,6 @@ void CLua::open_maplibs(sol::state& lua)
 	lua.new_usertype<CLuaMapUnit>("UnitClass",
 		sol::call_constructor,
 		sol::constructors<CLuaMapUnit(long long)>(),
-		sol::meta_function::index, &CLuaMapUnit::operator[],
 		"find", &CLuaMapUnit::find,
 		"查找", &CLuaMapUnit::find
 	);
@@ -4633,14 +4633,14 @@ void CLua::proc()
 				}
 				tableStrs << ">";
 			}
-		}
+	}
 
 		luadebug::logExport(s, tableStrs, 0);
-	} while (false);
+} while (false);
 
-	emit finished();
+emit finished();
 
-	long long currentIndex = getIndex();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.scriptFinished();
-}
+long long currentIndex = getIndex();
+SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+emit signalDispatcher.scriptFinished();
+	}

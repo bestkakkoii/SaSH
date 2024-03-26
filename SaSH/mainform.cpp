@@ -1339,7 +1339,7 @@ void MainForm::checkUpdate()
 	if (!checkUpdateResult_)
 		return;
 
-	QString detail = tr("Has new: %1!").arg(currentVersion_).trimmed();
+	QString detail = tr("Has new: %1!").arg(resultVersion_).trimmed();
 
 	onMessageWidgetShow(detail);
 }
