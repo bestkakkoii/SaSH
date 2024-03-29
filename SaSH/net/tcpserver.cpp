@@ -5001,18 +5001,18 @@ void Worker::checkAutoLockPet()
 	if (getBattleFlag())
 		return;
 
-	bool enableSwitchPet = GameDevice::getInstance(getIndex()).getEnableHash(util::kBattleAutoSwitchEnable);
-	if (enableSwitchPet)
-	{
-		for (long long i = 0; i < sa::MAX_PET; ++i)
-		{
-			sa::pet_t pet = getPet(i);
-			if (pet.state != sa::PetState::kRest)
-				continue;
+	//bool enableSwitchPet = GameDevice::getInstance(getIndex()).getEnableHash(util::kBattleAutoSwitchEnable);
+	//if (enableSwitchPet)
+	//{
+	//	for (long long i = 0; i < sa::MAX_PET; ++i)
+	//	{
+	//		sa::pet_t pet = getPet(i);
+	//		if (pet.state == sa::PetState::kRest || pet.state == sa::PetState::kRide || pet.state == sa::PetState::kBattle)
+	//			continue;
 
-			setPetState(i, sa::kStandby);
-		}
-	}
+	//		setPetState(i, sa::kStandby);
+	//	}
+	//}
 
 	bool enableLockRide = gamedevice.getEnableHash(util::kLockRideEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
 	bool enableLockPet = gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
@@ -5928,7 +5928,7 @@ void Worker::sortItem()
 			long long tryflag = itemTryStackHash_.value(key, 0);
 
 			// 首先檢查 j 道具 是否為可堆疊道具，堆疊數本身大於 1 代表可堆疊
-			if (itemFrontMost.stack > 1 && flag < kItemEnableSort)
+			if ((itemFrontMost.stack > 1 || itemBackMost.stack > 1) && flag < kItemEnableSort)
 			{
 				itemStackFlagHash_.insert(key, kItemEnableSort); // 將該道具標記為可堆疊
 			}
@@ -5942,10 +5942,10 @@ void Worker::sortItem()
 			}
 
 			// 如果道具堆疊數量為 1
-			if (itemFrontMost.stack == 1)
+			if (itemFrontMost.stack == 1 || itemBackMost.stack == 1)
 			{
 				// 且道具尝试堆疊多次，但數量依然沒有變化
-				if (flag == kItemFirstSort && tryflag >= 9999)
+				if (flag == kItemFirstSort && tryflag >= 10)
 				{
 					itemStackFlagHash_.insert(key, kItemUnableSort); // 將其標記為不可堆疊
 					continue;
@@ -5953,16 +5953,22 @@ void Worker::sortItem()
 				// 如果標記不可堆疊且實際堆疊數量也為1則跳過
 				else if (flag == kItemUnableSort)
 					continue;
+				else
+				{
+					swapItem(i, j);
+					++itemTryStackHash_[key];
+					continue;
+				}
 			}
 
 			// 檢查如果實際堆疊數量大於人物負重
-			if (itemFrontMost.stack > pc.maxload)
+			if ((itemFrontMost.stack > pc.maxload) || (itemBackMost.stack > pc.maxload))
 			{
 				// 將人物負重設為該道具堆疊數量
-				pc.maxload = itemFrontMost.stack;
+				pc.maxload = itemFrontMost.stack > pc.maxload ? itemBackMost.stack : pc.maxload;
 				setCharacter(pc);
 				// 如果道具 j 堆疊數量 不同於 道具 j 最大堆疊數量，則嘗試堆疊至最大數量，這里真實最大數量是未知的
-				if (itemFrontMost.stack != itemMaxStackHash_.value(key))
+				if (itemFrontMost.stack > itemMaxStackHash_.value(key) || itemBackMost.stack > itemMaxStackHash_.value(key))
 				{
 					// 將道具 j 最大堆疊數量設為道具 j 堆疊數量
 					itemMaxStackHash_.insert(key, itemFrontMost.stack);
@@ -6519,10 +6525,7 @@ void Worker::setBattleEnd()
 
 	std::ignore = QtConcurrent::run([this, &gamedevice]()
 		{
-			bool enableLockRide = gamedevice.getEnableHash(util::kLockRideEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
-			bool enableLockPet = gamedevice.getEnableHash(util::kLockPetEnable) && !gamedevice.getEnableHash(util::kLockPetScheduleEnable);
-			if ((enableLockRide || enableLockPet))
-				checkAutoLockPet();
+			checkAutoLockPet();
 
 			checkAutoDropMeat();
 
@@ -10960,9 +10963,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
-#endif
 	}
+#endif
+}
 }
 
 //名片數據
@@ -11021,7 +11024,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				break;
 			}
 		}
-	}
+}
 #endif
 }
 
@@ -12780,12 +12783,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-		}
+	}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-	}
+}
 }
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
@@ -13312,7 +13315,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -13362,7 +13365,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -13398,7 +13401,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-		}
+}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13669,9 +13672,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
-#endif
 			}
+#endif
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13815,7 +13818,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13973,7 +13976,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}
@@ -16287,5 +16290,5 @@ bool Worker::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return false;
-}
+	}
 #endif
