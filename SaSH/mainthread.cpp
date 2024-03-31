@@ -1198,7 +1198,7 @@ void MissionThread::start()
 	}
 	default:
 		return;
-}
+	}
 
 	moveToThread(thread_);
 
@@ -1594,30 +1594,11 @@ void MissionThread::autoSortItem()
 	//qDebug() << "autoSortItem() start";
 
 	long long i = 0;
-	constexpr long long duration = 2;
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
 	for (;;)
 	{
-		for (i = 0; i < duration; ++i)
-		{
-			if (gamedevice.isGameInterruptionRequested())
-				break;
-
-			if (gamedevice.worker.isNull())
-				break;
-
-			if (isMissionInterruptionRequested())
-				break;
-
-			if (!gamedevice.getEnableHash(util::kAutoStackEnable))
-				break;
-
-			if (!gamedevice.worker->getOnlineFlag())
-				break;
-
-			QThread::msleep(200);
-		}
+		QThread::msleep(100);
 
 		if (isMissionInterruptionRequested())
 			break;
@@ -1637,8 +1618,7 @@ void MissionThread::autoSortItem()
 		if (gamedevice.worker->getBattleFlag())
 			continue;
 
-		if (!gamedevice.worker->isColloectionFinished())
-			gamedevice.worker->sortItem();
+		gamedevice.worker->sortItem();
 	}
 
 	emit finished();

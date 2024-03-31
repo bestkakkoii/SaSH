@@ -3073,10 +3073,6 @@ void Worker::setOnlineFlag(bool enable)
 	{
 		setBattleEnd();
 		IS_TRADING.off();
-
-		itemStackFlagHash_.clear();
-		itemTryStackHash_.clear();
-		itemMaxStackHash_.clear();
 	}
 
 	isOnline_.set(enable);
@@ -5373,8 +5369,8 @@ void Worker::checkAutoDropItems()
 
 			if (cmpItem.startsWith("?"))//如果丟棄列表名稱前面有?則表示要模糊匹配
 			{
-				QString newCmpItem = cmpItem.mid(1);//去除問號
-				if (item.name.contains(newCmpItem))
+				QString newCmpItem = cmpItem.mid(1).toLower();//去除問號
+				if (item.name.toLower().contains(newCmpItem))
 				{
 					dropItem(i);
 					continue;
@@ -5865,98 +5861,88 @@ void Worker::sortItem()
 	if (!gamedevice.getEnableHash(util::kAutoStackEnable))
 		return;
 
-	updateItemByMemory();
 	getCharMaxCarryingCapacity();
 
-	long long j = 0;
-	long long i = 0;
-	QHash<long long, sa::item_t> items = getItems();
 	sa::character_t pc = getCharacter();
 
 	// 檢查人物負重是否不正確
 	if (pc.maxload <= 0)
 		return;
 
+	updateItemByMemory();
+
+	long long j = 0;
+	long long i = 0;
+	QHash<long long, sa::item_t> items = getItems();
+
 	QString key;
+	QString frontKey;
+	long long stackableFlag = 0;
+	long long tryStackCount = 0;
+	long long tryStackMaxCount = 0;
+	sa::item_t itemBackMost = {};
+	sa::item_t itemFrontMost = {};
 
 	// 從最後一個道具開始遍歷
-	for (i = sa::MAX_ITEM - 1; i > sa::CHAR_EQUIPSLOT_COUNT; --i)
+	for (i = sa::MAX_ITEM - 1; i >= sa::CHAR_EQUIPSLOT_COUNT; --i)
 	{
-		sa::item_t itemBackMost = items.value(i);
+		itemBackMost = items.value(i);
 
 		// 檢查道具是否存在
 		if (!itemBackMost.valid)
 			continue;
 
-		key = QString("%1%2%3%4%5%6%7")
-			.arg(itemBackMost.name)
-			.arg(itemBackMost.memo)
-			.arg(itemBackMost.modelid)
-			.arg(itemBackMost.level)
-			.arg(itemBackMost.type)
-			.arg(itemBackMost.field)
-			.arg(itemBackMost.target);
-
 		// 轉換hash
-		key = QString::fromUtf8(QCryptographicHash::hash(key.toUtf8(), QCryptographicHash::Md5).toHex().toUpper());
+		key = itemBackMost.hash;
+		stackableFlag = itemStackFlagHash_.value(key, kItemFirstSort);  // 是否可堆疊
+		tryStackCount = itemTryStackHash_.value(key, 0);                // 嘗試堆疊次數
+		tryStackMaxCount = itemTryStackMaxHash_.value(key, 0);          // 嘗試堆疊至最大次數
+
+		// 將所有道具堆疊數量大於1的道具標記為可堆疊
+		if (itemBackMost.stack > 1 && stackableFlag < kItemEnableSort)
+		{
+			itemStackFlagHash_.insert(key, kItemEnableSort); // 將該道具標記為可堆疊
+		}
 
 		// 如果key存在且不可堆疊則跳過
-		if (itemStackFlagHash_.contains(key) && itemStackFlagHash_.value(key) == kItemUnableSort)
+		if (kItemUnableSort == stackableFlag)
 			continue;
 
 		// 從第一個道具開始遍歷
 		for (j = sa::CHAR_EQUIPSLOT_COUNT; j < i; ++j)
 		{
-			sa::item_t itemFrontMost = items.value(j);
+			itemFrontMost = items.value(j);
 
 			if (!itemFrontMost.valid)
 				continue;
 
-			// 檢查 i 位置道具名稱 是否與 j 位置道具名稱相同
-			if (!itemBackMost.name.isEmpty() && !itemFrontMost.name.isEmpty() && itemBackMost.name != itemFrontMost.name)
+			// 檢查hash key是否相同
+			if (itemFrontMost.hash != key)
 				continue;
 
-			// 檢查 i 位置道具備註 是否與 j 位置道具備註相同
-			if (!itemBackMost.memo.isEmpty() && !itemFrontMost.memo.isEmpty() && itemBackMost.memo != itemFrontMost.memo)
-				continue;
-
-			// 檢查 i 位置道具模型編號 是否與 j 位置道具模型編號相同
-			if (itemBackMost.modelid != itemFrontMost.modelid)
-				continue;
-
-			long long flag = itemStackFlagHash_.value(key, kItemFirstSort);
-			long long tryflag = itemTryStackHash_.value(key, 0);
-
-			// 首先檢查 j 道具 是否為可堆疊道具，堆疊數本身大於 1 代表可堆疊
-			if ((itemFrontMost.stack > 1 || itemBackMost.stack > 1) && flag < kItemEnableSort)
+			// 如果key不存在 先嘗試疊一次 將其先標記为首次堆叠
+			if (!itemStackFlagHash_.contains(key))
 			{
-				itemStackFlagHash_.insert(key, kItemEnableSort); // 將該道具標記為可堆疊
-			}
-			// 如果key不存在 先嘗試疊一次
-			else if (!itemStackFlagHash_.contains(key))
-			{
-				itemStackFlagHash_.insert(key, kItemFirstSort); // 將其先標記为首次堆叠
+				itemStackFlagHash_.insert(key, kItemFirstSort);
 				swapItem(i, j);
 				++itemTryStackHash_[key]; // 尝试次数加一
 				continue;
 			}
 
-			// 如果道具堆疊數量為 1
+			// 有key後如果道具堆疊數量為 1 則開始下一次嘗試
 			if (itemFrontMost.stack == 1 || itemBackMost.stack == 1)
 			{
-				// 且道具尝试堆疊多次，但數量依然沒有變化
-				if (flag == kItemFirstSort && tryflag >= 10)
+				// 道具尝试堆疊3次，但數量依然是 1 將其標記為不可堆疊
+				if (kItemFirstSort == stackableFlag && tryStackCount >= 3)
 				{
-					itemStackFlagHash_.insert(key, kItemUnableSort); // 將其標記為不可堆疊
+					itemStackFlagHash_.insert(key, kItemUnableSort);
 					continue;
 				}
-				// 如果標記不可堆疊且實際堆疊數量也為1則跳過
-				else if (flag == kItemUnableSort)
-					continue;
 				else
 				{
+					// 新的嘗試
 					swapItem(i, j);
-					++itemTryStackHash_[key];
+					++itemTryStackHash_[key]; // 尝试次数加一
 					continue;
 				}
 			}
@@ -5964,23 +5950,28 @@ void Worker::sortItem()
 			// 檢查如果實際堆疊數量大於人物負重
 			if ((itemFrontMost.stack > pc.maxload) || (itemBackMost.stack > pc.maxload))
 			{
-				// 將人物負重設為該道具堆疊數量
+				// 將人物負重更新為該道具當前堆疊數量
 				pc.maxload = itemFrontMost.stack > pc.maxload ? itemBackMost.stack : pc.maxload;
 				setCharacter(pc);
-				// 如果道具 j 堆疊數量 不同於 道具 j 最大堆疊數量，則嘗試堆疊至最大數量，這里真實最大數量是未知的
-				if (itemFrontMost.stack > itemMaxStackHash_.value(key) || itemBackMost.stack > itemMaxStackHash_.value(key))
+
+				// 無論是向前遍歷還是向後遍歷大於紀錄的最大數量 則嘗試堆疊繼續堆疊，因為此處真實最大數量是未知的
+				if (itemFrontMost.stack > tryStackMaxCount || itemBackMost.stack > tryStackMaxCount)
 				{
-					// 將道具 j 最大堆疊數量設為道具 j 堆疊數量
-					itemMaxStackHash_.insert(key, itemFrontMost.stack);
+					// 將紀錄的最大數量 更新為當前堆疊數量
+					if (itemFrontMost.stack > tryStackMaxCount && itemFrontMost.stack >= itemBackMost.stack)
+						itemMaxStackHash_.insert(key, itemFrontMost.stack);
+					else if (itemBackMost.stack > tryStackMaxCount)
+						itemMaxStackHash_.insert(key, itemBackMost.stack);
 
 					// 嘗試交換道具
 					swapItem(i, j);
-					++itemTryStackHash_[key];
+					++itemTryStackMaxHash_[key]; // 尝试最大次数加一
 					continue;
 				}
 			}
 
-			if (tryflag >= 9999)
+			// 如果嘗試次數大於等於9999次則跳過
+			if (tryStackMaxCount >= 9999)
 			{
 				continue;
 			}
@@ -5990,6 +5981,20 @@ void Worker::sortItem()
 		}
 	}
 }
+
+QString Worker::makeItemHash(const sa::item_t& item)
+{
+	QString key = QString("%1%2%3%4%5%6%7")
+		.arg(item.name)
+		.arg(item.memo)
+		.arg(item.modelid)
+		.arg(item.level)
+		.arg(item.type)
+		.arg(item.field)
+		.arg(item.target);
+
+	return QString::fromUtf8(QCryptographicHash::hash(key.toUtf8(), QCryptographicHash::Md5).toHex().toUpper());
+};
 
 //丟棄道具
 bool Worker::dropItem(long long index)
@@ -6532,8 +6537,6 @@ void Worker::setBattleEnd()
 			checkAutoDropPet();
 
 			checkAutoAbility();
-
-			sortItem();
 
 			waitForCollection_.off();
 
@@ -10963,9 +10966,9 @@ void Worker::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-	}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -11024,7 +11027,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 				break;
 			}
 		}
-}
+	}
 #endif
 }
 
@@ -11206,6 +11209,8 @@ void Worker::lssproto_I_recv(char* cdata)
 		//char *data = "9|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20||10|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20|";
 
 		QHash <long long, sa::item_t> items = item_.toHash();
+
+
 		for (j = 0; ; ++j)
 		{
 			no = j * 15;
@@ -11295,6 +11300,8 @@ void Worker::lssproto_I_recv(char* cdata)
 			items[i].itemup = getIntegerToken(data, "|", no + 16);
 
 			items[i].counttime = getIntegerToken(data, "|", no + 17);
+
+			items[i].hash = makeItemHash(items[i]);
 		}
 
 		item_ = items;
@@ -12783,12 +12790,12 @@ void Worker::lssproto_B_recv(char* ccommand)
 				break;
 			}
 			}
-	}
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-}
+	}
 }
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
@@ -13315,7 +13322,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -13365,7 +13372,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -13401,7 +13408,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-}
+		}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13672,9 +13679,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13818,7 +13825,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -13976,7 +13983,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}
@@ -15201,6 +15208,8 @@ void Worker::lssproto_S_recv(char* cdata)
 				item.itemup = getIntegerToken(data, "|", no + 15);
 				item.counttime = getIntegerToken(data, "|", no + 16);
 
+				item.hash = makeItemHash(item);
+
 				item_.insert(i, item);
 			}
 		}
@@ -15227,18 +15236,6 @@ void Worker::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
 		if (IS_WAITOFR_ITEM_CHANGE_PACKET.get() > 0)
 			IS_WAITOFR_ITEM_CHANGE_PACKET.dec();
-
-		//waitForCollection_.on();
-
-		//checkAutoEatBoostExpItem();
-
-		//checkAutoDropItems();
-
-		//checkAutoDropMeat();
-
-		//sortItem();
-
-		//waitForCollection_.off();
 	}
 #pragma endregion
 #pragma region PetSkill
@@ -16290,5 +16287,5 @@ bool Worker::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return false;
-	}
+}
 #endif

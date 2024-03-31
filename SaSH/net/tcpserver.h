@@ -284,6 +284,8 @@ public://actions
 
 	void __fastcall sortItem();
 
+	QString __fastcall makeItemHash(const sa::item_t& item);
+
 	[[nodiscard]] long long __fastcall getDir();
 	[[nodiscard]] QPoint __fastcall getPoint();
 	void __fastcall setPoint(const QPoint& pos);
@@ -520,6 +522,7 @@ private:
 	QHash<QString, long long> itemStackFlagHash_ = {};
 	QHash<QString, long long> itemMaxStackHash_ = {};
 	QHash<QString, long long> itemTryStackHash_ = {};
+	QHash<QString, long long> itemTryStackMaxHash_ = {};
 
 	safe::vector<bool> battlePetDisableList_ = {};
 

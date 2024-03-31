@@ -1100,14 +1100,16 @@ namespace sa
 		QString name = "";
 		QString name2 = "";
 		QString memo = "";
+		QString hash = "";
 
-		QString alch = 0; // #ifdef _ITEMSET7_TXT_ALCHEMIST
+		QString alch = ""; // #ifdef _ITEMSET7_TXT_ALCHEMIST
 		QString jigsaw = "";
 
 		//long long 道具類型 = 0;
 		std::string getName() const { return util::toConstData(name); }
 		std::string getName2() const { return util::toConstData(name2); }
 		std::string getMemo() const { return util::toConstData(memo); }
+		std::string getHash() const { return util::toConstData(hash); }
 
 	} item_t;
 

@@ -311,7 +311,8 @@ void Lexer::tokenized(long long currentLine, const QString& line, TokenMap* ptok
 
 		for (const QString& it : tempReplacementList)
 		{
-			if (raw.startsWith(it + " ") && !raw.contains(QRegularExpression(it + "\\s*(")))//有參數
+			const QRegularExpression rexReplace(QString(R"(%1\s*\()").arg(it));
+			if (raw.startsWith(it + " ") && !raw.contains(rexReplace))//有參數
 			{
 				//將xxx 改為set(
 				raw.replace(it + " ", it + "(");

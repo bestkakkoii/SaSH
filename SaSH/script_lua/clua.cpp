@@ -3800,6 +3800,7 @@ void CLua::open_itemlibs(sol::state& lua)
 		"name", sol::property(&sa::item_t::getName),
 		"name2", sol::property(&sa::item_t::getName2),
 		"memo", sol::property(&sa::item_t::getMemo),
+		"hash", sol::property(&sa::item_t::getHash),
 
 		/*custom*/
 		"max", sol::readonly(&sa::item_t::maxStack),
@@ -4633,14 +4634,14 @@ void CLua::proc()
 				}
 				tableStrs << ">";
 			}
-	}
+		}
 
 		luadebug::logExport(s, tableStrs, 0);
-} while (false);
+	} while (false);
 
-emit finished();
+	emit finished();
 
-long long currentIndex = getIndex();
-SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-emit signalDispatcher.scriptFinished();
-	}
+	long long currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.scriptFinished();
+}
