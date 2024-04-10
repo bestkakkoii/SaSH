@@ -391,7 +391,7 @@ public:
 		long long height = QStyledItemDelegate::sizeHint(option, index).height();
 		QString text = index.data(Qt::DisplayRole).toString();
 		QFontMetrics fm(option.font);
-		long long width = fm.horizontalAdvance(text) * 5;
+		long long width = static_cast<long long>(fm.horizontalAdvance(text)) * 5;
 		return QSize(width, height);
 	}
 
@@ -442,8 +442,6 @@ bool ListView::eventFilter(QObject* obj, QEvent* e)
 void ListView::dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles)
 {
 	QListView::dataChanged(topLeft, bottomRight, roles);
-	//如果數據改變則滾動到底部
-	//scrollToBottom();
 }
 
 void ListView::wheelEvent(QWheelEvent* e)

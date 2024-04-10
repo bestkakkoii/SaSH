@@ -519,10 +519,12 @@ private:
 		kItemFirstSort = 0,
 		kItemEnableSort = 1,
 	};
+
 	QHash<QString, long long> itemStackFlagHash_ = {};
 	QHash<QString, long long> itemMaxStackHash_ = {};
 	QHash<QString, long long> itemTryStackHash_ = {};
 	QHash<QString, long long> itemTryStackMaxHash_ = {};
+	long long pcMaxLoad_ = 0;
 
 	safe::vector<bool> battlePetDisableList_ = {};
 

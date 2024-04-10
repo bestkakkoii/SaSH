@@ -3456,6 +3456,13 @@ void CLua::open_syslibs(sol::state& lua)
 			return result.valid() ? 1 : 0;
 		});
 
+	lua.set_function("setThreadAffinityMask", [](DWORD_PTR  mask)->DWORD_PTR
+		{
+			if (mask == 0)
+				return 0;
+			return SetThreadAffinityMask(GetCurrentThread(), mask);
+		});
+
 	//直接覆蓋print會無效,改成在腳本內中轉覆蓋
 	lua.safe_script(R"(
 		__oldprint = print;

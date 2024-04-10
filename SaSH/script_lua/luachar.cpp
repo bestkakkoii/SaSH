@@ -129,7 +129,7 @@ long long CLuaChar::leave(sol::this_state s)
 	return gamedevice.worker->setTeamState(false);
 }
 
-long long CLuaChar::kick(long long teammateIndex, sol::this_state s)
+long long CLuaChar::kick(sol::object o, sol::this_state s)
 {
 	sol::state_view lua(s);
 	GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
@@ -139,7 +139,56 @@ long long CLuaChar::kick(long long teammateIndex, sol::this_state s)
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	return gamedevice.worker->kickteam(--teammateIndex);
+	QStringList kickWhiteList;
+	long long teammateIndex = -1;
+	if (o.is<long long>())
+	{
+		teammateIndex = o.as<long long>();
+		return gamedevice.worker->kickteam(--teammateIndex);
+	}
+	else if (o.is<std::string>())
+	{
+		QString teammateNames = util::toQString(o.as<std::string>());
+		if (teammateNames.isEmpty())
+			return FALSE;
+
+		static const QRegularExpression rex(util::rexOR);
+		kickWhiteList = teammateNames.split(rex, Qt::SkipEmptyParts);
+
+		if (kickWhiteList.isEmpty())
+			return FALSE;
+
+		//獲取名單
+		GameDevice& gamedevice = GameDevice::getInstance(lua["__INDEX"].get<long long>());
+		if (gamedevice.worker.isNull())
+			return FALSE;
+
+		QHash<long long, sa::team_t> teammates = gamedevice.worker->getTeams();
+		if (teammates.isEmpty())
+			return FALSE;
+
+		bool ok = false;
+		// 匹配到的隊員不踢
+		for (auto it = teammates.begin(); it != teammates.end(); ++it)
+		{
+			long long index = it.key();
+			if (index < 0 || index >= sa::MAX_TEAM)
+				continue;
+
+			sa::team_t team = it.value();
+
+			if (team.name.isEmpty())
+				continue;
+
+			if (kickWhiteList.contains(team.name))
+				continue;
+
+			if (gamedevice.worker->kickteam(index) && !ok)
+				ok = true;
+		}
+	}
+
+	return FALSE;
 }
 
 long long CLuaChar::mail(sol::object oaddrIndex, sol::object omessage, sol::object opetindex, sol::object sitemname, sol::object sitemmemo, sol::this_state s)

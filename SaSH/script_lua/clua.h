@@ -405,7 +405,7 @@ public:
 
 	long long join(sol::this_state s);
 	long long leave(sol::this_state s);
-	long long kick(long long teammateIndex, sol::this_state s);
+	long long kick(sol::object o, sol::this_state s);
 	long long mail(sol::object oaddrIndex, sol::object omessage, sol::object opetindex, sol::object sitemname, sol::object sitemmemo, sol::this_state s);
 	long long usemagic(sol::object omagic, sol::object otarget, sol::this_state s);
 	sa::character_t getCharacter() const;

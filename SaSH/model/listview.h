@@ -32,7 +32,7 @@ class StringListModel : public QAbstractListModel
 public:
 	StringListModel(QObject* parent = nullptr);
 
-	virtual~StringListModel() = default;
+	virtual ~StringListModel() = default;
 
 	long long size() const { return list_.size(); }
 
@@ -98,12 +98,9 @@ class ListView : public QListView
 {
 	Q_OBJECT
 public:
-	explicit ListView(QWidget* parent = nullptr);
+	ListView(QWidget* parent = nullptr);
 
 	virtual ~ListView() = default;
-
-	//如果數據改變則滾動到底部
-	void dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles = QVector<int>()) override;
 
 	void setModel(StringListModel* model);
 
@@ -117,4 +114,6 @@ private slots:
 protected:
 	virtual void wheelEvent(QWheelEvent* event) override;
 	virtual bool eventFilter(QObject* obj, QEvent* e) override;
+	virtual void dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles = QVector<int>()) override;
+
 };

@@ -112,8 +112,15 @@ void QMessageWidget::paintEvent(QPaintEvent* event)
 {
 	Q_UNUSED(event);
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QStyleOption opt;
 	opt.init(this);
 	QPainter p(this);
 	style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+#else
+	QStyleOption opt;
+	opt.initFrom(this);
+	QPainter p(this);
+	style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+#endif
 }

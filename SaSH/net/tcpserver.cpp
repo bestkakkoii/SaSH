@@ -5865,6 +5865,9 @@ void Worker::sortItem()
 
 	sa::character_t pc = getCharacter();
 
+	if (pcMaxLoad_ > pc.maxload)
+		pc.maxload = pcMaxLoad_;
+
 	// 檢查人物負重是否不正確
 	if (pc.maxload <= 0)
 		return;
@@ -5952,6 +5955,7 @@ void Worker::sortItem()
 			{
 				// 將人物負重更新為該道具當前堆疊數量
 				pc.maxload = itemFrontMost.stack > pc.maxload ? itemBackMost.stack : pc.maxload;
+				pcMaxLoad_ = pc.maxload;
 				setCharacter(pc);
 
 				// 無論是向前遍歷還是向後遍歷大於紀錄的最大數量 則嘗試堆疊繼續堆疊，因為此處真實最大數量是未知的
@@ -10964,11 +10968,11 @@ void Worker::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
-				}
-			}
-		}
-#endif
 	}
+}
+	}
+#endif
+}
 }
 
 //名片數據
@@ -11025,9 +11029,9 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
-			}
+}
 		}
-	}
+}
 #endif
 }
 
@@ -12788,15 +12792,15 @@ void Worker::lssproto_B_recv(char* ccommand)
 					++i;
 				++i;
 				break;
-			}
-			}
-		}
+	}
+}
+	}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-	}
 }
+	}
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
 void Worker::lssproto_PETST_recv(long long petarray, long long result)
@@ -13406,20 +13410,20 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				StockChatBufferLine(tmpMsg, color);
 				sprintf_s(msg, "");
 				sprintf_s(secretName, "%s ", tellName);
-			}
+	}
 			else StockChatBufferLine(msg, color);
-		}
+}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
 	}
-}
+	}
 
 //地圖數據更新，重新繪製地圖
 void Worker::lssproto_MC_recv(long long fl, long long x1, long long y1, long long x2, long long y2, long long tileSum, long long partsSum, long long eventSum, char* cdata)
@@ -13681,7 +13685,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					setNpcNotice(ptAct, noticeNo);
 				}
 #endif
-			}
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13981,9 +13985,9 @@ void Worker::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
-				}
-			}
 		}
+	}
+}
 #endif
 #pragma endregion
 	}
