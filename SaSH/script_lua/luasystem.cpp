@@ -1801,6 +1801,8 @@ long long CLuaSystem::set(sol::object oenumStr,
 
 			{ "自動加點", util::kAutoAbilityEnable },
 			{ "KNPC列表", util::kKNPCListString },
+			{ "戰鬥人物腳本", util::kBattleCharLuaFilePathString },
+			{ "戰鬥寵物腳本", util::kBattlePetLuaFilePathString },
 
 			//ok
 			{ "標題", util::kTitleFormatString },
@@ -1940,6 +1942,8 @@ long long CLuaSystem::set(sol::object oenumStr,
 
 			{ "自动加点", util::kAutoAbilityEnable },
 			{ "KNPC列表", util::kKNPCListString },
+			{ "战斗人物脚本", util::kBattleCharLuaFilePathString },
+			{ "战斗宠物脚本", util::kBattlePetLuaFilePathString },
 
 
 			//ok
@@ -2761,6 +2765,8 @@ long long CLuaSystem::set(sol::object oenumStr,
 	case util::kBattleCatchPetNameString:
 	case util::kNormalMagicHealItemString:
 	case util::kKNPCListString:
+	case util::kBattleCharLuaFilePathString:
+	case util::kBattlePetLuaFilePathString:
 	{
 		QString text;
 		if (!p1.is<std::string>())

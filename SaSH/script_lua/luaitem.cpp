@@ -889,7 +889,7 @@ long long CLuaItem::droppet(sol::object oname, sol::this_state s)
 		--petIndex;
 	}
 	else if (oname.is<std::string>())
-		petName = util::toQString(oname.as<std::string>());
+		petName = util::toQString(oname.as<std::string>()).simplified();
 
 	if (petIndex < 0 && petName.isEmpty())
 		return FALSE;
@@ -898,7 +898,7 @@ long long CLuaItem::droppet(sol::object oname, sol::this_state s)
 		return gamedevice.worker->dropPet(petIndex);
 	else if (!petName.isEmpty())
 	{
-		if (petName.count("-") == 1)
+		if (petName.count("-") == 1 || petName == "?")
 		{
 			long long min = 0, max = sa::MAX_PET - 1;
 			if (!luatool::checkRange(oname, min, max, nullptr))

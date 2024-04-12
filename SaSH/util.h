@@ -719,6 +719,9 @@ namespace util
 
 		kKNPCListString,
 
+		kBattleCharLuaFilePathString,
+		kBattlePetLuaFilePathString,
+
 		kSettingMaxString,
 
 		kScriptDebugModeEnable,
@@ -1004,6 +1007,9 @@ namespace util
 		{ kAutoAbilityString , "AutoAbilityString" },
 
 		{ kKNPCListString , "KNPCListString" },
+
+		{ kBattleCharLuaFilePathString , "BattleCharLuaFilePathString" },
+		{ kBattlePetLuaFilePathString , "kBattlePetLuaFilePathString" },
 
 		{ kSettingMaxString, "SettingMaxString" },
 

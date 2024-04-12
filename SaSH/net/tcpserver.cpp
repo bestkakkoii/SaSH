@@ -5897,6 +5897,9 @@ void Worker::sortItem()
 
 		// 轉換hash
 		key = itemBackMost.hash;
+		if (key.isEmpty())
+			continue;
+
 		stackableFlag = itemStackFlagHash_.value(key, kItemFirstSort);  // 是否可堆疊
 		tryStackCount = itemTryStackHash_.value(key, 0);                // 嘗試堆疊次數
 		tryStackMaxCount = itemTryStackMaxHash_.value(key, 0);          // 嘗試堆疊至最大次數
@@ -10968,11 +10971,11 @@ void Worker::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
-	}
-}
-	}
+				}
+			}
+		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -11029,9 +11032,9 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
-}
+			}
 		}
-}
+	}
 #endif
 }
 
@@ -11719,13 +11722,13 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 			};
 
 		if (!QFile::exists(battleCharLuaScriptPath_))
-			battleCharLuaScriptPath_ = getFilePath("battle_char");
+			battleCharLuaScriptPath_ = getFilePath(gamedevice.getStringHash(util::kBattleCharLuaFilePathString));
 
 		if (!battleCharLuaScriptPath_.isEmpty())
 			util::readFile(battleCharLuaScriptPath_, &battleCharLuaScript_);
 
 		if (!QFile::exists(battlePetLuaScriptPath_))
-			battlePetLuaScriptPath_ = getFilePath("battle_pet");
+			battlePetLuaScriptPath_ = getFilePath(gamedevice.getStringHash(util::kBattlePetLuaFilePathString));
 
 		if (!battlePetLuaScriptPath_.isEmpty())
 			util::readFile(battlePetLuaScriptPath_, &battlePetLuaScript_);
@@ -12792,15 +12795,15 @@ void Worker::lssproto_B_recv(char* ccommand)
 					++i;
 				++i;
 				break;
-	}
-}
-	}
+			}
+			}
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-}
 	}
+}
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
 void Worker::lssproto_PETST_recv(long long petarray, long long result)
@@ -13410,20 +13413,20 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				StockChatBufferLine(tmpMsg, color);
 				sprintf_s(msg, "");
 				sprintf_s(secretName, "%s ", tellName);
-	}
+			}
 			else StockChatBufferLine(msg, color);
-}
+		}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
 	}
-	}
+}
 
 //地圖數據更新，重新繪製地圖
 void Worker::lssproto_MC_recv(long long fl, long long x1, long long y1, long long x2, long long y2, long long tileSum, long long partsSum, long long eventSum, char* cdata)
@@ -13685,7 +13688,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					setNpcNotice(ptAct, noticeNo);
 				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13985,9 +13988,9 @@ void Worker::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
+				}
+			}
 		}
-	}
-}
 #endif
 #pragma endregion
 	}

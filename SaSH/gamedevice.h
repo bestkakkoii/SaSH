@@ -567,7 +567,8 @@ private:
 
 		{ util::kKNPCListString, "如果能贏過我的,auto|如果想通過,auto|吼,auto|你想找麻煩,auto|多謝～。,auto|轉以上確定要出售？,auto|再度光臨,auto|已經太多,auto|如果能赢过我的,auto|如果想通过,auto|你想找麻烦,auto|多謝～。,auto|转以上确定要出售？,auto|再度光临,auto|已经太多|auto" },
 
-
+		{ util::kBattleCharLuaFilePathString , "battle_char" },
+		{ util::kBattlePetLuaFilePathString , "battle_pet" },
 	};
 };
 

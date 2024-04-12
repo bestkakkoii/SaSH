@@ -637,6 +637,18 @@ void OtherForm::onLineEditTextChanged(const QString& text)
 		gamedevice.setStringHash(util::kGroupBlackListString, text);
 		return;
 	}
+
+	if (name == "lineEdit_charLuaPath")
+	{
+		gamedevice.setStringHash(util::kBattleCharLuaFilePathString, text);
+		return;
+	}
+
+	if (name == "lineEdit_petLuaPath")
+	{
+		gamedevice.setStringHash(util::kBattlePetLuaFilePathString, text);
+		return;
+	}
 }
 
 void OtherForm::updateComboboxAutoFunNameList(const QStringList& autoFunNameList)
@@ -726,6 +738,12 @@ void OtherForm::onApplyHashSettingsToUI()
 	ui.lineEdit_battleinfo_selfmark->setText(stringHash.value(util::kBattleSelfMarkString));
 	ui.lineEdit_battleinfo_actmark->setText(stringHash.value(util::kBattleActMarkString));
 	ui.lineEdit_battleinfo_space->setText(stringHash.value(util::kBattleSpaceMarkString));
+
+	ui.lineEdit_groupwhitelist->setText(stringHash.value(util::kGroupWhiteListString));
+	ui.lineEdit_groupblacklist->setText(stringHash.value(util::kGroupBlackListString));
+
+	ui.lineEdit_charLuaPath->setText(stringHash.value(util::kBattleCharLuaFilePathString));
+	ui.lineEdit_petLuaPath->setText(stringHash.value(util::kBattlePetLuaFilePathString));
 
 	ui.groupBox_lockpets->setChecked(enableHash.value(util::kLockPetScheduleEnable));
 
