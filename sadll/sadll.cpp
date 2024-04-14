@@ -86,13 +86,6 @@ static LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 extern "C"
 {
 #if 0
-	//new send
-	static int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags)
-	{
-		GameService& g_GameService = GameService::getInstance();
-		return g_GameService.New_send(s, buf, len, flags);
-	}
-
 	//new socket
 	static SOCKET WSAAPI New_socket(int af, int type, int protocol)
 	{
@@ -139,6 +132,12 @@ extern "C"
 		return g_GameService.New_TimeGetTime();
 	}
 #endif
+	//new send
+	static int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_send(s, buf, len, flags);
+	}
 
 	//new recv
 	static int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags)
@@ -282,13 +281,15 @@ SOCKET GameService::New_socket(int af, int type, int protocol) const
 int GameService::New_send(SOCKET s, const char* buf, int len, int flags)
 {
 	int snedlen = psend(s, buf, len, flags);
-	if (snedlen > 0)
+
+	if (IS_FORWARD_SEND == TRUE && snedlen > 0)
 	{
 		std::string str = std::string(buf, snedlen);
 		//prepend a header SEND|
 		str = "SEND|" + str;
 		sendToServer(str + "\n");
 	}
+
 	return snedlen;
 }
 
@@ -756,6 +757,17 @@ BOOL GameService::WM_EnableBattleDialog(BOOL enable)
 	}
 
 	IS_BATTLE_PROC_FLAG = enable;
+
+	return TRUE;
+}
+
+//允許轉發 send 封包
+BOOL GameService::WM_EnableForwardSend(BOOL enable)
+{
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
+	IS_FORWARD_SEND = enable;
 
 	return TRUE;
 }
@@ -1430,6 +1442,12 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		return numberOfBytesSent;
 	}
 	///////////////////////////////////////////////////////////
+	case kEnableForwardSend: //允許轉發 send封包
+	{
+		BOOL enable = wParam > 0 ? TRUE : FALSE;
+		g_GameService.WM_EnableForwardSend(enable);
+		return enable;
+	}
 	case kEnableEffect://關閉特效
 	{
 		return g_GameService.WM_EnableEffect(wParam > 0 ? TRUE : FALSE);
@@ -1732,9 +1750,9 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 
 	DetourAttach(&(PVOID&)precv, ::New_recv);
 	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
-
-#if 0
 	DetourAttach(&(PVOID&)psend, ::New_send);
+#if 0
+
 	DetourAttach(&(PVOID&)psocket, ::New_socket);
 	DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
@@ -1857,9 +1875,9 @@ BOOL GameService::uninitialize()
 
 	DetourDetach(&(PVOID&)precv, ::New_recv);
 	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
+	DetourDetach(&(PVOID&)psend, ::New_send);
 
 #if 0
-	DetourDetach(&(PVOID&)psend, ::New_send);
 	DetourDetach(&(PVOID&)psocket, ::New_socket);
 	DetourDetach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	DetourDetach(&(PVOID&)pntohs, ::New_ntohs);

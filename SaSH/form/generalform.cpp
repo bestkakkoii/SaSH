@@ -578,6 +578,12 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
+	if (name == "checkBox_forwardsend")
+	{
+		gamedevice.setEnableHash(util::kForwardSendEnable, isChecked);
+		return;
+	}
+
 	if (name == "checkBox_lockimage")
 	{
 		gamedevice.setEnableHash(util::kLockImageEnable, isChecked);
@@ -1040,6 +1046,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 	ui.checkBox_lockmove->setChecked(enableHash.value(util::kLockMoveEnable));
 	//ui.checkBox_lockimage->setChecked(enableHash.value(util::kLockImageEnable));
 	ui.checkBox_luabattle->setChecked(enableHash.value(util::kBattleLuaModeEnable));
+	ui.checkBox_forwardsend->setChecked(enableHash.value(util::kForwardSendEnable));
 	ui.checkBox_autodropmeat->setChecked(enableHash.value(util::kAutoDropMeatEnable));
 	ui.checkBox_autodrop->setChecked(enableHash.value(util::kAutoDropEnable));
 	ui.checkBox_autostack->setChecked(enableHash.value(util::kAutoStackEnable));

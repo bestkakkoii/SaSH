@@ -28,6 +28,7 @@ enum UserMessage
 	kEnableWindowHide,
 	kECBCrypt,
 	kECBEncrypt,
+	kEnableForwardSend,
 
 	//Action
 	kSendAnnounce,

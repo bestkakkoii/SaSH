@@ -1020,7 +1020,7 @@ long long CLuaItem::deposititem(sol::object orange, std::string sname, sol::this
 	return bret;
 }
 
-long long CLuaItem::withdrawitem(std::string sname, sol::object omemo, sol::object oisall, sol::this_state s)
+long long CLuaItem::withdrawitem(std::string sname, sol::object omemo, sol::object oisall, sol::object onpc, sol::object odialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["__INDEX"].get<long long>();
@@ -1030,6 +1030,25 @@ long long CLuaItem::withdrawitem(std::string sname, sol::object omemo, sol::obje
 
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
+
+	QString npcName;
+	if (onpc.is<std::string>())
+		npcName = util::toQString(onpc.as<std::string>());
+
+	long long unitid = -1;
+	if (!npcName.isEmpty())
+	{
+		sa::map_unit_t unit;
+		if (!gamedevice.worker->findUnit(npcName, sa::kObjectNPC, &unit))
+			return FALSE;
+
+		unitid = unit.id;
+	}
+
+	long long dialogid = -1;
+	if (odialogid.is<long long>())
+		dialogid = odialogid.as<long long>();
+
 
 	QString itemNames = util::toQString(sname);
 
@@ -1073,8 +1092,10 @@ long long CLuaItem::withdrawitem(std::string sname, sol::object omemo, sol::obje
 
 		long long itemIndex = 0;
 		bool bret = false;
-		for (const sa::item_t& it : bankItemList)
+		for (long long i = 0; i < bankItemList.size(); ++i)
 		{
+			const sa::item_t it = bankItemList.value(i);
+			qDebug() << it.name << it.memo;
 			if (!name.isEmpty())
 			{
 				if (name.startsWith("?"))
@@ -1101,18 +1122,21 @@ long long CLuaItem::withdrawitem(std::string sname, sol::object omemo, sol::obje
 
 			if (bret)
 			{
-				bankItemList.remove(itemIndex);
+				if (!gamedevice.worker->withdrawItem(i, dialogid, unitid))
+					continue;
+
+				bankItemList.removeAt(i);
+				i = -1;
+
 				if (!isAll)
 					break;
+				bret = false;
 			}
 
 			++itemIndex;
 		}
 
 		if (!bret)
-			continue;
-
-		if (!gamedevice.worker->withdrawItem(itemIndex))
 			continue;
 
 		++nret;

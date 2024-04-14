@@ -520,6 +520,8 @@ private:
 
 		{ util::kAutoEncodeEnable, false },
 
+		{ util::kForwardSendEnable, false},
+
 		{ util::kScriptDebugModeEnable, false },
 
 	};

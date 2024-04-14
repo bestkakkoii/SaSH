@@ -522,12 +522,12 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 		return true;
 	}
 
-	//if (preStr.startsWith("SEND|"))
-	//{
-	//	dispatchSendMessage(badata.mid(5));
+	if (preStr.startsWith("SEND|") && GameDevice::getInstance(getIndex()).getEnableHash(util::kForwardSendEnable))
+	{
+		dispatchSendMessage(badata.mid(5));
 
-	//	return true;
-	//}
+		return true;
+	}
 
 	return false;
 }
@@ -548,7 +548,96 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	if (func <= 0)
 		return;
 
-	qDebug() << "SEND" << func << fieldcount;
+	static const QMap<long long, QString> funcMap = {
+		{ sa::LSSPROTO_W_SEND, "W" },
+		{ sa::LSSPROTO_W2_SEND, "W2" },
+		{ sa::LSSPROTO_EV_SEND, "EV" },
+		{ sa::LSSPROTO_EN_SEND, "EN" },
+		{ sa::LSSPROTO_DU_SEND, "DU" },
+		{ sa::LSSPROTO_EO_SEND, "EO" },
+		{ sa::LSSPROTO_BU_SEND, "BU" },
+		{ sa::LSSPROTO_JB_SEND, "JB" },
+		{ sa::LSSPROTO_LB_SEND, "LB" },
+		{ sa::LSSPROTO_B_SEND, "B" },
+		{ sa::LSSPROTO_SKD_SEND, "SKD" },
+		{ sa::LSSPROTO_ID_SEND, "ID" },
+		{ sa::LSSPROTO_PI_SEND, "PI" },
+		{ sa::LSSPROTO_DI_SEND, "DI" },
+		{ sa::LSSPROTO_DG_SEND, "DG" },
+		{ sa::LSSPROTO_DP_SEND, "DP" },
+		{ sa::LSSPROTO_MI_SEND, "MI" },
+		{ sa::LSSPROTO_MSG_SEND, "MSG" },
+		{ sa::LSSPROTO_PMSG_SEND, "PMSG" },
+		{ sa::LSSPROTO_AB_SEND, "AB" },
+		{ sa::LSSPROTO_DAB_SEND, "DAB" },
+		{ sa::LSSPROTO_AAB_SEND, "AAB" },
+		{ sa::LSSPROTO_L_SEND, "L" },
+		{ sa::LSSPROTO_TK_SEND, "TK" },
+		{ sa::LSSPROTO_M_SEND, "M" },
+		{ sa::LSSPROTO_C_SEND, "C" },
+		{ sa::LSSPROTO_S_SEND, "S" },
+		{ sa::LSSPROTO_FS_SEND, "FS" },
+		{ sa::LSSPROTO_HL_SEND, "HL" },
+		{ sa::LSSPROTO_PR_SEND, "PR" },
+		{ sa::LSSPROTO_KS_SEND, "KS" },
+		{ sa::LSSPROTO_AC_SEND, "AC" },
+		{ sa::LSSPROTO_MU_SEND, "MU" },
+		{ sa::LSSPROTO_PS_SEND, "PS" },
+		{ sa::LSSPROTO_ST_SEND, "ST" },
+		{ sa::LSSPROTO_DT_SEND, "DT" },
+		{ sa::LSSPROTO_FT_SEND, "FT" },
+		{ sa::LSSPROTO_SKUP_SEND, "SKUP" },
+		{ sa::LSSPROTO_KN_SEND, "KN" },
+		{ sa::LSSPROTO_WN_SEND, "WN" },
+		{ sa::LSSPROTO_SP_SEND, "SP" },
+		{ sa::LSSPROTO_CLIENTLOGIN_SEND, "CLIENTLOGIN" },
+		{ sa::LSSPROTO_CREATENEWCHAR_SEND, "CREATENEWCHAR" },
+		{ sa::LSSPROTO_CHARDELETE_SEND, "CHARDELETE" },
+		{ sa::LSSPROTO_CHARLOGIN_SEND, "CHARLOGIN" },
+		{ sa::LSSPROTO_CHARLIST_SEND, "CHARLIST" },
+		{ sa::LSSPROTO_CHARLOGOUT_SEND, "CHARLOGOUT" },
+		{ sa::LSSPROTO_PROCGET_SEND, "PROCGET" },
+		{ sa::LSSPROTO_PLAYERNUMGET_SEND, "PLAYERNUMGET" },
+		{ sa::LSSPROTO_ECHO_SEND, "ECHO" },
+		{ sa::LSSPROTO_SHUTDOWN_SEND, "SHUTDOWN" },
+		{ sa::LSSPROTO_TD_SEND, "TD" },
+		{ sa::LSSPROTO_FM_SEND, "FM" },
+		{ sa::LSSPROTO_PETST_SEND, "PETST" },
+		{ sa::LSSPROTO_BM_SEND, "BM" },
+		{ sa::LSSPROTO_MA_SEND, "MA" },
+		{ sa::LSSPROTO_DM_SEND, "DM" },
+		{ sa::LSSPROTO_CS_SEND, "CS" },
+		{ sa::LSSPROTO_KTEAM_SEND, "KTEAM" },
+		{ sa::LSSPROTO_RESIST_SEND, "RESIST" },
+		{ sa::LSSPROTO_BATTLESKILL_SEND, "BATTLESKILL" },
+		{ sa::LSSPROTO_CHATROOM_SEND, "CHATROOM" },
+		{ sa::LSSPROTO_SPET_SEND, "SPET" },
+		{ sa::LSSPROTO_STREET_VENDOR_SEND, "STREET_VENDOR" },
+		{ sa::LSSPROTO_missionInfo_SEND, "missionInfo" },
+		{ sa::LSSPROTO_TEACHER_SYSTEM_SEND, "TEACHER_SYSTEM" },
+		{ sa::LSSPROTO_S2_SEND, "S2" },
+		{ sa::LSSPROTO_PET_ITEM_EQUIP_SEND, "PET_ITEM_EQUIP" },
+		{ sa::LSSPROTO_HOSTNAME_SEND, "HOSTNAME" },
+		{ sa::LSSPROTO_THEATER_DATA_SEND, "THEATER_DATA" },
+		{ sa::LSSPROTO_ALCHEPLUS_SEND, "ALCHEPLUS" },
+		{ sa::LSSPROTO_PKLIST_SEND, "PKLIST" },
+		{ sa::LSSPROTO_SIGNDAY_SEND, "SIGNDAY" },
+		{ sa::LSSPROTO_REDMEMOY_SEND, "REDMEMOY" },
+		{ sa::LSSPROTO_SAMENU_SEND, "SAMENU" },
+		{ sa::LSSPROTO_SHOPOK_SEND, "SHOPOK" },
+		{ sa::LSSPROTO_FAMILYBADGE_SEND, "FAMILYBADGE" },
+		{ sa::LSSPROTO_CHARTITLE_SEND, "CHARTITLE" },
+		{ sa::LSSPROTO_VB_SEND, "VB" },
+		{ sa::LSSPROTO_RIDEQUERY_SEND, "RIDEQUERY" },
+		{ sa::LSSPROTO_PETSKINS_SEND, "PETSKINS" },
+		{ sa::LSSPROTO_JOINTEAM_SEND, "JOINTEAM" },
+		{ sa::LSSPROTO_ARRAGEITEM_SEND, "ARRAGEITEM" },
+	};
+
+	qDebug() << "------------------------";
+	qDebug() << "- <Forward> Function Id:" << func << "| Argument Size:" << fieldcount;
+
+	qDebug() << "- >>> function name:" << QString("lssproto_%1_send").arg(funcMap.value(func, "Unknown"));
 	switch (func)
 	{
 	case sa::LSSPROTO_WN_SEND:
@@ -563,11 +652,14 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 		if (!gamedevice.autil.util_Receive(slices, &x, &y, &dialogid, &unitid, &select, data))
 			return;
 
-		qDebug() << "LSSPROTO_WN_SEND" << "x" << x << "y" << y << "dialogid" << dialogid << "unitid" << unitid << "select" << select << "data" << util::toUnicode(data);
 
+		qDebug() << "- >>> x = " << x << "| y =" << y << "| dialogid =" << dialogid << "| unitid =" << unitid << "| select =" << select;
+		qDebug() << "- >>> data =" << util::toUnicode(data);
 		break;
 	}
 	}
+
+	qDebug() << "------------------------" << Qt::endl;
 }
 
 //異步處理數據
@@ -4390,10 +4482,10 @@ bool Worker::withdrawItem(long long itemIndex, long long dialogid, long long uni
 	if (!lssproto_WN_send(getPoint(), dialogid, unitid, sa::kButtonNone, const_cast<char*>(srow.c_str())))
 		return false;
 
-	long long currentIndex = getIndex();
-	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	if (!gamedevice.sendMessage(kDistoryDialog, NULL, NULL))
-		return false;
+	//long long currentIndex = getIndex();
+	//GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+	//if (!gamedevice.sendMessage(kDistoryDialog, NULL, NULL))
+	//	return false;
 
 	IS_WAITOFR_ITEM_CHANGE_PACKET.inc();
 
@@ -7181,10 +7273,12 @@ bool Worker::runBattleLua(BattleScriptType type) const
 			break;
 
 		std::string sscript;
-		if (kCharScript == type)
+		if (kCharScript == type && !battlePetLuaScript_.isEmpty())
 			sscript = util::toConstData(battleCharLuaScript_);
-		else
+		else if (kPetScript == type && !battlePetLuaScript_.isEmpty())
 			sscript = util::toConstData(battlePetLuaScript_);
+		else
+			break;
 
 		bret = battleLua->doString(sscript);
 
@@ -11469,22 +11563,27 @@ void Worker::lssproto_WN_recv(long long windowtype, long long buttontype, long l
 	}
 
 
-	if (data.contains("寄放店", Qt::CaseInsensitive))
+	if (data.contains("寄放", Qt::CaseInsensitive) ||
+		(data.contains("道具", Qt::CaseInsensitive)
+			&& (data.contains("領取", Qt::CaseInsensitive) || data.contains("领取", Qt::CaseInsensitive))))
 	{
 		currentBankItemList.clear();
 		long long index = 0;
+
+		constexpr long long offset = 7;
+
 		for (;;)
 		{
 			sa::item_t item = {};
 			QString temp;
-			getStringToken(data, "|", 6 + index * 7, temp);
+			getStringToken(data, "|", 6 + index * offset, temp);
 			makeStringFromEscaped(temp);
 			if (temp.isEmpty())
 				break;
 			item.valid = true;
 			item.name = temp;
 
-			getStringToken(data, "|", 11 + index * 7, temp);
+			getStringToken(data, "|", 11 + index * offset, temp);
 			makeStringFromEscaped(temp);
 			item.memo = temp;
 			currentBankItemList.append(item);
@@ -11722,15 +11821,31 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 			};
 
 		if (!QFile::exists(battleCharLuaScriptPath_))
+		{
 			battleCharLuaScriptPath_ = getFilePath(gamedevice.getStringHash(util::kBattleCharLuaFilePathString));
+			if (battleCharLuaScriptPath_.endsWith(".lua"))
+			{
+				//去除.lua
+				battleCharLuaScriptPath_.chop(4);
+			}
+		}
 
-		if (!battleCharLuaScriptPath_.isEmpty())
+		battleCharLuaScript_.clear();
+		if (!battleCharLuaScriptPath_.isEmpty() && QFile::exists(battleCharLuaScriptPath_))
 			util::readFile(battleCharLuaScriptPath_, &battleCharLuaScript_);
 
 		if (!QFile::exists(battlePetLuaScriptPath_))
+		{
 			battlePetLuaScriptPath_ = getFilePath(gamedevice.getStringHash(util::kBattlePetLuaFilePathString));
+			if (battlePetLuaScriptPath_.endsWith(".lua"))
+			{
+				//去除.lua
+				battlePetLuaScriptPath_.chop(4);
+			}
+		}
 
-		if (!battlePetLuaScriptPath_.isEmpty())
+		battlePetLuaScript_.clear();
+		if (!battlePetLuaScriptPath_.isEmpty() && QFile::exists(battlePetLuaScriptPath_))
 			util::readFile(battlePetLuaScriptPath_, &battlePetLuaScript_);
 
 		if (battleCharLuaScriptPath_.isEmpty() && battlePetLuaScriptPath_.isEmpty())
@@ -12796,8 +12911,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 				++i;
 				break;
 			}
-			}
-		}
+	}
+}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
@@ -13329,7 +13444,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -13379,7 +13494,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -13421,7 +13536,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
@@ -13686,9 +13801,9 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+		}
 #endif
-			}
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -13725,7 +13840,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+	}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -13989,7 +14104,7 @@ void Worker::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-			}
+}
 		}
 #endif
 #pragma endregion

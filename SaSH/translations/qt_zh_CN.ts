@@ -1869,19 +1869,19 @@
         <translation type="vanished">您确定要回点吗？</translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="979"/>
+        <location filename="../form/generalform.cpp" line="985"/>
         <source>ServerList%1</source>
         <translation>伺服器列表%1</translation>
     </message>
     <message>
         <location filename="../form/generalform.cpp" line="387"/>
-        <location filename="../form/generalform.cpp" line="1017"/>
+        <location filename="../form/generalform.cpp" line="1023"/>
         <source>dock</source>
         <translation>吸附</translation>
     </message>
     <message>
         <location filename="../form/generalform.cpp" line="391"/>
-        <location filename="../form/generalform.cpp" line="1015"/>
+        <location filename="../form/generalform.cpp" line="1021"/>
         <source>undock</source>
         <translation>解除</translation>
     </message>
@@ -2107,6 +2107,11 @@
         <location filename="../form/generalform.ui" line="455"/>
         <source>fall escape</source>
         <translation>落马逃跑</translation>
+    </message>
+    <message>
+        <location filename="../form/generalform.ui" line="1154"/>
+        <source>forward send</source>
+        <translation>转发封包</translation>
     </message>
     <message>
         <source>shortcut</source>
@@ -3624,47 +3629,47 @@ New version:%2</source>
         <translation>清</translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="1786"/>
+        <location filename="../form/otherform.ui" line="1801"/>
         <source>Title</source>
         <translation>标题</translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="1815"/>
+        <location filename="../form/otherform.ui" line="1830"/>
         <source>Allie</source>
         <translation>我方</translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="1844"/>
+        <location filename="../form/otherform.ui" line="1859"/>
         <source>Enemy</source>
         <translation>敌方</translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="1873"/>
+        <location filename="../form/otherform.ui" line="1888"/>
         <source>Self</source>
         <translation>自己</translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="1887"/>
+        <location filename="../form/otherform.ui" line="1902"/>
         <source>Act</source>
         <translation>出手</translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="1897"/>
+        <location filename="../form/otherform.ui" line="1912"/>
         <source>space</source>
         <translation>补位</translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="1930"/>
+        <location filename="../form/otherform.ui" line="1945"/>
         <source>tcp delay</source>
         <translation>封包延时</translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="1966"/>
+        <location filename="../form/otherform.ui" line="1987"/>
         <source>CharBattleLua</source>
         <translation>战斗人物脚本</translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="1986"/>
+        <location filename="../form/otherform.ui" line="2019"/>
         <source>PetBattleLua</source>
         <translation>战斗宠物脚本</translation>
     </message>
@@ -3822,7 +3827,7 @@ New version:%2</source>
         <translation>远程邮件白名单</translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="1757"/>
+        <location filename="../form/otherform.ui" line="1772"/>
         <source>EO cmd</source>
         <translation>EO命令</translation>
     </message>
@@ -5538,24 +5543,24 @@ New version:%2</source>
         <translation>字符串不可为空</translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="2089"/>
+        <location filename="../script_lua/luasystem.cpp" line="2093"/>
         <source>type cannot be empty</source>
         <translation>类型参数不可为空</translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="2114"/>
-        <location filename="../script_lua/luasystem.cpp" line="2123"/>
+        <location filename="../script_lua/luasystem.cpp" line="2118"/>
+        <location filename="../script_lua/luasystem.cpp" line="2127"/>
         <source>unknown setting type: &apos;%1&apos;</source>
         <translation>未知的设置类型 &apos;%1&apos;</translation>
     </message>
     <message>
-        <location filename="../script_lua/luasystem.cpp" line="2231"/>
-        <location filename="../script_lua/luasystem.cpp" line="2276"/>
-        <location filename="../script_lua/luasystem.cpp" line="2348"/>
-        <location filename="../script_lua/luasystem.cpp" line="2412"/>
-        <location filename="../script_lua/luasystem.cpp" line="2499"/>
-        <location filename="../script_lua/luasystem.cpp" line="2551"/>
-        <location filename="../script_lua/luasystem.cpp" line="2668"/>
+        <location filename="../script_lua/luasystem.cpp" line="2235"/>
+        <location filename="../script_lua/luasystem.cpp" line="2280"/>
+        <location filename="../script_lua/luasystem.cpp" line="2353"/>
+        <location filename="../script_lua/luasystem.cpp" line="2417"/>
+        <location filename="../script_lua/luasystem.cpp" line="2504"/>
+        <location filename="../script_lua/luasystem.cpp" line="2556"/>
+        <location filename="../script_lua/luasystem.cpp" line="2673"/>
         <source>the first parameter of the setting &apos;%1&apos; must be a number or boolean</source>
         <translation>设置 %1 的首个参数必须为数字或布尔类型</translation>
     </message>

@@ -660,6 +660,8 @@ namespace util
 
 		kAutoEncodeEnable,
 
+		kForwardSendEnable,
+
 		kSettingMaxEnable,
 
 		//////////////////
@@ -954,6 +956,10 @@ namespace util
 		{ kAutoAbilityEnable, "AutoAbilityEnable" },
 
 		{ kAutoEncodeEnable, "AutoEncodeEnable" },
+
+		{ kForwardSendEnable, "ForwardSendEnable" },
+
+		{ kSettingMaxEnable, "SettingMaxEnable" },
 
 		//string
 		{ kSettingMinString, "SettingMinString" },
@@ -2061,8 +2067,8 @@ QGroupBox {
 			//setGenerateByteOrderMark(true);
 
 			setAutoDetectUnicode(true);
-		}
-	};
+	}
+};
 
 	//智能文件句柄類
 	class ScopedFile : public QFile

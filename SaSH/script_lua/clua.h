@@ -350,7 +350,7 @@ public:
 	long long droppet(sol::object oname, sol::this_state s);
 
 	long long deposititem(sol::object orange, std::string sname, sol::this_state s);
-	long long withdrawitem(std::string sname, sol::object omemo, sol::object oisall, sol::this_state s);
+	long long withdrawitem(std::string sname, sol::object omemo, sol::object oisall, sol::object onpc, sol::object dialogid, sol::this_state s);
 	long long recordequip(sol::this_state s);
 	long long wearrecordedequip(sol::this_state s);
 	long long unwearequip(sol::object opart, sol::this_state s);

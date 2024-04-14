@@ -45,6 +45,7 @@ public:
 	BOOL __fastcall uninitialize();
 
 public:
+	BOOL __fastcall WM_EnableForwardSend(BOOL enable);
 	BOOL __fastcall WM_EnableEffect(BOOL enable);
 	BOOL __fastcall WM_EnableCharShow(BOOL enable);
 	BOOL __fastcall WM_SetTimeLock(BOOL enable, unsigned int time);
@@ -236,6 +237,7 @@ private:
 	BOOL IS_SOUND_MUTE_FLAG = FALSE;
 	BOOL IS_ENCOUNT_BLOCK_FLAG = FALSE;
 	BOOL IS_MOVE_LOCK = FALSE;
+	BOOL IS_FORWARD_SEND = FALSE;
 
 private:
 	int currentMusic_ = 15;

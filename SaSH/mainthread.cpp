@@ -987,6 +987,14 @@ void MainObject::checkControl()
 		gamedevice.sendMessage(kBattleTimeExtend, bChecked, NULL);
 	}
 
+	//轉發封包
+	bChecked = gamedevice.getEnableHash(util::kForwardSendEnable);
+	if (flagForwardSendEnable_ != bChecked)
+	{
+		flagForwardSendEnable_ = bChecked;
+		gamedevice.sendMessage(kEnableForwardSend, bChecked, NULL);
+	}
+
 	if (!gamedevice.worker->getOnlineFlag())
 		return;
 

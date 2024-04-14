@@ -1916,6 +1916,8 @@ long long CLuaSystem::set(sol::object oenumStr,
 
 			{ "攻擊延時", util::kBattleActionDelayValue },
 			{ "動作重發", util::kBattleResendDelayValue },
+
+			{ "轉發封包", util::kForwardSendEnable },
 #pragma endregion
 
 #pragma region zh_CN
@@ -2073,6 +2075,8 @@ long long CLuaSystem::set(sol::object oenumStr,
 			{ "战斗道具补血目标", util::kBattleItemHealTargetValue },
 			{ "战斗精灵復活目标", util::kBattleMagicReviveTargetValue },
 			{ "战斗道具復活目标", util::kBattleItemReviveTargetValue },
+
+			{ "转发封包", util::kForwardSendEnable },
 	#pragma endregion
 	};
 
@@ -2332,6 +2336,7 @@ long long CLuaSystem::set(sol::object oenumStr,
 	case util::kBattleAutoSwitchEnable:
 	case util::kBattleAutoEOEnable:
 	case util::kBattleLuaModeEnable:
+	case util::kForwardSendEnable:
 
 		//switcher
 	case util::kSwitcherTeamEnable:
