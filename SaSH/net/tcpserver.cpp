@@ -6234,11 +6234,46 @@ bool Worker::craft(sa::CraftType type, const QStringList& ingres)
 	if (petIndex == -1 || skillIndex == -1)
 		return false;
 
+	auto isNumeric = [](const QString& str)->bool
+		{
+			bool isNumber = false;
+			long long itSize = str.size();
+			for (long long i = 0; i < itSize; ++i)
+			{
+				if (!str.at(i).isDigit())
+				{
+					isNumber = false;
+					break;
+				}
+
+				isNumber = true;
+			}
+
+			return isNumber;
+		};
+
+	long long index = -1;
+	long long lastIndex = sa::CHAR_EQUIPSLOT_COUNT;
 	for (const QString& it : ingres)
 	{
-		long long index = getItemIndexByName(it, true, "", sa::CHAR_EQUIPSLOT_COUNT);
-		if (index == -1)
-			return false;
+		if (it.isEmpty())
+			continue;
+
+		//檢查是否為數字
+		if (!isNumeric(it))
+		{
+			index = getItemIndexByName(it, true, "", lastIndex);
+			if (index == -1)
+				return false;
+
+			lastIndex = index;
+		}
+		else
+		{
+			index = it.toLongLong() - 1 + sa::CHAR_EQUIPSLOT_COUNT;
+			if (index < sa::CHAR_EQUIPSLOT_COUNT || index >= sa::MAX_ITEM)
+				return false;
+		}
 
 		itemIndexs.append(util::toQString(index));
 	}
@@ -7273,9 +7308,9 @@ bool Worker::runBattleLua(BattleScriptType type) const
 			break;
 
 		std::string sscript;
-		if (kCharScript == type && !battlePetLuaScript_.isEmpty())
+		if (kCharScript == type && battlePetLuaScript_.size() > 0)
 			sscript = util::toConstData(battleCharLuaScript_);
-		else if (kPetScript == type && !battlePetLuaScript_.isEmpty())
+		else if (kPetScript == type && battlePetLuaScript_.size() > 0)
 			sscript = util::toConstData(battlePetLuaScript_);
 		else
 			break;
@@ -8900,6 +8935,9 @@ bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 	{
 		long long atRoundIndex = gamedevice.getValueHash(util::kBattlePetRoundActionEnemyValue);
 		if (atRoundIndex <= 0)
+			break;
+
+		if (atRoundIndex != battleCurrentRound.get())
 			break;
 
 		long long tempTarget = -1;
@@ -11065,8 +11103,8 @@ void Worker::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
-				}
-			}
+	}
+}
 		}
 #endif
 	}
@@ -11126,7 +11164,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
-			}
+}
 		}
 	}
 #endif
@@ -11812,44 +11850,39 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 
 		auto getFilePath = [](const QString& name)->QString
 			{
+				QString newName = name;
+				if (newName.endsWith(".lua"))
+					newName.chop(4); //去除.lua
+
 				QStringList battleLuaFiles;
-				util::searchFiles(util::applicationDirPath(), name, ".lua", &battleLuaFiles);
-				if (battleLuaFiles.isEmpty())
+				util::searchFiles(util::applicationDirPath(), newName, ".lua", &battleLuaFiles);
+				if (battleLuaFiles.size() <= 0)
 					return "";
 
 				return battleLuaFiles.first();
 			};
 
-		if (!QFile::exists(battleCharLuaScriptPath_))
-		{
-			battleCharLuaScriptPath_ = getFilePath(gamedevice.getStringHash(util::kBattleCharLuaFilePathString));
-			if (battleCharLuaScriptPath_.endsWith(".lua"))
+		//util::kBattleCharLuaFilePathString
+		auto checkScript = [&gamedevice, &getFilePath](util::UserSetting element, QString& scriptPath, QString& scriptContent, QString& scriptCache)->void
 			{
-				//去除.lua
-				battleCharLuaScriptPath_.chop(4);
-			}
-		}
+				if (scriptPath.size() <= 0 || !QFile::exists(scriptPath)) // 如果腳本路徑為空或者文件不存在
+				{
+					scriptPath = getFilePath(gamedevice.getStringHash(element)); // 獲取腳本路徑
 
-		battleCharLuaScript_.clear();
-		if (!battleCharLuaScriptPath_.isEmpty() && QFile::exists(battleCharLuaScriptPath_))
-			util::readFile(battleCharLuaScriptPath_, &battleCharLuaScript_);
+				}
 
-		if (!QFile::exists(battlePetLuaScriptPath_))
-		{
-			battlePetLuaScriptPath_ = getFilePath(gamedevice.getStringHash(util::kBattlePetLuaFilePathString));
-			if (battlePetLuaScriptPath_.endsWith(".lua"))
-			{
-				//去除.lua
-				battlePetLuaScriptPath_.chop(4);
-			}
-		}
+				// 清空腳本內容
+				// 如果腳本路徑不為空且文件存在，讀取腳本內容
+				if (scriptPath.size() > 0 && QFile::exists(scriptPath) &&
+					((scriptContent.size() <= 0) || (scriptContent != scriptCache))) // 如果腳本內容為空或者腳本內容不等於緩存的腳本內容
+				{
+					if (util::readFile(scriptPath, &scriptContent))
+						scriptCache = scriptContent; // 緩存腳本內容
+				}
+			};
 
-		battlePetLuaScript_.clear();
-		if (!battlePetLuaScriptPath_.isEmpty() && QFile::exists(battlePetLuaScriptPath_))
-			util::readFile(battlePetLuaScriptPath_, &battlePetLuaScript_);
-
-		if (battleCharLuaScriptPath_.isEmpty() && battlePetLuaScriptPath_.isEmpty())
-			return;
+		checkScript(util::kBattleCharLuaFilePathString, battleCharLuaScriptPath_, battleCharLuaScript_, battleCharLuaScriptCache_);
+		checkScript(util::kBattlePetLuaFilePathString, battlePetLuaScriptPath_, battlePetLuaScript_, battlePetLuaScriptCache_);
 
 		if (nullptr == battleLua)
 		{
@@ -12910,9 +12943,9 @@ void Worker::lssproto_B_recv(char* ccommand)
 					++i;
 				++i;
 				break;
-			}
 	}
 }
+		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
@@ -13444,7 +13477,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -13494,7 +13527,7 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 
@@ -13528,15 +13561,15 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				StockChatBufferLine(tmpMsg, color);
 				sprintf_s(msg, "");
 				sprintf_s(secretName, "%s ", tellName);
-			}
+	}
 			else StockChatBufferLine(msg, color);
-		}
+}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
 
 		emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 	else
 	{
 		qDebug() << "lssproto_TK_recv: unknown command" << message;
@@ -13801,7 +13834,7 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-		}
+				}
 #endif
 		}
 
@@ -13840,7 +13873,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-	}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -14103,9 +14136,9 @@ void Worker::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
-				}
-}
 		}
+	}
+}
 #endif
 #pragma endregion
 	}
