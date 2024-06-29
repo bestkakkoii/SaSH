@@ -3191,6 +3191,9 @@ void CLua::open_utillibs(sol::state& lua)
 		{
 			QString varValue = util::toQString(ssrc);
 			QString text1 = util::toQString(sfrom);
+			if (ssrc.empty() || sfrom.empty())
+				return "";
+
 			QString text2 = "";
 			if (osto.is<std::string>())
 				text2 = util::toQString(osto);

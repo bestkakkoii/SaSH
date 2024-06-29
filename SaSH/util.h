@@ -36,6 +36,27 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "model/safe.h"
 #include "globalmicro.h"
 
+namespace ansi
+{
+	constexpr const char* RESET = "\033[0m"; // 重置
+	constexpr const char* RED = "\033[31m"; // 紅色
+	constexpr const char* GREEN = "\033[32m"; // 綠色
+	constexpr const char* YELLOW = "\033[33m"; // 黃色
+	constexpr const char* BLUE = "\033[34m"; // 藍色
+	constexpr const char* MAGENTA = "\033[35m"; // 品紅
+	constexpr const char* CYAN = "\033[36m"; // 青色
+	constexpr const char* WHITE = "\033[37m"; // 白色
+	constexpr const char* LIGHT_BLACK = "\033[90m"; // 亮黑（灰）
+	constexpr const char* LIGHT_RED = "\033[91m"; // 亮紅
+	constexpr const char* LIGHT_GREEN = "\033[92m"; // 亮綠
+	constexpr const char* LIGHT_YELLOW = "\033[93m"; // 亮黃
+	constexpr const char* LIGHT_BLUE = "\033[94m"; // 亮藍
+	constexpr const char* LIGHT_MAGENTA = "\033[95m"; // 亮品紅
+	constexpr const char* LIGHT_CYAN = "\033[96m"; // 亮青
+	constexpr const char* LIGHT_WHITE = "\033[97m"; // 亮白
+	constexpr const char* BOLD = "\033[1m"; // 粗體
+}
+
 constexpr long long SASH_VERSION_MAJOR = 1;
 constexpr long long SASH_VERSION_MINOR = 0;
 constexpr long long SASH_VERSION_PATCH = 0;
@@ -2067,8 +2088,8 @@ QGroupBox {
 			//setGenerateByteOrderMark(true);
 
 			setAutoDetectUnicode(true);
-	}
-};
+		}
+	};
 
 	//智能文件句柄類
 	class ScopedFile : public QFile
@@ -2521,9 +2542,11 @@ QGroupBox {
 		std::cerr.clear();
 		std::cin.clear();
 
+
+
 		// std::wcout, std::wclog, std::wcerr, std::wcin
-		HANDLE hConOut = CreateFile(TEXT("CONOUT$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		HANDLE hConIn = CreateFile(TEXT("CONIN$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hConOut = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hConIn = CreateFileW(L"CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		SetStdHandle(STD_OUTPUT_HANDLE, hConOut);
 		SetStdHandle(STD_ERROR_HANDLE, hConOut);
 		SetStdHandle(STD_INPUT_HANDLE, hConIn);
@@ -2541,6 +2564,12 @@ QGroupBox {
 		HMENU hMenu = GetSystemMenu(hWnd, FALSE);
 		if (hMenu != nullptr)
 			DeleteMenu(hMenu, SC_CLOSE, MF_BYCOMMAND);
+
+		//允許ANSI序列
+		DWORD dwMode = 0;
+		GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &dwMode);
+		dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), dwMode);
 
 		qputenv("CONSOLE_HANDLE", QByteArray::number(reinterpret_cast<long long>(hWnd)));
 		return hWnd;

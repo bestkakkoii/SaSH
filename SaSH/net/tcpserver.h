@@ -535,9 +535,7 @@ private:
 	QFuture<void> battleBackupFuture_; //戰鬥動作備用線程管理器
 
 	QString battleCharLuaScript_;
-	QString battleCharLuaScriptCache_;
 	QString battlePetLuaScript_;
-	QString battlePetLuaScriptCache_;
 	QString battleCharLuaScriptPath_;
 	QString battlePetLuaScriptPath_;
 

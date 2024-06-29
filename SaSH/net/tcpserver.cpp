@@ -635,9 +635,10 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	};
 
 	qDebug() << "------------------------";
-	qDebug() << "- <Forward> Function Id:" << func << "| Argument Size:" << fieldcount;
+	qDebug().noquote() << "- <Forward> Function Id:" << QString("%1%2%3").arg(ansi::GREEN).arg(func).arg(ansi::RESET)
+		<< "| Argument Size:" << QString("%1%2%3").arg(ansi::GREEN).arg(fieldcount).arg(ansi::RESET);
 
-	qDebug() << "- >>> function name:" << QString("lssproto_%1_send").arg(funcMap.value(func, "Unknown"));
+	qDebug().noquote() << "- >>> function name:" << QString("%1\"lssproto_%2_send\"%3").arg(ansi::CYAN).arg(funcMap.value(func, "Unknown")).arg(ansi::RESET);
 	switch (func)
 	{
 	case sa::LSSPROTO_WN_SEND:
@@ -653,10 +654,54 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 			return;
 
 
-		qDebug() << "- >>> x = " << x << "| y =" << y << "| dialogid =" << dialogid << "| unitid =" << unitid << "| select =" << select;
-		qDebug() << "- >>> data =" << util::toUnicode(data);
+		qDebug().noquote() << "- >>> x = " << QString("%1%2%3").arg(ansi::GREEN).arg(x).arg(ansi::RESET)
+			<< "| y =" << QString("%1%2%3").arg(ansi::GREEN).arg(y).arg(ansi::RESET)
+			<< "| dialogid =" << QString("%1%2%3").arg(ansi::GREEN).arg(dialogid).arg(ansi::RESET)
+			<< "| unitid =" << QString("%1%2%3").arg(ansi::GREEN).arg(unitid).arg(ansi::RESET)
+			<< "| select =" << QString("%1%2%3").arg(ansi::GREEN).arg(select).arg(ansi::RESET);
+		qDebug().noquote() << "- >>> data =" << QString("%1\"%2\"%3").arg(ansi::YELLOW).arg(util::toUnicode(data)).arg(ansi::RESET);
 		break;
 	}
+	case sa::LSSPROTO_SHOPOK_SEND:
+	case sa::LSSPROTO_SAMENU_SEND:
+	{
+		long long menuindex = 0;
+		long long unk = 0;
+		long long unk2 = 0;
+		long long unk3 = 0;
+		long long unk4 = 0;
+		long long unk5 = 0;
+		long long unk6 = 0;
+		long long unk7 = 0;
+		if (2 == fieldcount && gamedevice.autil.util_Receive(slices, &menuindex))
+		{
+			qDebug().noquote() << "- >>> menuindex =" << QString("%1%2%3").arg(ansi::GREEN).arg(menuindex).arg(ansi::RESET);
+			break;
+		}
+
+		if (3 == fieldcount && gamedevice.autil.util_Receive(slices, &menuindex, &unk))
+		{
+			qDebug().noquote() << "- >>> menuindex =" << QString("%1%2%3").arg(ansi::GREEN).arg(menuindex).arg(ansi::RESET)
+				<< "| unk =" << QString("%1%2%3").arg(ansi::GREEN).arg(unk).arg(ansi::RESET);
+			break;
+		}
+
+		if (9 == fieldcount && gamedevice.autil.util_Receive(slices, &menuindex, &unk, &unk2, &unk3, &unk4, &unk5, &unk6, &unk7))
+		{
+			qDebug().noquote() << "- >>> menuindex =" << QString("%1%2%3").arg(ansi::GREEN).arg(menuindex).arg(ansi::RESET)
+				<< "| unk =" << QString("%1%2%3").arg(ansi::GREEN).arg(unk).arg(ansi::RESET)
+				<< "| unk2 =" << QString("%1%2%3").arg(ansi::GREEN).arg(unk2).arg(ansi::RESET)
+				<< "| unk3 =" << QString("%1%2%3").arg(ansi::GREEN).arg(unk3).arg(ansi::RESET)
+				<< "| unk4 =" << QString("%1%2%3").arg(ansi::GREEN).arg(unk4).arg(ansi::RESET)
+				<< "| unk5 =" << QString("%1%2%3").arg(ansi::GREEN).arg(unk5).arg(ansi::RESET)
+				<< "| unk6 =" << QString("%1%2%3").arg(ansi::GREEN).arg(unk6).arg(ansi::RESET)
+				<< "| unk7 =" << QString("%1%2%3").arg(ansi::GREEN).arg(unk7).arg(ansi::RESET);
+			break;
+		}
+
+		break;
+	}
+
 	}
 
 	qDebug() << "------------------------" << Qt::endl;
@@ -7308,12 +7353,16 @@ bool Worker::runBattleLua(BattleScriptType type) const
 			break;
 
 		std::string sscript;
-		if (kCharScript == type && battlePetLuaScript_.size() > 0)
+		if (kCharScript == type && battleCharLuaScript_.size() > 0)
 			sscript = util::toConstData(battleCharLuaScript_);
 		else if (kPetScript == type && battlePetLuaScript_.size() > 0)
 			sscript = util::toConstData(battlePetLuaScript_);
 		else
 			break;
+
+		if (nullptr == battleLua)
+			break;
+
 
 		bret = battleLua->doString(sscript);
 
@@ -11103,8 +11152,8 @@ void Worker::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
-	}
-}
+				}
+			}
 		}
 #endif
 	}
@@ -11164,7 +11213,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
-}
+			}
 		}
 	}
 #endif
@@ -11863,26 +11912,23 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 			};
 
 		//util::kBattleCharLuaFilePathString
-		auto checkScript = [&gamedevice, &getFilePath](util::UserSetting element, QString& scriptPath, QString& scriptContent, QString& scriptCache)->void
+		auto checkScript = [&gamedevice, &getFilePath](util::UserSetting element, QString& scriptPath, QString& scriptContent)->void
 			{
-				if (scriptPath.size() <= 0 || !QFile::exists(scriptPath)) // 如果腳本路徑為空或者文件不存在
-				{
-					scriptPath = getFilePath(gamedevice.getStringHash(element)); // 獲取腳本路徑
-
-				}
+				QString scriptPathCache = getFilePath(gamedevice.getStringHash(element)); // 獲取腳本路徑
+				if (!QFile::exists(scriptPathCache))
+					scriptPathCache = scriptPath; // 如果文件不存在，使用舊的腳本路徑
 
 				// 清空腳本內容
-				// 如果腳本路徑不為空且文件存在，讀取腳本內容
-				if (scriptPath.size() > 0 && QFile::exists(scriptPath) &&
-					((scriptContent.size() <= 0) || (scriptContent != scriptCache))) // 如果腳本內容為空或者腳本內容不等於緩存的腳本內容
+				scriptContent.clear();
+
+				if (scriptPathCache.size() > 0 && QFile::exists(scriptPathCache) && util::readFile(scriptPathCache, &scriptContent))
 				{
-					if (util::readFile(scriptPath, &scriptContent))
-						scriptCache = scriptContent; // 緩存腳本內容
+					scriptPath = scriptPathCache; // 更新腳本路徑
 				}
 			};
 
-		checkScript(util::kBattleCharLuaFilePathString, battleCharLuaScriptPath_, battleCharLuaScript_, battleCharLuaScriptCache_);
-		checkScript(util::kBattlePetLuaFilePathString, battlePetLuaScriptPath_, battlePetLuaScript_, battlePetLuaScriptCache_);
+		checkScript(util::kBattleCharLuaFilePathString, battleCharLuaScriptPath_, battleCharLuaScript_);
+		checkScript(util::kBattlePetLuaFilePathString, battlePetLuaScriptPath_, battlePetLuaScript_);
 
 		if (nullptr == battleLua)
 		{
@@ -12943,8 +12989,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 					++i;
 				++i;
 				break;
-	}
-}
+			}
+			}
 		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
@@ -13561,9 +13607,9 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				StockChatBufferLine(tmpMsg, color);
 				sprintf_s(msg, "");
 				sprintf_s(secretName, "%s ", tellName);
-	}
+			}
 			else StockChatBufferLine(msg, color);
-}
+		}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13836,7 +13882,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					setNpcNotice(ptAct, noticeNo);
 				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -14136,9 +14182,9 @@ void Worker::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
+				}
+			}
 		}
-	}
-}
 #endif
 #pragma endregion
 	}
@@ -14945,7 +14991,7 @@ void Worker::lssproto_S_recv(char* cdata)
 			}
 
 
-			pet.power = (((static_cast<double>(pet.atk + pet.def + pet.agi) + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0);
+			pet.power = (((static_cast<double>(pet.atk + pet.def + pet.agi) + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)));
 			pet.growth = (static_cast<double>(pet.atk + pet.def + pet.agi) - static_cast<double>(pet.oldatk + pet.olddef + pet.oldagi))
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
