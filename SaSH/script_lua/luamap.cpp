@@ -70,13 +70,21 @@ std::string CLuaMap::getName()
 	return util::toConstData(gamedevice.worker->getFloorName());
 }
 
-std::string CLuaMap::getGround()
+std::string CLuaMap::getGround(sol::object ox, sol::object oy)
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
 		return "";
 
-	return util::toConstData(gamedevice.worker->getGround());
+	qint64 x = -1;
+	qint64 y = -1;
+	if (ox.is<long long>())
+		x = ox.as<long long>();
+
+	if (oy.is<long long>())
+		y = oy.as<long long>();
+
+	return util::toConstData(gamedevice.worker->getGround(x, y));
 }
 
 bool CLuaMap::isxy(long long x, long long y, sol::this_state s)

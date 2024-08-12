@@ -534,7 +534,7 @@ public:
 	std::tuple<long long, long long> xy();
 	long long floor();
 	std::string getName();
-	std::string getGround();
+	std::string getGround(sol::object ox, sol::object oy);
 	bool isxy(long long x, long long y, sol::this_state s);
 	bool isrect(long long x1, long long y1, long long x2, long long y2, sol::this_state s);
 	bool ismap(sol::object omap, sol::this_state s);

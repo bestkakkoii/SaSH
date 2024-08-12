@@ -243,7 +243,7 @@ public://actions
 
 	bool __fastcall findUnit(const QString& name, long long type, sa::map_unit_t* unit, const QString& freeName = "", long long modelid = -1);
 
-	[[nodiscard]] QString __fastcall getGround();
+	[[nodiscard]] QString __fastcall getGround(qint64 x = -1, qint64 y = -1);
 
 	bool __fastcall setTeamState(bool join);
 	bool __fastcall kickteam(long long n);

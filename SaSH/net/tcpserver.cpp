@@ -2700,9 +2700,15 @@ bool Worker::findUnit(const QString& nameSrc, long long type, sa::map_unit_t* pu
 }
 
 //取人物當前位子地圖數據塊的數據
-QString Worker::getGround()
+QString Worker::getGround(qint64 x, qint64 y)
 {
-	return mapDevice.getGround(getIndex(), getFloor(), getFloorName(), getPoint());
+	QPoint pos(x, y);
+	if (-1 == x || -1 == y)
+	{
+		pos = getPoint();
+	}
+
+	return mapDevice.getGround(getIndex(), getFloor(), getFloorName(), pos);
 }
 
 //查找非滿血自己寵物或隊友的索引 (主要用於自動吃肉)
