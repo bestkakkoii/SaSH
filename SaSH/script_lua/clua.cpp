@@ -643,7 +643,11 @@ template<typename T>
 std::vector<T> ShiftLeft(const std::vector<T>& v, long long i)
 {
 	std::vector<T> result = v;
+#if _MSVC_LANG > 201703L
+	std::ranges::shift_left(result, i);
+#else
 	std::rotate(result.begin(), result.begin() + i, result.end());
+#endif
 	return result;
 
 }
@@ -652,7 +656,11 @@ template<typename T>
 std::vector<T> ShiftRight(const std::vector<T>& v, long long i)
 {
 	std::vector<T> result = v;
+#if _MSVC_LANG > 201703L
+	std::ranges::shift_right(result, i);
+#else
 	std::rotate(result.begin(), result.end() - i, result.end());
+#endif
 	return result;
 }
 
@@ -662,7 +670,11 @@ std::vector<T> Shuffle(const std::vector<T>& v)
 	std::vector<T> result = v;
 	std::random_device rd;
 	std::mt19937_64 gen(rd());
+#if _MSVC_LANG > 201703L
+	std::ranges::shuffle(result, gen);
+#else
 	std::shuffle(result.begin(), result.end(), gen);
+#endif
 	return result;
 }
 
@@ -4631,11 +4643,11 @@ void CLua::proc()
 					tableStrs << tr("> (unknown type of data)");
 				}
 				tableStrs << ">";
+			}
 		}
-	}
 
 		luadebug::logExport(s, tableStrs, 0);
-} while (false);
+	} while (false);
 
 	emit finished();
 
