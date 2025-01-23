@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <util.h>
 #include <gamedevice.h>
 #include "script/interpreter.h"
+#include "net/rpc.h"
 
 safe::hash<long long, MainForm*> g_mainFormHash;
 
@@ -445,6 +446,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		GameDevice& gamedevice = GameDevice::getInstance(id);
 		long long value = 0;
 		if (gamedevice.worker.isNull())
+			return true;
+
+		if (!gamedevice.IS_TCP_CONNECTION_OK_TO_USE.get())
 			return true;
 
 		if (gamedevice.IS_INJECT_OK.get())
@@ -2106,3 +2110,71 @@ void MainForm::onMessageWidgetCustomButtonClicked()
 
 	downloader_.start(Downloader::Source::SaSHServer);
 }
+
+#if 0
+bool MainForm::createWinapiFileDialog(const QString& startDir, QStringList filters, QString* selectedFilePath)
+{
+	// 創建文件打開對話框結構體
+	OPENFILENAME ofn;
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = nullptr;
+	ofn.lpstrFile = nullptr;
+	ofn.lpstrFileTitle = nullptr;
+	ofn.lpstrInitialDir = reinterpret_cast<const wchar_t*>(startDir.utf16());
+	WCHAR wfilter[1024] = {};
+	memset(wfilter, 0, sizeof(wfilter));
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+
+	// 構建過濾器字符串
+	QString filterStr = "All Files\0*.*\0\0";
+	if (!filters.isEmpty())
+	{
+		for (QString& it : filters)
+		{
+			QFileInfo fi(it);
+			if (fi.suffix().isEmpty())
+			{
+				//"doc\0*.doc\0xls\0*.xls\0ppt\0*.ppt\0all\0*.*\0\0"
+				it = QString("*.%1|*.%1").arg(fi.suffix());
+			}
+			else
+			{
+				//"doc\0*.doc\0xls\0*.xls\0ppt\0*.ppt\0all\0*.*\0\0"
+				it = QString("%1|%1").arg(it);
+			}
+		}
+
+		filterStr = filters.join("|");
+		filterStr.append("||");
+	}
+
+	std::wstring wstr = filterStr.toStdWString();
+
+	_snwprintf_s(wfilter, _countof(wfilter), _TRUNCATE, L"%s", wstr.c_str());
+	//replace all | to \0
+	for (size_t i = 0; i < _countof(wfilter); ++i)
+	{
+		if (wfilter[i] == L'|')
+			wfilter[i] = L'\0';
+	}
+
+	ofn.lpstrFilter = wfilter;
+
+	// 分配緩沖區來保存選定的文件路徑
+	wchar_t filePath[MAX_PATH] = L"\0";
+	ofn.lpstrFile = filePath;
+
+	// 打開文件對話框
+	if (GetOpenFileName(&ofn))
+	{
+		*selectedFilePath = QString::fromWCharArray(filePath);
+		return true; // 用戶選擇了文件
+	}
+	else
+	{
+		return false; // 用戶取消了操作或發生錯誤
+	}
+}
+#endif

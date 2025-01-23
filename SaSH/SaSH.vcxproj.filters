@@ -17,6 +17,9 @@
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
+    <Filter Include="Source Files\main">
+      <UniqueIdentifier>{2a91ab24-ef06-4a62-9a0e-680e7599fd9b}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files\model">
       <UniqueIdentifier>{ee0351bb-b35f-47d5-92d6-601eec5ed91e}</UniqueIdentifier>
     </Filter>
@@ -74,18 +77,6 @@
     <Filter Include="Source Files\forms\script_editor">
       <UniqueIdentifier>{75b5d882-887f-4bd5-bbbd-bbe9d4ad517e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\SaSH">
-      <UniqueIdentifier>{2a91ab24-ef06-4a62-9a0e-680e7599fd9b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="websocket">
-      <UniqueIdentifier>{0795dff6-2723-4e73-8da1-c429e58a6976}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="websocket\model">
-      <UniqueIdentifier>{02f29c25-2e20-4221-9999-65576324fdab}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\process">
-      <UniqueIdentifier>{8572d171-517d-4a53-aeb9-3cbd4a068290}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="resource.qrc">
@@ -103,13 +94,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
-      <Filter>Source Files\SaSH</Filter>
+      <Filter>Source Files\main</Filter>
     </ClCompile>
     <ClCompile Include="mainform.cpp">
-      <Filter>Source Files\SaSH</Filter>
+      <Filter>Source Files\main</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files\SaSH</Filter>
+      <Filter>Source Files\main</Filter>
     </ClCompile>
     <ClCompile Include="model\progressbar.cpp">
       <Filter>Source Files\model</Filter>
@@ -286,7 +277,10 @@
       <Filter>Source Files\model</Filter>
     </ClCompile>
     <ClCompile Include="mainthread.cpp">
-      <Filter>Source Files\SaSH</Filter>
+      <Filter>Source Files\main</Filter>
+    </ClCompile>
+    <ClCompile Include="net\rpc.cpp">
+      <Filter>Source Files\net</Filter>
     </ClCompile>
     <ClCompile Include="form\findandreplaceform.cpp">
       <Filter>Source Files\forms\dialog</Filter>
@@ -300,28 +294,10 @@
     <ClCompile Include="model\messagewidget.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
-    <ClCompile Include="websocket\model\websocket.cpp">
-      <Filter>websocket\model</Filter>
-    </ClCompile>
-    <ClCompile Include="websocket\model\websocketserverbase.cpp">
-      <Filter>websocket\model</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tool.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\timer.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="process\processmanager.cpp">
-      <Filter>Source Files\process</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\remote_memory.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
-      <Filter>Source Files\SaSH</Filter>
+      <Filter>Source Files\main</Filter>
     </QtMoc>
     <QtMoc Include="model\progressbar.h">
       <Filter>Source Files\model</Filter>
@@ -441,7 +417,7 @@
       <Filter>Source Files\forms\afk</Filter>
     </QtMoc>
     <QtMoc Include="mainthread.h">
-      <Filter>Source Files\SaSH</Filter>
+      <Filter>Source Files\main</Filter>
     </QtMoc>
     <QtMoc Include="interfacer.h">
       <Filter>Source Files\util</Filter>
@@ -461,37 +437,28 @@
     <QtMoc Include="model\listwidget.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
+    <QtMoc Include="net\rpc.h">
+      <Filter>Source Files\net</Filter>
+    </QtMoc>
     <QtMoc Include="form\findandreplaceform.h">
       <Filter>Source Files\forms\dialog</Filter>
     </QtMoc>
     <QtMoc Include="model\messagewidget.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
-    <QtMoc Include="websocket\model\websocket.h">
-      <Filter>websocket\model</Filter>
-    </QtMoc>
-    <QtMoc Include="websocket\model\websocketserverbase.h">
-      <Filter>websocket\model</Filter>
-    </QtMoc>
-    <QtMoc Include="..\include\tool.h">
-      <Filter>Source Files\util</Filter>
-    </QtMoc>
-    <QtMoc Include="process\processmanager.h">
-      <Filter>Source Files\process</Filter>
-    </QtMoc>
-    <QtMoc Include="gamedevice.h">
-      <Filter>Source Files\util</Filter>
-    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
-      <Filter>Source Files\SaSH</Filter>
+      <Filter>Source Files\main</Filter>
     </ClInclude>
     <ClInclude Include="util.h">
       <Filter>Source Files\util</Filter>
     </ClInclude>
     <ClInclude Include="net\autil.h">
       <Filter>Source Files\net</Filter>
+    </ClInclude>
+    <ClInclude Include="gamedevice.h">
+      <Filter>Source Files\util</Filter>
     </ClInclude>
     <ClInclude Include="map\astardevice.h">
       <Filter>Source Files\map</Filter>
@@ -555,15 +522,6 @@
     </ClInclude>
     <ClInclude Include="form\cxfiledialog.h">
       <Filter>Source Files\forms\dialog</Filter>
-    </ClInclude>
-    <ClInclude Include="websocket\model\websocket_p.h">
-      <Filter>websocket\model</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\timer.h">
-      <Filter>Source Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\remote_memory.h">
-      <Filter>Source Files\util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

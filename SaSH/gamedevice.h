@@ -25,13 +25,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "net/autil.h"
 #include "model/logger.h"
 
-#include "SaSH/process/processmanager.h"
-
-
 class StringListModel;
 class GameDevice : public QObject, public Indexer
 {
-	Q_OBJECT
 private:
 	static safe::hash<long long, GameDevice*> instances;
 
@@ -94,8 +90,6 @@ public:
 	{
 		isGameInterruptionRequested_.off();
 	}
-
-	ProcessManager* processManager = nullptr;
 
 private:
 	safe::flag isGameInterruptionRequested_ = false;
@@ -243,9 +237,6 @@ private:
 #endif
 
 	bool __fastcall isWin7OrLower() const { return isWin7OrLower_.get(); }
-
-signals:
-	void sendBinaryMessageToClient(const QByteArray& data);
 
 public:
 	safe::flag IS_INJECT_OK = false;//是否注入成功

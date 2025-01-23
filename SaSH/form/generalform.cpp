@@ -944,27 +944,7 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		long long current = ui.comboBox_paths->currentIndex();
 		if (current >= 0)
-		{
 			config.write("System", "Command", "LastSelection", ui.comboBox_paths->currentIndex());
-		}
-
-		QString path = ui.comboBox_paths->currentData().toString();
-
-		// 將當前目錄設置成遊戲目錄
-		QDir::setCurrent(QFileInfo(path).absolutePath());
-		// 遍歷自身進程下的 bin 將所有 Qt 開頭的 dll 覆蓋到遊戲目錄
-		QDir binDir(QString("%1/bin").arg(tool::applicationDirPath()));
-		if (binDir.exists())
-		{
-			QStringList filters;
-			filters << "Qt*.dll";
-			for (const QString& dll : binDir.entryList(filters, QDir::Files))
-			{
-				QFile::remove(QDir::currentPath() + "/" + dll);
-				QFile::copy(binDir.absoluteFilePath(dll), QDir::currentPath() + "/" + dll);
-			}
-		}
-
 		return;
 	}
 }
@@ -1135,29 +1115,6 @@ void GeneralForm::onGameStart(long long delay)
 
 		GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 		gamedevice.currentGameExePath = path;
-
-		QDir::setCurrent(dirPath);
-		// 遍歷自身進程下的 bin 將所有 Qt 開頭的 dll 覆蓋到遊戲目錄
-		QDir binDir(QString("%1/bin").arg(tool::applicationDirPath()));
-		if (binDir.exists())
-		{
-			QStringList filters;
-			filters << "Qt*.dll";
-			for (const QString& dll : binDir.entryList(filters, QDir::Files))
-			{
-				QFile::remove(QDir::currentPath() + "/" + dll);
-				QFile::copy(binDir.absoluteFilePath(dll), QDir::currentPath() + "/" + dll);
-			}
-		}
-
-		ProcessManager* processManager = new ProcessManager(tool::JsonReply(""));
-		QThread* thread = new QThread(processManager);
-		processManager->moveToThread(thread);
-
-		QObject::connect(thread, &QThread::started, processManager, &ProcessManager::handleStartUp, Qt::QueuedConnection);
-		thread->start();
-
-		gamedevice.processManager = processManager;
 
 		MainObject* pMainObject = nullptr;
 		if (!thread_manager.createThread(currentIndex, &pMainObject, nullptr) || (nullptr == pMainObject))

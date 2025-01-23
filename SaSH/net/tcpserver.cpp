@@ -199,7 +199,7 @@ bool Worker::splitLinesFromReadBuf(QByteArrayList& lines)
 
 #pragma region Net
 Server::Server(QObject* parent)
-	: web::SocketServerBase(QCoreApplication::applicationName(), parent)
+	: QTcpServer(parent)
 {
 
 }
@@ -213,85 +213,156 @@ Server::~Server()
 bool Server::start(QObject* parent)
 {
 	std::ignore = parent;
-	if (!this->listen(QHostAddress::AnyIPv6, 12345))
+	QOperatingSystemVersion version = QOperatingSystemVersion::current();
+
+	if (version > QOperatingSystemVersion::Windows7)
 	{
-		qDebug() << "ipv6 Failed to listen on socket";
-		QString msg = tr("Failed to listen on IPV6 socket");
-		std::wstring wstr = msg.toStdWString();
-		MessageBoxW(NULL, wstr.c_str(), L"Error", MB_OK | MB_ICONERROR);
-		return false;
+		if (!this->listen(QHostAddress::AnyIPv6))
+		{
+			qDebug() << "ipv6 Failed to listen on socket";
+			QString msg = tr("Failed to listen on IPV6 socket");
+			std::wstring wstr = msg.toStdWString();
+			MessageBoxW(NULL, wstr.c_str(), L"Error", MB_OK | MB_ICONERROR);
+			return false;
+		}
+	}
+	else
+	{
+		if (!this->listen(QHostAddress::AnyIPv6))
+		{
+			qDebug() << "ipv4 Failed to listen on socket";
+			QString msg = tr("Failed to listen on IPV4 socket");
+			std::wstring wstr = msg.toStdWString();
+			MessageBoxW(NULL, wstr.c_str(), L"Error", MB_OK | MB_ICONERROR);
+			return false;
+		}
 	}
 
-	connect(this, &QWebSocketServer::newConnection, this, &Server::handleNewClientConnected, Qt::QueuedConnection);
 	return true;
 }
 
 void Server::clear()
 {
-	for (web::Socket* clientSocket : clientSockets_)
+	for (Socket* clientSocket : clientSockets_)
 	{
 		if (clientSocket == nullptr)
 			continue;
 
 		clientSocket->close();
+
+		if (clientSocket->state() == QAbstractSocket::ConnectedState)
+			clientSocket->waitForDisconnected();
 		clientSocket->deleteLater();
 	}
 
 	clientSockets_.clear();
 }
 
-void Server::handleNewClientConnected()
+//異步接收客戶端連入通知
+void Server::incomingConnection(qintptr socketDescriptor)
 {
-	if (!hasPendingConnections())
+	Socket* clientSocket = q_check_ptr(new Socket(socketDescriptor, this));
+	sash_assume(clientSocket != nullptr);
+	if (clientSocket == nullptr)
+		return;
+
+	addPendingConnection(clientSocket);
+	clientSockets_.append(clientSocket);
+	connect(clientSocket, &Socket::disconnected, this, [this, clientSocket]()
+		{
+			clientSockets_.removeOne(clientSocket);
+			//clientSocket->thread.quit();
+			//clientSocket->thread.wait();
+			clientSocket->deleteLater();
+		});
+}
+
+Socket::Socket(qintptr socketDescriptor, QObject* parent)
+	: QTcpSocket(nullptr)
+{
+	std::ignore = parent;
+	setSocketDescriptor(socketDescriptor);
+	setReadBufferSize(8191);
+
+	setSocketOption(QAbstractSocket::LowDelayOption, 1);
+	setSocketOption(QAbstractSocket::KeepAliveOption, 1);
+	setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 0);
+	setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 0);
+	setSocketOption(QAbstractSocket::TypeOfServiceOption, 64);
+	connect(this, &QIODevice::readyRead, this, &Socket::onReadyRead, Qt::DirectConnection);
+	//moveToThread(&thread_);
+	//thread_.start();
+}
+
+void Socket::onReadyRead()
+{
+	QByteArray badata = readAll();
+	if (badata.isEmpty())
+		return;
+
+	if (init)
 	{
-		qCritical().noquote() << "No pending connections";
+		GameDevice& gamedevice = GameDevice::getInstance(index_);
+		if (!gamedevice.worker.isNull())
+		{
+			GameDevice& gamedevice = GameDevice::getInstance(index_);
+
+			if (!gamedevice.isGameInterruptionRequested())
+				future_ = QtConcurrent::run([this, badata]()
+					{
+						QMutexLocker locker(&socketLock_);
+						GameDevice& gamedevice = GameDevice::getInstance(index_);
+						gamedevice.worker->handleData(std::move(badata));
+					});
+			//gamedevice.worker->handleData(std::move(badata));
+		}
 		return;
 	}
 
-	web::Socket* sourceClient = getNextPendingConnection();
-	connect(sourceClient, &web::Socket::binaryMessageReceived, this, &Server::handleBinaryMessage, Qt::UniqueConnection);
+	QString preStr = util::toQString(badata);
+	long long indexEof = preStr.indexOf("\n");
+	//\n之後的移除
+	preStr = preStr.left(indexEof);
 
-	for (qint64 i = 0; i < 100; ++i)
+	//握手
+	if (preStr.startsWith("hs|"))
 	{
-		GameDevice& gamedevice = GameDevice::getInstance(i);
-		if (!gamedevice.isValid())
-		{
-			continue;
-		}
+		long long i = preStr.indexOf("|");
+		QString key = preStr.mid(i + 1);
+		long long index = key.toLongLong();
+		if (index < 0 || index >= SASH_MAX_THREAD)
+			return;
 
-		QMetaObject::Connection result = connect(&gamedevice, &GameDevice::sendBinaryMessageToClient, sourceClient, &web::Socket::sendBinaryMessage, Qt::UniqueConnection);
-
+		init = true;
+		index_ = index;
+		GameDevice& gamedevice = GameDevice::getInstance(index);
+		gamedevice.worker.reset(q_check_ptr(new Worker(index, nullptr)));
+		sash_assume(gamedevice.worker != nullptr);
+		connect(gamedevice.worker.get(), &Worker::write, this, &Socket::onWrite, Qt::QueuedConnection);
+		qDebug() << "tcp ok";
 		gamedevice.IS_TCP_CONNECTION_OK_TO_USE.on();
 	}
 }
 
-void Server::handleBinaryMessage(const QByteArray& message)
+//異步發送數據
+void Socket::onWrite(QByteArray ba, long long size)
 {
-	web::Socket* sourceClient = qobject_cast<web::Socket*>(sender());
-
-	QJsonParseError error;
-	QJsonDocument doc = QJsonDocument::fromJson(message, &error);
-	if (doc.isNull() || error.error != QJsonParseError::NoError)
+	if (state() != QAbstractSocket::UnconnectedState)
 	{
-		return;
+		if (size > 0)
+			write(ba.constData(), size);
+		else
+			write(ba);
+		flush();
+		waitForBytesWritten();
 	}
+}
 
-	tool::JsonReply reply(doc);
-
-	qint64 index = reply.parameter("index").toInteger();
-
-	GameDevice& gamedevice = GameDevice::getInstance(index);
-	if (gamedevice.worker.isNull())
-	{
-		gamedevice.reset(index);
-	}
-
-	if (gamedevice.isGameInterruptionRequested())
-	{
-		return;
-	}
-
-	QMetaObject::invokeMethod(gamedevice.worker.get(), "handleData", Qt::QueuedConnection, Q_ARG(QByteArray, message));
+Socket::~Socket()
+{
+	future_.cancel();
+	future_.waitForFinished();
+	qDebug() << "Socket is distroyed!!";
 }
 
 Worker::Worker(long long index, QObject* parent)
@@ -416,53 +487,45 @@ void Worker::clear()
 
 bool Worker::handleCustomMessage(const QByteArray& badata)
 {
-	QJsonParseError error;
-	QJsonDocument doc = QJsonDocument::fromJson(badata, &error);
-	if (doc.isNull() || error.error != QJsonParseError::NoError)
-	{
-		return false;
-	}
+	QString preStr = util::toQString(badata);
+	long long indexEof = preStr.indexOf("\n");
+	//\n之後的移除
+	preStr = preStr.left(indexEof);
 
-	tool::JsonReply reply(doc);
-
-	QString command = reply.command();
-
-
-	if ("disconnect" == command)
+	if (preStr.startsWith("dc|"))
 	{
 		setBattleFlag(false);
 		setOnlineFlag(false);
 		return true;
 	}
 
-	if ("battleCommandReady" == command)
+	if (preStr.startsWith("bpk|"))
 	{
 		isBattleDialogReady.on();
 		asyncBattleAction(true);
 		return true;
 	}
 
-	if ("createDialog" == command)
+	if (preStr.startsWith("dk|"))
 	{
-		lssproto_CustomWN_recv(reply.message());
+		//remove dk|s
+		preStr = preStr.mid(3);
+		lssproto_CustomWN_recv(preStr);
 		return true;
 	}
 
-	if ("chat" == command)
+	if (preStr.startsWith("tk|"))
 	{
-		lssproto_CustomTK_recv(reply.message());
+		//remove tk|s
+		preStr = preStr.mid(3);
+		lssproto_CustomTK_recv(preStr);
 		return true;
 	}
 
-	if ("send" == command && GameDevice::getInstance(getIndex()).getEnableHash(util::kForwardSendEnable))
+	if (preStr.startsWith("SEND|") && GameDevice::getInstance(getIndex()).getEnableHash(util::kForwardSendEnable))
 	{
-		dispatchSendMessage(QByteArray::fromHex(reply.message().toUtf8()));
+		dispatchSendMessage(badata.mid(5));
 
-		return true;
-	}
-
-	if ("hello" == reply.action())
-	{
 		return true;
 	}
 
@@ -645,23 +708,9 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 }
 
 //異步處理數據
-void Worker::handleData(QByteArray srcdata)
+void Worker::handleData(QByteArray badata)
 {
-	if (handleCustomMessage(srcdata))
-	{
-		return;
-	}
-
-	QJsonParseError error;
-	QJsonDocument doc = QJsonDocument::fromJson(srcdata, &error);
-	if (doc.isNull() || error.error != QJsonParseError::NoError)
-	{
-		return;
-	}
-
-	tool::JsonReply reply(doc);
-
-	if (reply.command() != "recv")
+	if (handleCustomMessage(badata))
 	{
 		return;
 	}
@@ -670,16 +719,7 @@ void Worker::handleData(QByteArray srcdata)
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	long long delay = gamedevice.getValueHash(util::UserSetting::kTcpDelayValue);
 	if (delay > 0)
-	{
 		QThread::msleep(delay);//avoid too fast
-	}
-
-	QByteArray badata = QByteArray::fromHex(reply.message().toUtf8());
-
-	if (badata.size() <= 0)
-	{
-		return;
-	}
 
 	appendReadBuf(badata);
 

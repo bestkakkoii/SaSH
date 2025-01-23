@@ -30,7 +30,6 @@ GameDevice::GameDevice(long long index)
 	, log(index, nullptr)
 	, autil(index)
 	, isWin7OrLower_(QOperatingSystemVersion::current() <= QOperatingSystemVersion::Windows7)
-
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &GameDevice::gameRequestInterruption);
@@ -83,190 +82,161 @@ void GameDevice::reset(long long index)//static
 
 GameDevice::CreateProcessResult GameDevice::createProcess(GameDevice::process_information_t& pi)
 {
-	//QString path = currentGameExePath;
-	//if (path.isEmpty() || !QFile::exists(path))
-	//{
-	//	return CreateProcessResult::CreateFail;
-	//}
+	QString path = currentGameExePath;
+	if (path.isEmpty() || !QFile::exists(path))
+	{
+		return CreateProcessResult::CreateFail;
+	}
 
-	//QVector<long long> pids;
-	//if (mem::enumProcess(&pids, SASH_INJECT_DLLNAME))//枚舉已經注入過sadll但狀態值為0的進程
-	//{
-	//	for (long long pid : pids)
-	//	{
-	//		ScopedHandle hProcess(pid);
-	//		if (mem::read<int>(hProcess, hGameModule_ + sa::kOffsetGameInjectState) == 0)
-	//		{
-	//			pi.dwProcessId = pid;
-	//			processHandle_.reset(pi.dwProcessId);
-	//			return CreateProcessResult::CreateWithExistingProcess;
-	//		}
-	//	}
-	//}
-	//else if (mem::enumProcess(&pids, SASH_SUPPORT_GAMENAME, SASH_INJECT_DLLNAME))//枚舉未注入過sadll且封包KEY包含帳號或帳號相同的進程
-	//{
-	//	QString userName = getStringHash(util::kGameAccountString);
-	//	if (!userName.isEmpty())
-	//	{
-	//		for (long long pid : pids)
-	//		{
-	//			ScopedHandle hProcess(pid);
-	//			QString remoteUserNameKey = mem::readString(hProcess, hGameModule_ + sa::kOffsetPersonalKey, 32);
-	//			QString remoteUserName = mem::readString(hProcess, hGameModule_ + sa::kOffsetAccount, 32);
+	QVector<long long> pids;
+	if (mem::enumProcess(&pids, SASH_INJECT_DLLNAME))//枚舉已經注入過sadll但狀態值為0的進程
+	{
+		for (long long pid : pids)
+		{
+			ScopedHandle hProcess(pid);
+			if (mem::read<int>(hProcess, hGameModule_ + sa::kOffsetGameInjectState) == 0)
+			{
+				pi.dwProcessId = pid;
+				processHandle_.reset(pi.dwProcessId);
+				return CreateProcessResult::CreateWithExistingProcess;
+			}
+		}
+	}
+	else if (mem::enumProcess(&pids, SASH_SUPPORT_GAMENAME, SASH_INJECT_DLLNAME))//枚舉未注入過sadll且封包KEY包含帳號或帳號相同的進程
+	{
+		QString userName = getStringHash(util::kGameAccountString);
+		if (!userName.isEmpty())
+		{
+			for (long long pid : pids)
+			{
+				ScopedHandle hProcess(pid);
+				QString remoteUserNameKey = mem::readString(hProcess, hGameModule_ + sa::kOffsetPersonalKey, 32);
+				QString remoteUserName = mem::readString(hProcess, hGameModule_ + sa::kOffsetAccount, 32);
 
-	//			QString remoteUserNameEx = ecbDecrypt(sa::kOffsetAccountECB);
+				QString remoteUserNameEx = ecbDecrypt(sa::kOffsetAccountECB);
 
-	//			if (!remoteUserNameKey.isEmpty() &&
-	//				(remoteUserNameKey.contains(userName)
-	//					|| (!remoteUserName.isEmpty() && remoteUserName == userName)
-	//					|| (!remoteUserNameEx.isEmpty() && remoteUserNameEx == userName)))
-	//			{
-	//				pi.dwProcessId = pid;
-	//				processHandle_.reset(pi.dwProcessId);
-	//				return CreateProcessResult::CreateWithExistingProcessNoDll;
-	//			}
+				if (!remoteUserNameKey.isEmpty() &&
+					(remoteUserNameKey.contains(userName)
+						|| (!remoteUserName.isEmpty() && remoteUserName == userName)
+						|| (!remoteUserNameEx.isEmpty() && remoteUserNameEx == userName)))
+				{
+					pi.dwProcessId = pid;
+					processHandle_.reset(pi.dwProcessId);
+					return CreateProcessResult::CreateWithExistingProcessNoDll;
+				}
 
 
-	//		}
-	//	}
-	//}
+			}
+		}
+	}
 
-	//long long nRealBin = 138;
-	//long long nAdrnBin = 138;
-	//long long nSprBin = 116;
-	//long long nSprAdrnBin = 116;
-	//long long nRealTrue = 13;
-	//long long nAdrnTrue = 5;
-	//long long nEncode = 0;
+	long long nRealBin = 138;
+	long long nAdrnBin = 138;
+	long long nSprBin = 116;
+	long long nSprAdrnBin = 116;
+	long long nRealTrue = 13;
+	long long nAdrnTrue = 5;
+	long long nEncode = 0;
 
-	//bool canSave = false;
+	bool canSave = false;
 
-	//util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
-	//long long tmp = config.read<long long>("System", "Command", "realbin");
-	//if (tmp)
-	//	nRealBin = tmp;
-	//else
-	//	canSave = true;
+	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
+	long long tmp = config.read<long long>("System", "Command", "realbin");
+	if (tmp)
+		nRealBin = tmp;
+	else
+		canSave = true;
 
-	//tmp = config.read<long long>("System", "Command", "adrnbin");
-	//if (tmp)
-	//	nAdrnBin = tmp;
-	//else
-	//	canSave = true;
+	tmp = config.read<long long>("System", "Command", "adrnbin");
+	if (tmp)
+		nAdrnBin = tmp;
+	else
+		canSave = true;
 
-	//tmp = config.read<long long>("System", "Command", "sprbin");
-	//if (tmp)
-	//	nSprBin = tmp;
-	//else
-	//	canSave = true;
+	tmp = config.read<long long>("System", "Command", "sprbin");
+	if (tmp)
+		nSprBin = tmp;
+	else
+		canSave = true;
 
-	//tmp = config.read<long long>("System", "Command", "spradrnbin");
-	//if (tmp)
-	//	nSprAdrnBin = tmp;
-	//tmp = config.read<long long>("System", "Command", "realtrue");
-	//if (tmp)
-	//	nRealTrue = tmp;
-	//else
-	//	canSave = true;
+	tmp = config.read<long long>("System", "Command", "spradrnbin");
+	if (tmp)
+		nSprAdrnBin = tmp;
+	tmp = config.read<long long>("System", "Command", "realtrue");
+	if (tmp)
+		nRealTrue = tmp;
+	else
+		canSave = true;
 
-	//tmp = config.read<long long>("System", "Command", "adrntrue");
-	//if (tmp)
-	//	nAdrnTrue = tmp;
-	//else
-	//	canSave = true;
+	tmp = config.read<long long>("System", "Command", "adrntrue");
+	if (tmp)
+		nAdrnTrue = tmp;
+	else
+		canSave = true;
 
-	//tmp = config.read<long long>("System", "Command", "encode");
-	//if (tmp)
-	//	nEncode = tmp;
-	//else
-	//	canSave = true;
+	tmp = config.read<long long>("System", "Command", "encode");
+	if (tmp)
+		nEncode = tmp;
+	else
+		canSave = true;
 
-	//QString customCommand = config.read<QString>("System", "Command", "custom");
+	QString customCommand = config.read<QString>("System", "Command", "custom");
 
-	//auto mkcmd = [](const QString& sec, long long value)->QString
-	//	{
-	//		return QString("%1:%2").arg(sec).arg(value);
-	//	};
+	auto mkcmd = [](const QString& sec, long long value)->QString
+		{
+			return QString("%1:%2").arg(sec).arg(value);
+		};
 
-	//QStringList commandList;
-	////啟動參數
-	////updated realbin:138 adrnbin:138 sprbin:116 spradrnbin:116 adrntrue:5 realtrue:13 encode:0 windowmode
-	//if (customCommand.isEmpty())
-	//{
-	//	commandList.append(path);
-	//	commandList.append("updated");
-	//	commandList.append(mkcmd("realbin", nRealBin));
-	//	commandList.append(mkcmd("adrnbin", nAdrnBin));
-	//	commandList.append(mkcmd("sprbin", nSprBin));
-	//	commandList.append(mkcmd("spradrnbin", nSprAdrnBin));
-	//	commandList.append(mkcmd("realtrue", nRealTrue));
-	//	commandList.append(mkcmd("adrntrue", nAdrnTrue));
-	//	commandList.append(mkcmd("encode", nEncode));
-	//	commandList.append("windowmode");
-	//}
-	//else
-	//{
-	//	commandList.append(customCommand);
-	//}
+	QStringList commandList;
+	//啟動參數
+	//updated realbin:138 adrnbin:138 sprbin:116 spradrnbin:116 adrntrue:5 realtrue:13 encode:0 windowmode
+	if (customCommand.isEmpty())
+	{
+		commandList.append(path);
+		commandList.append("updated");
+		commandList.append(mkcmd("realbin", nRealBin));
+		commandList.append(mkcmd("adrnbin", nAdrnBin));
+		commandList.append(mkcmd("sprbin", nSprBin));
+		commandList.append(mkcmd("spradrnbin", nSprAdrnBin));
+		commandList.append(mkcmd("realtrue", nRealTrue));
+		commandList.append(mkcmd("adrntrue", nAdrnTrue));
+		commandList.append(mkcmd("encode", nEncode));
+		commandList.append("windowmode");
+	}
+	else
+	{
+		commandList.append(customCommand);
+	}
 
-	//auto save = [&config, nRealBin, nAdrnBin, nSprBin, nSprAdrnBin, nRealTrue, nAdrnTrue, nEncode]()
-	//	{
-	//		//保存啟動參數
-	//		config.write("System", "Command", "realbin", nRealBin);
-	//		config.write("System", "Command", "adrnbin", nAdrnBin);
-	//		config.write("System", "Command", "sprbin", nSprBin);
-	//		config.write("System", "Command", "spradrnbin", nSprAdrnBin);
-	//		config.write("System", "Command", "realtrue", nRealTrue);
-	//		config.write("System", "Command", "adrntrue", nAdrnTrue);
-	//		config.write("System", "Command", "encode", nEncode);
-	//	};
+	auto save = [&config, nRealBin, nAdrnBin, nSprBin, nSprAdrnBin, nRealTrue, nAdrnTrue, nEncode]()
+		{
+			//保存啟動參數
+			config.write("System", "Command", "realbin", nRealBin);
+			config.write("System", "Command", "adrnbin", nAdrnBin);
+			config.write("System", "Command", "sprbin", nSprBin);
+			config.write("System", "Command", "spradrnbin", nSprAdrnBin);
+			config.write("System", "Command", "realtrue", nRealTrue);
+			config.write("System", "Command", "adrntrue", nAdrnTrue);
+			config.write("System", "Command", "encode", nEncode);
+		};
 
-	//// 將當前目錄設置成遊戲目錄
-	//QDir::setCurrent(QFileInfo(path).absolutePath());
-	//// 遍歷自身進程下的 bin 將所有 Qt 開頭的 dll 覆蓋到遊戲目錄
-	//QDir binDir(QString("%1/bin").arg(tool::applicationDirPath()));
-	//if (binDir.exists())
-	//{
-	//	QStringList filters;
-	//	filters << "Qt*.dll";
-	//	for (const QString& dll : binDir.entryList(filters, QDir::Files))
-	//	{
-	//		QFile::remove(QDir::currentPath() + "/" + dll);
-	//		QFile::copy(binDir.absoluteFilePath(dll), QDir::currentPath() + "/" + dll);
-	//	}
-	//}
+	QProcess process;
+	long long pid = 0;
+	process.setArguments(commandList);
+	process.setProgram(path);
+	process.setWorkingDirectory(QFileInfo(path).absolutePath());
 
-	//process_.reset(new QProcess);
+	if (process.startDetached(&pid) && pid)
+	{
 
-	//connect(process_.get(), &QProcess::readyReadStandardOutput, this, [this](void)
-	//	{
-	//		while (process_->canReadLine())
-	//		{
-	//			QString line = process_->readLine();
-	//			qDebug() << "DLL:" << line;
-	//		}
-	//	}, Qt::QueuedConnection);
+		pi.dwProcessId = pid;
+		if (canSave)
+			save();
 
-	//long long pid = 0;
-	//process_->setArguments(commandList);
-	//process_->setProgram(path);
-	//process_->setWorkingDirectory(QFileInfo(path).absolutePath());
-	//process_->start(QIODevice::ReadOnly);
-
-	//if (!process_->waitForStarted())
-	//{
-	//	return CreateProcessResult::CreateFail;
-	//}
-
-	//pid = process_->processId();
-	//pi.dwProcessId = pid;
-	//if (canSave)
-	//{
-	//	save();
-	//}
-
-	//processHandle_.reset(pi.dwProcessId);
-	return CreateProcessResult::CreateAboveWindow8Success;
+		processHandle_.reset(pi.dwProcessId);
+		return CreateProcessResult::CreateAboveWindow8Success;
+	}
+	return CreateProcessResult::CreateAboveWindow8Failed;
 }
 
 long long GameDevice::sendMessage(long long msg, long long wParam, long long lParam) const
@@ -401,6 +371,29 @@ void GameDevice::checkScriptPause()
 	}
 }
 
+#if 0
+DWORD WINAPI GameDevice::getFunAddr(const DWORD* DllBase, const char* FunName)
+{
+	// 遍歷導出表
+	PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)DllBase;
+	PIMAGE_NT_HEADERS pNt = (PIMAGE_NT_HEADERS)(pDos->e_lfanew + (DWORD)pDos);
+	PIMAGE_OPTIONAL_HEADER pOt = (PIMAGE_OPTIONAL_HEADER)&pNt->OptionalHeader;
+	PIMAGE_EXPORT_DIRECTORY pExport = (PIMAGE_EXPORT_DIRECTORY)(pOt->DataDirectory[0].VirtualAddress + (DWORD)DllBase);
+	// 獲取到ENT、EOT、EAT
+	DWORD* pENT = (DWORD*)(pExport->AddressOfNames + (DWORD)DllBase);
+	WORD* pEOT = (WORD*)(pExport->AddressOfNameOrdinals + (DWORD)DllBase);
+	DWORD* pEAT = (DWORD*)(pExport->AddressOfFunctions + (DWORD)DllBase);
+
+	for (DWORD i = 0; i < pExport->NumberOfNames; ++i)
+	{
+		char* Name = (char*)(pENT[i] + (DWORD)DllBase);
+		if (!strncmp(Name, FunName, MAX_PATH))
+			return pEAT[pEOT[i]] + (DWORD)DllBase;
+	}
+	return (DWORD)NULL;
+}
+#endif
+
 bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
 	//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
@@ -426,14 +419,12 @@ bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigne
 	if (!mem::isProcessExist(pi.dwProcessId))
 	{
 		*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-		qDebug() << "process is not exist";
 		return false;
 	}
 
 	if (IsWindow(pi.hWnd) == FALSE)
 	{
 		*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-		qDebug() << "window is not exist";
 		return false;
 	}
 
@@ -442,7 +433,6 @@ bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigne
 	{
 		//emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory alloc failed"), QMessageBox::Icon::Critical);
 		*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-		qDebug() << "Remote virtualmemory alloc failed";
 		return false;
 	}
 
@@ -450,7 +440,6 @@ bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigne
 	{
 		//emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory write failed"), QMessageBox::Icon::Critical);
 		*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-		qDebug() << "Remote virtualmemory write failed";
 		return false;
 	}
 
@@ -466,7 +455,6 @@ bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigne
 				{
 					//emit signalDispatcher.messageBoxShow(QObject::tr("Remote dll initialize failed"), QMessageBox::Icon::Critical);
 					*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-					qDebug() << "Remote dll initialize failed";
 					break;
 				}
 				break;
@@ -476,14 +464,12 @@ bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigne
 		if (!mem::isProcessExist(pi.dwProcessId))
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			qDebug() << "process is not exist";
 			return false;
 		}
 
 		if (IsWindow(pi.hWnd) == FALSE)
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			qDebug() << "window is not exist";
 			return false;
 		}
 
@@ -491,7 +477,6 @@ bool GameDevice::remoteInitialize(GameDevice::process_information_t& pi, unsigne
 		{
 			//emit signalDispatcher.messageBoxShow(QObject::tr("SendMessageTimeoutW failed"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			qDebug() << "SendMessageTimeoutW failed and timeout";
 			break;
 		}
 
@@ -509,14 +494,12 @@ bool GameDevice::injectLibrary(GameDevice::process_information_t& pi, unsigned s
 	if (pi.dwProcessId == 0)
 	{
 		emit signalDispatcher.messageBoxShow(QObject::tr("dwProcessId is null!"));
-		qDebug() << "dwProcessId is null!";
 		return false;
 	}
 
 	if (nullptr == pReason)
 	{
 		emit signalDispatcher.messageBoxShow(QObject::tr("pReason is null!"));
-		qDebug() << "pReason is null!";
 		return false;
 	}
 
@@ -533,7 +516,6 @@ bool GameDevice::injectLibrary(GameDevice::process_information_t& pi, unsigned s
 		if (files.isEmpty())
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("Dll is not exist at %1").arg(applicationDirPath));
-
 			break;
 		}
 
@@ -637,21 +619,28 @@ bool GameDevice::injectLibrary(GameDevice::process_information_t& pi, unsigned s
 
 		timer.restart();
 
-		if (mem::injectBy64(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_, pi.hWnd))
-		{
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		if (mem::injectByWin7(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_, pi.hWnd))
 			qDebug() << "inject cost:" << timer.cost() << "ms";
-		}
 		else
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			return false;
 		}
+#else
+		if (mem::injectBy64(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_, pi.hWnd))
+			qDebug() << "inject cost:" << timer.cost() << "ms";
+		else
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			return false;
+		}
+#endif
 
 		if (nullptr == hookdllModule_)
 		{
 			//emit signalDispatcher.messageBoxShow(QObject::tr("Injected dll module is null"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			qDebug() << "hookdllModule is null";
 			break;
 		}
 
@@ -659,52 +648,13 @@ bool GameDevice::injectLibrary(GameDevice::process_information_t& pi, unsigned s
 		{
 			//emit signalDispatcher.messageBoxShow(QObject::tr("Game module is null"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			qDebug() << "hGameModule is null";
 			break;
 		}
 
 		pi_ = pi;
 
-		timer.restart();
-		for (;;)
-		{
-			if (IS_TCP_CONNECTION_OK_TO_USE.get())
-			{
-				break;
-			}
-
-			if (!mem::isProcessExist(pi.dwProcessId))
-			{
-				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-				return false;
-			}
-
-			if (IsWindow(pi.hWnd) == FALSE)
-			{
-				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-				return false;
-			}
-
-			if (timer.hasExpired(sa::MAX_TIMEOUT))
-			{
-				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-				return false;
-			}
-
-			QThread::msleep(200);
-		}
-
-		this->worker.reset(new Worker(currentIndex, nullptr));
-		QThread* thread = new QThread;
-		this->worker->moveToThread(thread);
-		thread->start();
-
-		tool::JsonReply reply("hello", "hello client");
-		reply.setCommand("initialize");
-		reply.insertParameter("parentWId", reinterpret_cast<long long>(pi.hWnd));
-		reply.insertParameter("index", currentIndex);
-
-		emit sendBinaryMessageToClient(reply.toUtf8());
+		if (!remoteInitialize(pi, port, pReason))
+			break;
 
 		//去除改變窗口大小的屬性
 		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);
@@ -793,6 +743,7 @@ bool GameDevice::IsUIThreadHung() const
 
 	return false; // 沒有檢測到無響應的UI線程
 }
+
 
 bool GameDevice::isWindowAlive() const
 {
