@@ -640,6 +640,162 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	qDebug() << "- >>> function name:" << QString("lssproto_%1_send").arg(funcMap.value(func, "Unknown"));
 	switch (func)
 	{
+	case sa::LSSPROTO_W_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_W2_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_EV_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_EN_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_DU_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_EO_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_BU_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_JB_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_LB_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_B_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_SKD_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_ID_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_PI_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_DI_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_DG_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_DP_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_MI_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_MSG_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_PMSG_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_AB_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_DAB_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_AAB_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_L_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_TK_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_M_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_C_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_S_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_FS_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_HL_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_PR_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_KS_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_AC_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_MU_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_PS_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_ST_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_DT_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_FT_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_SKUP_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_KN_SEND:
+	{
+		break;
+	}
 	case sa::LSSPROTO_WN_SEND:
 	{
 		long long x = 0;
@@ -655,6 +811,212 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 
 		qDebug() << "- >>> x = " << x << "| y =" << y << "| dialogid =" << dialogid << "| unitid =" << unitid << "| select =" << select;
 		qDebug() << "- >>> data =" << util::toUnicode(data);
+		break;
+	}
+	case sa::LSSPROTO_SP_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_CLIENTLOGIN_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_CREATENEWCHAR_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_CHARDELETE_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_CHARLOGIN_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_CHARLIST_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_CHARLOGOUT_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_PROCGET_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_PLAYERNUMGET_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_ECHO_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_SHUTDOWN_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_TD_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_FM_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_PETST_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_BM_SEND:   // _BLACK_MARKET
+	{
+		break;
+	}
+	case sa::LSSPROTO_MA_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_DM_SEND:   // 玩家抽地圖送監獄
+	{
+		break;
+	}
+	case sa::LSSPROTO_CS_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_KTEAM_SEND:
+	{
+		break;
+	}
+	//新增Protocol要求細項
+	{
+		break;
+	}
+	case sa::LSSPROTO_RESIST_SEND:
+	{
+		break;
+	}
+	//非戰鬥時技能Protocol
+	{
+		break;
+	}
+	case sa::LSSPROTO_BATTLESKILL_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_CHATROOM_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_SPET_SEND:// Robin 待機寵
+	{
+		break;
+	}
+	case sa::LSSPROTO_STREET_VENDOR_SEND:// 擺攤功能
+	{
+		char data[NETDATASIZE] = {};
+
+		if (!gamedevice.autil.util_Receive(slices, data))
+			return;
+
+		qDebug() << "- >>> data =" << util::toUnicode(data);
+
+		break;
+	}
+	case sa::LSSPROTO_missionInfo_SEND:// CYG　任務日志功能
+	{
+
+
+		break;
+	}
+	case sa::LSSPROTO_TEACHER_SYSTEM_SEND:// 導師功能
+	{
+		break;
+	}
+	case sa::LSSPROTO_S2_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_PET_ITEM_EQUIP_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_HOSTNAME_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_THEATER_DATA_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_ALCHEPLUS_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_PKLIST_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_SIGNDAY_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_REDMEMOY_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_SAMENU_SEND:
+	{
+		long long select = 0;
+
+		if (!gamedevice.autil.util_Receive(slices, &select))
+			return;
+
+		qDebug() << "- >>> select =" << select;
+		break;
+	}
+	case sa::LSSPROTO_SHOPOK_SEND:
+	{
+		long long select = 0;
+
+		if (!gamedevice.autil.util_Receive(slices, &select))
+			return;
+
+		qDebug() << "- >>> select =" << select;
+
+		break;
+	}
+	case sa::LSSPROTO_FAMILYBADGE_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_CHARTITLE_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_VB_SEND:
+	{
+		break;
+	}
+	//騎寵查詢
+	{
+		break;
+	}
+	case sa::LSSPROTO_RIDEQUERY_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_PETSKINS_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_JOINTEAM_SEND:
+	{
+		break;
+	}
+	case sa::LSSPROTO_ARRAGEITEM_SEND:
+	{
 		break;
 	}
 	}
@@ -852,6 +1214,8 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 
 		qDebug() << "LSSPROTO_SI_RECV" << "fromindex" << fromindex << "toindex" << toindex;
 		lssproto_SI_recv(fromindex, toindex);
+
+		si_recv.inc();
 		break;
 	}
 	case sa::LSSPROTO_MSG_RECV: /* 收到郵件 26 */
@@ -4752,7 +5116,7 @@ bool Worker::setPetFreeName(long long petIndex, const QString& name)
 		return false;
 
 	std::string sname = util::fromUnicode(name);
-	return lssproto_KN_send(petIndex, const_cast<char*> (sname.c_str()));
+	return lssproto_KN_send(petIndex, const_cast<char*>(sname.c_str()));
 }
 #pragma endregion
 
@@ -5966,119 +6330,212 @@ void Worker::sortItem()
 
 	updateItemByMemory();
 
-	long long j = 0;
-	long long i = 0;
 	QHash<long long, sa::item_t> items = getItems();
 
-	QString key;
-	QString frontKey;
-	long long stackableFlag = 0;
-	long long tryStackCount = 0;
-	long long tryStackMaxCount = 0;
-	sa::item_t itemBackMost = {};
-	sa::item_t itemFrontMost = {};
-
-	// 從最後一個道具開始遍歷
-	for (i = sa::MAX_ITEM - 1; i >= sa::CHAR_EQUIPSLOT_COUNT; --i)
-	{
-		itemBackMost = items.value(i);
-
-		// 檢查道具是否存在
-		if (!itemBackMost.valid)
-			continue;
-
-		// 轉換hash
-		key = itemBackMost.hash;
-		if (key.isEmpty())
-			continue;
-
-		stackableFlag = itemStackFlagHash_.value(key, kItemFirstSort);  // 是否可堆疊
-		tryStackCount = itemTryStackHash_.value(key, 0);                // 嘗試堆疊次數
-		tryStackMaxCount = itemTryStackMaxHash_.value(key, 0);          // 嘗試堆疊至最大次數
-
-		// 將所有道具堆疊數量大於1的道具標記為可堆疊
-		if (itemBackMost.stack > 1 && stackableFlag < kItemEnableSort)
+	auto arrangeItem = [&items, &pc](long long max, long long* from, long long* to)
 		{
-			itemStackFlagHash_.insert(key, kItemEnableSort); // 將該道具標記為可堆疊
-		}
+			long long item_now[sa::MAX_ITEM] = {};
+			bool item_can[sa::MAX_ITEM] = {};
 
-		// 如果key存在且不可堆疊則跳過
-		if (kItemUnableSort == stackableFlag)
-			continue;
-
-		// 從第一個道具開始遍歷
-		for (j = sa::CHAR_EQUIPSLOT_COUNT; j < i; ++j)
-		{
-			itemFrontMost = items.value(j);
-
-			if (!itemFrontMost.valid)
-				continue;
-
-			// 檢查hash key是否相同
-			if (itemFrontMost.hash != key)
-				continue;
-
-			// 如果key不存在 先嘗試疊一次 將其先標記为首次堆叠
-			if (!itemStackFlagHash_.contains(key))
+			for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
 			{
-				itemStackFlagHash_.insert(key, kItemFirstSort);
-				swapItem(i, j);
-				++itemTryStackHash_[key]; // 尝试次数加一
-				continue;
+				item_now[i] = (items.value(i).valid) ? items.value(i).stack : 0;
+				//if (items.value(i).valid && item_now[i] > 0)
+				//{
+				//	item_can[i] = isItemOverlap(items.value(i).name);
+				//}
 			}
 
-			// 有key後如果道具堆疊數量為 1 則開始下一次嘗試
-			if (itemFrontMost.stack == 1 || itemBackMost.stack == 1)
+			for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
 			{
-				// 道具尝试堆疊3次，但數量依然是 1 將其標記為不可堆疊
-				if (kItemFirstSort == stackableFlag && tryStackCount >= 3)
-				{
-					itemStackFlagHash_.insert(key, kItemUnableSort);
+				if (!item_can[i])
 					continue;
+
+				if (item_now[i] >= pc.maxload)
+					continue;
+
+				for (long long j = sa::MAX_ITEM - 1; j > i; --j)
+				{
+					if (items.value(i).name.simplified() != items.value(j).name.simplified())
+						continue;
+
+					if (items.value(i).memo.simplified() != items.value(j).memo.simplified())
+						continue;
+
+					*from = j;
+					*to = i;
+					return;
+				}
+			}
+		};
+
+	auto itemOverlapWithError = [this](const QString& iname)
+		{
+			if (stackHash.contains(iname))
+			{
+				long long times = stackHash.value(iname);
+				if (times > 1)
+				{
+					stackHash[iname] = times - 1;
 				}
 				else
 				{
-					// 新的嘗試
-					swapItem(i, j);
-					++itemTryStackHash_[key]; // 尝试次数加一
-					continue;
+					stackHash.remove(iname);
 				}
 			}
+		};
 
-			// 檢查如果實際堆疊數量大於人物負重
-			if ((itemFrontMost.stack > pc.maxload) || (itemBackMost.stack > pc.maxload))
+	long long from = -1;
+	long long to = -1;
+
+	for (;;)
+	{
+		if (getBattleFlag())
+			break;
+
+		if (!gamedevice.getEnableHash(util::kAutoStackEnable))
+			break;
+
+		from = -1;
+		to = -1;
+		arrangeItem(pc.maxload, &from, &to);
+
+		if (from == -1 || to == -1)
+			break;
+
+		long long i_recv_cache = i_recv.get();
+		long long si_recv_cache = si_recv.get();
+
+		swapItem(from, to);
+
+		while (i_recv.get() == i_recv_cache && si_recv.get() == si_recv_cache)
+			Sleep(1);
+
+		if (si_recv.get() != si_recv_cache) //这代表2个物品发生了交换，说明被选取的被堆叠物品是一种不可堆叠的物品，也有可能是堆满了。
+		{
+			if (items.value(from).valid && items.value(from).stack == 1 &&
+				items.value(to).valid && items.value(to).stack == 1)
 			{
-				// 將人物負重更新為該道具當前堆疊數量
-				pc.maxload = itemFrontMost.stack > pc.maxload ? itemBackMost.stack : pc.maxload;
-				pcMaxLoad_ = pc.maxload;
-				setCharacter(pc);
-
-				// 無論是向前遍歷還是向後遍歷大於紀錄的最大數量 則嘗試堆疊繼續堆疊，因為此處真實最大數量是未知的
-				if (itemFrontMost.stack > tryStackMaxCount || itemBackMost.stack > tryStackMaxCount)
-				{
-					// 將紀錄的最大數量 更新為當前堆疊數量
-					if (itemFrontMost.stack > tryStackMaxCount && itemFrontMost.stack >= itemBackMost.stack)
-						itemMaxStackHash_.insert(key, itemFrontMost.stack);
-					else if (itemBackMost.stack > tryStackMaxCount)
-						itemMaxStackHash_.insert(key, itemBackMost.stack);
-
-					// 嘗試交換道具
-					swapItem(i, j);
-					++itemTryStackMaxHash_[key]; // 尝试最大次数加一
-					continue;
-				}
+				itemOverlapWithError(items.value(from).name);
 			}
-
-			// 如果嘗試次數大於等於9999次則跳過
-			if (tryStackMaxCount >= 9999)
-			{
-				continue;
-			}
-
-			// 嘗試交換道具 將後面較多的道具移到前面
-			swapItem(i, j);
 		}
 	}
+
+
+
+	//long long j = 0;
+	//long long i = 0;
+	//QHash<long long, sa::item_t> items = getItems();
+
+	//QString key;
+	//QString frontKey;
+	//long long stackableFlag = 0;
+	//long long tryStackCount = 0;
+	//long long tryStackMaxCount = 0;
+	//sa::item_t itemBackMost = {};
+	//sa::item_t itemFrontMost = {};
+
+	//// 從最後一個道具開始遍歷
+	//for (i = sa::MAX_ITEM - 1; i >= sa::CHAR_EQUIPSLOT_COUNT; --i)
+	//{
+	//	itemBackMost = items.value(i);
+
+	//	// 檢查道具是否存在
+	//	if (!itemBackMost.valid)
+	//		continue;
+
+	//	// 轉換hash
+	//	key = itemBackMost.hash;
+	//	if (key.isEmpty())
+	//		continue;
+
+	//	stackableFlag = itemStackFlagHash_.value(key, kItemFirstSort);  // 是否可堆疊
+	//	tryStackCount = itemTryStackHash_.value(key, 0);                // 嘗試堆疊次數
+	//	tryStackMaxCount = itemTryStackMaxHash_.value(key, 0);          // 嘗試堆疊至最大次數
+
+	//	// 將所有道具堆疊數量大於1的道具標記為可堆疊
+	//	if (itemBackMost.stack > 1 && stackableFlag < kItemEnableSort)
+	//	{
+	//		itemStackFlagHash_.insert(key, kItemEnableSort); // 將該道具標記為可堆疊
+	//	}
+
+	//	// 如果key存在且不可堆疊則跳過
+	//	if (kItemUnableSort == stackableFlag)
+	//		continue;
+
+	//	// 從第一個道具開始遍歷
+	//	for (j = sa::CHAR_EQUIPSLOT_COUNT; j < i; ++j)
+	//	{
+	//		itemFrontMost = items.value(j);
+
+	//		if (!itemFrontMost.valid)
+	//			continue;
+
+	//		// 檢查hash key是否相同
+	//		if (itemFrontMost.hash != key)
+	//			continue;
+
+	//		// 如果key不存在 先嘗試疊一次 將其先標記为首次堆叠
+	//		if (!itemStackFlagHash_.contains(key))
+	//		{
+	//			itemStackFlagHash_.insert(key, kItemFirstSort);
+	//			swapItem(i, j);
+	//			++itemTryStackHash_[key]; // 尝试次数加一
+	//			continue;
+	//		}
+
+	//		// 有key後如果道具堆疊數量為 1 則開始下一次嘗試
+	//		if (itemFrontMost.stack == 1 || itemBackMost.stack == 1)
+	//		{
+	//			// 道具尝试堆疊3次，但數量依然是 1 將其標記為不可堆疊
+	//			if (kItemFirstSort == stackableFlag && tryStackCount >= 3)
+	//			{
+	//				itemStackFlagHash_.insert(key, kItemUnableSort);
+	//				continue;
+	//			}
+	//			else
+	//			{
+	//				// 新的嘗試
+	//				swapItem(i, j);
+	//				++itemTryStackHash_[key]; // 尝试次数加一
+	//				continue;
+	//			}
+	//		}
+
+	//		// 檢查如果實際堆疊數量大於人物負重
+	//		if ((itemFrontMost.stack > pc.maxload) || (itemBackMost.stack > pc.maxload))
+	//		{
+	//			// 將人物負重更新為該道具當前堆疊數量
+	//			pc.maxload = itemFrontMost.stack > pc.maxload ? itemBackMost.stack : pc.maxload;
+	//			pcMaxLoad_ = pc.maxload;
+	//			setCharacter(pc);
+
+	//			// 無論是向前遍歷還是向後遍歷大於紀錄的最大數量 則嘗試堆疊繼續堆疊，因為此處真實最大數量是未知的
+	//			if (itemFrontMost.stack > tryStackMaxCount || itemBackMost.stack > tryStackMaxCount)
+	//			{
+	//				// 將紀錄的最大數量 更新為當前堆疊數量
+	//				if (itemFrontMost.stack > tryStackMaxCount && itemFrontMost.stack >= itemBackMost.stack)
+	//					itemMaxStackHash_.insert(key, itemFrontMost.stack);
+	//				else if (itemBackMost.stack > tryStackMaxCount)
+	//					itemMaxStackHash_.insert(key, itemBackMost.stack);
+
+	//				// 嘗試交換道具
+	//				swapItem(i, j);
+	//				++itemTryStackMaxHash_[key]; // 尝试最大次数加一
+	//				continue;
+	//			}
+	//		}
+
+	//		// 如果嘗試次數大於等於9999次則跳過
+	//		if (tryStackMaxCount >= 9999)
+	//		{
+	//			continue;
+	//		}
+
+	//		// 嘗試交換道具 將後面較多的道具移到前面
+	//		swapItem(i, j);
+	//	}
+	//}
 }
 
 QString Worker::makeItemHash(const sa::item_t& item)
@@ -6832,6 +7289,27 @@ bool Worker::asyncBattleAction(bool canDelay)
 	return false;
 }
 
+//解決最後敵人地球一周問題
+bool Worker::isLastEnemyValid(const sa::battle_data_t& bt) const
+{
+	if (bt.enemies.size() == 1)
+	{
+		bool isLastEnemyVisible = true;
+		for (const sa::battle_object_t& it : bt.enemies)
+		{
+			if (it.hp > 0 && util::checkAND(it.status, sa::BC_FLG_HIDE))
+			{
+				isLastEnemyVisible = false;
+				break;
+			}
+		}
+
+		return isLastEnemyVisible;
+	}
+
+	return true;
+}
+
 //人物戰鬥
 long long Worker::playerDoBattleWork(const sa::battle_data_t& bt)
 {
@@ -6846,6 +7324,12 @@ long long Worker::playerDoBattleWork(const sa::battle_data_t& bt)
 	do
 	{
 		if (bt.objects.isEmpty() || bt.enemies.isEmpty() || bt.allies.isEmpty() || bt.objects.value(battleCharCurrentPos.get()).hp <= 0)
+		{
+			sendBattleCharDoNothing();
+			break;
+		}
+
+		if (!isLastEnemyValid(bt))
 		{
 			sendBattleCharDoNothing();
 			break;
@@ -6885,6 +7369,12 @@ long long Worker::petDoBattleWork(const sa::battle_data_t& bt)
 	do
 	{
 		if (bt.objects.isEmpty() || bt.enemies.isEmpty() || bt.allies.isEmpty() || bt.objects.value(battleCharCurrentPos.get() + 5).hp <= 0)
+		{
+			sendBattlePetDoNothing();
+			break;
+		}
+
+		if (!isLastEnemyValid(bt))
 		{
 			sendBattlePetDoNothing();
 			break;
@@ -11103,8 +11593,8 @@ void Worker::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
-	}
-}
+				}
+			}
 		}
 #endif
 	}
@@ -11164,7 +11654,7 @@ void Worker::lssproto_ABI_recv(long long num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
-}
+			}
 		}
 	}
 #endif
@@ -11450,6 +11940,8 @@ void Worker::lssproto_I_recv(char* cdata)
 	updateComboBoxList();
 	if (IS_WAITOFR_ITEM_CHANGE_PACKET.get() > 0)
 		IS_WAITOFR_ITEM_CHANGE_PACKET.dec();
+
+	i_recv.inc();
 
 	waitForCollection_.on();
 
@@ -12943,8 +13435,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 					++i;
 				++i;
 				break;
-	}
-}
+			}
+			}
 		}
 #endif
 		qDebug() << "lssproto_B_recv: unknown command" << command;
@@ -13561,9 +14053,9 @@ void Worker::lssproto_TK_recv(long long index, char* cmessage, long long color)
 				StockChatBufferLine(tmpMsg, color);
 				sprintf_s(msg, "");
 				sprintf_s(secretName, "%s ", tellName);
-	}
+			}
 			else StockChatBufferLine(msg, color);
-}
+		}
 #endif
 
 		chatQueue.enqueue(qMakePair(color, msg.simplified()));
@@ -13836,7 +14328,7 @@ void Worker::lssproto_C_recv(char* cdata)
 					setNpcNotice(ptAct, noticeNo);
 				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -14136,9 +14628,9 @@ void Worker::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
+				}
+			}
 		}
-	}
-}
 #endif
 #pragma endregion
 	}

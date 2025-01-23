@@ -33,6 +33,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <EnableASAN>false</EnableASAN>
     <EnableFuzzer>false</EnableFuzzer>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -62,22 +63,22 @@
     <Import Project="$(QtMsBuild)\qt_defaults.props" />
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'" Label="QtSettings">
-    <QtInstall>5.15.2_msvc2019</QtInstall>
+    <QtInstall>qt5_msvc2019_32</QtInstall>
     <QtModules>core;opengl;network;svg;widgets;concurrent;gui</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="QtSettings">
-    <QtInstall>6.8.0_msvc2019_64</QtInstall>
+    <QtInstall>qt6_msvc2019_64</QtInstall>
     <QtModules>core;gui;network;widgets;core5compat;concurrent;openglwidgets</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="QtSettings">
-    <QtInstall>5.15.2_msvc2019</QtInstall>
+    <QtInstall>qt5_msvc2019_32</QtInstall>
     <QtModules>core;opengl;network;svg;widgets;concurrent;gui</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="QtSettings">
-    <QtInstall>6.8.0_msvc2019_64</QtInstall>
+    <QtInstall>qt6_msvc2019_64</QtInstall>
     <QtModules>core;gui;network;widgets;core5compat;concurrent;openglwidgets</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
@@ -106,14 +107,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'">
     <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)d</TargetName>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)deploy\bin\$(ProjectName)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'">
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
     <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
     <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)deploy\bin\$(ProjectName)\$(Configuration)\</OutDir>
     <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
     <PreLinkEventUseInBuild>false</PreLinkEventUseInBuild>
   </PropertyGroup>
@@ -122,7 +123,7 @@
     <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
     <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)x64</TargetName>
-    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
@@ -177,16 +178,22 @@
       <BuildAction>false</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
-      <Command>cd  "$(SolutionDir)$(ProjectName)\translations"
-copy "qt_zh_TW.qm "$(OutputPath)lib\translations\qt_zh_TW.qm"
-copy "qt_zh_CN.qm "$(OutputPath)lib\translations\qt_zh_CN.qm"
-copy "qt_zh_TW.qm" "$(SolutionDir)$(Platform)\Debug\lib\translations\qt_zh_TW.qm"
-copy "qt_zh_CN.qm" "$(SolutionDir)$(Platform)\Debug\lib\translations\qt_zh_CN.qm"
+      <Command>if not exist "$(OutputPath)lib\translations" mkdir "$(OutputPath)lib\translations"
+
+if not exist "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations" mkdir "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations"
+
+if not exist "$(SolutionDir)ReleaseTool\$(ProjectName)\lib" mkdir "$(SolutionDir)ReleaseTool\$(ProjectName)\lib"
+
+if not exist "$(SolutionDir)ReleaseTool\$(ProjectName)" mkdir "$(SolutionDir)ReleaseTool\$(ProjectName)"
+
+cd  "$(SolutionDir)$(ProjectName)\translations"
+copy "qt_zh_TW.qm" "$(OutputPath)lib\translations\qt_zh_TW.qm"
+copy "qt_zh_CN.qm" "$(OutputPath)lib\translations\qt_zh_CN.qm"
 
 copy "qt_zh_TW.qm" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_TW.qm"
 copy "qt_zh_CN.qm" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_CN.qm"
 
-cd "$(OutputPath)lib"
+cd "$(SolutionDir)deploy\bin\sadll\Release\"
 copy "sadll.dll" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\sadll.dll"
 cd "$(OutputPath)"
 copy "$(ProjectName).exe" "$(SolutionDir)ReleaseTool\$(ProjectName)\$(ProjectName).exe"
@@ -266,6 +273,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <InlineFunctionExpansion />
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
       <AdditionalOptions>/bigobj /utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
@@ -310,7 +318,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
-      <LanguageStandard_C>Default</LanguageStandard_C>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
     </ClCompile>
     <Link>

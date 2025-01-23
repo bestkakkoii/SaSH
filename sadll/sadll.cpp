@@ -499,17 +499,20 @@ void GameService::New_lssproto_TK_send(int fd, int x, int y, const char* message
 			return;
 		}
 
-		std::string str = "tk|";
-		str += std::to_string(x) + "|";
-		str += std::to_string(y) + "|";
-		str += std::to_string(color) + "|";
-		str += std::to_string(area) + "|";
+		if (msg.find("//skup") != std::string::npos)
+		{
+			std::string str = "tk|";
+			str += std::to_string(x) + "|";
+			str += std::to_string(y) + "|";
+			str += std::to_string(color) + "|";
+			str += std::to_string(area) + "|";
 
-		str += msg.substr(2u);
+			str += msg.substr(2u);
 
-		sendToServer(str + "\n");
+			sendToServer(str + "\n");
 
-		return;
+			return;
+		}
 	}
 
 	pLssproto_TK_send(fd, x, y, message, color, area);

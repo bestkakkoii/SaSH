@@ -332,7 +332,7 @@ public:
 
 	sa::item_t operator[](long long index);
 
-	long long swapitem(long long fromIndex, long long toIndex, sol::this_state s);
+	long long swapitem(sol::object fromIndex, long long toIndex, sol::this_state s);
 	long long cook(std::string singre, sol::this_state s);
 	long long make(std::string singre, sol::this_state s);
 	long long withdrawgold(long long gold, sol::object oispublic, sol::this_state s);

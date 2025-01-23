@@ -40,7 +40,7 @@ sa::item_t CLuaItem::operator[](long long index)
 	return gamedevice.worker->getItem(index);
 }
 
-long long CLuaItem::swapitem(long long fromIndex, long long toIndex, sol::this_state s)
+long long CLuaItem::swapitem(sol::object ofromIndex, long long toIndex, sol::this_state s)
 {
 	sol::state_view lua(s);
 	long long currentIndex = lua["__INDEX"].get<long long>();
@@ -48,30 +48,77 @@ long long CLuaItem::swapitem(long long fromIndex, long long toIndex, sol::this_s
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
+	long long fromIndex = -1;
+	QString itemName;
+
+	if (ofromIndex.is<long long>())
+		fromIndex = ofromIndex.as<long long>();
+	else if (ofromIndex.is<std::string>())
+	{
+		itemName = util::toQString(ofromIndex.as<std::string>());
+	}
+
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	if (fromIndex > 100)
-		fromIndex -= 100;
+	if (!itemName.isEmpty())
+	{
+		if (fromIndex > 100)
+			fromIndex -= 100;
+		else
+			fromIndex += sa::CHAR_EQUIPSLOT_COUNT;
+		if (toIndex > 100)
+			toIndex -= 100;
+		else
+			toIndex += sa::CHAR_EQUIPSLOT_COUNT;
+
+		--fromIndex;
+		--toIndex;
+
+		if (fromIndex < 0 || fromIndex >= sa::MAX_ITEM)
+			return FALSE;
+
+		if (toIndex < 0 || toIndex >= sa::MAX_ITEM)
+			return FALSE;
+
+		gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
+		if (!gamedevice.worker->swapItem(fromIndex, toIndex))
+			return FALSE;
+	}
 	else
-		fromIndex += sa::CHAR_EQUIPSLOT_COUNT;
-	if (toIndex > 100)
-		toIndex -= 100;
-	else
-		toIndex += sa::CHAR_EQUIPSLOT_COUNT;
+	{
+		// search all matching items
+		QVector<long long> fromIndexs;
+		if (!gamedevice.worker->getItemIndexsByName(itemName, "", &fromIndexs, sa::CHAR_EQUIPSLOT_COUNT))
+			return FALSE;
 
-	--fromIndex;
-	--toIndex;
+		if (fromIndexs.isEmpty())
+			return FALSE;
 
-	if (fromIndex < 0 || fromIndex >= sa::MAX_ITEM)
-		return FALSE;
+		gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
 
-	if (toIndex < 0 || toIndex >= sa::MAX_ITEM)
-		return FALSE;
+		for (long long fromIndex : fromIndexs)
+		{
+			if (fromIndex > 100)
+				fromIndex -= 100;
+			else
+				fromIndex += sa::CHAR_EQUIPSLOT_COUNT;
 
-	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-	if (!gamedevice.worker->swapItem(fromIndex, toIndex))
-		return FALSE;
+			--fromIndex;
+			--toIndex;
+
+			if (fromIndex < 0 || fromIndex >= sa::MAX_ITEM)
+				continue;
+
+			if (toIndex < 0 || toIndex >= sa::MAX_ITEM)
+				continue;
+
+			if (!gamedevice.worker->swapItem(fromIndex, toIndex))
+				return FALSE;
+		}
+
+		return luadebug::waitfor(s, 200, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+	}
 
 	bool bret = luadebug::waitfor(s, 200, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
 	gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
@@ -746,10 +793,10 @@ long long CLuaItem::doffitem(sol::object oitem, sol::object p1, sol::object p2, 
 	else
 	{
 		bool bOnlyOne = false;
-		if (oitem.is<long long>())
-			bOnlyOne = oitem.as<long long>() > 0;
-		else if (oitem.is<bool>())
-			bOnlyOne = oitem.as<bool>();
+		if (p2.is<long long>())
+			bOnlyOne = p2.as<long long>() > 0;
+		else if (p2.is<bool>())
+			bOnlyOne = p2.as<bool>();
 
 		QString itemNames = tempName;
 
@@ -2038,6 +2085,13 @@ static QVector<long long> itemGetIndexs(long long currentIndex, sol::object oite
 	long long max = sa::MAX_ITEM;
 	if (includeEequip)
 		min = 0;
+	else
+	{
+		if (startFrom != -1)
+			min = startFrom;
+		else
+			min = sa::CHAR_EQUIPSLOT_COUNT;
+	}
 
 	if (!gamedevice.worker->getItemIndexsByName(itemnames, itemmemos, &itemIndexs, min, max))
 	{

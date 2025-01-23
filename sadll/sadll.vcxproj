@@ -79,7 +79,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>sadll</TargetName>
     <IntDir>$(SolutionDir)build\dll\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)Win32\$(Configuration)\lib\</OutDir>
+    <OutDir>$(SolutionDir)deploy\bin\$(ProjectName)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>sadll</TargetName>
@@ -87,7 +87,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>sadll</TargetName>
     <IntDir>$(SolutionDir)build\dll\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)Win32\$(Configuration)\lib\</OutDir>
+    <OutDir>$(SolutionDir)deploy\bin\$(ProjectName)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>sadll</TargetName>
@@ -104,14 +104,14 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>Async</ExceptionHandling>
       <AssemblerOutput>NoListing</AssemblerOutput>
-      <LanguageStandard>stdcpp14</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion />
       <IntrinsicFunctions />
       <FavorSizeOrSpeed />
       <OmitFramePointers />
       <EnableFiberSafeOptimizations />
       <WholeProgramOptimization />
-      <LanguageStandard_C>Default</LanguageStandard_C>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
       <SupportJustMyCode />
     </ClCompile>
     <Link>
@@ -226,6 +226,10 @@
       </AssemblyDebug>
       <SetChecksum>false</SetChecksum>
     </Link>
+    <PostBuildEvent>
+      <Command>copy "$(TargetPath)" "$(SolutionDir)deploy\bin\SaSH\Debug\bin\$(ProjectName).dll"
+copy "$(TargetPath)" "$(SolutionDir)deploy\bin\SaSH\Release\bin\$(ProjectName).dll"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -249,10 +253,10 @@
       </OmitFramePointers>
       <EnableFiberSafeOptimizations>
       </EnableFiberSafeOptimizations>
-      <LanguageStandard>Default</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <WholeProgramOptimization>
       </WholeProgramOptimization>
-      <LanguageStandard_C>Default</LanguageStandard_C>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

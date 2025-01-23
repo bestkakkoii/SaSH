@@ -403,6 +403,7 @@ private:
 	long long __fastcall petDoBattleWork(const sa::battle_data_t& bt);
 	bool __fastcall handlePetBattleLogics(const sa::battle_data_t& bt);
 
+	bool __fastcall isLastEnemyValid(const sa::battle_data_t& bt) const;
 	bool __fastcall isCharMpEnoughForMagic(long long magicIndex) const;
 	bool __fastcall isCharMpEnoughForSkill(long long magicIndex) const;
 	bool __fastcall isCharHpEnoughForSkill(long long magicIndex) const;
@@ -644,6 +645,10 @@ public:
 	safe::integer battle_one_round_time = 0;
 
 	safe::integer saCurrentGameTime = 0;//遊戲時間 LSTimeSection
+
+	safe::integer si_recv = 0;
+	safe::integer i_recv = 0;
+	QHash<QString, long long> stackHash;
 
 	safe::data<sa::currency_data_t> currencyData = {};
 	safe::data<sa::custom_dialog_t> customDialog = {};
