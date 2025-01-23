@@ -30,27 +30,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "autil.h"
 #include "map/mapdevice.h"
 
-class Socket : public QTcpSocket
-{
-	Q_OBJECT
-
-public:
-	Socket(qintptr socketDescriptor, QObject* parent = nullptr);
-
-	virtual ~Socket();
-
-	//QThread thread;
-
-private slots:
-	void onReadyRead();
-	void onWrite(QByteArray ba, long long size);
-
-private:
-	long long index_ = -1;
-	bool init = false;
-	mutable QMutex socketLock_;
-	QFuture<void> future_;
-};
+#include "SaSH/websocket/model/websocket.h"
+#include "SaSH/websocket/model/websocketserverbase.h"
 
 class CLua;
 class Worker : public QObject, public Indexer, public Lssproto
@@ -79,9 +60,9 @@ signals:
 	void findPathFinished();
 
 public slots:
-
+	Q_INVOKABLE void handleData(QByteArray badata);
 public:
-	void handleData(QByteArray badata);
+
 
 private:
 	void __fastcall dispatchSendMessage(const QByteArray& encoded) const;
@@ -751,22 +732,22 @@ private://lssproto_recv
 
 	virtual void __fastcall lssproto_PETST_recv(long long petarray, long long result) override;
 	//  聊天室頻道
-	virtual void __fastcall lssproto_CHATROOM_recv(char* data) override {};
+	virtual void __fastcall lssproto_CHATROOM_recv(char*) override {};
 
 	//新增Protocol要求細項
-	virtual void __fastcall lssproto_RESIST_recv(char* data) override {};
+	virtual void __fastcall lssproto_RESIST_recv(char*) override {};
 
-	virtual void __fastcall lssproto_ALCHEPLUS_recv(char* data) override {};
+	virtual void __fastcall lssproto_ALCHEPLUS_recv(char*) override {};
 	//非戰鬥時技能Protocol
-	virtual void __fastcall lssproto_BATTLESKILL_recv(char* data) override {};
+	virtual void __fastcall lssproto_BATTLESKILL_recv(char*) override {};
 
 	virtual void __fastcall lssproto_CHAREFFECT_recv(char* data) override;
 
-	virtual void __fastcall lssproto_STREET_VENDOR_recv(char* data) override {};	// 擺攤功能
+	virtual void __fastcall lssproto_STREET_VENDOR_recv(char*) override {};	// 擺攤功能
 
 	virtual void __fastcall lssproto_missionInfo_recv(char* data) override;
 
-	virtual void __fastcall lssproto_FamilyBadge_recv(char* data) override {};
+	virtual void __fastcall lssproto_FamilyBadge_recv(char*) override {};
 
 	virtual void __fastcall lssproto_TEACHER_SYSTEM_recv(char* data) override;
 
@@ -774,11 +755,11 @@ private://lssproto_recv
 
 	virtual void __fastcall lssproto_Firework_recv(long long nCharaindex, long long nType, long long nActionNum) override;	// 煙火功能
 
-	virtual void __fastcall lssproto_TheaterData_recv(char* pData) override {};
+	virtual void __fastcall lssproto_TheaterData_recv(char*) override {};
 
 	virtual void __fastcall lssproto_MoveScreen_recv(BOOL bMoveScreenMode, long long iXY) override {};	// client 移動熒幕
 
-	virtual void __fastcall lssproto_MagiccardAction_recv(char* data) override {};	//魔法牌功能
+	virtual void __fastcall lssproto_MagiccardAction_recv(char*) override {};	//魔法牌功能
 	virtual void __fastcall lssproto_MagiccardDamage_recv(long long position, long long damage, long long offsetx, long long offsety) override {};
 
 	virtual void __fastcall lssproto_DancemanOption_recv(long long option) override {};	//動一動狀態
@@ -789,7 +770,7 @@ private://lssproto_recv
 
 	virtual void __fastcall lssproto_pkList_recv(long long count, char* data) override {};
 
-	virtual void __fastcall lssproto_PetSkins_recv(char* data) override {};
+	virtual void __fastcall lssproto_PetSkins_recv(char*) override {};
 
 	//////////////////////////////////
 
@@ -798,7 +779,7 @@ private://lssproto_recv
 #pragma endregion
 };
 
-class Server : public QTcpServer
+class Server : public web::SocketServerBase
 {
 	Q_OBJECT
 public:
@@ -810,9 +791,10 @@ public:
 
 	void clear();
 
-protected:
-	virtual void incomingConnection(qintptr socketDescriptor) override;
+public slots:
+	void handleNewClientConnected();
+	void handleBinaryMessage(const QByteArray&);
 
 private:
-	QList<Socket*> clientSockets_;
+	QList<web::Socket*> clientSockets_;
 };

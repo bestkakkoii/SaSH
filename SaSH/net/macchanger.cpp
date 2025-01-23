@@ -19,7 +19,7 @@
 */
 #include "stdafx.h"
 #include "macchanger.h"
-using namespace std;
+
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
@@ -41,16 +41,16 @@ MyMACAddr::~MyMACAddr()
 //-----------------------------------------------
 // Generate Random MAC Addresses
 //-----------------------------------------------
-string MyMACAddr::GenRandMAC()
+std::string MyMACAddr::GenRandMAC()
 {
-	stringstream temp;
+	std::stringstream temp;
 	int number = 0;
-	string result;
+	std::string result;
 
 	for (int i = 0; i < 6; ++i)
 	{
 		number = rand() % 254;
-		temp << setfill('0') << setw(2) << hex << number;
+		temp << std::setfill('0') << std::setw(2) << std::hex << number;
 		if (i != 5)
 		{
 			temp << "-";
@@ -82,7 +82,7 @@ void MyMACAddr::showAdapterList()
 	pAdapterInfo = (IP_ADAPTER_INFO*)MALLOC(sizeof(IP_ADAPTER_INFO));
 	if (pAdapterInfo == NULL)
 	{
-		wcerr << L"分配所需的記憶體錯誤 調用 \"獲取網路介面卡資訊。\"" << endl;
+		std::wcerr << L"分配所需的記憶體錯誤 調用 \"獲取網路介面卡資訊。\"" << std::endl;
 	}
 	// Make an initial call to GetAdaptersInfo to get
 	// the necessary size into the ulOutBufLen variable
@@ -92,7 +92,7 @@ void MyMACAddr::showAdapterList()
 		pAdapterInfo = (IP_ADAPTER_INFO*)MALLOC(ulOutBufLen);
 		if (pAdapterInfo == NULL)
 		{
-			wcerr << L"分配所需的記憶體錯誤 調用 \"獲取網路介面卡資訊。\"" << endl;
+			std::wcerr << L"分配所需的記憶體錯誤 調用 \"獲取網路介面卡資訊。\"" << std::endl;
 		}
 	}
 
@@ -101,9 +101,9 @@ void MyMACAddr::showAdapterList()
 		pAdapter = pAdapterInfo;
 		while (pAdapter)
 		{
-			std::wcout << L"\n\t網路介面卡索引： \t" << pAdapter->ComboIndex << endl;
-			std::wcout << L"\t網路介面卡名稱： \t" << QString(pAdapter->AdapterName).toStdWString().c_str() << endl;
-			std::wcout << L"\t網路介面卡描述： \t" << pAdapter->Description << endl;
+			std::wcout << L"\n\t網路介面卡索引： \t" << pAdapter->ComboIndex << std::endl;
+			std::wcout << L"\t網路介面卡名稱： \t" << QString(pAdapter->AdapterName).toStdWString().c_str() << std::endl;
+			std::wcout << L"\t網路介面卡描述： \t" << pAdapter->Description << std::endl;
 			std::wcout << L"\t網路介面卡地址： \t";
 			for (i = 0; i < pAdapter->AddressLength; ++i)
 			{
@@ -112,15 +112,15 @@ void MyMACAddr::showAdapterList()
 				else
 					printf("%.2X-", (int)pAdapter->Address[i]);
 			}
-			std::wcout << L"\tIP 地址： \t" << QString(pAdapter->IpAddressList.IpAddress.String).toStdWString().c_str() << endl;
-			std::wcout << L"\tIP 網路遮罩： \t" << QString(pAdapter->IpAddressList.IpMask.String).toStdWString().c_str() << endl;
-			std::wcout << L"\t預設閘道： \t" << QString(pAdapter->GatewayList.IpAddress.String).toStdWString().c_str() << endl;
+			std::wcout << L"\tIP 地址： \t" << QString(pAdapter->IpAddressList.IpAddress.String).toStdWString().c_str() << std::endl;
+			std::wcout << L"\tIP 網路遮罩： \t" << QString(pAdapter->IpAddressList.IpMask.String).toStdWString().c_str() << std::endl;
+			std::wcout << L"\t預設閘道： \t" << QString(pAdapter->GatewayList.IpAddress.String).toStdWString().c_str() << std::endl;
 			pAdapter = pAdapter->Next;
 		}
 	}
 	else
 	{
-		wcerr << L"獲取網路介面卡訊息失敗，錯誤： " << dwRetVal << endl;
+		std::wcerr << L"獲取網路介面卡訊息失敗，錯誤： " << dwRetVal << std::endl;
 	}
 	if (pAdapterInfo)
 		FREE(pAdapterInfo);
@@ -129,15 +129,15 @@ void MyMACAddr::showAdapterList()
 //-----------------------------------------------
 // Get Network Adapter's Name and MAC addresses
 //-----------------------------------------------
-unordered_map<string, string> MyMACAddr::getAdapters()
+std::unordered_map<std::string, std::string> MyMACAddr::getAdapters()
 {
 	PIP_ADAPTER_INFO pAdapterInfo;
 	PIP_ADAPTER_INFO pAdapter = NULL;
 	DWORD dwRetVal = 0;
 
-	unordered_map<string, string> result;
-	stringstream temp;
-	string str_mac;
+	std::unordered_map<std::string, std::string> result;
+	std::stringstream temp;
+	std::string str_mac;
 
 	ULONG ulOutBufLen = sizeof(IP_ADAPTER_INFO);
 	pAdapterInfo = (IP_ADAPTER_INFO*)MALLOC(sizeof(IP_ADAPTER_INFO));
@@ -164,7 +164,7 @@ unordered_map<string, string> MyMACAddr::getAdapters()
 		{
 			for (UINT i = 0; i < pAdapter->AddressLength; ++i)
 			{
-				temp << setfill('0') << setw(2) << hex << (int)pAdapter->Address[i];
+				temp << std::setfill('0') << std::setw(2) << std::hex << (int)pAdapter->Address[i];
 				if (i != pAdapter->AddressLength - 1)
 				{
 					temp << "-";
@@ -199,8 +199,8 @@ std::string MyMACAddr::AssingRndMAC()
 {
 	std::string retstring = "\0";
 	//-------- Copy Network interfaces to Vector
-	vector <string> list;
-	unordered_map<string, string> AdapterDetails = getAdapters();
+	std::vector <std::string> list;
+	std::unordered_map<std::string, std::string> AdapterDetails = getAdapters();
 	for (const std::pair<const std::string, std::string>& itm : AdapterDetails)
 	{
 		list.push_back(itm.first);
@@ -210,7 +210,7 @@ std::string MyMACAddr::AssingRndMAC()
 	int range = 0;
 	for (std::vector<std::string>::iterator itm = list.begin(); itm != list.end(); itm++)
 	{
-		cout << '\t' << range + 1 << ")" << *itm << endl;
+		std::cout << '\t' << range + 1 << ")" << *itm << std::endl;
 		range++;
 	}
 
@@ -231,7 +231,7 @@ std::string MyMACAddr::AssingRndMAC()
 	//wcout << L"[+]舊的MAC是： " << QString(AdapterDetails.at(list.at(selection - 1)).c_str()).toStdWString().c_str() << endl;
 
 	//-------- Converting to Wide characters
-	wstring wstr(list.at(selection - 1).begin(), list.at(selection - 1).end());
+	std::wstring wstr(list.at(selection - 1).begin(), list.at(selection - 1).end());
 	const wchar_t* wAdapterName = wstr.c_str();
 
 	//-------- Registry Key for Network Interfaces
@@ -257,11 +257,11 @@ std::string MyMACAddr::AssingRndMAC()
 
 					if (_tcscmp((TCHAR*)Data, wAdapterName) == 0)
 					{
-						string temp = GenRandMAC();
-						string newMAC = temp;
+						std::string temp = GenRandMAC();
+						std::string newMAC = temp;
 						temp.erase(std::remove(temp.begin(), temp.end(), '-'), temp.end());
 
-						wstring wstr_newMAC(temp.begin(), temp.end());
+						std::wstring wstr_newMAC(temp.begin(), temp.end());
 						const wchar_t* newMACAddr = wstr_newMAC.c_str();
 
 						//--------Add new MAC to Registry Subkey and disable and re-enable the interface

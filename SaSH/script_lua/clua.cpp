@@ -4163,7 +4163,7 @@ void CLua::open_maplibs(sol::state& lua)
 		"xy", &CLuaMap::xy,
 		"floor", sol::property(&CLuaMap::floor),
 		"name", sol::property(&CLuaMap::getName),
-		"ground", sol::property(&CLuaMap::getGround),
+		"ground", &CLuaMap::getGround,
 		"ismap", &CLuaMap::ismap,
 		"isxy", &CLuaMap::isxy,
 		"isrect", &CLuaMap::isrect
@@ -4631,11 +4631,11 @@ void CLua::proc()
 					tableStrs << tr("> (unknown type of data)");
 				}
 				tableStrs << ">";
+			}
 		}
-	}
 
 		luadebug::logExport(s, tableStrs, 0);
-} while (false);
+	} while (false);
 
 	emit finished();
 

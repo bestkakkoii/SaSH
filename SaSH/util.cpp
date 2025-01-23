@@ -620,7 +620,7 @@ bool __fastcall mem::injectBy64(long long index, DWORD dwProcessId, HANDLE hProc
 		}
 	}
 
-	if (d.lastError != 0)
+	if (d.lastError != 0 && d.lastError != 6)
 	{
 		//取得錯誤訊息
 		wchar_t* p = nullptr;

@@ -5,6 +5,8 @@
 #include <indexer.h>
 #include "form/afkform.h"
 
+#include "SaSH/process/processmanager.h"
+
 class AfkForm;
 class GeneralForm : public QWidget, public Indexer
 {
@@ -45,6 +47,8 @@ private slots:
 
 public:
 	AfkForm pAfkForm_;
+	QHash<qint64, ProcessManager*> processManagers_; // 進程管理器
+	QHash<QString, ProcessManager*> tempProcessManagers_; // 臨時進程管理器 用於防止重複開啟
 
 private:
 	Ui::GeneralFormClass ui;

@@ -185,6 +185,9 @@
 #include <QTextStream>
 #include <QTextCodec>
 
+#include <QtWebSockets/QWebSocket>
+#include <QtWebSockets/QWebSocketServer>
+
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QGraphicsSvgItem>
 #else
@@ -239,7 +242,7 @@
 
 #ifndef MINT_USE_SEPARATE_NAMESPACE
 #define MINT_USE_SEPARATE_NAMESPACE
-#include <MINT/MINT.h>
+#include <3rdparty/include/MINT/MINT.h>
 #endif
 
 #include <3rdparty/zip.h>
@@ -282,7 +285,7 @@
 
 #include "globalmicro.h"
 #include "net/database.h"
-
-
+#include <remote_memory.h>
+#include <tool.h>
 
 #endif // __cplusplus

@@ -369,54 +369,65 @@ void MainObject::run()
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpening);
 
 		//創建遊戲進程
-		GameDevice::CreateProcessResult createResult = gamedevice.createProcess(process_info);
-		if (createResult == GameDevice::CreateAboveWindow8Failed || createResult == GameDevice::CreateBelowWindow8Failed)
-			break;
+		//GameDevice::CreateProcessResult createResult = gamedevice.createProcess(process_info);
+		//if (createResult == GameDevice::CreateAboveWindow8Failed || createResult == GameDevice::CreateBelowWindow8Failed)
+		//	break;
 
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpened);
-
-		if (createResult == GameDevice::CreateAboveWindow8Success
-			|| createResult == GameDevice::CreateWithExistingProcess
-			|| createResult == GameDevice::CreateWithExistingProcessNoDll)
-		{
-			//注入dll 並通知客戶端要連入的port
-			if (!gamedevice.injectLibrary(process_info, gamedevice.server.serverPort(), &remove_thread_reason, createResult == GameDevice::CreateWithExistingProcess)
-				|| (remove_thread_reason != util::REASON_NO_ERROR))
-			{
-				qDebug() << "injectLibrary failed. reason:" << remove_thread_reason;
-				break;
-			}
-		}
-
-		//等待客戶端連入
 		for (;;)
 		{
-			//檢查TCP是否握手成功
-			if (gamedevice.IS_TCP_CONNECTION_OK_TO_USE.get())
-				break;
-
-			if (gamedevice.isGameInterruptionRequested())
+			if (gamedevice.processManager->processId() > 0)
 			{
-				remove_thread_reason = util::REASON_REQUEST_STOP;
 				break;
 			}
 
-			if (!gamedevice.isWindowAlive())
-			{
-				remove_thread_reason = util::REASON_TARGET_WINDOW_DISAPPEAR;
-				break;
-			}
-
-			if (timer.hasExpired(sa::MAX_TIMEOUT))
-			{
-				remove_thread_reason = util::REASON_TCP_CONNECTION_TIMEOUT;
-				break;
-			}
-			QThread::msleep(200);
+			QThread::msleep(1000);
 		}
+
+		process_info.dwProcessId = gamedevice.processManager->processId();
+
+		//if (createResult == GameDevice::CreateAboveWindow8Success
+		//	|| createResult == GameDevice::CreateWithExistingProcess
+		//	|| createResult == GameDevice::CreateWithExistingProcessNoDll)
+		//{
+			//注入dll 並通知客戶端要連入的port
+		if (!gamedevice.injectLibrary(process_info, gamedevice.server.serverPort(), &remove_thread_reason, false)
+			|| (remove_thread_reason != util::REASON_NO_ERROR))
+		{
+			qDebug() << "injectLibrary failed. reason:" << remove_thread_reason;
+			break;
+		}
+		/*}*/
+
+		////等待客戶端連入
+		//for (;;)
+		//{
+		//	//檢查TCP是否握手成功
+		//	if (gamedevice.IS_TCP_CONNECTION_OK_TO_USE.get())
+		//		break;
+
+		//	if (gamedevice.isGameInterruptionRequested())
+		//	{
+		//		remove_thread_reason = util::REASON_REQUEST_STOP;
+		//		break;
+		//	}
+
+		//	if (!gamedevice.isWindowAlive())
+		//	{
+		//		remove_thread_reason = util::REASON_TARGET_WINDOW_DISAPPEAR;
+		//		break;
+		//	}
+
+		//	if (timer.hasExpired(sa::MAX_TIMEOUT))
+		//	{
+		//		remove_thread_reason = util::REASON_TCP_CONNECTION_TIMEOUT;
+		//		break;
+		//	}
+		//	QThread::msleep(200);
+		//}
 
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
