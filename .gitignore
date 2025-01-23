@@ -81,3 +81,6 @@ compile_commands.json
 /SaSH/lib/dump
 /Win32
 /SaSH/memory_leak_report.txt
+/deploy/bin/SaSH/Release
+/deploy/bin/SaSH/Debug
+/deploy/bin/sahook/Release
