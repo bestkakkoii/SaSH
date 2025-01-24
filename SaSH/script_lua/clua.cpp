@@ -32,9 +32,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #endif
 #else
 #ifdef _DEBUG
-#pragma comment(lib, "lua-5.4.4d.lib")
+#pragma comment(lib, "lua-5.4.7d.lib")
 #else
-#pragma comment(lib, "lua-5.4.4.lib")
+#pragma comment(lib, "lua-5.4.7.lib")
 #endif
 #endif
 
@@ -1119,7 +1119,8 @@ class CLuaMailProxy
 {
 public:
 	CLuaMailProxy(long long gameDeviceIndex, long long addressBookIndex)
-		: index_(gameDeviceIndex), addressBookIndex_(addressBookIndex) {}
+		: index_(gameDeviceIndex), addressBookIndex_(addressBookIndex) {
+	}
 
 	std::string operator[](long long index)
 	{
@@ -1520,7 +1521,8 @@ class CLuaPetSkillProxy
 {
 public:
 	CLuaPetSkillProxy(long long gameDeviceIndex, long long petIndex)
-		: index_(gameDeviceIndex), petIndex_(petIndex) {}
+		: index_(gameDeviceIndex), petIndex_(petIndex) {
+	}
 
 	sa::pet_skill_t operator[](long long index)
 	{
@@ -1757,7 +1759,8 @@ class CLuaDebug
 public:
 	CLuaDebug(sol::this_state s)
 		: s_(s)
-	{}
+	{
+	}
 	~CLuaDebug()
 	{
 		CLuaSystem luasystem;

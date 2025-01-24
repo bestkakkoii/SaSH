@@ -74,6 +74,12 @@ bool Interpreter::doFile(long long beginLine, const QString& fileName, Interpret
 
 	parser_.setPrivate(isPrivate);
 
+
+	if (fileName.endsWith(util::SCRIPT_LUA_SUFFIX_DEFAULT))
+	{
+		content = "#lua\n" + content + "\n#endlua";
+	}
+
 	if (!parser_.loadString(content))
 		return false;
 
@@ -144,6 +150,11 @@ void Interpreter::preview(const QString& fileName)
 		return;
 
 	parser_.setPrivate(isPrivate);
+
+	if (fileName.endsWith(util::SCRIPT_LUA_SUFFIX_DEFAULT))
+	{
+		content = "#lua\n" + content + "\n#endlua";
+	}
 
 	if (!parser_.loadString(content))
 		return;

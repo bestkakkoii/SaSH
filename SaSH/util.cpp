@@ -1375,6 +1375,7 @@ QFileInfoList __fastcall util::loadAllFileLists(
 	const QStringList filters = {
 		QString("*%1").arg(util::SCRIPT_DEFAULT_SUFFIX),
 		QString("*%1").arg(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT),
+		QString("*%1").arg(util::SCRIPT_LUA_SUFFIX_DEFAULT),
 	};
 
 	dir_file.setNameFilters(filters);

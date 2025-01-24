@@ -75,7 +75,7 @@ constexpr const char* g_sash_keywords[9] = {
 	"tonumber tostring type "
 	"utf8.char utf8.codepoint utf8.codes utf8.len utf8.offset warn xpcall ",
 	/*light green*/
-	"Timer "
+	"Timer cout "
 	"string table "
 	"TARGET ",
 	/*blue green*/
@@ -115,8 +115,32 @@ Highlighter::Highlighter(const QHash<long long, QByteArray>& keywords, QObject* 
 	, keywords_(keywords)
 {
 	font_ = util::getFont();
-	font_.setFamily("YaHei Consolas Hybrid");
-	font_.setPointSize(11);
+
+	{
+		constexpr const char* kDefaultFont = "YaHei Consolas Hybrid";
+
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
+		QString fontName = config.read<QString>("ScriptEditorClass", "Highlighter", "Font");
+		if (fontName.isEmpty())
+		{
+			font_.setFamily(kDefaultFont);
+			fontName = font_.family();
+			config.write("ScriptEditorClass", "Highlighter", "Font", fontName);
+		}
+
+		font_.setFamily(fontName.isEmpty() ? kDefaultFont : fontName);
+
+		long long fontSize = config.read<long long>("ScriptEditorClass", "Highlighter", "FontSize");
+		if (fontSize <= 0)
+		{
+			fontSize = 11;
+			config.write("ScriptEditorClass", "Highlighter", "FontSize", fontSize);
+		}
+
+		font_.setPointSize(fontSize);
+	}
+
+
 }
 
 const char* Highlighter::keywords(int set) const

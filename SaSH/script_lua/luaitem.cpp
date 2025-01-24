@@ -61,7 +61,7 @@ long long CLuaItem::swapitem(sol::object ofromIndex, long long toIndex, sol::thi
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
-	if (!itemName.isEmpty())
+	if (itemName.isEmpty())
 	{
 		if (fromIndex > 100)
 			fromIndex -= 100;
@@ -87,6 +87,9 @@ long long CLuaItem::swapitem(sol::object ofromIndex, long long toIndex, sol::thi
 	}
 	else
 	{
+		if (toIndex > sa::MAX_ITEM)
+			return FALSE;
+
 		// search all matching items
 		QVector<long long> fromIndexs;
 		if (!gamedevice.worker->getItemIndexsByName(itemName, "", &fromIndexs, sa::CHAR_EQUIPSLOT_COUNT))
@@ -95,29 +98,16 @@ long long CLuaItem::swapitem(sol::object ofromIndex, long long toIndex, sol::thi
 		if (fromIndexs.isEmpty())
 			return FALSE;
 
-		gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.reset();
-
 		for (long long fromIndex : fromIndexs)
 		{
-			if (fromIndex > 100)
-				fromIndex -= 100;
-			else
-				fromIndex += sa::CHAR_EQUIPSLOT_COUNT;
-
-			--fromIndex;
-			--toIndex;
-
-			if (fromIndex < 0 || fromIndex >= sa::MAX_ITEM)
-				continue;
-
-			if (toIndex < 0 || toIndex >= sa::MAX_ITEM)
+			if (fromIndex < sa::CHAR_EQUIPSLOT_COUNT)
 				continue;
 
 			if (!gamedevice.worker->swapItem(fromIndex, toIndex))
-				return FALSE;
+				continue;
 		}
 
-		return luadebug::waitfor(s, 200, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
+		return TRUE;
 	}
 
 	bool bret = luadebug::waitfor(s, 200, [&gamedevice]()->bool { return gamedevice.worker->IS_WAITOFR_ITEM_CHANGE_PACKET.get() <= 0; });
@@ -2079,19 +2069,21 @@ static QVector<long long> itemGetIndexs(long long currentIndex, sol::object oite
 		startFrom = -1;
 
 	long long min = sa::CHAR_EQUIPSLOT_COUNT;
-	if (startFrom != -1)
-		min += startFrom;
 
-	long long max = sa::MAX_ITEM;
 	if (includeEequip)
+	{
 		min = 0;
+	}
 	else
 	{
 		if (startFrom != -1)
-			min = startFrom;
+			min += startFrom;
 		else
 			min = sa::CHAR_EQUIPSLOT_COUNT;
 	}
+
+	long long max = sa::MAX_ITEM;
+
 
 	if (!gamedevice.worker->getItemIndexsByName(itemnames, itemmemos, &itemIndexs, min, max))
 	{
@@ -2119,7 +2111,7 @@ long long CLuaItem::count(sol::object oitemnames, sol::object oitemmemos, sol::o
 	QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
 	for (const long long itemIndex : itemIndexs)
 	{
-		sa::item_t item = items.value(itemIndex);
+		sa::item_t item = items.value(includeEequip ? itemIndex : itemIndex + sa::CHAR_EQUIPSLOT_COUNT - 1);
 		if (item.valid)
 			c += item.stack;
 	}
@@ -2178,7 +2170,7 @@ sol::object CLuaItem::find(sol::object oitemnames, sol::object oitemmemos, sol::
 	if (index < 0 || index >= sa::MAX_ITEM)
 		return sol::lua_nil;
 
-	sa::item_t item = gamedevice.worker->getItem(index);
+	sa::item_t item = gamedevice.worker->getItem(includeEequip ? index : index + sa::CHAR_EQUIPSLOT_COUNT - 1);
 
 	sol::table t = lua.create_table();
 	t["valid"] = item.valid;

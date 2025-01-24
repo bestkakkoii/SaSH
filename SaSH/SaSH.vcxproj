@@ -198,7 +198,7 @@ copy "sadll.dll" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\sadll.dll"
 cd "$(OutputPath)"
 copy "$(ProjectName).exe" "$(SolutionDir)ReleaseTool\$(ProjectName)\$(ProjectName).exe"
 
-$(SolutionDir)ReleaseTool\UploadToServer.bat</Command>
+;$(SolutionDir)ReleaseTool\UploadToServer.bat</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

@@ -6330,212 +6330,119 @@ void Worker::sortItem()
 
 	updateItemByMemory();
 
+	long long j = 0;
+	long long i = 0;
 	QHash<long long, sa::item_t> items = getItems();
 
-	auto arrangeItem = [&items, &pc](long long max, long long* from, long long* to)
-		{
-			long long item_now[sa::MAX_ITEM] = {};
-			bool item_can[sa::MAX_ITEM] = {};
+	QString key;
+	QString frontKey;
+	long long stackableFlag = 0;
+	long long tryStackCount = 0;
+	long long tryStackMaxCount = 0;
+	sa::item_t itemBackMost = {};
+	sa::item_t itemFrontMost = {};
 
-			for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
+	// 從最後一個道具開始遍歷
+	for (i = sa::MAX_ITEM - 1; i >= sa::CHAR_EQUIPSLOT_COUNT; --i)
+	{
+		itemBackMost = items.value(i);
+
+		// 檢查道具是否存在
+		if (!itemBackMost.valid)
+			continue;
+
+		// 轉換hash
+		key = itemBackMost.hash;
+		if (key.isEmpty())
+			continue;
+
+		stackableFlag = itemStackFlagHash_.value(key, kItemFirstSort);  // 是否可堆疊
+		tryStackCount = itemTryStackHash_.value(key, 0);                // 嘗試堆疊次數
+		tryStackMaxCount = itemTryStackMaxHash_.value(key, 0);          // 嘗試堆疊至最大次數
+
+		// 將所有道具堆疊數量大於1的道具標記為可堆疊
+		if (itemBackMost.stack > 1 && stackableFlag < kItemEnableSort)
+		{
+			itemStackFlagHash_.insert(key, kItemEnableSort); // 將該道具標記為可堆疊
+		}
+
+		// 如果key存在且不可堆疊則跳過
+		if (kItemUnableSort == stackableFlag)
+			continue;
+
+		// 從第一個道具開始遍歷
+		for (j = sa::CHAR_EQUIPSLOT_COUNT; j < i; ++j)
+		{
+			itemFrontMost = items.value(j);
+
+			if (!itemFrontMost.valid)
+				continue;
+
+			// 檢查hash key是否相同
+			if (itemFrontMost.hash != key)
+				continue;
+
+			// 如果key不存在 先嘗試疊一次 將其先標記为首次堆叠
+			if (!itemStackFlagHash_.contains(key))
 			{
-				item_now[i] = (items.value(i).valid) ? items.value(i).stack : 0;
-				//if (items.value(i).valid && item_now[i] > 0)
-				//{
-				//	item_can[i] = isItemOverlap(items.value(i).name);
-				//}
+				itemStackFlagHash_.insert(key, kItemFirstSort);
+				swapItem(i, j);
+				++itemTryStackHash_[key]; // 尝试次数加一
+				continue;
 			}
 
-			for (long long i = sa::CHAR_EQUIPSLOT_COUNT; i < sa::MAX_ITEM; ++i)
+			// 有key後如果道具堆疊數量為 1 則開始下一次嘗試
+			if (itemFrontMost.stack == 1 || itemBackMost.stack == 1)
 			{
-				if (!item_can[i])
-					continue;
-
-				if (item_now[i] >= pc.maxload)
-					continue;
-
-				for (long long j = sa::MAX_ITEM - 1; j > i; --j)
+				// 道具尝试堆疊3次，但數量依然是 1 將其標記為不可堆疊
+				if (kItemFirstSort == stackableFlag && tryStackCount >= 3)
 				{
-					if (items.value(i).name.simplified() != items.value(j).name.simplified())
-						continue;
-
-					if (items.value(i).memo.simplified() != items.value(j).memo.simplified())
-						continue;
-
-					*from = j;
-					*to = i;
-					return;
-				}
-			}
-		};
-
-	auto itemOverlapWithError = [this](const QString& iname)
-		{
-			if (stackHash.contains(iname))
-			{
-				long long times = stackHash.value(iname);
-				if (times > 1)
-				{
-					stackHash[iname] = times - 1;
+					itemStackFlagHash_.insert(key, kItemUnableSort);
+					continue;
 				}
 				else
 				{
-					stackHash.remove(iname);
+					// 新的嘗試
+					swapItem(i, j);
+					++itemTryStackHash_[key]; // 尝试次数加一
+					continue;
 				}
 			}
-		};
 
-	long long from = -1;
-	long long to = -1;
-
-	for (;;)
-	{
-		if (getBattleFlag())
-			break;
-
-		if (!gamedevice.getEnableHash(util::kAutoStackEnable))
-			break;
-
-		from = -1;
-		to = -1;
-		arrangeItem(pc.maxload, &from, &to);
-
-		if (from == -1 || to == -1)
-			break;
-
-		long long i_recv_cache = i_recv.get();
-		long long si_recv_cache = si_recv.get();
-
-		swapItem(from, to);
-
-		while (i_recv.get() == i_recv_cache && si_recv.get() == si_recv_cache)
-			Sleep(1);
-
-		if (si_recv.get() != si_recv_cache) //这代表2个物品发生了交换，说明被选取的被堆叠物品是一种不可堆叠的物品，也有可能是堆满了。
-		{
-			if (items.value(from).valid && items.value(from).stack == 1 &&
-				items.value(to).valid && items.value(to).stack == 1)
+			// 檢查如果實際堆疊數量大於人物負重
+			if ((itemFrontMost.stack > pc.maxload) || (itemBackMost.stack > pc.maxload))
 			{
-				itemOverlapWithError(items.value(from).name);
+				// 將人物負重更新為該道具當前堆疊數量
+				pc.maxload = itemFrontMost.stack > pc.maxload ? itemBackMost.stack : pc.maxload;
+				pcMaxLoad_ = pc.maxload;
+				setCharacter(pc);
+
+				// 無論是向前遍歷還是向後遍歷大於紀錄的最大數量 則嘗試堆疊繼續堆疊，因為此處真實最大數量是未知的
+				if (itemFrontMost.stack > tryStackMaxCount || itemBackMost.stack > tryStackMaxCount)
+				{
+					// 將紀錄的最大數量 更新為當前堆疊數量
+					if (itemFrontMost.stack > tryStackMaxCount && itemFrontMost.stack >= itemBackMost.stack)
+						itemMaxStackHash_.insert(key, itemFrontMost.stack);
+					else if (itemBackMost.stack > tryStackMaxCount)
+						itemMaxStackHash_.insert(key, itemBackMost.stack);
+
+					// 嘗試交換道具
+					swapItem(i, j);
+					++itemTryStackMaxHash_[key]; // 尝试最大次数加一
+					continue;
+				}
 			}
+
+			// 如果嘗試次數大於等於9999次則跳過
+			if (tryStackMaxCount >= 99)
+			{
+				continue;
+			}
+
+			// 嘗試交換道具 將後面較多的道具移到前面
+			swapItem(i, j);
 		}
 	}
-
-
-
-	//long long j = 0;
-	//long long i = 0;
-	//QHash<long long, sa::item_t> items = getItems();
-
-	//QString key;
-	//QString frontKey;
-	//long long stackableFlag = 0;
-	//long long tryStackCount = 0;
-	//long long tryStackMaxCount = 0;
-	//sa::item_t itemBackMost = {};
-	//sa::item_t itemFrontMost = {};
-
-	//// 從最後一個道具開始遍歷
-	//for (i = sa::MAX_ITEM - 1; i >= sa::CHAR_EQUIPSLOT_COUNT; --i)
-	//{
-	//	itemBackMost = items.value(i);
-
-	//	// 檢查道具是否存在
-	//	if (!itemBackMost.valid)
-	//		continue;
-
-	//	// 轉換hash
-	//	key = itemBackMost.hash;
-	//	if (key.isEmpty())
-	//		continue;
-
-	//	stackableFlag = itemStackFlagHash_.value(key, kItemFirstSort);  // 是否可堆疊
-	//	tryStackCount = itemTryStackHash_.value(key, 0);                // 嘗試堆疊次數
-	//	tryStackMaxCount = itemTryStackMaxHash_.value(key, 0);          // 嘗試堆疊至最大次數
-
-	//	// 將所有道具堆疊數量大於1的道具標記為可堆疊
-	//	if (itemBackMost.stack > 1 && stackableFlag < kItemEnableSort)
-	//	{
-	//		itemStackFlagHash_.insert(key, kItemEnableSort); // 將該道具標記為可堆疊
-	//	}
-
-	//	// 如果key存在且不可堆疊則跳過
-	//	if (kItemUnableSort == stackableFlag)
-	//		continue;
-
-	//	// 從第一個道具開始遍歷
-	//	for (j = sa::CHAR_EQUIPSLOT_COUNT; j < i; ++j)
-	//	{
-	//		itemFrontMost = items.value(j);
-
-	//		if (!itemFrontMost.valid)
-	//			continue;
-
-	//		// 檢查hash key是否相同
-	//		if (itemFrontMost.hash != key)
-	//			continue;
-
-	//		// 如果key不存在 先嘗試疊一次 將其先標記为首次堆叠
-	//		if (!itemStackFlagHash_.contains(key))
-	//		{
-	//			itemStackFlagHash_.insert(key, kItemFirstSort);
-	//			swapItem(i, j);
-	//			++itemTryStackHash_[key]; // 尝试次数加一
-	//			continue;
-	//		}
-
-	//		// 有key後如果道具堆疊數量為 1 則開始下一次嘗試
-	//		if (itemFrontMost.stack == 1 || itemBackMost.stack == 1)
-	//		{
-	//			// 道具尝试堆疊3次，但數量依然是 1 將其標記為不可堆疊
-	//			if (kItemFirstSort == stackableFlag && tryStackCount >= 3)
-	//			{
-	//				itemStackFlagHash_.insert(key, kItemUnableSort);
-	//				continue;
-	//			}
-	//			else
-	//			{
-	//				// 新的嘗試
-	//				swapItem(i, j);
-	//				++itemTryStackHash_[key]; // 尝试次数加一
-	//				continue;
-	//			}
-	//		}
-
-	//		// 檢查如果實際堆疊數量大於人物負重
-	//		if ((itemFrontMost.stack > pc.maxload) || (itemBackMost.stack > pc.maxload))
-	//		{
-	//			// 將人物負重更新為該道具當前堆疊數量
-	//			pc.maxload = itemFrontMost.stack > pc.maxload ? itemBackMost.stack : pc.maxload;
-	//			pcMaxLoad_ = pc.maxload;
-	//			setCharacter(pc);
-
-	//			// 無論是向前遍歷還是向後遍歷大於紀錄的最大數量 則嘗試堆疊繼續堆疊，因為此處真實最大數量是未知的
-	//			if (itemFrontMost.stack > tryStackMaxCount || itemBackMost.stack > tryStackMaxCount)
-	//			{
-	//				// 將紀錄的最大數量 更新為當前堆疊數量
-	//				if (itemFrontMost.stack > tryStackMaxCount && itemFrontMost.stack >= itemBackMost.stack)
-	//					itemMaxStackHash_.insert(key, itemFrontMost.stack);
-	//				else if (itemBackMost.stack > tryStackMaxCount)
-	//					itemMaxStackHash_.insert(key, itemBackMost.stack);
-
-	//				// 嘗試交換道具
-	//				swapItem(i, j);
-	//				++itemTryStackMaxHash_[key]; // 尝试最大次数加一
-	//				continue;
-	//			}
-	//		}
-
-	//		// 如果嘗試次數大於等於9999次則跳過
-	//		if (tryStackMaxCount >= 9999)
-	//		{
-	//			continue;
-	//		}
-
-	//		// 嘗試交換道具 將後面較多的道具移到前面
-	//		swapItem(i, j);
-	//	}
-	//}
 }
 
 QString Worker::makeItemHash(const sa::item_t& item)
