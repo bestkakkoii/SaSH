@@ -85,3 +85,4 @@ compile_commands.json
 /deploy/bin/SaSH/Debug
 /deploy/bin/sahook/Release
 /deploy/bin/sadll/Release
+/deploy/bin/sadll/Debug
