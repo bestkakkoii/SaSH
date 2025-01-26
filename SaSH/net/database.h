@@ -268,7 +268,7 @@ namespace sa
 	constexpr long long MAX_CHAT_REGISTY_STR = 8;
 
 	constexpr long long MAX_ENEMY = 20;
-	constexpr long long MAX_CHAT_HISTORY = 999999;
+	constexpr long long MAX_CHAT_HISTORY = 20;
 	constexpr long long MAX_DIALOG_LINE = 200;
 
 	constexpr long long MAX_DIR = 8;

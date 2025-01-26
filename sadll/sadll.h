@@ -67,6 +67,7 @@ public:
 	BOOL __fastcall WM_DistoryDialog();
 	BOOL __fastcall WM_CleanChatHistory();
 	BOOL __fastcall WM_CreateDialog(int type, int button, const char* data);
+	BOOL __fastcall WM_EndBattle();
 
 	BOOL __fastcall WM_SetBlockPacket(BOOL enable);
 
@@ -167,10 +168,27 @@ public:
 	using pfnecb_crypt = int(__cdecl*)(const char* key, char* buf, unsigned int len, unsigned int mode);
 	pfnecb_crypt pecb_crypt = nullptr;
 
+	using pfnRestorePtActCharObjAll = void(__cdecl*)();
+	pfnRestorePtActCharObjAll pRestorePtActCharObjAll = nullptr;
+
+	using pfnDrawProduce = BOOL(__cdecl*)(int no);
+	pfnDrawProduce pDrawProduce = nullptr;
+
+	using pfnChangeProc = void(__cdecl*)(int procNo, int subProcNo);
+	pfnChangeProc pChangeProc = nullptr;
+
+	using pfnClearPtActCharObj = void(__cdecl*)();
+	pfnClearPtActCharObj pClearPtActCharObj = nullptr;
+
+	using pfnDeathAllAction = void(__cdecl*)();
+	pfnDeathAllAction pDeathAllAction = nullptr;
+
 public://g-var
 	int* g_sockfd = nullptr;
 	int* g_world_status = nullptr;
 	int* g_game_status = nullptr;
+	int* g_BattlingFlag = nullptr;
+	int* g_encountNowFlag = nullptr;
 
 	HWND g_consoleHwnd = nullptr;
 

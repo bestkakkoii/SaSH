@@ -143,7 +143,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <SupportJustMyCode>true</SupportJustMyCode>
       <StructMemberAlignment>Default</StructMemberAlignment>
-      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerOutput>NoListing</AssemblerOutput>
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
@@ -269,7 +269,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <SupportJustMyCode>true</SupportJustMyCode>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <StructMemberAlignment>Default</StructMemberAlignment>
-      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;QT_NO_EXCEPTIONS;QT_FORCE_ASSERTS;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;QT_USE_QSTRINGBUILDER;QT_NO_CAST_FROM_BYTEARRAY;QT_NO_CAST_TO_ASCII;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion />
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
       <AdditionalOptions>/bigobj /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -371,7 +371,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>None</DebugInformationFormat>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>

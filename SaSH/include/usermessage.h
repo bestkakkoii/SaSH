@@ -36,4 +36,5 @@ enum UserMessage
 	kDistoryDialog,
 	kCleanChatHistory,
 	kCreateDialog,
+	kEndBattle,
 };

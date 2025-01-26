@@ -644,7 +644,8 @@ void ScriptEditor::fileSave(QString content)
 	QFile::remove(backupName);
 	QFile::copy(fileName, backupName);
 
-	content = formatCode(content);
+	if (!fileName.endsWith(".lua"))
+		content = formatCode(content);
 
 	if (!util::writeFile(fileName, content))
 		return;

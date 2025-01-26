@@ -368,7 +368,7 @@ Socket::~Socket()
 Worker::Worker(long long index, QObject* parent)
 	: Indexer(index)
 	, Lssproto(&GameDevice::getInstance(index).autil)
-	, chatQueue(sa::MAX_CHAT_HISTORY)
+	, chatQueue(sa::MAX_CHAT_HISTORY + 1004)
 	, readQueue_(24)
 	, mapDevice(index)
 {
@@ -2291,8 +2291,20 @@ long long Worker::getTeamSize()
 //取對話紀錄
 QString Worker::getChatHistory(long long index) const
 {
-	if (index < 0 || index >= sa::MAX_CHAT_HISTORY)
-		return "\0";
+	if (index < 0)
+		return "";
+
+	auto chatVec = chatQueue.values();
+
+	std::reverse(chatVec.begin(), chatVec.end());
+
+	if (index < chatVec.size())
+		return chatVec.value(index).second;
+
+	if (index >= sa::MAX_CHAT_HISTORY)
+	{
+		return "";
+	}
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -2301,7 +2313,11 @@ QString Worker::getChatHistory(long long index) const
 
 	long long total = static_cast<long long>(mem::read<int>(hProcess, hModule + sa::kOffsetChatBufferMaxCount));
 	if (index > total)
-		return "\0";
+	{
+		if (index < chatVec.size())
+			return chatVec.value(index).second;
+		return "";
+	}
 
 	long long ptr = hModule + sa::kOffsetChatBuffer + ((total - index) * sa::kChatBufferSize);
 	//long long maxptr = static_cast<long long>(mem::read<int>(hProcess, hModule + kOffsetChatBufferMaxPointer));
@@ -6617,7 +6633,6 @@ bool Worker::craft(sa::CraftType type, const QStringList& ingres)
 		};
 
 	long long index = -1;
-	long long lastIndex = sa::CHAR_EQUIPSLOT_COUNT;
 	for (const QString& it : ingres)
 	{
 		if (it.isEmpty())
@@ -6626,11 +6641,9 @@ bool Worker::craft(sa::CraftType type, const QStringList& ingres)
 		//檢查是否為數字
 		if (!isNumeric(it))
 		{
-			index = getItemIndexByName(it, true, "", lastIndex);
+			index = getItemIndexByName(it, true, "", sa::CHAR_EQUIPSLOT_COUNT);
 			if (index == -1)
 				return false;
-
-			lastIndex = index;
 		}
 		else
 		{
@@ -6642,7 +6655,14 @@ bool Worker::craft(sa::CraftType type, const QStringList& ingres)
 		itemIndexs.append(util::toQString(index));
 	}
 
+	std::sort(itemIndexs.begin(), itemIndexs.end());
+
 	QString qstr = itemIndexs.join("|");
+
+	qDebug() << "Ingredients:" << ingres;
+
+	qDebug() << "Indexes:" << qstr;
+
 	std::string str = util::fromUnicode(qstr);
 
 	if (!lssproto_PS_send(petIndex, skillIndex, NULL, const_cast<char*>(str.c_str())))
@@ -7077,6 +7097,8 @@ void Worker::setBattleEnd()
 				return;
 
 			gamedevice.sendMessage(kEnableMoveLock, false, NULL);
+
+			gamedevice.sendMessage(kEndBattle, NULL, NULL);
 			echo();
 		});
 }
@@ -7152,6 +7174,8 @@ bool Worker::asyncBattleAction(bool canDelay)
 					isBattleDialogReady.off();
 				}
 			}
+
+			gamedevice.sendMessage(kEndBattle, NULL, NULL);
 
 			//這里不發的話一般戰鬥、和快戰都不會再收到後續的封包 (應該?)
 			if (gamedevice.getEnableHash(util::kBattleAutoEOEnable))
@@ -9009,7 +9033,7 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 #pragma endregion
 #pragma endregion
 
-	QHash<long long, std::function<bool()>> actions;
+	QMap<long long, std::function<bool()>> actions;
 	actions.insert(0, fallDownEscapeFun);
 	actions.insert(1, lockEscapeFun);
 	actions.insert(2, lockAttackFun);

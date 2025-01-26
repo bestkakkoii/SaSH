@@ -1298,6 +1298,32 @@ BOOL GameService::WM_CreateDialog(int type, int button, const char* data)
 	return TRUE;
 }
 
+//Clear Character image / action after battle end
+BOOL GameService::WM_EndBattle()
+{
+	if (!isInitialized_.load(std::memory_order_acquire))
+		return FALSE;
+
+	if (nullptr == g_hGameModule)
+		return FALSE;
+
+	//sa_8001.exe+79FD4 - E8 F757F9FF           - call sa_8001.exe+F7D0
+	pRestorePtActCharObjAll();
+
+
+	//sa_8001.exe+ABD8 - 55                    - push ebp
+	//if (pDrawProduce(12/*PRODUCE_4WAY_OUT*/) == TRUE)
+	//{
+		//pChangeProc(9/*PROC_GAME*/, 1);
+		//pDeathAllAction();
+		//g_BattlingFlag = FALSE;
+		//pClearPtActCharObj();
+		//g_encountNowFlag = 0;
+	//}
+
+	return TRUE;
+}
+
 //Enable/Disable the tcp packet block
 BOOL GameService::WM_SetBlockPacket(BOOL enable)
 {
@@ -1542,6 +1568,10 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		int button = HIWORD(wParam);
 		return g_GameService.WM_CreateDialog(type, button, reinterpret_cast<const char*>(lParam));
 	}
+	case kEndBattle:
+	{
+		return g_GameService.WM_EndBattle();
+	}
 	case kECBCrypt://ECB解密
 	{
 		const char* pSrc = reinterpret_cast<const char*>(wParam);
@@ -1656,6 +1686,9 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	g_world_status = CONVERT_GAMEVAR<int*>(0x4230DD8ul);
 	g_game_status = CONVERT_GAMEVAR<int*>(0x4230DF0ul);
 
+	g_BattlingFlag = CONVERT_GAMEVAR<int*>(0x164C50ul);
+	g_encountNowFlag = CONVERT_GAMEVAR<int*>(0x4160258ul);
+
 #ifdef AUTIL_H
 	Autil::PersonalKey = CONVERT_GAMEVAR<char*>(0x4AC0898ul);//封包解密密鑰
 #endif
@@ -1672,6 +1705,12 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	pLssproto_W2_send = CONVERT_GAMEVAR<pfnLssproto_W2_send>(0x8EEA0ul);//喊話發送封包
 	pCreateDialog = CONVERT_GAMEVAR<pfnCreateDialog>(0x64AC0ul);//創建對話框
 	pecb_crypt = CONVERT_GAMEVAR<pfnecb_crypt>(0x8BB90ul);//ECB加解密
+
+	pRestorePtActCharObjAll = CONVERT_GAMEVAR<pfnRestorePtActCharObjAll>(0xF7D0ul);
+	pDrawProduce = CONVERT_GAMEVAR<pfnDrawProduce>(0x7BDE0ul);
+	pChangeProc = CONVERT_GAMEVAR<pfnChangeProc>(0x79BE0ul);
+	pClearPtActCharObj = CONVERT_GAMEVAR<pfnClearPtActCharObj>(0xF7A0ul);//清除周遭不存在的人物
+	pDeathAllAction = CONVERT_GAMEVAR<pfnClearPtActCharObj>(0x11F0ul);
 
 	/*
 		sa_8001.exe+91710 - FF 25 08C04900        - jmp dword ptr [sa_8001.exe+9C008] { ->DINPUT.DirectInputCreateA }

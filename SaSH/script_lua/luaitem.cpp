@@ -2076,7 +2076,7 @@ static QVector<long long> itemGetIndexs(long long currentIndex, sol::object oite
 	}
 	else
 	{
-		if (startFrom != -1)
+		if (startFrom > 0)
 			min += startFrom;
 		else
 			min = sa::CHAR_EQUIPSLOT_COUNT;
@@ -2099,7 +2099,7 @@ long long CLuaItem::count(sol::object oitemnames, sol::object oitemmemos, sol::o
 	if (gamedevice.worker.isNull())
 		return FALSE;
 
-	bool includeEequip = false;
+	bool includeEequip = true;
 	if (oincludeEequip.is<bool>())
 		includeEequip = oincludeEequip.as<bool>();
 
