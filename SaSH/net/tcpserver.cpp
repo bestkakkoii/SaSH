@@ -646,6 +646,18 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	}
 	case sa::LSSPROTO_W2_SEND:
 	{
+		if (4 == fieldcount)
+		{
+			long long x = 0;
+			long long y = 0;
+			char data[NETDATASIZE] = {};
+			long long unk = 0;
+			if (!gamedevice.autil.util_Receive(slices, &x, &y, data, &unk))
+			{
+				qDebug() << "- >>> x = " << x << "| y =" << y << "| data =" << data << "| unk =" << unk;
+			}
+		}
+
 		break;
 	}
 	case sa::LSSPROTO_EV_SEND:
