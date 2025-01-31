@@ -637,7 +637,11 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	qDebug() << "------------------------";
 	qDebug() << "- <Forward> Function Id:" << func << "| Argument Size:" << fieldcount;
 
-	qDebug() << "- >>> function name:" << QString("lssproto_%1_send").arg(funcMap.value(func, "Unknown"));
+	QString funcName = funcMap.value(func, "Unknown");
+
+	qDebug() << "- >>> function name:" << QString("lssproto_%1_send").arg(funcName);
+
+	/*
 	switch (func)
 	{
 	case sa::LSSPROTO_W_SEND:
@@ -646,18 +650,6 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	}
 	case sa::LSSPROTO_W2_SEND:
 	{
-		if (4 == fieldcount)
-		{
-			long long x = 0;
-			long long y = 0;
-			char data[NETDATASIZE] = {};
-			long long unk = 0;
-			if (!gamedevice.autil.util_Receive(slices, &x, &y, data, &unk))
-			{
-				qDebug() << "- >>> x = " << x << "| y =" << y << "| data =" << data << "| unk =" << unk;
-			}
-		}
-
 		break;
 	}
 	case sa::LSSPROTO_EV_SEND:
@@ -810,19 +802,21 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	}
 	case sa::LSSPROTO_WN_SEND:
 	{
-		long long x = 0;
-		long long y = 0;
-		long long dialogid = 0;
-		long long unitid = 0;
-		long long select = 0;
-		char data[NETDATASIZE] = {};
+		//long long x = 0;
+		//long long y = 0;
+		//long long dialogid = 0;
+		//long long unitid = 0;
+		//long long select = 0;
+		//char data[NETDATASIZE] = {};
 
-		if (!gamedevice.autil.util_Receive(slices, &x, &y, &dialogid, &unitid, &select, data))
-			return;
+		//if (!gamedevice.autil.util_Receive(slices, &x, &y, &dialogid, &unitid, &select, data))
+		//	return;
 
 
-		qDebug() << "- >>> x = " << x << "| y =" << y << "| dialogid =" << dialogid << "| unitid =" << unitid << "| select =" << select;
-		qDebug() << "- >>> data =" << util::toUnicode(data);
+		//qDebug() << "- >>> x = " << x << "| y =" << y << "| dialogid =" << dialogid << "| unitid =" << unitid << "| select =" << select;
+		//qDebug() << QString("- >>> data = '%1'").arg(util::toUnicode(data));
+		//return;
+
 		break;
 	}
 	case sa::LSSPROTO_SP_SEND:
@@ -927,19 +921,18 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	}
 	case sa::LSSPROTO_STREET_VENDOR_SEND:// 擺攤功能
 	{
-		char data[NETDATASIZE] = {};
+		//char data[NETDATASIZE] = {};
 
-		if (!gamedevice.autil.util_Receive(slices, data))
-			return;
+		//if (!gamedevice.autil.util_Receive(slices, data))
+		//	return;
 
-		qDebug() << "- >>> data =" << util::toUnicode(data);
+		//qDebug() << "- >>> data =" << util::toUnicode(data);
 
+		//return;
 		break;
 	}
 	case sa::LSSPROTO_missionInfo_SEND:// CYG　任務日志功能
 	{
-
-
 		break;
 	}
 	case sa::LSSPROTO_TEACHER_SYSTEM_SEND:// 導師功能
@@ -980,23 +973,25 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	}
 	case sa::LSSPROTO_SAMENU_SEND:
 	{
-		long long select = 0;
+		//long long select = 0;
 
-		if (!gamedevice.autil.util_Receive(slices, &select))
-			return;
+		//if (!gamedevice.autil.util_Receive(slices, &select))
+		//	return;
 
-		qDebug() << "- >>> select =" << select;
+		//qDebug() << "- >>> select =" << select;
+		//return;
 		break;
 	}
 	case sa::LSSPROTO_SHOPOK_SEND:
 	{
-		long long select = 0;
+		//long long select = 0;
 
-		if (!gamedevice.autil.util_Receive(slices, &select))
-			return;
+		//if (!gamedevice.autil.util_Receive(slices, &select))
+		//	return;
 
-		qDebug() << "- >>> select =" << select;
+		//qDebug() << "- >>> select =" << select;
 
+		//return;
 		break;
 	}
 	case sa::LSSPROTO_FAMILYBADGE_SEND:
@@ -1032,6 +1027,26 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 		break;
 	}
 	}
+	*/
+
+	auto params = gamedevice.autil.util_AutoDetectParameters(slices, fieldcount - 1);
+	if (params.empty())
+	{
+		qDebug() << "- Warning: Could not find valid parameter combination";
+		return;
+	}
+
+	QStringList paramList;
+	for (const Autil::PacketParameter& param : params)
+	{
+		paramList.append(param.value);
+	}
+
+	qDebug().noquote() << QString("- >>> Protocol key: \"%1\"").arg(util::toUnicode(gamedevice.autil.getKey().c_str()));
+
+	QString output = QString("- >>> send(%1, %2)").arg(func).arg(funcName.toLower()).arg(paramList.join(", "));
+
+	qDebug().noquote() << output;
 
 	qDebug() << "------------------------" << Qt::endl;
 }
@@ -7040,7 +7055,9 @@ static sa::LSTimeSection getLSTime(sa::ls_time_t* lstime)
 void Worker::setBattleEnd()
 {
 	if (!getBattleFlag())
+	{
 		return;
+	}
 
 	waitForCollection_.on();
 	battleBackupThreadFlag_.on();
@@ -7129,22 +7146,32 @@ bool Worker::asyncBattleAction(bool canDelay)
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	if (gamedevice.isGameInterruptionRequested())
-		return false;
-
-	if (!getOnlineFlag())
-		return false;
-
-	if (!getBattleFlag())
-		return false;
-
-	//自動戰鬥打開 或 快速戰鬥打開且處於戰鬥場景
-	bool fastChecked = gamedevice.getEnableHash(util::kFastBattleEnable);//快速戰鬥是否開啟
-	bool normalChecked = gamedevice.getEnableHash(util::kAutoBattleEnable);//自動戰鬥是否開啟
-	bool fastEnabled = (getWorldStatus() == 9) && ((fastChecked) || (normalChecked));//快速戰鬥開啟且不處於戰鬥畫面
-	bool normalEnabled = (getWorldStatus() == 10) && ((normalChecked) || (fastChecked));//自動戰鬥開啟且處於戰鬥畫面
-	if (normalEnabled && !checkWG(10, 4) || (!fastEnabled && !normalEnabled))
 	{
 		return false;
+	}
+
+	if (!getOnlineFlag())
+	{
+		return false;
+	}
+
+	if (!getBattleFlag())
+	{
+		return false;
+	}
+
+	//自動戰鬥打開 或 快速戰鬥打開且處於戰鬥場景
+	bool fastEnabled = gamedevice.getEnableHash(util::kFastBattleEnable);//快速戰鬥是否開啟
+	bool normalEnabled = gamedevice.getEnableHash(util::kAutoBattleEnable);//自動戰鬥是否開啟
+	if (normalEnabled && getWorldStatus() == 9)
+	{
+		fastEnabled = true;
+		normalEnabled = false;
+	}
+	else if (fastEnabled && getWorldStatus() == 10)
+	{
+		fastEnabled = false;
+		normalEnabled = true;
 	}
 
 	auto delay = [&gamedevice, this]()
@@ -7174,33 +7201,60 @@ bool Worker::asyncBattleAction(bool canDelay)
 				QThread::msleep(delay);
 		};
 
-	auto setCurrentRoundEnd = [this, &gamedevice, normalEnabled]()
+	auto setCurrentRoundEnd = [this, &gamedevice, fastEnabled, normalEnabled]()
 		{
-			//通知結束這一回合
-			if (normalEnabled)
+			//這里不發的話一般戰鬥、和快戰都不會再收到後續的封包 (應該?)
+			if (gamedevice.getEnableHash(util::kBattleAutoEOEnable))
 			{
-				long long G = getGameStatus();
-				if (G == 4)
-				{
-					setGameStatus(5);
-					isBattleDialogReady.off();
-				}
+				echo();
 			}
 
 			gamedevice.sendMessage(kEndBattle, NULL, NULL);
 
-			//這里不發的話一般戰鬥、和快戰都不會再收到後續的封包 (應該?)
-			if (gamedevice.getEnableHash(util::kBattleAutoEOEnable))
-				echo();
+			//通知結束這一回合
+			if (normalEnabled && (getWorldStatus() == 10))
+			{
+
+				isBattleDialogReady.off();
+
+				for (;;)
+				{
+					if (gamedevice.isGameInterruptionRequested())
+					{
+						break;
+					}
+
+					if (!getOnlineFlag())
+					{
+						break;
+					}
+
+					if (getBattleFlag())
+					{
+						break;
+					}
+
+					if (getGameStatus() == 4)
+					{
+						break;
+					}
+
+					QThread::msleep(100);
+				}
+
+			}
 		};
 
 	sa::battle_data_t bt = getBattleData();
 	long long nret = -1;
 
-	if (!battleCharAlreadyActed.get() && !checkFlagState(battleCharCurrentPos.get()))
+	if (!checkFlagState(battleCharCurrentPos.get()))
 	{
 		if (canDelay)
+		{
 			delay();
+		}
+
 		//解析人物戰鬥邏輯並發送指令
 		nret = playerDoBattleWork(bt);
 		if (1 == nret)
@@ -7215,14 +7269,17 @@ bool Worker::asyncBattleAction(bool canDelay)
 		}
 	}
 
-	else if (battleCharAlreadyActed.get() && checkFlagState(battleCharCurrentPos.get()) // 人物已经出手
-		&& !battlePetAlreadyActed.get() && !checkFlagState(battleCharCurrentPos.get() + 5)) // 寵物未出手
+	else if (checkFlagState(battleCharCurrentPos.get()) // 人物已经出手
+		&& !checkFlagState(battleCharCurrentPos.get() + 5)) // 寵物未出手
 	{
 		long long nret = petDoBattleWork(bt);
 		if (1 == nret || -1 == nret)
 		{
 			if (1 == nret)
+			{
 				battlePetAlreadyActed.on();
+			}
+
 			setCurrentRoundEnd();
 		}
 
@@ -12300,19 +12357,16 @@ void Worker::lssproto_EN_recv(long long result, long long field)
 		//util::kBattleCharLuaFilePathString
 		auto checkScript = [&gamedevice, &getFilePath](util::UserSetting element, QString& scriptPath, QString& scriptContent, QString& scriptCache)->void
 			{
-				if (scriptPath.size() <= 0 || !QFile::exists(scriptPath)) // 如果腳本路徑為空或者文件不存在
-				{
-					scriptPath = getFilePath(gamedevice.getStringHash(element)); // 獲取腳本路徑
-
-				}
+				scriptPath = getFilePath(gamedevice.getStringHash(element)); // 獲取腳本路徑
 
 				// 清空腳本內容
 				// 如果腳本路徑不為空且文件存在，讀取腳本內容
-				if (scriptPath.size() > 0 && QFile::exists(scriptPath) &&
-					((scriptContent.size() <= 0) || (scriptContent != scriptCache))) // 如果腳本內容為空或者腳本內容不等於緩存的腳本內容
+				if (scriptPath.size() > 0 && QFile::exists(scriptPath)) // 如果腳本內容為空或者腳本內容不等於緩存的腳本內容
 				{
 					if (util::readFile(scriptPath, &scriptContent))
+					{
 						scriptCache = scriptContent; // 緩存腳本內容
+					}
 				}
 			};
 
@@ -12489,6 +12543,15 @@ void Worker::lssproto_B_recv(char* ccommand)
 	long long hModule = gamedevice.getProcessModule();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
+	if (!gamedevice.getEnableHash(util::kAutoBattleEnable) && !gamedevice.getEnableHash(util::kFastBattleEnable))
+	{
+		gamedevice.sendMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
+	}
+	else
+	{
+		gamedevice.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
+	}
+
 	switch (first.at(0).unicode())
 	{
 	case 'P'://BP|自己的编号[0～19](%X)|標誌位(%X)|當前氣(%X)|???
@@ -12527,6 +12590,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 		sa::battle_data_t bt = getBattleData();
 		updateCurrentSideRange(&bt);
 		setBattleData(bt);
+
 		break;
 	}
 	case 'A'://BA|命令完成標誌位(%X)|回合數(%X)|
@@ -13522,6 +13586,17 @@ void Worker::lssproto_XYD_recv(const QPoint& pos, long long dir)
 	std::ignore = getFloor();
 	std::ignore = getFloorName();
 	std::ignore = getDir();
+
+
+	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+	if (gamedevice.getEnableHash(util::kFastBattleEnable) && !gamedevice.getEnableHash(util::kAutoBattleEnable))
+	{
+		gamedevice.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
+	}
+	else
+	{
+		gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+	}
 }
 
 //服務端發來的ECHO 一般是30秒
@@ -16268,6 +16343,25 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSignning);
+
+	// 允許 快速戰鬥
+	if (gamedevice.getEnableHash(util::kFastBattleEnable) && !gamedevice.getEnableHash(util::kAutoBattleEnable))
+	{
+		gamedevice.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
+	}
+	else
+	{
+		gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+	}
+
+	if (!gamedevice.getEnableHash(util::kAutoBattleEnable) && !gamedevice.getEnableHash(util::kFastBattleEnable))
+	{
+		gamedevice.sendMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
+	}
+	else
+	{
+		gamedevice.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
+	}
 
 	//重置登入計時
 	loginTimer.restart();

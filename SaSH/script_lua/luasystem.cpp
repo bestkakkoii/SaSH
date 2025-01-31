@@ -2371,8 +2371,6 @@ long long CLuaSystem::set(sol::object oenumStr,
 			if (!gamedevice.worker.isNull())
 			{
 				gamedevice.worker->asyncBattleAction(false);
-				if (gamedevice.worker->getWorldStatus() == 10)// 強退戰鬥畫面
-					gamedevice.worker->setGameStatus(7);
 			}
 		}
 		else if (type == util::kAutoBattleEnable && ok)

@@ -69,11 +69,11 @@ public:
 	void __fastcall util_shlstring(char* dst, size_t dstlen, char* src, int offs);
 	// -------------------------------------------------------------------
 	// Encrypting functions
-	long long __fastcall util_deint(long long sliceno, long long* value);
-	long long __fastcall util_deint(const QHash< long long, QByteArray >& slices, long long sliceno, long long* value);
+	bool __fastcall util_deint(long long sliceno, long long* value, long long* sum);
+	bool __fastcall util_deint(const QHash< long long, QByteArray >& slices, long long sliceno, long long* value, long long* sum);
 	long long __fastcall util_mkint(char* buffer, long long value);
-	long long __fastcall util_destring(long long sliceno, char* value);
-	long long __fastcall util_destring(const QHash< long long, QByteArray >& slices, long long sliceno, char* value);
+	bool __fastcall util_destring(long long sliceno, char* value, long long* sum);
+	bool __fastcall util_destring(const QHash< long long, QByteArray >& slices, long long sliceno, char* value, long long* sum);
 	long long __fastcall util_mkstring(char* buffer, char* value);
 
 	// 輔助函數，處理整數參數
@@ -149,18 +149,22 @@ public:
 			{
 				if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, long long>)
 				{
-					iChecksum += util_deint(nextSlice++, val);
+					long long checksum = 0;
+					util_deint(nextSlice++, val, &checksum);
+					iChecksum += checksum;
 				}
 				else if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, char>)
 				{
-					iChecksum += util_destring(nextSlice++, val);
+					long long checksum = 0;
+					util_destring(nextSlice++, val, &checksum);
+					iChecksum += checksum;
 				}
 			};
 		(decode_and_accumulate(args), ...);
 
 		// 獲取並校驗 iChecksum
-		util_deint(nextSlice, &iChecksumrecv);
-		return (iChecksum == iChecksumrecv);
+		long long checksum = 0;
+		return util_deint(nextSlice, &iChecksumrecv, &checksum) && (iChecksum == iChecksumrecv);
 	}
 
 	template<typename... Args>
@@ -175,18 +179,22 @@ public:
 			{
 				if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, long long>)
 				{
-					iChecksum += util_deint(slices, nextSlice++, val);
+					long long checksum = 0;
+					util_deint(slices, nextSlice++, val, &checksum);
+					iChecksum += checksum;
 				}
 				else if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, char>)
 				{
-					iChecksum += util_destring(slices, nextSlice++, val);
+					long long checksum = 0;
+					util_destring(slices, nextSlice++, val, &checksum);
+					iChecksum += checksum;
 				}
 			};
 		(decode_and_accumulate(args), ...);
 
 		// 獲取並校驗 iChecksum
-		util_deint(slices, nextSlice, &iChecksumrecv);
-		return (iChecksum == iChecksumrecv);
+		long long checksum = 0;
+		return util_deint(slices, nextSlice, &iChecksumrecv, &checksum) && (iChecksum == iChecksumrecv);
 	}
 
 	inline bool __fastcall setKey(const std::string& key)
@@ -200,15 +208,58 @@ public:
 		return true;
 	}
 
-private:
-	mutable std::shared_mutex keyMutex_;
-	char personalKey_[1024] = {};
-
 	[[nodiscard]] inline std::string __fastcall getKey() const
 	{
 		std::shared_lock<std::shared_mutex> lock(keyMutex_);
 		return personalKey_;
 	}
+
+public:
+	enum class ParamType
+	{
+		Integer,
+		String
+	};
+
+	struct PacketParameter
+	{
+		QString value;
+		ParamType type;
+		long long checksum;
+
+		PacketParameter()
+			: type(ParamType::Integer)
+			, checksum(0)
+		{
+		}
+
+		PacketParameter(const QString& v, ParamType t, long long cs)
+			: value(v)
+			, type(t)
+			, checksum(cs)
+		{
+		}
+	};
+
+	bool tryParamCombination(
+		const QHash<long long, QByteArray>& slices,
+		QVector<ParamType>& types,
+		QVector<PacketParameter>& outParams,
+		long long startIndex,
+		long long count);
+
+	QVector<Autil::PacketParameter> util_AutoDetectParameters(
+		const QHash<long long, QByteArray>& slices,
+		long long fieldcount);
+
+	static QString util_FormatParam(const PacketParameter& value);
+
+
+private:
+	mutable std::shared_mutex keyMutex_;
+	char personalKey_[1024] = {};
+
+
 
 private:
 	QHash<long long, QByteArray> msgSlice_ = {};

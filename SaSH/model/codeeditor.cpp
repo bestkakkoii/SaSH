@@ -513,90 +513,104 @@ void CodeEditor::commentSwitch()
 	long long selectionEnd = SendScintilla(QsciScintilla::SCI_GETSELECTIONEND);
 	long long selectionStart = SendScintilla(QsciScintilla::SCI_GETSELECTIONSTART);
 	const QString str(selectedText());
-	do
-	{
-		if (str.simplified().isEmpty())
-		{
-			int liner = NULL, index = NULL;
-			getCursorPosition(&liner, &index);//記錄光標位置
 
-			QString linetext(text(liner));
-			if (linetext.simplified().indexOf("//") == 0 || linetext.simplified().indexOf("/*") == 0)
+	auto process = [this](const QString& str, long long selectionStart, long long selectionEnd,
+		const QString& commentStr, const QString& areaCommentStrBegin)
+		{
+			do
 			{
-				long long indexd = linetext.indexOf("//");
-				if (indexd == -1)
+				if (str.simplified().isEmpty())
 				{
-					indexd = linetext.indexOf("/*");
-				}
-				//remove first "--"
-				linetext.remove(indexd, 2);
-				setSelection(liner, 0, liner, linetext.length() + 2);//少了之前去除的 -- 長度加回來
-				replaceSelectedText(linetext);
-			}
-			else
-			{
-				setSelection(liner, 0, liner, linetext.length());
-				const QString tmp("//" + linetext);
-				replaceSelectedText(tmp);
-			}
-			setCursorPosition(liner, index);
-			return;
-		}
-	} while (false);
-	if ((selectionEnd > selectionStart))
-	{
-		bool isCRLF = false;
-		QStringList v;
-		if (str.endsWith("\r\n"))
-		{
-			v = str.split("\r\n"); //按行分割
-			isCRLF = true;
-		}
-		else
-			v = str.split("\n"); //按行分割
+					int liner = NULL, index = NULL;
+					getCursorPosition(&liner, &index);//記錄光標位置
 
-		long long row_num = v.size();
-		if (row_num == 0)
-			return;
-
-		//search all comment or all uncomment
-		//and finally add back to widget by useing setText(str);
-		bool allcomment = false;
-		QString retstring("");
-		if (v.value(0).simplified().indexOf("//") == -1 && v.value(0).simplified().indexOf("/*") == -1)
-		{
-			allcomment = true;
-		}
-		for (long long i = 0; i < row_num; ++i)
-		{
-			//if allcomment is true even if the content already has comment mark still add additional comment
-			//else if allcomment is false remove first command mark for each line if it has
-			if (allcomment)
-			{
-				const QString tmp("//" + v.value(i));
-				v[i] = tmp;
-			}
-			else
-			{
-				if (v.value(i).simplified().indexOf("//") == 0 || v.value(i).simplified().indexOf("/*") == 0)
-				{
-					long long index = v.value(i).indexOf("//");
-					if (index == -1)
+					QString linetext(text(liner));
+					if (linetext.simplified().indexOf(commentStr) == 0 || linetext.simplified().indexOf(areaCommentStrBegin) == 0)
 					{
-						index = v.value(i).indexOf("/*");
+						long long indexd = linetext.indexOf(commentStr);
+						if (indexd == -1)
+						{
+							indexd = linetext.indexOf(areaCommentStrBegin);
+						}
+						//remove first "--"
+						linetext.remove(indexd, 2);
+						setSelection(liner, 0, liner, linetext.length() + 2);//少了之前去除的 -- 長度加回來
+						replaceSelectedText(linetext);
 					}
-					//remove first "--"
-					std::ignore = v[i].remove(index, 2);
+					else
+					{
+						setSelection(liner, 0, liner, linetext.length());
+						const QString tmp(commentStr + linetext);
+						replaceSelectedText(tmp);
+					}
+					setCursorPosition(liner, index);
+					return;
 				}
-			}
-		}
-		if (isCRLF)
-			retstring = (v.join("\r\n"));
-		else
-			retstring = (v.join("\n"));
+			} while (false);
+			if ((selectionEnd > selectionStart))
+			{
+				bool isCRLF = false;
+				QStringList v;
+				if (str.endsWith("\r\n"))
+				{
+					v = str.split("\r\n"); //按行分割
+					isCRLF = true;
+				}
+				else
+					v = str.split("\n"); //按行分割
 
-		if (!retstring.isEmpty())
-			replaceSelectedText(retstring);
+				long long row_num = v.size();
+				if (row_num == 0)
+					return;
+
+				//search all comment or all uncomment
+				//and finally add back to widget by useing setText(str);
+				bool allcomment = false;
+				QString retstring("");
+				if (v.value(0).simplified().indexOf(commentStr) == -1 && v.value(0).simplified().indexOf(areaCommentStrBegin) == -1)
+				{
+					allcomment = true;
+				}
+				for (long long i = 0; i < row_num; ++i)
+				{
+					//if allcomment is true even if the content already has comment mark still add additional comment
+					//else if allcomment is false remove first command mark for each line if it has
+					if (allcomment)
+					{
+						const QString tmp(commentStr + v.value(i));
+						v[i] = tmp;
+					}
+					else
+					{
+						if (v.value(i).simplified().indexOf(commentStr) == 0 || v.value(i).simplified().indexOf(areaCommentStrBegin) == 0)
+						{
+							long long index = v.value(i).indexOf(commentStr);
+							if (index == -1)
+							{
+								index = v.value(i).indexOf(areaCommentStrBegin);
+							}
+							//remove first "--"
+							std::ignore = v[i].remove(index, 2);
+						}
+					}
+				}
+				if (isCRLF)
+					retstring = (v.join("\r\n"));
+				else
+					retstring = (v.join("\n"));
+
+				if (!retstring.isEmpty())
+					replaceSelectedText(retstring);
+			}
+		};
+
+	if (".lua" == suffix_)
+	{
+		process(str, selectionStart, selectionEnd, "--", "--[[");
+	}
+	else
+	{
+		process(str, selectionStart, selectionEnd, "//", "/*");
 	}
 }
 

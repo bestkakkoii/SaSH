@@ -67,6 +67,8 @@ public:
 	QFont getOldFont() { return QsciScintilla::font(); }
 	void setNewFont(const QFont& f) { font_ = f; setFont(f); textLexer_->setDefaultFont(f); }
 
+	void setSuffix(const QString& suffix) { suffix_ = suffix; }
+
 public slots:
 	void commentSwitch();
 
@@ -86,7 +88,7 @@ private:
 	QFont font_;
 	QFont linefont_;
 	bool isDialogOpened_ = false;
-
+	QString suffix_;
 	FindAndReplaceForm findAndReplaceForm_;
 
 protected:

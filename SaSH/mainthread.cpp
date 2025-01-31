@@ -463,12 +463,10 @@ void MainObject::mainProc()
 	mem::freeUnuseMemory(gamedevice.getProcess());
 
 	bool nodelay = false;
-	bool bCheckedFastBattle = false;
-	bool bCheckedAutoBattle = false;
+
 	bool bChecked = false;
 	long long value = 0;
 	long long status = 0;
-	long long W = 0;
 
 	//判斷是否需要自動啟動腳本
 	if (gamedevice.getEnableHash(util::kAutoStartScriptEnable))
@@ -483,7 +481,7 @@ void MainObject::mainProc()
 	for (;;)
 	{
 		if (!nodelay)
-			QThread::msleep(200);
+			QThread::msleep(100);
 		else
 			nodelay = false;
 
@@ -538,41 +536,30 @@ void MainObject::mainProc()
 			//檢查開關 (隊伍、交易、名片...等等)
 			checkEtcFlag();
 
-			bCheckedFastBattle = gamedevice.getEnableHash(util::kFastBattleEnable);
-			bCheckedAutoBattle = gamedevice.getEnableHash(util::kAutoBattleEnable);
-
-			// 允許 自動戰鬥
-			if (bCheckedAutoBattle)
+			if (gamedevice.getEnableHash(util::kFastBattleEnable))
 			{
-				gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
-			}
-			// 允許 快速戰鬥
-			else if (bCheckedFastBattle)
-			{
-				W = gamedevice.worker->getWorldStatus();
-				if (W == 10)// 強退戰鬥畫面
-					gamedevice.worker->setGameStatus(7);
 				gamedevice.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
 			}
-			else // 不允許 快速戰鬥 和 自動戰鬥
+			else
+			{
 				gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
+			}
 		}
 		else if (status == 3)//戰鬥中
 		{
-			bCheckedFastBattle = gamedevice.getEnableHash(util::kFastBattleEnable);
-			bCheckedAutoBattle = gamedevice.getEnableHash(util::kAutoBattleEnable);
-
-			if (bCheckedFastBattle)
+			if (!gamedevice.getEnableHash(util::kAutoBattleEnable) && !gamedevice.getEnableHash(util::kFastBattleEnable))
 			{
-				W = gamedevice.worker->getWorldStatus();
-				if (W == 10)// 強退戰鬥畫面
-					gamedevice.worker->setGameStatus(7);
-			}
-
-			if (bCheckedFastBattle || bCheckedAutoBattle)
-				gamedevice.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
-			else
 				gamedevice.sendMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
+			}
+			else
+			{
+				gamedevice.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
+				long long G = gamedevice.worker->getGameStatus();
+				if (G == 4)
+				{
+					gamedevice.worker->setGameStatus(5);
+				}
+			}
 		}
 		else//錯誤
 		{

@@ -675,6 +675,15 @@ void ScriptEditor::loadFile(const QString& fileName)
 	if (!util::readFile(fileName, &content, &isPrivate, &originalData))
 		return;
 
+	if (fileName.endsWith(util::SCRIPT_LUA_SUFFIX_DEFAULT))
+	{
+		ui.widget->setSuffix(util::SCRIPT_LUA_SUFFIX_DEFAULT);
+	}
+	else
+	{
+		ui.widget->setSuffix(util::SCRIPT_DEFAULT_SUFFIX);
+	}
+
 	bool isReadOnly = ui.widget->isReadOnly();
 	if (isReadOnly)
 		ui.widget->setReadOnly(false);

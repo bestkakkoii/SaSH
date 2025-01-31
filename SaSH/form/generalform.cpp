@@ -689,9 +689,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			ui.checkBox_autobattle->setChecked(!isChecked);
 			if (!gamedevice.worker.isNull())
 			{
-				gamedevice.worker->asyncBattleAction(false);
-				if (gamedevice.worker->getWorldStatus() == 10)// 強退戰鬥畫面
-					gamedevice.worker->setGameStatus(7);
+				gamedevice.worker->echo();
 			}
 		}
 		return;
@@ -705,7 +703,9 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		{
 			ui.checkBox_fastbattle->setChecked(!isChecked);
 			if (!gamedevice.worker.isNull())
-				gamedevice.worker->asyncBattleAction(false);
+			{
+				gamedevice.worker->echo();
+			}
 		}
 		return;
 	}
