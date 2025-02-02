@@ -1293,7 +1293,11 @@ long long Worker::dispatchMessage(const QByteArray& encoded)
 		if (!gamedevice.autil.util_Receive(&index, netDataBuffer_, &color))
 			return kInvalidBuffer;
 
-		qDebug() << "LSSPROTO_TK_RECV" << "index" << index << "message" << util::toUnicode(netDataBuffer_) << "color" << color;
+		if (!util::toUnicode(netDataBuffer_).contains("九层妖塔"))
+		{
+			qDebug() << "LSSPROTO_TK_RECV" << "index" << index << "message" << util::toUnicode(netDataBuffer_) << "color" << color;
+		}
+
 		lssproto_TK_recv(index, netDataBuffer_, color);
 		break;
 	}
@@ -7233,7 +7237,7 @@ bool Worker::asyncBattleAction(bool canDelay)
 	sa::battle_data_t bt = getBattleData();
 	long long nret = -1;
 
-	if (!battleCharAlreadyActed.get() && !checkFlagState(battleCharCurrentPos.get()))
+	if (!checkFlagState(battleCharCurrentPos.get()) && !battleCharAlreadyActed.get())
 	{
 		if (canDelay)
 		{
@@ -7254,8 +7258,9 @@ bool Worker::asyncBattleAction(bool canDelay)
 		}
 	}
 
-	else if (!battlePetAlreadyActed.get() && checkFlagState(battleCharCurrentPos.get()) // 人物已经出手
-		&& !checkFlagState(battleCharCurrentPos.get() + 5)) // 寵物未出手
+	if (checkFlagState(battleCharCurrentPos.get()) // 人物已经出手
+		&& !checkFlagState(battleCharCurrentPos.get() + 5) // 寵物未出手
+		&& !battlePetAlreadyActed.get())
 	{
 		long long nret = petDoBattleWork(bt);
 		if (1 == nret || -1 == nret)
@@ -7282,7 +7287,7 @@ bool Worker::isLastEnemyValid(const sa::battle_data_t& bt) const
 		bool isLastEnemyVisible = true;
 		for (const sa::battle_object_t& it : bt.enemies)
 		{
-			if (it.hp > 0 && util::checkAND(it.status, sa::BC_FLG_HIDE))
+			if (it.hp > 0 && (util::checkAND(it.status, sa::BC_FLG_HIDE) || (0 == it.modelid)))
 			{
 				isLastEnemyVisible = false;
 				break;
@@ -7335,7 +7340,10 @@ long long Worker::playerDoBattleWork(const sa::battle_data_t& bt)
 		}
 
 		if (!handleCharBattleLogics(bt))
+		{
+			sendBattleCharDoNothing();
 			return 0;
+		}
 
 	} while (false);
 
@@ -7376,7 +7384,10 @@ long long Worker::petDoBattleWork(const sa::battle_data_t& bt)
 		}
 
 		if (!handlePetBattleLogics(bt))
+		{
+			sendBattlePetDoNothing();
 			return 0;
+		}
 
 	} while (false);
 	//mem::writeInt(gamedevice.getProcess(), gamedevice.getProcessModule() + 0xE21E4, 0, sizeof(short));
@@ -10007,11 +10018,17 @@ long long Worker::getSkillIndexByName(const QString& name) const
 QString Worker::getAreaString(long long target)
 {
 	if (target == 20)
+	{
 		return QObject::tr("all allies");
+	}
 	else if (target == 21)
+	{
 		return QObject::tr("all enemies");
+	}
 	else if (target == 22)
+	{
 		return QObject::tr("all field");
+	}
 
 	return QObject::tr("unknown");
 }
@@ -10944,7 +10961,9 @@ bool Worker::sendBattleCharAttackAct(long long target)
 	do
 	{
 		if (!getBattleFlag())
+		{
 			break;
+		}
 
 		sa::battle_data_t bt = getBattleData();
 		if (target < 0 || target >= sa::MAX_ENEMY)
@@ -10958,7 +10977,9 @@ bool Worker::sendBattleCharAttackAct(long long target)
 		const QString qcmd = QString("H|%1").arg(util::toQString(target, 16)).toUpper();
 
 		if (!lssproto_B_send(qcmd))
+		{
 			break;
+		}
 
 		labelCharAction.set(text);
 
@@ -10982,18 +11003,26 @@ bool Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 	do
 	{
 		if (!getBattleFlag())
+		{
 			break;
+		}
 
 		sa::battle_data_t bt = getBattleData();
 		if (target < 0)
+		{
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		if (magicIndex < 0 || magicIndex >= sa::MAX_MAGIC)
+		{
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		sa::magic_t magic = getMagic(magicIndex);
 		if (!magic.valid)
+		{
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		const QString magicName = magic.name;
 		QString text("");
@@ -11017,14 +11046,18 @@ bool Worker::sendBattleCharMagicAct(long long magicIndex, long long  target)
 			if (target >= bt.enemymin && target <= bt.enemymax
 				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_LEFT)
 				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_RIGHT))
+			{
 				return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+			}
 
 			color = QColor("#49BF45");
 		}
 
 		const QString qcmd = QString("J|%1|%2").arg(util::toQString(magicIndex, 16)).arg(util::toQString(target, 16)).toUpper();
 		if (!lssproto_B_send(qcmd))
+		{
 			break;
+		}
 
 		labelCharAction.set(text);
 		emit signalDispatcher.updateLabelCharAction(text);
@@ -11046,18 +11079,26 @@ bool Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 	do
 	{
 		if (!getBattleFlag())
+		{
 			break;
+		}
 
 		sa::battle_data_t bt = getBattleData();
 		if (target < 0)
+		{
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		if (skillIndex < 0 || skillIndex >= sa::MAX_PROFESSION_SKILL)
+		{
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		sa::profession_skill_t skill = getSkill(skillIndex);
 		if (!skill.valid)
+		{
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		const QString skillName = skill.name.simplified();
 		QString text("");
@@ -11079,14 +11120,18 @@ bool Worker::sendBattleCharJobSkillAct(long long skillIndex, long long target)
 			if (target >= bt.enemymin && target <= bt.enemymax
 				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_LEFT)
 				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_RIGHT))
+			{
 				return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+			}
 
 			color = QColor("#49BF45");
 		}
 
 		const QString qcmd = QString("P|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16)).toUpper();
 		if (!lssproto_B_send(qcmd))
+		{
 			break;
+		}
 
 		labelCharAction.set(text);
 		emit signalDispatcher.updateLabelCharAction(text);
@@ -11109,18 +11154,26 @@ bool Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 	do
 	{
 		if (!getBattleFlag())
+		{
 			break;
+		}
 
 		sa::battle_data_t bt = getBattleData();
 		if (target < 0)
+		{
 			return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		if (itemIndex < 0 || itemIndex >= sa::MAX_ITEM)
+		{
 			return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		sa::item_t item = getItem(itemIndex);
 		if (!item.valid)
+		{
 			return 	sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		const QString itemName = item.name.simplified();
 
@@ -11143,14 +11196,18 @@ bool Worker::sendBattleCharItemAct(long long itemIndex, long long target)
 			if (target >= bt.enemymin && target <= bt.enemymax
 				|| (battleCharCurrentPos.get() < 10 && target == sa::TARGET_SIDE_LEFT)
 				|| (battleCharCurrentPos.get() >= 10 && target == sa::TARGET_SIDE_RIGHT))
+			{
 				return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+			}
 
 			color = QColor("#49BF45");
 		}
 
 		const QString qcmd = QString("I|%1|%2").arg(util::toQString(itemIndex, 16)).arg(util::toQString(target, 16)).toUpper();
 		if (!lssproto_B_send(qcmd))
+		{
 			break;
+		}
 
 		labelCharAction.set(text);
 		emit signalDispatcher.updateLabelCharAction(text);
@@ -11172,11 +11229,15 @@ bool Worker::sendBattleCharDefenseAct()
 	do
 	{
 		if (!getBattleFlag())
+		{
 			break;
+		}
 
 		const QString qcmd("G");
 		if (!lssproto_B_send(qcmd))
+		{
 			break;
+		}
 
 		const QString text = QObject::tr("defense");
 
@@ -11200,11 +11261,15 @@ bool Worker::sendBattleCharEscapeAct()
 	do
 	{
 		if (!getBattleFlag())
+		{
 			return false;
+		}
 
 		const QString qcmd("E");
 		if (!lssproto_B_send(qcmd))
+		{
 			break;
+		}
 
 		const QString text(QObject::tr("escape"));
 
@@ -11228,15 +11293,21 @@ bool Worker::sendBattleCharCatchPetAct(long long target)
 	do
 	{
 		if (!getBattleFlag())
+		{
 			break;
+		}
 
 		sa::battle_data_t bt = getBattleData();
 		if (target < 0 || target >= sa::MAX_ENEMY)
+		{
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		const QString qcmd = QString("T|%1").arg(util::toQString(target, 16)).toUpper();
 		if (!lssproto_B_send(qcmd))
+		{
 			break;
+		}
 
 		sa::battle_object_t obj = bt.objects.value(target);
 		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
@@ -11262,22 +11333,32 @@ bool Worker::sendBattleCharSwitchPetAct(long long petIndex)
 	do
 	{
 		if (!getBattleFlag())
+		{
 			break;
+		}
 
 		sa::battle_data_t bt = getBattleData();
 		if (petIndex < 0 || petIndex >= sa::MAX_PET)
+		{
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		sa::pet_t pet = getPet(petIndex);
 		if (!pet.valid)
+		{
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		if (pet.hp <= 0)
+		{
 			return sendBattleCharAttackAct(getBattleSelectableEnemyTarget(bt));
+		}
 
 		const QString qcmd = QString("S|%1").arg(util::toQString(petIndex, 16));
 		if (!lssproto_B_send(qcmd))
+		{
 			break;
+		}
 
 		QString text(QObject::tr("switch pet to %1").arg(!pet.freeName.isEmpty() ? pet.freeName : pet.name) + QString("[%1]").arg(petIndex + 1));
 
@@ -11301,11 +11382,14 @@ bool Worker::sendBattleCharDoNothing()
 	do
 	{
 		if (!getBattleFlag())
+		{
 			break;
+		}
 
-		const QString qcmd("N");
-		if (!lssproto_B_send(qcmd))
+		if (!lssproto_B_send("N"))
+		{
 			break;
+		}
 
 		QString text(QObject::tr("do nothing"));
 
@@ -11330,17 +11414,25 @@ bool Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 	do
 	{
 		if (!getBattleFlag())
+		{
 			break;
+		}
 
 		sa::character_t pc = getCharacter();
 		if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET)
+		{
 			break;
+		}
 
 		if (target < 0)
+		{
 			return sendBattlePetDoNothing();
+		}
 
 		if (skillIndex < 0 || skillIndex >= sa::MAX_PET_SKILL)
+		{
 			return sendBattlePetDoNothing();
+		}
 
 		QString text("");
 		sa::pet_skill_t petSkill = getPetSkill(pc.battlePetNo, skillIndex);
@@ -11354,7 +11446,9 @@ bool Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 				name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 			}
 			else
+			{
 				name = QObject::tr("self");
+			}
 
 			text = QObject::tr("use %1 to [%2]%3").arg(petSkill.name).arg(target + 1).arg(name);
 		}
@@ -11365,7 +11459,9 @@ bool Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 
 		QColor color("#FF5050");
 		if (petSkill.name.contains("防"))//防禦
+		{
 			color = QColor("#CCB157");
+		}
 		else if (petSkill.memo.contains("力回"))//補血
 		{
 			//不可補敵方
@@ -11379,7 +11475,9 @@ bool Worker::sendBattlePetSkillAct(long long skillIndex, long long target)
 
 		const QString qcmd = QString("W|%1|%2").arg(util::toQString(skillIndex, 16)).arg(util::toQString(target, 16)).toUpper();
 		if (!lssproto_B_send(qcmd))
+		{
 			break;
+		}
 
 		labelPetAction.set(text);
 		emit signalDispatcher.updateLabelPetAction(text);
@@ -11402,15 +11500,21 @@ bool Worker::sendBattlePetDoNothing()
 	do
 	{
 		if (!getBattleFlag())
+		{
 			break;
+		}
 
 		sa::character_t pc = getCharacter();
 		if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET)
+		{
 			break;
+		}
 
 		const QString qcmd("W|FF|FF");
 		if (!lssproto_B_send(qcmd))
+		{
 			break;
+		}
 
 		QString text(QObject::tr("do nothing"));
 
@@ -12512,15 +12616,21 @@ void Worker::lssproto_B_recv(char* ccommand)
 {
 	QString command = util::toUnicode(ccommand);
 	if (command.isEmpty())
+	{
 		return;
+	}
 
 	QString first = command.left(2).toUpper();
 	if (first.startsWith("B"))
+	{
 		first.remove(0, 1);//移除開頭的B
+	}
 
 	QString data = command.mid(3);//紀錄 "XX|" 後的數據
 	if (data.isEmpty())
+	{
 		return;
+	}
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -12545,7 +12655,9 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		QStringList list = data.split(util::rexOR);
 		if (list.size() < 3)
+		{
 			break;
+		}
 
 		emit signalDispatcher.battleTableAllItemResetColor();
 
@@ -12553,17 +12665,27 @@ void Worker::lssproto_B_recv(char* ccommand)
 		oneRoundDurationTimer.restart();
 
 		bool ok = false;
+
+		// 自己的编号[0～19](%X)
 		long long tmpValue = list.value(0).toLongLong(&ok, 16);
 		if (ok)
+		{
 			battleCharCurrentPos.set(tmpValue);
+		}
 
+		// 標誌位(%X)
 		tmpValue = list.value(1).toLongLong(&ok, 16);
 		if (ok)
+		{
 			battleBpFlag.set(tmpValue);
+		}
 
+		// 當前氣(%X)
 		tmpValue = list.value(2).toLongLong(&ok, 16);
 		if (ok)
+		{
 			battleCharCurrentMp.set(tmpValue);
+		}
 
 		{
 			sa::character_t pc = getCharacter();
@@ -12582,19 +12704,30 @@ void Worker::lssproto_B_recv(char* ccommand)
 	{
 		QStringList list = data.split(util::rexOR);
 		if (list.size() < 2)
+		{
 			break;
+		}
 
 		bool ok = false;
-		long long tmpValue = list.value(0).toLongLong(&ok, 16);
-		if (ok)
-			battleCurrentAnimeFlag.set(tmpValue);
 
+		// 命令完成標誌位(%X)
+		long long tmpValue = list.value(0).toLongLong(&ok, 16) - battleCurrentAnimeFlag.get();
+		if (ok)
+		{
+			battleCurrentAnimeFlag.set(tmpValue);
+		}
+
+		// 回合數(%X)
 		tmpValue = list.value(1).toLongLong(&ok, 16);
 		if (ok)
+		{
 			battleCurrentRound.set(tmpValue + 1);
+		}
 
 		if (battleCurrentAnimeFlag.get() <= 0)
+		{
 			break;
+		}
 
 		sa::battle_data_t bt = getBattleData();
 		if (!bt.objects.isEmpty())
@@ -12604,7 +12737,9 @@ void Worker::lssproto_B_recv(char* ccommand)
 			for (long long i = bt.alliemin; i <= bt.alliemax; ++i)
 			{
 				if (i >= bt.objects.size())
+				{
 					break;
+				}
 
 				sa::battle_object_t& obj = objs[i];
 
@@ -12618,7 +12753,9 @@ void Worker::lssproto_B_recv(char* ccommand)
 			for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
 				if (i >= bt.objects.size())
+				{
 					break;
+				}
 
 				sa::battle_object_t& obj = objs[i];
 
@@ -12632,24 +12769,19 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		setBattleData(bt);
 
-		ok = true;
 		for (long long i = bt.enemymin; i <= bt.enemymax; ++i)
 		{
 			sa::battle_object_t obj = bt.objects.value(i);
 			if (obj.hp == 0)
-				continue;
-
-			if (!obj.ready)
 			{
-				ok = false;
-				break;
+				continue;
 			}
 
-		}
-
-		if (ok)
-		{
-			asyncBattleAction(true);
+			if (obj.ready)
+			{
+				asyncBattleAction(true);
+				break;
+			}
 		}
 
 		break;
@@ -12670,6 +12802,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 		10|貝恩達斯||187F0|2|36|36|1|0||0|0|0|
 		11|貝恩達斯||187F0|4|4F|4F|1|0||0|0|0|
 		*/
+
+		battleCurrentAnimeFlag.reset();
 
 		bt.allies.clear();
 		bt.enemies.clear();
@@ -13012,9 +13146,14 @@ void Worker::lssproto_B_recv(char* ccommand)
 		setBattleData(bt);
 
 		if (!isAllieAllDead && bt.allies.isEmpty())
+		{
 			isAllieAllDead = true;
+		}
+
 		if (!isEnemyAllDead && bt.enemies.isEmpty())
+		{
 			isEnemyAllDead = true;
+		}
 
 		if (isAllieAllDead || isEnemyAllDead)
 		{

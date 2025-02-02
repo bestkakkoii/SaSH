@@ -271,6 +271,9 @@ bool Lssproto::lssproto_HL_send(long long flg)
 bool Lssproto::lssproto_B_send(const QString& command)
 {
 	std::string cmd = util::fromUnicode(command.toUpper());
+	qDebug().noquote() << "-------------------";
+	qDebug().noquote() << QString("-->>> lssproto_B_send(%1)").arg(command);
+	qDebug().noquote() << "-------------------";
 	return autil_->util_Send(sa::LSSPROTO_B_SEND, const_cast<char*>(cmd.c_str()));
 }
 
