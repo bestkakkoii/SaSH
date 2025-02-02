@@ -635,11 +635,13 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	};
 
 	qDebug() << "------------------------";
-	qDebug() << "- <Forward> Function Id:" << func << "| Argument Size:" << fieldcount;
+	qDebug() << "- <Forward> ";
+	qDebug().noquote() << QString("- Protocol key: \"%1\"").arg(util::toUnicode(gamedevice.autil.getKey().c_str()));
 
 	QString funcName = funcMap.value(func, "Unknown");
+	qDebug() << "- >>> Function Name:" << QString("lssproto_%1_send").arg(funcName);
 
-	qDebug() << "- >>> function name:" << QString("lssproto_%1_send").arg(funcName);
+
 
 	/*
 	switch (func)
@@ -1029,24 +1031,7 @@ void Worker::dispatchSendMessage(const QByteArray& encoded) const
 	}
 	*/
 
-	auto params = gamedevice.autil.util_AutoDetectParameters(slices, fieldcount - 1);
-	if (params.empty())
-	{
-		qDebug() << "- Warning: Could not find valid parameter combination";
-		return;
-	}
-
-	QStringList paramList;
-	for (const Autil::PacketParameter& param : params)
-	{
-		paramList.append(param.value);
-	}
-
-	qDebug().noquote() << QString("- >>> Protocol key: \"%1\"").arg(util::toUnicode(gamedevice.autil.getKey().c_str()));
-
-	QString output = QString("- >>> send(%1, %2)").arg(func).arg(funcName.toLower()).arg(paramList.join(", "));
-
-	qDebug().noquote() << output;
+	gamedevice.autil.util_AutoDetectParameters(func, slices, fieldcount - 1);
 
 	qDebug() << "------------------------" << Qt::endl;
 }
@@ -7248,7 +7233,7 @@ bool Worker::asyncBattleAction(bool canDelay)
 	sa::battle_data_t bt = getBattleData();
 	long long nret = -1;
 
-	if (!checkFlagState(battleCharCurrentPos.get()))
+	if (!battleCharAlreadyActed.get() && !checkFlagState(battleCharCurrentPos.get()))
 	{
 		if (canDelay)
 		{
@@ -7269,7 +7254,7 @@ bool Worker::asyncBattleAction(bool canDelay)
 		}
 	}
 
-	else if (checkFlagState(battleCharCurrentPos.get()) // 人物已经出手
+	else if (!battlePetAlreadyActed.get() && checkFlagState(battleCharCurrentPos.get()) // 人物已经出手
 		&& !checkFlagState(battleCharCurrentPos.get() + 5)) // 寵物未出手
 	{
 		long long nret = petDoBattleWork(bt);

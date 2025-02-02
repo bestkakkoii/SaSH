@@ -698,6 +698,7 @@ bool Autil::util_deint(long long sliceno, long long* value, long long* sum)
 
 bool Autil::util_deint(const QHash< long long, QByteArray >& slices, long long sliceno, long long* value, long long* sum)
 {
+	QMutexLocker locker(&msgMutex_);
 	if (!slices.contains(sliceno))
 		return false;
 
@@ -772,6 +773,7 @@ bool Autil::util_destring(long long sliceno, char* value, long long* sum)
 
 bool Autil::util_destring(const QHash< long long, QByteArray >& slices, long long sliceno, char* value, long long* sum)
 {
+	QMutexLocker locker(&msgMutex_);
 	if (!slices.contains(sliceno))
 		return false;
 
@@ -800,120 +802,68 @@ long long Autil::util_mkstring(char* buffer, char* value)
 	return static_cast<long long>(strlen(value));
 }
 
-bool Autil::tryParamCombination(
-	const QHash<long long, QByteArray>& slices,
-	QVector<ParamType>& types,
-	QVector<PacketParameter>& outParams,
-	long long startIndex,
-	long long count)
+
+static bool isValidString(const QString& str)
 {
-	outParams.clear();
-	outParams.reserve(count);
-
-	long long calculatedChecksum = 0;
-
-	for (long long i = 0; i < count; ++i)
-	{
-		long long currentIndex = startIndex + i;
-
-		if (types[i] == ParamType::Integer)
-		{
-			long long intValue = 0;
-			long long checksum = 0;
-			if (!util_deint(slices, currentIndex, &intValue, &checksum) || checksum < -1)
-			{
-				qDebug() << "Param" << i + 1 << "deint:" << intValue << "checksum:" << checksum << "might be a string";
-				types[i] = ParamType::String;
-				--i;
-				continue;
-			}
-
-			calculatedChecksum += checksum;
-			outParams.append({ QString::number(intValue), ParamType::Integer, checksum });
-
-			qDebug() << "Param" << i + 1 << "might be an integer";
-		}
-		else
-		{
-			char strValue[NETDATASIZE] = {};
-			long long checksum = 0;
-
-			if (!util_destring(slices, currentIndex, strValue, &checksum))
-			{
-				qDebug() << "Param" << i + 1 << "destring:" << strValue << "checksum:" << checksum << "might be an integer";
-				types[i] = ParamType::Integer;
-				--i;
-				continue;
-			}
-
-			calculatedChecksum += checksum;
-			outParams.append({ util::toUnicode(strValue), ParamType::String, checksum });
-		}
-	}
-
-	long long receivedChecksum = 0;
-	long long checksum = 0;
-	if (!util_deint(slices, startIndex + count, &receivedChecksum, &checksum))
+	if (str.isEmpty())
 	{
 		return false;
 	}
 
-	qDebug() << "Calculated checksum:" << calculatedChecksum << "Received checksum:" << receivedChecksum;
-
-	return calculatedChecksum == receivedChecksum;
+	return !str.startsWith("_V") && !str.contains("�") && !str.contains("");
 }
 
-QVector<Autil::PacketParameter> Autil::util_AutoDetectParameters(
+void Autil::util_AutoDetectParameters(
+	long long func,
 	const QHash<long long, QByteArray>& slices,
 	long long fieldcount)
 {
-	QVector<ParamType> currentCombination(fieldcount, ParamType::Integer);
-	QVector<QVector<ParamType>> validCombinations;
+	qDebug() << "- >>> Argument Size:" << fieldcount;
 
-	QVector<PacketParameter> tempParams;
-	if (tryParamCombination(slices, currentCombination, tempParams, 2, fieldcount))
-	{
-		qDebug() << "No valid parameter combinations found";
-		return QVector<PacketParameter>();
-	}
+	qDebug() << "- >>> Function Id:" << func;
 
-	QString combinationStr;
+	constexpr long long startIndex = 2;
+	long long checksum = 0;
+
+	long long intValue = 0;
 	long long i = 0;
-	for (const auto& type : currentCombination)
+
+	QStringList guessList;
+
+	for (; i < fieldcount; ++i)
 	{
-		combinationStr += (type == ParamType::Integer) ? "i" : "c";
+		long long currentIndex = startIndex + i;
+		intValue = 0;
+		checksum = 0;
+		util_deint(slices, currentIndex, &intValue, &checksum);
 
-		qDebug() << "Combination" << i + 1 << ":" << combinationStr;
-		qDebug() << ((type == ParamType::Integer) ? "i" : "c");
+		if (intValue >= 0)
+		{
+			qDebug().noquote() << QString("- >>> Param[%1]").arg(i + 1) << "deint =" << intValue;
+			guessList.append(QString::number(intValue));
+		}
 
-		++i;
+		char strValue[NETDATASIZE] = {};
+		checksum = 0;
+
+		util_destring(slices, currentIndex, strValue, &checksum);
+
+		QString resultStr = util::toUnicode(strValue);
+
+		if (isValidString(resultStr))
+		{
+			qDebug().noquote() << QString("- >>> Param[%1]").arg(i + 1) << QString("destring = \"%1\"").arg(resultStr) << "len:" << checksum;
+			guessList.append(QString("\"%1\"").arg(resultStr));
+		}
+
+		qDebug().noquote() << QString("- >>>");
 	}
 
+	util_deint(slices, i + startIndex, &intValue, &checksum);
 
-	return QVector<PacketParameter>();
-}
+	QString guessSignature = guessList.join(", ");
+	qDebug().noquote() << QString("- >>> Guess Signature: send(%1, %2);").arg(func).arg(guessSignature);
 
-QString Autil::util_FormatParam(const PacketParameter& value)
-{
-	QString valueStr;
+	qDebug() << "- >>> Checksum:" << intValue;
 
-	switch (value.type)
-	{
-	case ParamType::Integer:
-	{
-		valueStr = value.value;
-		break;
-	}
-	case ParamType::String:
-	{
-		valueStr = QString("\"%1\"").arg(value.value);
-		break;
-	}
-	default:
-	{
-		valueStr = "unknown";
-	}
-	}
-
-	return valueStr;
 }

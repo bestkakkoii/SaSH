@@ -215,45 +215,10 @@ public:
 	}
 
 public:
-	enum class ParamType
-	{
-		Integer,
-		String
-	};
-
-	struct PacketParameter
-	{
-		QString value;
-		ParamType type;
-		long long checksum;
-
-		PacketParameter()
-			: type(ParamType::Integer)
-			, checksum(0)
-		{
-		}
-
-		PacketParameter(const QString& v, ParamType t, long long cs)
-			: value(v)
-			, type(t)
-			, checksum(cs)
-		{
-		}
-	};
-
-	bool tryParamCombination(
-		const QHash<long long, QByteArray>& slices,
-		QVector<ParamType>& types,
-		QVector<PacketParameter>& outParams,
-		long long startIndex,
-		long long count);
-
-	QVector<Autil::PacketParameter> util_AutoDetectParameters(
+	void util_AutoDetectParameters(
+		long long func,
 		const QHash<long long, QByteArray>& slices,
 		long long fieldcount);
-
-	static QString util_FormatParam(const PacketParameter& value);
-
 
 private:
 	mutable std::shared_mutex keyMutex_;
