@@ -481,9 +481,13 @@ void MainObject::mainProc()
 	for (;;)
 	{
 		if (!nodelay)
+		{
 			QThread::msleep(100);
+		}
 		else
+		{
 			nodelay = false;
+		}
 
 		//檢查是否接收到停止執行的訊號
 		if (gamedevice.isGameInterruptionRequested())
@@ -513,7 +517,9 @@ void MainObject::mainProc()
 			mem::freeUnuseMemory(gamedevice.getProcess());
 		}
 		else
+		{
 			freeMemTimer.restart();
+		}
 
 		//有些數據需要和客戶端內存同步
 		gamedevice.worker->updateDatasFromMemory();
@@ -525,45 +531,34 @@ void MainObject::mainProc()
 		//其他所有功能
 		status = checkAndRunFunctions();
 
+		bool fastEnabled = gamedevice.getEnableHash(util::kFastBattleEnable);//快速戰鬥是否開啟
+		bool normalEnabled = gamedevice.getEnableHash(util::kAutoBattleEnable);//自動戰鬥是否開啟
+
 		//這裡是預留的暫時沒作用
-		if (status == 1)//非登入狀態
+		switch (status)
+		{
+		case 1: //非登入狀態
 		{
 			QThread::msleep(200);
 			nodelay = true;
+			break;
 		}
-		else if (status == 2)//平時
+		case 2: //平時
 		{
 			//檢查開關 (隊伍、交易、名片...等等)
 			checkEtcFlag();
 
-			if (gamedevice.getEnableHash(util::kFastBattleEnable))
-			{
-				gamedevice.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
-			}
-			else
-			{
-				gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
-			}
+
+			break;
 		}
-		else if (status == 3)//戰鬥中
-		{
-			if (!gamedevice.getEnableHash(util::kAutoBattleEnable) && !gamedevice.getEnableHash(util::kFastBattleEnable))
-			{
-				gamedevice.sendMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
-			}
-			else
-			{
-				gamedevice.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
-				long long G = gamedevice.worker->getGameStatus();
-				if (G == 4)
-				{
-					gamedevice.worker->setGameStatus(5);
-				}
-			}
-		}
-		else//錯誤
+		case 3: //戰鬥中
 		{
 			break;
+		}
+		default:
+		{
+			return;
+		}
 		}
 	}
 }

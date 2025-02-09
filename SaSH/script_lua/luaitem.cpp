@@ -2028,7 +2028,7 @@ long long CLuaItem::getSpaceIndex()
 	if (itemIndexs.isEmpty())
 		return -1;
 
-	return itemIndexs.front();
+	return itemIndexs.front() - sa::CHAR_EQUIPSLOT_COUNT + 1;
 }
 
 bool CLuaItem::getIsFull()
@@ -2043,138 +2043,323 @@ bool CLuaItem::getIsFull()
 	return itemIndexs.isEmpty();
 }
 
-static QVector<long long> itemGetIndexs(long long currentIndex, sol::object oitemnames, sol::object oitemmemos, bool includeEequip, sol::object ostartFrom)
+//long long CLuaItem::count(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s)
+//{
+//	sol::state_view lua(s);
+//	GameDevice& gamedevice = GameDevice::getInstance(index_);
+//	if (gamedevice.worker.isNull())
+//		return FALSE;
+//
+//	bool includeEequip = true;
+//	if (oincludeEequip.is<bool>())
+//		includeEequip = oincludeEequip.as<bool>();
+//
+//	long long c = 0;
+//	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip, ostartFrom);
+//	if (itemIndexs.isEmpty())
+//		return c;
+//
+//	QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
+//	for (const long long itemIndex : itemIndexs)
+//	{
+//		sa::item_t item = items.value(includeEequip ? itemIndex : itemIndex + sa::CHAR_EQUIPSLOT_COUNT - 1);
+//		if (item.valid)
+//			c += item.stack;
+//	}
+//
+//	return c;
+//}
+//
+//long long CLuaItem::indexof(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s)
+//{
+//	GameDevice& gamedevice = GameDevice::getInstance(index_);
+//	if (gamedevice.worker.isNull())
+//		return -1;
+//
+//	bool includeEequip = true;
+//	if (oincludeEequip.is<bool>())
+//		includeEequip = oincludeEequip.as<bool>();
+//
+//	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip, ostartFrom);
+//	if (itemIndexs.isEmpty())
+//		return -1;
+//
+//	long long index = itemIndexs.front();
+//	if (index < sa::CHAR_EQUIPSLOT_COUNT)
+//		index += 100LL;
+//	else
+//		index -= static_cast<long long>(sa::CHAR_EQUIPSLOT_COUNT);
+//
+//	++index;
+//
+//	return index;
+//}
+//
+//sol::object CLuaItem::find(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s)
+//{
+//	sol::state_view lua(s);
+//	GameDevice& gamedevice = GameDevice::getInstance(index_);
+//	if (gamedevice.worker.isNull())
+//		return sol::lua_nil;
+//
+//	bool includeEequip = true;
+//	if (oincludeEequip.is<bool>())
+//		includeEequip = oincludeEequip.as<bool>();
+//
+//	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip, ostartFrom);
+//	if (itemIndexs.isEmpty())
+//		return sol::lua_nil;
+//
+//	long long index = itemIndexs.front();
+//	if (index < sa::CHAR_EQUIPSLOT_COUNT)
+//		index += 100LL;
+//	else
+//		index -= static_cast<long long>(sa::CHAR_EQUIPSLOT_COUNT);
+//
+//	++index;
+//
+//	if (index < 0 || index >= sa::MAX_ITEM)
+//		return sol::lua_nil;
+//
+//	sa::item_t item = gamedevice.worker->getItem(includeEequip ? index : index + sa::CHAR_EQUIPSLOT_COUNT - 1);
+//
+//	sol::table t = lua.create_table();
+//	t["valid"] = item.valid;
+//	t["index"] = index;
+//	t["name"] = util::toConstData(item.name);
+//	t["memo"] = util::toConstData(item.memo);
+//	t["name2"] = util::toConstData(item.name2);
+//	t["dura"] = item.damage;
+//	t["lv"] = item.level;
+//	t["stack"] = item.stack;
+//	t["field"] = item.field;
+//	t["target"] = item.target;
+//	t["type"] = item.type;
+//	t["modelid"] = item.modelid;
+//
+//	return t;
+//}
+
+long long CLuaItem::count(std::string sname, std::string smemo, bool includeEequip)
 {
-	QVector<long long> itemIndexs;
-	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
-	if (gamedevice.worker.isNull())
-		return itemIndexs;
-
-	QString itemnames;
-	if (oitemnames.is<std::string>())
-		itemnames = util::toQString(oitemnames);
-	QString itemmemos;
-	if (oitemmemos.is<std::string>())
-		itemmemos = util::toQString(oitemmemos);
-
-	if (itemnames.isEmpty() && itemmemos.isEmpty())
-	{
-		return itemIndexs;
-	}
-
-	long long startFrom = -1;
-	if (ostartFrom.is<long long>())
-		startFrom = ostartFrom.as<long long>();
-	if (startFrom < 0 || startFrom >= (sa::MAX_ITEM - sa::CHAR_EQUIPSLOT_COUNT))
-		startFrom = -1;
-
-	long long min = sa::CHAR_EQUIPSLOT_COUNT;
-
-	if (includeEequip)
-	{
-		min = 0;
-	}
-	else
-	{
-		if (startFrom > 0)
-			min += startFrom;
-		else
-			min = sa::CHAR_EQUIPSLOT_COUNT;
-	}
-
-	long long max = sa::MAX_ITEM;
-
-
-	if (!gamedevice.worker->getItemIndexsByName(itemnames, itemmemos, &itemIndexs, min, max))
-	{
-		return itemIndexs;
-	}
-	return itemIndexs;
-}
-
-long long CLuaItem::count(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s)
-{
-	sol::state_view lua(s);
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
+	{
 		return FALSE;
+	}
 
-	bool includeEequip = true;
-	if (oincludeEequip.is<bool>())
-		includeEequip = oincludeEequip.as<bool>();
+	long long startFrom = sa::CHAR_EQUIPSLOT_COUNT;
+	if (includeEequip)
+	{
+		startFrom = 0;
+	}
 
-	long long c = 0;
-	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip, ostartFrom);
+	QString name = util::toQString(sname);
+	QString memo = util::toQString(smemo);
+
+	QVector<long long> itemIndexs;
+	if (!gamedevice.worker->getItemIndexsByName(name, memo, &itemIndexs, startFrom))
+	{
+		return 0;
+	}
+
 	if (itemIndexs.isEmpty())
-		return c;
+	{
+		return 0;
+	}
 
+	long long count = 0;
 	QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
 	for (const long long itemIndex : itemIndexs)
 	{
-		sa::item_t item = items.value(includeEequip ? itemIndex : itemIndex + sa::CHAR_EQUIPSLOT_COUNT - 1);
+		sa::item_t item = items.value(itemIndex);
 		if (item.valid)
-			c += item.stack;
+		{
+			// 0-8 are equip slots
+			if (itemIndex <= sa::CHAR_EQUIPSLOT_COUNT)
+			{
+				count += 1;
+			}
+			// 9-23 are item slots
+			else
+			{
+				count += item.stack;
+
+			}
+		}
 	}
 
-	return c;
+	return count;
 }
 
-long long CLuaItem::indexof(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s)
+long long CLuaItem::count(std::string snameOrMemo, bool includeEequip)
 {
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
-		return -1;
+	{
+		return FALSE;
+	}
 
-	bool includeEequip = true;
-	if (oincludeEequip.is<bool>())
-		includeEequip = oincludeEequip.as<bool>();
+	long long startFrom = sa::CHAR_EQUIPSLOT_COUNT;
+	if (includeEequip)
+	{
+		startFrom = 0;
+	}
 
-	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip, ostartFrom);
+	QString nameOrMemo = util::toQString(snameOrMemo);
+	QVector<long long> itemIndexs;
+
+	if (!gamedevice.worker->getItemIndexsByName(nameOrMemo, "", &itemIndexs, startFrom))
+	{
+		if (!gamedevice.worker->getItemIndexsByName("", nameOrMemo, &itemIndexs, startFrom))
+		{
+			return 0;
+		}
+	}
+
 	if (itemIndexs.isEmpty())
-		return -1;
+	{
+		return 0;
+	}
 
-	long long index = itemIndexs.front();
-	if (index < sa::CHAR_EQUIPSLOT_COUNT)
-		index += 100LL;
-	else
-		index -= static_cast<long long>(sa::CHAR_EQUIPSLOT_COUNT);
+	long long count = 0;
+	QHash<long long, sa::item_t> items = gamedevice.worker->getItems();
+	for (const long long itemIndex : itemIndexs)
+	{
+		sa::item_t item = items.value(itemIndex);
+		if (item.valid)
+		{
+			// 0-8 are equip slots
+			if (itemIndex <= sa::CHAR_EQUIPSLOT_COUNT)
+			{
+				count += 1;
+			}
+			// 9-23 are item slots
+			else
+			{
+				count += item.stack;
+			}
+		}
+	}
 
-	++index;
-
-	return index;
+	return count;
 }
 
-sol::object CLuaItem::find(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s)
+long long CLuaItem::count(std::string sname, std::string smemo)
+{
+	return count(sname, smemo, false);
+}
+
+long long CLuaItem::count(std::string snameOrMemo)
+{
+	return count(snameOrMemo, false);
+}
+
+long long CLuaItem::indexof(std::string sname, std::string smemo, bool includeEequip)
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+	{
+		return -1;
+	}
+
+	long long startFrom = sa::CHAR_EQUIPSLOT_COUNT;
+	if (includeEequip)
+	{
+		startFrom = 0;
+	}
+
+	QString name = util::toQString(sname);
+	QString memo = util::toQString(smemo);
+
+	long long itemIndex = gamedevice.worker->getItemIndexByName(name, true, memo, startFrom);
+
+	if (itemIndex >= sa::CHAR_EQUIPSLOT_COUNT)
+	{
+		itemIndex = itemIndex - sa::CHAR_EQUIPSLOT_COUNT + 1;
+	}
+	else if (itemIndex != -1)
+	{
+		++itemIndex;
+	}
+
+	return itemIndex;
+}
+
+long long CLuaItem::indexof(std::string snameOrMemo, bool includeEequip)
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+	{
+		return -1;
+	}
+
+	long long startFrom = sa::CHAR_EQUIPSLOT_COUNT;
+	if (includeEequip)
+	{
+		startFrom = 0;
+	}
+
+	QString nameOrMemo = util::toQString(snameOrMemo);
+	long long itemIndex = gamedevice.worker->getItemIndexByName(nameOrMemo, true, "", startFrom);
+	if (-1 == itemIndex)
+	{
+		itemIndex = gamedevice.worker->getItemIndexByName("", false, nameOrMemo, startFrom);
+		if (-1 == itemIndex)
+		{
+			return -1;
+		}
+	}
+
+	if (itemIndex >= sa::CHAR_EQUIPSLOT_COUNT)
+	{
+		itemIndex = itemIndex - sa::CHAR_EQUIPSLOT_COUNT + 1;
+	}
+	else if (itemIndex != -1)
+	{
+		itemIndex += 101;
+	}
+
+	return itemIndex;
+}
+
+long long CLuaItem::indexof(std::string sname, std::string smemo)
+{
+	return indexof(sname, smemo, false);
+}
+
+long long CLuaItem::indexof(std::string snameOrMemo)
+{
+	return indexof(snameOrMemo, false);
+}
+
+sol::object CLuaItem::find(std::string sname, std::string smemo, bool includeEequip, sol::this_state s)
 {
 	sol::state_view lua(s);
 	GameDevice& gamedevice = GameDevice::getInstance(index_);
 	if (gamedevice.worker.isNull())
+	{
 		return sol::lua_nil;
+	}
 
-	bool includeEequip = true;
-	if (oincludeEequip.is<bool>())
-		includeEequip = oincludeEequip.as<bool>();
+	long long startFrom = sa::CHAR_EQUIPSLOT_COUNT;
+	if (includeEequip)
+	{
+		startFrom = 0;
+	}
 
-	QVector<long long> itemIndexs = itemGetIndexs(index_, oitemnames, oitemmemos, includeEequip, ostartFrom);
-	if (itemIndexs.isEmpty())
+	QString name = util::toQString(sname);
+	QString memo = util::toQString(smemo);
+	long long itemIndex = gamedevice.worker->getItemIndexByName(name, true, memo, startFrom);
+	if (itemIndex == -1)
+	{
 		return sol::lua_nil;
+	}
 
-	long long index = itemIndexs.front();
-	if (index < sa::CHAR_EQUIPSLOT_COUNT)
-		index += 100LL;
-	else
-		index -= static_cast<long long>(sa::CHAR_EQUIPSLOT_COUNT);
-
-	++index;
-
-	if (index < 0 || index >= sa::MAX_ITEM)
-		return sol::lua_nil;
-
-	sa::item_t item = gamedevice.worker->getItem(includeEequip ? index : index + sa::CHAR_EQUIPSLOT_COUNT - 1);
-
+	sa::item_t item = gamedevice.worker->getItem(itemIndex);
 	sol::table t = lua.create_table();
 	t["valid"] = item.valid;
-	t["index"] = index;
+	t["index"] = itemIndex >= sa::CHAR_EQUIPSLOT_COUNT ? itemIndex - sa::CHAR_EQUIPSLOT_COUNT + 1 : itemIndex + 101;
 	t["name"] = util::toConstData(item.name);
 	t["memo"] = util::toConstData(item.memo);
 	t["name2"] = util::toConstData(item.name2);
@@ -2185,6 +2370,186 @@ sol::object CLuaItem::find(sol::object oitemnames, sol::object oitemmemos, sol::
 	t["target"] = item.target;
 	t["type"] = item.type;
 	t["modelid"] = item.modelid;
-
 	return t;
+}
+
+sol::object CLuaItem::find(std::string snameOrMemo, bool includeEequip, sol::this_state s)
+{
+	sol::state_view lua(s);
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+	{
+		return sol::lua_nil;
+	}
+
+	long long startFrom = sa::CHAR_EQUIPSLOT_COUNT;
+	if (includeEequip)
+	{
+		startFrom = 0;
+	}
+
+	QString nameOrMemo = util::toQString(snameOrMemo);
+	long long itemIndex = gamedevice.worker->getItemIndexByName(nameOrMemo, true, "", startFrom);
+	if (itemIndex == -1)
+	{
+		itemIndex = gamedevice.worker->getItemIndexByName("", false, nameOrMemo, startFrom);
+		if (itemIndex == -1)
+		{
+			return sol::lua_nil;
+		}
+	}
+
+	sa::item_t item = gamedevice.worker->getItem(itemIndex);
+	sol::table t = lua.create_table();
+	t["valid"] = item.valid;
+	t["index"] = itemIndex >= sa::CHAR_EQUIPSLOT_COUNT ? itemIndex - sa::CHAR_EQUIPSLOT_COUNT + 1 : itemIndex + 101;
+	t["name"] = util::toConstData(item.name);
+	t["memo"] = util::toConstData(item.memo);
+	t["name2"] = util::toConstData(item.name2);
+	t["dura"] = item.damage;
+	t["lv"] = item.level;
+	t["stack"] = item.stack;
+	t["field"] = item.field;
+	t["target"] = item.target;
+	t["type"] = item.type;
+	t["modelid"] = item.modelid;
+	return t;
+}
+
+sol::object CLuaItem::find(std::string sname, std::string smemo, sol::this_state s)
+{
+	return find(sname, smemo, false, s);
+}
+
+sol::object CLuaItem::find(std::string snameOrMemo, sol::this_state s)
+{
+	return find(snameOrMemo, false, s);
+}
+
+bool CLuaItem::remove(std::string snameOrMemo, long long count)
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+	{
+		return false;
+	}
+
+	if (count < -1)
+	{
+		return false;
+	}
+
+	QString nameOrMemo = util::toQString(snameOrMemo);
+
+	QVector<long long> itemIndexs;
+	if (!gamedevice.worker->getItemIndexsByName(nameOrMemo, "", &itemIndexs, sa::CHAR_EQUIPSLOT_COUNT))
+	{
+		if (!gamedevice.worker->getItemIndexsByName("", nameOrMemo, &itemIndexs, sa::CHAR_EQUIPSLOT_COUNT))
+		{
+			return false;
+		}
+	}
+
+	if (itemIndexs.isEmpty())
+	{
+		return false;
+	}
+
+
+	if (-1 == count)
+	{
+		if (!gamedevice.worker->dropItem(itemIndexs))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		long long maxCount = this->count(snameOrMemo);
+		if (maxCount > 0 && count > maxCount)
+		{
+			count = maxCount;
+		}
+
+		for (long long index : itemIndexs)
+		{
+			if (count <= 0)
+			{
+				break;
+			}
+
+			if (!gamedevice.worker->dropSingleItem(index))
+			{
+				return false;
+			}
+
+			--count;
+		}
+	}
+
+	return true;
+
+}
+
+bool CLuaItem::remove(std::string snameOrMemo)
+{
+	return remove(snameOrMemo, -1);
+}
+
+bool CLuaItem::remove(long long index, long long count)
+{
+	GameDevice& gamedevice = GameDevice::getInstance(index_);
+	if (gamedevice.worker.isNull())
+	{
+		return false;
+	}
+
+	if (count < -1)
+	{
+		return false;
+	}
+
+	index = index + sa::CHAR_EQUIPSLOT_COUNT - 1;
+
+	if (index < sa::CHAR_EQUIPSLOT_COUNT || index > sa::MAX_ITEM)
+	{
+		return false;
+	}
+
+	if (-1 == count)
+	{
+		if (!gamedevice.worker->dropItem(index))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		long long maxCount = 0;
+		sa::item_t item = gamedevice.worker->getItem(index);
+		if (item.valid)
+		{
+			maxCount = item.stack;
+		}
+
+		if (maxCount > 0 && count > maxCount)
+		{
+			count = maxCount;
+		}
+
+		for (long long i = 0; i < count; ++i)
+		{
+			if (!gamedevice.worker->dropSingleItem(index))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+bool CLuaItem::remove(long long index)
+{
+	return remove(index, -1);
 }

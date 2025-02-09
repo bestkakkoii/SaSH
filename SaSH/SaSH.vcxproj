@@ -292,6 +292,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
       <SetChecksum>false</SetChecksum>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <QtTranslation>
       <BuildAction>false</BuildAction>

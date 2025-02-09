@@ -686,11 +686,24 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 		if (isChecked)
 		{
+			ui.checkBox_autobattle->blockSignals(true);
 			ui.checkBox_autobattle->setChecked(!isChecked);
-			if (!gamedevice.worker.isNull())
+			ui.checkBox_autobattle->blockSignals(false);
+
+			if (!battleFuture_.isRunning())
 			{
-				gamedevice.worker->echo();
+				battleFuture_ = QtConcurrent::run([currentIndex]()
+					{
+						GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+						if (!gamedevice.worker.isNull())
+						{
+							gamedevice.worker->echo();
+							gamedevice.worker->asyncBattleAction(false);
+						}
+					});
 			}
+
+
 		}
 		return;
 	}
@@ -698,13 +711,23 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 	if (name == "checkBox_autobattle")
 	{
 		gamedevice.setEnableHash(util::kAutoBattleEnable, isChecked);
-
 		if (isChecked)
 		{
+			ui.checkBox_fastbattle->blockSignals(true);
 			ui.checkBox_fastbattle->setChecked(!isChecked);
-			if (!gamedevice.worker.isNull())
+			ui.checkBox_fastbattle->blockSignals(false);
+			gamedevice.setEnableHash(util::kFastBattleEnable, !isChecked);
+			if (!battleFuture_.isRunning())
 			{
-				gamedevice.worker->echo();
+				battleFuture_ = QtConcurrent::run([currentIndex]()
+					{
+						GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
+						if (!gamedevice.worker.isNull())
+						{
+							gamedevice.worker->echo();
+							gamedevice.worker->asyncBattleAction(false);
+						}
+					});
 			}
 		}
 		return;

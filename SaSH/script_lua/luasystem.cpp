@@ -2371,13 +2371,17 @@ long long CLuaSystem::set(sol::object oenumStr,
 			if (!gamedevice.worker.isNull())
 			{
 				gamedevice.worker->asyncBattleAction(false);
+				gamedevice.worker->asyncBattleAction(false);
 			}
 		}
 		else if (type == util::kAutoBattleEnable && ok)
 		{
 			gamedevice.setEnableHash(util::kFastBattleEnable, !ok);
 			if (!gamedevice.worker.isNull())
+			{
 				gamedevice.worker->asyncBattleAction(false);
+				gamedevice.worker->asyncBattleAction(false);
+			}
 		}
 		else if (type == util::kAutoWalkEnable && ok)
 		{

@@ -367,9 +367,25 @@ public:
 	bool getIsFull();
 
 public:
-	long long count(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s);
-	long long indexof(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s);
-	sol::object find(sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::object ostartFrom, sol::this_state s);
+	long long count(std::string sname, std::string smemo, bool includeEequip);
+	long long count(std::string snameOrMemo, bool includeEequip);
+	long long count(std::string sname, std::string smemo);
+	long long count(std::string snameOrMemo);
+
+	long long indexof(std::string sname, std::string smemo, bool includeEequip);
+	long long indexof(std::string snameOrMemo, bool includeEequip);
+	long long indexof(std::string sname, std::string smemo);
+	long long indexof(std::string snameOrMemo);
+
+	sol::object find(std::string sname, std::string smemo, bool includeEequip, sol::this_state s);
+	sol::object find(std::string snameOrMemo, bool includeEequip, sol::this_state s);
+	sol::object find(std::string sname, std::string smemo, sol::this_state s);
+	sol::object find(std::string snameOrMemo, sol::this_state s);
+
+	bool remove(std::string snameOrMemo, long long count);
+	bool remove(std::string snameOrMemo);
+	bool remove(long long index, long long count);
+	bool remove(long long index);
 
 public:
 	long long space = 0;

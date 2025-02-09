@@ -1202,10 +1202,10 @@ MainForm::MainForm(long long index, QWidget* parent)
 
 	// Every 30 minutes check for update
 	connect(&checkUpdateTimer_, &QTimer::timeout, this, &MainForm::checkUpdate);
-	checkUpdateTimer_.start(30 * 60 * 1000);
+	checkUpdateTimer_.start(5 * 60 * 1000);
 
 	// First check for update after 3 seconds
-	QTimer::singleShot(1500, this, &MainForm::checkUpdate);
+	QTimer::singleShot(2000, this, &MainForm::checkUpdate);
 }
 
 std::string MainForm::print(std::string str)
@@ -1739,6 +1739,7 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 	QHash<util::UserSetting, QString> stringHash = gamedevice.getStringsHash();
 	QString key;
 	util::UserSetting hkey = util::kSettingNotUsed;
+
 	const QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
 
 	util::Config config(fileName, QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));

@@ -600,6 +600,7 @@ namespace sa
 	};
 
 	enum EquipmentSlot
+		: long long
 	{
 		CHAR_EQUIPNONE = -1,
 		PET_EQUIPNONE = -1,

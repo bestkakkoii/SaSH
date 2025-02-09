@@ -536,6 +536,13 @@ void OtherForm::onComboBoxClicked()
 				list.append(QString("%1:%2").arg(i + 1).arg(pet.name));
 			}
 		}
+		else
+		{
+			for (long long i = 0; i < sa::MAX_PET; ++i)
+			{
+				list.append(QString("%1:").arg(i + 1));
+			}
+		}
 		pComboBox->clear();
 		pComboBox->addItems(list);
 		if (oldIndex < list.size())

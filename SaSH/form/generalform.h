@@ -50,4 +50,5 @@ private:
 	Ui::GeneralFormClass ui;
 
 	QHash<long long, QHash<QString, QStringList>> serverList;
+	QFuture<void> battleFuture_;
 };

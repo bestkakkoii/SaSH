@@ -158,6 +158,7 @@ public://actions
 
 	bool __fastcall dropItem(long long index);
 	bool __fastcall dropItem(QVector<long long> index);
+	bool __fastcall dropSingleItem(long long index);
 
 	bool __fastcall useItem(long long itemIndex, long long target);
 
@@ -403,7 +404,7 @@ private:
 	long long __fastcall petDoBattleWork(const sa::battle_data_t& bt);
 	bool __fastcall handlePetBattleLogics(const sa::battle_data_t& bt);
 
-	bool __fastcall isLastEnemyValid(const sa::battle_data_t& bt) const;
+	bool __fastcall isSomeEnemyValid(const sa::battle_data_t& bt) const;
 	bool __fastcall isCharMpEnoughForMagic(long long magicIndex) const;
 	bool __fastcall isCharMpEnoughForSkill(long long magicIndex) const;
 	bool __fastcall isCharHpEnoughForSkill(long long magicIndex) const;
@@ -534,6 +535,7 @@ private:
 	safe::data<QPoint> nowPoint_; //當前人物座標
 
 	QFuture<void> battleBackupFuture_; //戰鬥動作備用線程管理器
+	QFuture<void> battleFuture_;
 
 	QString battleCharLuaScript_;
 	QString battleCharLuaScriptCache_;
@@ -543,6 +545,10 @@ private:
 	QString battlePetLuaScriptPath_;
 
 	safe::integer battleCrossActionCounter_;
+
+	QFuture<void> normalMissions_;
+	bool fastBattleEnableCache_ = false;
+	bool autoBattleEnableCache_ = false;
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal

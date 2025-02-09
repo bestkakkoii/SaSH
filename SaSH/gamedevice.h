@@ -557,10 +557,10 @@ private:
 		{ util::kEOCommandString, "/EO" },
 
 		{ util::kTitleFormatString, "[%(index)] [%(sser):%(pos)] %(name) Lv:%(lv) Hp:%(hpp)" },
-		{ util::kBattleAllieFormatString, "[%(pos)]%(self)%(name) LV:%(lv)(%(hp)|%(hpp))[%(status)]" },
-		{ util::kBattleEnemyFormatString, "[%(pos)]%(mod):%(name) LV:%(lv)(%(hp)|%(hpp))[%(status)]" },
-		{ util::kBattleSelfMarkString, "★" },
-		{ util::kBattleActMarkString, "＊" },
+		{ util::kBattleAllieFormatString, "[%(pos)]%(self)%(name) LV:%(lv)(%(hp)|%(hpp))[|%(status)]" },
+		{ util::kBattleEnemyFormatString, "[%(pos)]%(mod):%(name) LV:%(lv)(%(hp)|%(hpp))[|%(status)]" },
+		{ util::kBattleSelfMarkString, "🔷" },
+		{ util::kBattleActMarkString, "⭕" },
 		{ util::kBattleSpaceMarkString, "　" },
 
 		{ util::kBattleActionOrderString, "1|2|3|4|5|6|7|8|9|10|11|12|13|14" },

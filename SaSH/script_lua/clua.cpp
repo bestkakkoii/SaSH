@@ -3036,49 +3036,73 @@ void CLua::open_utillibs(sol::state& lua)
 
 	lua.set_function("half", [this](std::string sstr, sol::this_state s)->std::string
 		{
-			const QString FullWidth = "０１２３４５６７８９"
-				"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
-				"ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ"
-				"、～！＠＃＄％︿＆＊（）＿－＝＋［］｛｝＼｜；：’＂，＜．＞／？【】《》　";
-			const QString HalfWidth = "0123456789"
-				"abcdefghijklmnopqrstuvwxyz"
-				"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-				"'~!@#$%^&*()_-+=[]{}\\|;:'\",<.>/? []<>";
-
 			if (sstr.empty())
 				return sstr;
 
-			QString result = util::toQString(sstr);
-			long long size = FullWidth.size();
-			for (long long i = 0; i < size; ++i)
-			{
-				result.replace(FullWidth.at(i), HalfWidth.at(i));
-			}
+			// 先转换为 QString
+			QString qstr = util::toQString(sstr);
 
+			// 获取Unicode字符串
+			const wchar_t* wstr = reinterpret_cast<const wchar_t*>(qstr.utf16());
+			int wlen = qstr.length();
+
+			// 计算转换后需要的缓冲区大小
+			int halfSize = LCMapStringW(LOCALE_USER_DEFAULT,
+				LCMAP_HALFWIDTH,
+				wstr,
+				wlen,
+				NULL,
+				0);
+			std::vector<wchar_t> halfWidth(halfSize);
+
+			// 执行半角转换
+			LCMapStringW(LOCALE_USER_DEFAULT,
+				LCMAP_HALFWIDTH,
+				wstr,
+				wlen,
+				halfWidth.data(),
+				halfSize);
+
+			// 使用 QString 构造结果
+			QString result = QString::fromUtf16(reinterpret_cast<const char16_t*>(halfWidth.data()), halfSize);
+
+			// 转换回 std::string
 			return util::toConstData(result);
 		});
 
 	lua.set_function("full", [this](std::string sstr, sol::this_state s)->std::string
 		{
-			const QString FullWidth = "０１２３４５６７８９"
-				"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
-				"ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ"
-				"、～！＠＃＄％︿＆＊（）＿－＝＋［］｛｝＼｜；：’＂，＜．＞／？【】《》　";
-			const QString HalfWidth = "0123456789"
-				"abcdefghijklmnopqrstuvwxyz"
-				"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-				"'~!@#$%^&*()_-+=[]{}\\|;:'\",<.>/?[]<> ";
-
 			if (sstr.empty())
 				return sstr;
 
-			QString result = util::toQString(sstr);
-			long long size = FullWidth.size();
-			for (long long i = 0; i < size; ++i)
-			{
-				result.replace(HalfWidth.at(i), FullWidth.at(i));
-			}
+			// 先转换为 QString
+			QString qstr = util::toQString(sstr);
 
+			// 获取Unicode字符串
+			const wchar_t* wstr = reinterpret_cast<const wchar_t*>(qstr.utf16());
+			int wlen = qstr.length();
+
+			// 计算转换后需要的缓冲区大小
+			int fullSize = LCMapStringW(LOCALE_USER_DEFAULT,
+				LCMAP_FULLWIDTH,
+				wstr,
+				wlen,
+				NULL,
+				0);
+			std::vector<wchar_t> fullWidth(fullSize);
+
+			// 执行全角转换
+			LCMapStringW(LOCALE_USER_DEFAULT,
+				LCMAP_FULLWIDTH,
+				wstr,
+				wlen,
+				fullWidth.data(),
+				fullSize);
+
+			// 使用 QString 构造结果
+			QString result = QString::fromUtf16(reinterpret_cast<const char16_t*>(fullWidth.data()), fullSize);
+
+			// 转换回 std::string
 			return util::toConstData(result);
 		});
 
@@ -3190,13 +3214,16 @@ void CLua::open_utillibs(sol::state& lua)
 			return util::toConstData(result);
 		});
 
-	lua.set_function("find", [this](std::string ssrc, std::string sfrom, sol::object osto, sol::this_state s)->std::string
+	lua.set_function("find", [this](std::string ssrc, std::string sfrom, sol::object osto, sol::this_state s)->sol::object
 		{
 			QString varValue = util::toQString(ssrc);
 			QString text1 = util::toQString(sfrom);
 			QString text2 = "";
+
 			if (osto.is<std::string>())
+			{
 				text2 = util::toQString(osto);
+			}
 
 			QString result = varValue;
 
@@ -3204,21 +3231,38 @@ void CLua::open_utillibs(sol::state& lua)
 
 			long long pos1 = varValue.indexOf(text1);
 			if (pos1 < 0)
+			{
 				pos1 = 0;
+			}
 
 			long long pos2 = -1;
 			if (text2.isEmpty())
+			{
 				pos2 = varValue.length();
+			}
 			else
 			{
 				pos2 = static_cast<long long>(varValue.indexOf(text2, pos1 + text1.length()));
 				if (pos2 < 0)
+				{
 					pos2 = varValue.length();
+				}
+			}
+
+			//cannot match any text return nil
+			if (pos1 == pos2)
+			{
+				return sol::lua_nil;
 			}
 
 			result = varValue.mid(pos1 + text1.length(), pos2 - pos1 - text1.length());
 
-			return util::toConstData(result);
+			if (!text1.isEmpty() && !result.isEmpty() && text1 == result)
+			{
+				return sol::lua_nil;
+			}
+
+			return sol::make_object(s, util::toConstData(result));
 		});
 
 	//参数1:字符串内容, 参数2:正则表达式, 参数3(选填):第几个匹配项, 参数4(选填):是否为全局匹配, 参数5(选填):第几组
@@ -3825,9 +3869,31 @@ void CLua::open_itemlibs(sol::state& lua)
 		"spaceindex", sol::property(&CLuaItem::getSpaceIndex),
 		"isfull", sol::property(&CLuaItem::getIsFull),
 		"size", sol::property(&CLuaItem::getSize),
-		"count", &CLuaItem::count,
-		"indexof", &CLuaItem::indexof,
-		"find", &CLuaItem::find
+		"count", sol::overload(
+			sol::resolve<long long(std::string sname, std::string smemo, bool includeEequip)>(&CLuaItem::count),
+			sol::resolve<long long(std::string snameOrMemo, bool includeEequip)>(&CLuaItem::count),
+			sol::resolve<long long(std::string sname, std::string smemo)>(&CLuaItem::count),
+			sol::resolve<long long(std::string sname)>(&CLuaItem::count)
+
+		),
+		"indexof", sol::overload(
+			sol::resolve<long long(std::string sname, std::string smemo, bool includeEequip)>(&CLuaItem::indexof),
+			sol::resolve<long long(std::string snameOrMemo, bool includeEequip)>(&CLuaItem::indexof),
+			sol::resolve<long long(std::string sname, std::string smemo)>(&CLuaItem::indexof),
+			sol::resolve<long long(std::string snameOrMemo)>(&CLuaItem::indexof)
+		),
+		"find", sol::overload(
+			sol::resolve<sol::object(std::string sname, std::string smemo, bool includeEequip, sol::this_state s)>(&CLuaItem::find),
+			sol::resolve<sol::object(std::string snameOrMemo, bool includeEequip, sol::this_state s)>(&CLuaItem::find),
+			sol::resolve<sol::object(std::string sname, std::string smemo, sol::this_state s)>(&CLuaItem::find),
+			sol::resolve<sol::object(std::string snameOrMemo, sol::this_state s)>(&CLuaItem::find)
+		),
+		"remove", sol::overload(
+			sol::resolve<bool(std::string snameOrMemo, long long count)>(&CLuaItem::remove),
+			sol::resolve<bool(std::string snameOrMemo)>(&CLuaItem::remove),
+			sol::resolve<bool(long long index, long long count)>(&CLuaItem::remove),
+			sol::resolve<bool(long long index)>(&CLuaItem::remove)
+		)
 	);
 
 	lua.safe_script("item = ItemClass(__INDEX);", sol::script_pass_on_error);

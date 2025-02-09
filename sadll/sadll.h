@@ -136,6 +136,7 @@ public:
 	using pfnQueryPerformanceCounter = BOOL(__stdcall*)(LARGE_INTEGER*);
 	pfnQueryPerformanceCounter pQueryPerformanceCounter = nullptr;
 
+public:
 	using pfnPlaySound = void(__cdecl*)(int, int, int);
 	pfnPlaySound pPlaySound = nullptr;
 
@@ -183,12 +184,49 @@ public:
 	using pfnDeathAllAction = void(__cdecl*)();
 	pfnDeathAllAction pDeathAllAction = nullptr;
 
+	using pfnInitPC = void(__cdecl*)();
+	pfnInitPC pInitPC = nullptr;
+
+	using pfnResetFieldProc = void(__cdecl*)();
+	pfnResetFieldProc pResetFieldProc = nullptr;
+
+	using pfnInitCharPartsPrio = void(__cdecl*)();
+	pfnInitCharPartsPrio pInitCharPartsPrio = nullptr;
+
+	using pfnRunAction = void(__cdecl*)();
+	pfnRunAction pRunAction = nullptr;
+
+	using pfnUpdateMapArea = void(__cdecl*)();
+	pfnUpdateMapArea pUpdateMapArea = nullptr;
+
+	using pfnRedrawMap = void(__cdecl*)();
+	pfnRedrawMap pRedrawMap = nullptr;
+
+	using pfnDrawMap = void(__cdecl*)();
+	pfnDrawMap pDrawMap = nullptr;
+
+	using pfnResetPc = void(__cdecl*)();
+	pfnResetPc pResetPc = nullptr;
+
+	using pfnResetCharObj = void(__cdecl*)();
+	pfnResetCharObj pResetCharObj = nullptr;
+
+	using pfnResetMap = void(__cdecl*)();
+	pfnResetMap pResetMap = nullptr;
+
+	using pfnClearPtActPartyParam = void(__cdecl*)();
+	pfnClearPtActPartyParam pClearPtActPartyParam = nullptr;
+
+	using pfnDrawFieldInfoWin = void(__cdecl*)();
+	pfnDrawFieldInfoWin pDrawFieldInfoWin = nullptr;
+
 public://g-var
 	int* g_sockfd = nullptr;
 	int* g_world_status = nullptr;
 	int* g_game_status = nullptr;
 	int* g_BattlingFlag = nullptr;
 	int* g_encountNowFlag = nullptr;
+	int* g_produceFlag = nullptr;
 
 	HWND g_consoleHwnd = nullptr;
 

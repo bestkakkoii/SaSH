@@ -1307,19 +1307,69 @@ BOOL GameService::WM_EndBattle()
 	if (nullptr == g_hGameModule)
 		return FALSE;
 
-	//sa_8001.exe+79FD4 - E8 F757F9FF           - call sa_8001.exe+F7D0
-	pRestorePtActCharObjAll();
-
-
-	//sa_8001.exe+ABD8 - 55                    - push ebp
+	////sa_8001.exe+ABD8 - 55                    - push ebp
 	//if (pDrawProduce(12/*PRODUCE_4WAY_OUT*/) == TRUE)
 	//{
-		//pChangeProc(9/*PROC_GAME*/, 1);
-		//pDeathAllAction();
-		//g_BattlingFlag = FALSE;
-		//pClearPtActCharObj();
-		//g_encountNowFlag = 0;
+	//	pChangeProc(9/*PROC_GAME*/, 1);
+	//	//pDeathAllAction();
+	//	g_BattlingFlag = FALSE;
+	//pClearPtActCharObj();
+	//	g_encountNowFlag = 0;
 	//}
+
+	///*
+	//sa_8001.exe+79FCA - E8 01DAFFFF           - call sa_8001.exe+779D0 initPc();
+	//sa_8001.exe+79FCF - E8 5CE3F9FF           - call sa_8001.exe+18330 resetFieldProc();
+	//sa_8001.exe+79FD4 - E8 F757F9FF           - call sa_8001.exe+F7D0 restorePtActCharObjAll();
+	//*/
+
+	//pInitPC();
+	//pResetFieldProc();
+	//pRestorePtActCharObjAll();
+
+	//if (TRUE == *g_produceFlag)
+	//{
+	//	/*
+	//	sa_8001.exe+7A011 - E8 AAA5FCFF           - call sa_8001.exe+445C0 initCharPartsPrio();
+	//	sa_8001.exe+7A016 - E8 5571F8FF           - call sa_8001.exe+1170 RunAction();
+	//	sa_8001.exe+7A025 - E8 4688FCFF           - call sa_8001.exe+42870 updateMapArea();
+	//	sa_8001.exe+7A02A - E8 7179FCFF           - call sa_8001.exe+419A0 redrawMap();
+	//	sa_8001.exe+7A02F - E8 5C6EFCFF           - call sa_8001.exe+40E90 drawMap();
+
+	//	*/
+
+	//	pInitCharPartsPrio();
+	//pRunAction();
+	//	pUpdateMapArea();
+	//	pRedrawMap();
+	//	pDrawMap();
+	//}
+	//else
+	//{
+	//	*g_produceFlag = TRUE;
+	//}
+
+	/*
+	switch (SubProcNo) case 3:
+	sa_8001.exe+7A11F - 89 1D FCB65A00        - mov [sa_8001.exe+1AB6FC],ebx { (0) }
+
+	EncountFlag:
+	sa_8001.exe+7A1B9 - A1 44264E00           - mov eax,[sa_8001.exe+E2644] { (0) }
+
+	sa_8001.exe+7A1CB - E8 C0D9FFFF           - call sa_8001.exe+77B90 resetPc();
+	sa_8001.exe+7A1D0 - E8 7B54F9FF           - call sa_8001.exe+F650 resetCharObj();
+	sa_8001.exe+7A1D5 - E8 0662FCFF           - call sa_8001.exe+403E0 resetMap();
+	sa_8001.exe+7A1DA - E8 A1E7FFFF           - call sa_8001.exe+78980 clearPtActPartyParam();
+	sa_8001.exe+7A1DF - 89 1D B4765600        - mov [sa_8001.exe+1676B4],ebx { (0) } fieldInfoTime = 0;
+	sa_8001.exe+7A1E5 - E8 8616FAFF           - call sa_8001.exe+1B870 drawFieldInfoWin();
+	sa_8001.exe+7A1EA - E8 41E1F9FF           - call sa_8001.exe+18330 resetFieldProc();
+
+
+	*/
+
+	//pResetPc();
+	//pResetCharObj();
+	//pClearPtActPartyParam();
 
 	return TRUE;
 }
@@ -1688,6 +1738,7 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 
 	g_BattlingFlag = CONVERT_GAMEVAR<int*>(0x164C50ul);
 	g_encountNowFlag = CONVERT_GAMEVAR<int*>(0x4160258ul);
+	g_produceFlag = CONVERT_GAMEVAR<int*>(0x4230DE4ul);
 
 #ifdef AUTIL_H
 	Autil::PersonalKey = CONVERT_GAMEVAR<char*>(0x4AC0898ul);//封包解密密鑰
@@ -1709,8 +1760,20 @@ BOOL GameService::initialize(long long index, HWND parentHwnd, unsigned short ty
 	pRestorePtActCharObjAll = CONVERT_GAMEVAR<pfnRestorePtActCharObjAll>(0xF7D0ul);
 	pDrawProduce = CONVERT_GAMEVAR<pfnDrawProduce>(0x7BDE0ul);
 	pChangeProc = CONVERT_GAMEVAR<pfnChangeProc>(0x79BE0ul);
-	pClearPtActCharObj = CONVERT_GAMEVAR<pfnClearPtActCharObj>(0xF7A0ul);//清除周遭不存在的人物
-	pDeathAllAction = CONVERT_GAMEVAR<pfnClearPtActCharObj>(0x11F0ul);
+	pClearPtActCharObj = CONVERT_GAMEVAR<pfnClearPtActCharObj>(0xF7A0ul);
+	pDeathAllAction = CONVERT_GAMEVAR<pfnDeathAllAction>(0x11F0ul);
+	pInitPC = CONVERT_GAMEVAR<pfnInitPC>(0x779D0ul);
+	pResetFieldProc = CONVERT_GAMEVAR<pfnResetFieldProc>(0x18330ul);
+	pInitCharPartsPrio = CONVERT_GAMEVAR<pfnInitCharPartsPrio>(0x445C0ul);
+	pRunAction = CONVERT_GAMEVAR<pfnRunAction>(0x1170ul);
+	pUpdateMapArea = CONVERT_GAMEVAR<pfnUpdateMapArea>(0x42870ul);
+	pRedrawMap = CONVERT_GAMEVAR<pfnRedrawMap>(0x419A0ul);
+	pDrawMap = CONVERT_GAMEVAR<pfnDrawMap>(0x40E90ul);
+	pResetPc = CONVERT_GAMEVAR<pfnResetPc>(0x77B90ul);
+	pResetCharObj = CONVERT_GAMEVAR<pfnResetCharObj>(0xF650ul);
+	pResetMap = CONVERT_GAMEVAR<pfnResetMap>(0x403E0ul);
+	pClearPtActPartyParam = CONVERT_GAMEVAR<pfnClearPtActPartyParam>(0x78980ul);
+	pDrawFieldInfoWin = CONVERT_GAMEVAR<pfnDrawFieldInfoWin>(0x1B870ul);
 
 	/*
 		sa_8001.exe+91710 - FF 25 08C04900        - jmp dword ptr [sa_8001.exe+9C008] { ->DINPUT.DirectInputCreateA }

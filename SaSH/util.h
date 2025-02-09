@@ -117,9 +117,9 @@ namespace mem
 			mov eax, [eax + 0xC]
 			mov eax, [eax + 0x1C]
 			mov eax, [eax]
-			mov eax, [eax]
-			mov eax, [eax + 8]
-			ret
+				mov eax, [eax]
+					mov eax, [eax + 8]
+						ret
 		}
 	}
 #else
@@ -727,8 +727,11 @@ namespace util
 		kSettingMaxString,
 
 		kScriptDebugModeEnable,
+
+		kMaxUserSetting,
 	};
 
+#if 1
 	//用於將枚舉直轉換為字符串，提供給json當作key
 	static const QHash<UserSetting, QString> user_setting_string_hash = {
 		{ kSettingNotUsed, "SettingNotUsed" },
@@ -1021,6 +1024,7 @@ namespace util
 
 		{ kScriptDebugModeEnable, "ScriptDebugModeEnable" },
 	};
+#endif
 
 	//8方位坐標補正
 	static const QVector<QPoint> fix_point = {
@@ -2067,8 +2071,8 @@ QGroupBox {
 			//setGenerateByteOrderMark(true);
 
 			setAutoDetectUnicode(true);
-	}
-};
+		}
+	};
 
 	//智能文件句柄類
 	class ScopedFile : public QFile
@@ -2087,7 +2091,8 @@ QGroupBox {
 
 		explicit ScopedFile(const QString& filename)
 			: QFile(filename)
-		{}
+		{
+		}
 
 		ScopedFile() = default;
 
