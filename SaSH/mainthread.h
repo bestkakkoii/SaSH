@@ -180,6 +180,7 @@ private:
 	bool flagSwitcherWorldEnable_ = false;
 
 	safe::vector<MissionThread*> autoThreads_;
+	QFuture<void> battleFuture_;
 };
 
 class ThreadManager : public QObject

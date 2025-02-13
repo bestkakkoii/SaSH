@@ -506,7 +506,7 @@ bool Worker::handleCustomMessage(const QByteArray& badata)
 	if (preStr.startsWith("bpk|"))
 	{
 		isBattleDialogReady.on();
-		asyncBattleAction(true);
+		battleActionFlag.on();
 		return true;
 	}
 
@@ -7079,6 +7079,7 @@ void Worker::setBattleEnd()
 {
 	if (!getBattleFlag())
 	{
+		echo();
 		return;
 	}
 
@@ -7091,7 +7092,7 @@ void Worker::setBattleEnd()
 
 	//這裡不加限制的話，非快戰結束後會因為和客戶端EO重複發送導致周圍單位無法顯示
 	if (gamedevice.getEnableHash(util::kFastBattleEnable)
-		|| (fastBattleEnableCache_ && autoBattleEnableCache_)/*快戰切自動時避免卡包*/)
+		|| (fastBattleEnableCache_.get() && autoBattleEnableCache_.get())/*快戰切自動時避免卡包*/)
 	{
 		lssproto_EO_send(0);
 	}
@@ -7105,11 +7106,11 @@ void Worker::setBattleEnd()
 		battle_total_time.add(battleDurationTimer.cost());
 	}
 
-	fastBattleEnableCache_ = gamedevice.getEnableHash(util::kFastBattleEnable);
-	autoBattleEnableCache_ = gamedevice.getEnableHash(util::kAutoBattleEnable);
+	fastBattleEnableCache_.set(gamedevice.getEnableHash(util::kFastBattleEnable));
+	autoBattleEnableCache_.set(gamedevice.getEnableHash(util::kAutoBattleEnable));
 
 	// 允許 快速戰鬥
-	if (fastBattleEnableCache_)
+	if (fastBattleEnableCache_.get())
 	{
 		gamedevice.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
 	}
@@ -7118,7 +7119,7 @@ void Worker::setBattleEnd()
 		gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 	}
 
-	if (autoBattleEnableCache_)
+	if (autoBattleEnableCache_.get() || fastBattleEnableCache_.get())
 	{
 		gamedevice.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
 	}
@@ -7128,6 +7129,13 @@ void Worker::setBattleEnd()
 	}
 
 	setBattleFlag(false);
+
+	long long G = getGameStatus();
+
+	if (getWorldStatus() == 10 && (5 == G || 4 == G))
+	{
+		setGameStatus(7);
+	}
 
 	normalDurationTimer.restart();
 
@@ -7183,13 +7191,13 @@ bool Worker::asyncBattleAction(bool canDelay)
 	}
 
 	//自動戰鬥打開 或 快速戰鬥打開且處於戰鬥場景
-	long long W = getWorldStatus();
-	if (!fastBattleEnableCache_ && !autoBattleEnableCache_)
+	if (!fastBattleEnableCache_.get() && !autoBattleEnableCache_.get())
 	{
 		gamedevice.sendMessage(kEnableBattleDialog, true, NULL);//允許戰鬥面板出現
 		return false;
 	}
 
+	gamedevice.sendMessage(kEnableBattleDialog, false, NULL); // 禁止戰鬥面板出現
 
 	auto delay = [&gamedevice, this]()
 		{
@@ -7236,47 +7244,18 @@ bool Worker::asyncBattleAction(bool canDelay)
 				echo();
 			}
 
-			// 開啟快戰、自動戰鬥且處於戰鬥場景
-			if ((fastBattleEnableCache_ || autoBattleEnableCache_) && (getWorldStatus() == 10))
+			//自動戰鬥
+			if (getWorldStatus() == 10 && getGameStatus() == 4)
 			{
-
-				isBattleDialogReady.off();
-
-				for (;;)
-				{
-					if (gamedevice.isGameInterruptionRequested())
-					{
-						break;
-					}
-
-					if (!getOnlineFlag())
-					{
-						return;
-					}
-
-					if (!getBattleFlag())
-					{
-						break;
-					}
-
-					if (getGameStatus() == 4) // 可以畫面開始動作的時機
-					{
-						QThread::msleep(100);
-						setGameStatus(5); // 切換動畫開始動作
-						break;
-					}
-
-					QThread::msleep(100);
-				}
-
-
+				setGameStatus(5);
 			}
 		};
 
 	sa::battle_data_t bt = getBattleData();
-	long long nret = -1;
 
-	if (!checkFlagState(battleCharCurrentPos.get()) && !battleCharAlreadyActed.get())
+	if (!checkFlagState(battleCharCurrentPos.get())
+		&& !battleCharAlreadyActed.get()
+		)
 	{
 		if (canDelay)
 		{
@@ -7284,35 +7263,31 @@ bool Worker::asyncBattleAction(bool canDelay)
 		}
 
 		//解析人物戰鬥邏輯並發送指令
-		nret = playerDoBattleWork(bt);
-		if (1 == nret)
+		if (!playerDoBattleWork(bt))
 		{
-			battleCharAlreadyActed.on();
-			sa::character_t pc = getCharacter();
-			if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET) // 沒有戰寵
-			{
-				setCurrentRoundEnd();
-				return true;
-			}
+			sendBattleCharDoNothing();
+		}
+		battleCharAlreadyActed.on();
+		sa::character_t pc = getCharacter();
+		if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET) // 沒有戰寵
+		{
+			setCurrentRoundEnd();
+			return true;
 		}
 	}
 
 	else if (checkFlagState(battleCharCurrentPos.get()) /* 人物已经出手 */ &&
-		!checkFlagState(battleCharCurrentPos.get() + 5) /* 寵物未出手 */ &&
-		!battlePetAlreadyActed.get())
+		!checkFlagState(battleCharCurrentPos.get() + 5) /* 寵物未出手 */
+		&& !battlePetAlreadyActed.get()
+		)
 	{
-		long long nret = petDoBattleWork(bt);
-		if (1 == nret || -1 == nret)
+		if (!petDoBattleWork(bt))
 		{
-			if (1 == nret)
-			{
-				battlePetAlreadyActed.on();
-			}
-
-			setCurrentRoundEnd();
+			sendBattlePetDoNothing();
 		}
-
-		return nret == 1;
+		battlePetAlreadyActed.on();
+		setCurrentRoundEnd();
+		return true;
 	}
 
 	return false;
@@ -7344,12 +7319,11 @@ bool Worker::isSomeEnemyValid(const sa::battle_data_t& bt) const
 }
 
 //人物戰鬥
-long long Worker::playerDoBattleWork(const sa::battle_data_t& bt)
+bool Worker::playerDoBattleWork(const sa::battle_data_t& bt)
 {
 	if (sa::hasUnMoveableStatus(bt.objects.value(battleCharCurrentPos.get()).status))
 	{
-		sendBattleCharDoNothing();
-		return 1;
+		return false;
 	}
 
 	long long currentIndex = getIndex();
@@ -7358,22 +7332,17 @@ long long Worker::playerDoBattleWork(const sa::battle_data_t& bt)
 	{
 		if (bt.objects.isEmpty() || bt.enemies.isEmpty() || bt.allies.isEmpty() || bt.objects.value(battleCharCurrentPos.get()).hp <= 0)
 		{
-			sendBattleCharDoNothing();
-			break;
+			return false;
 		}
 
 		if (!isSomeEnemyValid(bt))
 		{
-			sendBattleCharDoNothing();
-			break;
+			return false;
 		}
 
-		if (battleCharCurrentPos.get() >= sa::MAX_ENEMY
-			|| util::checkAND(battleBpFlag.get(), sa::BATTLE_BP_PLAYER_MENU_NON)/*觀戰*/)
+		if (battleCharCurrentPos.get() >= sa::MAX_ENEMY/*觀戰*/)
 		{
-			//sendBattleCharDoNothing();
-			//break;
-			qDebug() << "battleCharCurrentPos:" << battleCharCurrentPos.get();
+			return false;
 		}
 
 		//自動逃跑
@@ -7385,21 +7354,22 @@ long long Worker::playerDoBattleWork(const sa::battle_data_t& bt)
 
 		if (!handleCharBattleLogics(bt))
 		{
-			sendBattleCharDoNothing();
-			return 0;
+			return false;
 		}
 
 	} while (false);
 
-	return 1;
+	return true;
 }
 
 //寵物戰鬥
-long long Worker::petDoBattleWork(const sa::battle_data_t& bt)
+bool Worker::petDoBattleWork(const sa::battle_data_t& bt)
 {
 	sa::character_t pc = getCharacter();
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= sa::MAX_PET)
-		return -1;
+	{
+		return false;
+	}
 
 	long long currentIndex = getIndex();
 	GameDevice& gamedevice = GameDevice::getInstance(currentIndex);
@@ -7407,14 +7377,12 @@ long long Worker::petDoBattleWork(const sa::battle_data_t& bt)
 	{
 		if (bt.objects.isEmpty() || bt.enemies.isEmpty() || bt.allies.isEmpty() || bt.objects.value(battleCharCurrentPos.get() + 5).hp <= 0)
 		{
-			sendBattlePetDoNothing();
-			break;
+			return false;
 		}
 
 		if (!isSomeEnemyValid(bt))
 		{
-			sendBattlePetDoNothing();
-			break;
+			return false;
 		}
 
 		//自動逃跑
@@ -7423,20 +7391,19 @@ long long Worker::petDoBattleWork(const sa::battle_data_t& bt)
 			|| petEnableEscapeForTemp_.get()
 			|| util::checkAND(battleBpFlag.get(), sa::BATTLE_BP_PET_MENU_NON))
 		{
-			sendBattlePetDoNothing();
-			break;
+			return false;
 		}
 
 		if (!handlePetBattleLogics(bt))
 		{
-			sendBattlePetDoNothing();
-			return 0;
+			return false;
 		}
 
 	} while (false);
+
 	//mem::writeInt(gamedevice.getProcess(), gamedevice.getProcessModule() + 0xE21E4, 0, sizeof(short));
 	//mem::writeInt(gamedevice.getProcess(), gamedevice.getProcessModule() + 0xE21E8, 1, sizeof(short));
-	return 1;
+	return true;
 }
 
 //檢查人物血量
@@ -7862,7 +7829,9 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 	petEnableEscapeForTemp_.off(); //用於在必要的時候切換戰寵動作為逃跑模式
 
 	if (runBattleLua(kCharScript))
+	{
 		return true;
+	}
 
 	QStringList items;
 
@@ -9164,7 +9133,9 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 		for (const auto& it : actions)
 		{
 			if (it())
+			{
 				return true;
+			}
 		}
 	}
 	else
@@ -9179,7 +9150,9 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 
 			std::function<bool()> fun = actions.value(index);
 			if (fun != nullptr && fun())
+			{
 				return true;
+			}
 		}
 	}
 
@@ -9297,7 +9270,9 @@ bool Worker::handleCharBattleLogics(const sa::battle_data_t& bt)
 bool Worker::handlePetBattleLogics(const sa::battle_data_t& bt)
 {
 	if (runBattleLua(kPetScript))
+	{
 		return true;
+	}
 
 	using namespace util;
 	long long currentIndex = getIndex();
@@ -12738,8 +12713,9 @@ void Worker::lssproto_B_recv(char* ccommand)
 		updateCurrentSideRange(&bt);
 		setBattleData(bt);
 
-		autoBattleEnableCache_ = gamedevice.getEnableHash(util::kAutoBattleEnable);
-		if (autoBattleEnableCache_ || gamedevice.getEnableHash(util::kFastBattleEnable))
+		fastBattleEnableCache_.set(gamedevice.getEnableHash(util::kFastBattleEnable));
+		autoBattleEnableCache_.set(gamedevice.getEnableHash(util::kAutoBattleEnable));
+		if (autoBattleEnableCache_.get() || fastBattleEnableCache_.get())
 		{
 			gamedevice.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
 		}
@@ -12761,17 +12737,17 @@ void Worker::lssproto_B_recv(char* ccommand)
 		bool ok = false;
 
 		// 命令完成標誌位(%X)
-		long long tmpValue = list.value(0).toLongLong(&ok, 16) - battleCurrentAnimeFlag.get();
+		long long bpFlag = list.value(0).toLongLong(&ok, 16);
 		if (ok)
 		{
-			battleCurrentAnimeFlag.set(tmpValue);
+			battleCurrentAnimeFlag.set(bpFlag);
 		}
 
 		// 回合數(%X)
-		tmpValue = list.value(1).toLongLong(&ok, 16);
+		long long currentRound = list.value(1).toLongLong(&ok, 16);
 		if (ok)
 		{
-			battleCurrentRound.set(tmpValue + 1);
+			battleCurrentRound.set(currentRound + 1);
 		}
 
 		if (battleCurrentAnimeFlag.get() <= 0)
@@ -12819,13 +12795,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		setBattleData(bt);
 
-		if (!battleFuture_.isRunning())
-		{
-			battleFuture_ = QtConcurrent::run([this]()
-				{
-					asyncBattleAction(true);
-				});
-		}
+		battleActionFlag.on();
 
 		break;
 	}
@@ -12867,6 +12837,9 @@ void Worker::lssproto_B_recv(char* ccommand)
 		long long pos = 0;
 		bool ok = false;
 		bool valid = false;
+
+		long long allieCount = 0;
+		long long enemyCount = 0;
 
 		battleField.set(getIntegerToken(data, "|", 1));
 
@@ -13066,13 +13039,27 @@ void Worker::lssproto_B_recv(char* ccommand)
 				if (pos >= bt.alliemin && pos <= bt.alliemax)
 				{
 					if (valid)
+					{
 						bt.allies.append(obj);
+					}
+
+					if (obj.modelid > 0 && obj.maxHp > 0 && obj.level > 0 && obj.modelid > 0 && !util::checkAND(obj.status, sa::BC_FLG_DEAD))
+					{
+						++allieCount;
+					}
 				}
 
 				if (pos >= bt.enemymin && pos <= bt.enemymax)
 				{
 					if (valid)
+					{
 						bt.enemies.append(obj);
+					}
+
+					if (obj.modelid > 0 && obj.maxHp > 0 && obj.level > 0 && obj.modelid > 0 && !util::checkAND(obj.status, sa::BC_FLG_DEAD))
+					{
+						++enemyCount;
+					}
 				}
 
 				if (pos < bt.objects.size())
@@ -13200,18 +13187,19 @@ void Worker::lssproto_B_recv(char* ccommand)
 
 		setBattleData(bt);
 
-		if (!isAllieAllDead && bt.allies.isEmpty())
+		if (!isAllieAllDead && 0 == allieCount)
 		{
 			isAllieAllDead = true;
 		}
 
-		if (!isEnemyAllDead && bt.enemies.isEmpty())
+		if (!isEnemyAllDead && 0 == enemyCount)
 		{
 			isEnemyAllDead = true;
 		}
 
 		if (isAllieAllDead || isEnemyAllDead)
 		{
+			setBattleEnd();
 			return;
 		}
 
@@ -16512,11 +16500,11 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSignning);
 
-	fastBattleEnableCache_ = gamedevice.getEnableHash(util::kFastBattleEnable);
-	autoBattleEnableCache_ = gamedevice.getEnableHash(util::kAutoBattleEnable);
+	fastBattleEnableCache_.set(gamedevice.getEnableHash(util::kFastBattleEnable));
+	autoBattleEnableCache_.set(gamedevice.getEnableHash(util::kAutoBattleEnable));
 
 	// 允許 快速戰鬥
-	if (fastBattleEnableCache_)
+	if (fastBattleEnableCache_.get())
 	{
 		gamedevice.sendMessage(kSetBlockPacket, true, NULL); // 允許阻擋戰鬥封包
 	}
@@ -16525,7 +16513,7 @@ void Worker::lssproto_CharLogin_recv(char* cresult, char* cdata)
 		gamedevice.sendMessage(kSetBlockPacket, false, NULL); // 禁止阻擋戰鬥封包
 	}
 
-	if (autoBattleEnableCache_)
+	if (autoBattleEnableCache_.get())
 	{
 		gamedevice.sendMessage(kEnableBattleDialog, false, NULL);//禁止戰鬥面板出現
 	}

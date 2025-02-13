@@ -482,7 +482,7 @@ void MainObject::mainProc()
 	{
 		if (!nodelay)
 		{
-			QThread::msleep(100);
+			QThread::msleep(10);
 		}
 		else
 		{
@@ -553,6 +553,27 @@ void MainObject::mainProc()
 		}
 		case 3: //戰鬥中
 		{
+			if (gamedevice.worker.isNull())
+			{
+				break;
+			}
+
+			if (!battleFuture_.isRunning() &&
+				(
+					// 任意戰鬥模式、位於戰鬥場景、且子進度標誌為4
+					((fastEnabled || normalEnabled) && (gamedevice.worker->getWorldStatus() == 10) && (gamedevice.worker->getGameStatus() == 4))
+					// 任意戰鬥模式、位於戰鬥場景之外
+					|| ((fastEnabled || normalEnabled) && (gamedevice.worker->getWorldStatus() == 9))
+					)
+				)
+			{
+				battleFuture_ = QtConcurrent::run([this]()
+					{
+						GameDevice& gamedevice = GameDevice::getInstance(getIndex());
+						gamedevice.worker->asyncBattleAction(true);
+					});
+			}
+
 			break;
 		}
 		default:
@@ -1882,7 +1903,7 @@ void MissionThread::autoBattle()
 		if (!gamedevice.worker->getOnlineFlag())
 			continue;
 
-		gamedevice.worker->asyncBattleAction(true);
+		gamedevice.worker->battleActionFlag.on();
 	}
 
 	emit finished();

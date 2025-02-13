@@ -399,9 +399,9 @@ private:
 	};
 	bool __fastcall runBattleLua(BattleScriptType script) const;
 
-	long long __fastcall playerDoBattleWork(const sa::battle_data_t& bt);
+	bool __fastcall playerDoBattleWork(const sa::battle_data_t& bt);
 	bool __fastcall handleCharBattleLogics(const sa::battle_data_t& bt);
-	long long __fastcall petDoBattleWork(const sa::battle_data_t& bt);
+	bool __fastcall petDoBattleWork(const sa::battle_data_t& bt);
 	bool __fastcall handlePetBattleLogics(const sa::battle_data_t& bt);
 
 	bool __fastcall isSomeEnemyValid(const sa::battle_data_t& bt) const;
@@ -547,8 +547,8 @@ private:
 	safe::integer battleCrossActionCounter_;
 
 	QFuture<void> normalMissions_;
-	bool fastBattleEnableCache_ = false;
-	bool autoBattleEnableCache_ = false;
+	safe::flag fastBattleEnableCache_ = false;
+	safe::flag autoBattleEnableCache_ = false;
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
@@ -624,6 +624,8 @@ public:
 	safe::integer battleCharCurrentMp = 0; //戰鬥人物當前MP
 	safe::integer battleCurrentAnimeFlag = 0; //戰鬥當前動畫標誌
 	std::unique_ptr<CLua> battleLua = nullptr; //戰鬥Lua腳本
+
+	safe::flag battleActionFlag = false; //戰鬥動作標誌
 
 	//custom
 	safe::flag IS_TRADING = false;

@@ -2370,8 +2370,7 @@ long long CLuaSystem::set(sol::object oenumStr,
 			gamedevice.setEnableHash(util::kAutoBattleEnable, !ok);
 			if (!gamedevice.worker.isNull())
 			{
-				gamedevice.worker->asyncBattleAction(false);
-				gamedevice.worker->asyncBattleAction(false);
+				gamedevice.worker->battleActionFlag.on();
 			}
 		}
 		else if (type == util::kAutoBattleEnable && ok)
@@ -2379,8 +2378,7 @@ long long CLuaSystem::set(sol::object oenumStr,
 			gamedevice.setEnableHash(util::kFastBattleEnable, !ok);
 			if (!gamedevice.worker.isNull())
 			{
-				gamedevice.worker->asyncBattleAction(false);
-				gamedevice.worker->asyncBattleAction(false);
+				gamedevice.worker->battleActionFlag.on();
 			}
 		}
 		else if (type == util::kAutoWalkEnable && ok)
