@@ -800,9 +800,15 @@ void AfkForm::onSpinBoxValueChanged(int value)
 		return;
 	}
 
-	if (name == "spinBox_resend_delay")
+	if (name == "spinBox_autoresetcharobjectcount")
 	{
-		gamedevice.setValueHash(util::kBattleResendDelayValue, value);
+		gamedevice.setValueHash(util::kAutoResetCharObjectCountValue, value);
+		return;
+	}
+
+	if (name == "spinBox_tcpdelay")
+	{
+		gamedevice.setValueHash(util::kTcpDelayValue, value);
 		return;
 	}
 }
@@ -1415,6 +1421,14 @@ void AfkForm::onApplyHashSettingsToUI()
 
 
 	ui.spinBox_resend_delay->setValue(valueHash.value(util::kBattleResendDelayValue));
+
+	long long resetCharObjectCountValue = valueHash.value(util::kAutoResetCharObjectCountValue);
+	if (resetCharObjectCountValue == 0)
+	{
+		resetCharObjectCountValue = -1;
+	}
+
+	ui.spinBox_autoresetcharobjectcount->setValue(resetCharObjectCountValue);
 
 	QString orderString = stringHash.value(util::kBattleActionOrderString);
 	qDebug() << "read order:" << orderString;

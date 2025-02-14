@@ -67,7 +67,7 @@ public:
 	BOOL __fastcall WM_DistoryDialog();
 	BOOL __fastcall WM_CleanChatHistory();
 	BOOL __fastcall WM_CreateDialog(int type, int button, const char* data);
-	BOOL __fastcall WM_EndBattle();
+	BOOL __fastcall WM_ResetCharObject();
 
 	BOOL __fastcall WM_SetBlockPacket(BOOL enable);
 

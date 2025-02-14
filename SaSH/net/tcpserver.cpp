@@ -7088,7 +7088,35 @@ void Worker::setBattleEnd()
 
 	GameDevice& gamedevice = GameDevice::getInstance(getIndex());
 
-	gamedevice.sendMessage(kEndBattle, NULL, NULL);
+	long long maxResetCharObjectCount = gamedevice.getValueHash(util::kAutoResetCharObjectCountValue);
+
+	if (maxResetCharObjectCount > 0)
+	{
+		if (resetCharObjectCount_.get() <= 0)
+		{
+			resetCharObjectCount_.set(maxResetCharObjectCount);
+			gamedevice.sendMessage(kResetCharObject, NULL, NULL);
+			//mapUnitHash.clear();
+			//清除所有NPC數據
+			for (auto it = mapUnitHash.begin(); it != mapUnitHash.end(); ++it)
+			{
+				if (it.value().objType == sa::kObjectNPC)
+				{
+					mapUnitHash.erase(it);
+				}
+			}
+		}
+		else
+		{
+			resetCharObjectCount_.dec();
+		}
+
+	}
+	else
+	{
+		resetCharObjectCount_.set(-1);
+	}
+
 
 	//這裡不加限制的話，非快戰結束後會因為和客戶端EO重複發送導致周圍單位無法顯示
 	if (gamedevice.getEnableHash(util::kFastBattleEnable)

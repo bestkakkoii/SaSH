@@ -621,15 +621,21 @@ BOOL GameService::WM_SetOptimize(BOOL enable)
 BOOL GameService::WM_SetWindowHide(BOOL enable)
 {
 	if (!isInitialized_.load(std::memory_order_acquire))
+	{
 		return FALSE;
+	}
 
 	if (nullptr == g_hGameModule)
+	{
 		return FALSE;
+	}
 
 	//聊天紀錄顯示行數數量設為0
 	nowChatRowCount_ = *CONVERT_GAMEVAR<int*>(0xA2674ul);
 	if (nowChatRowCount_ < 20)
+	{
 		*CONVERT_GAMEVAR<int*>(0xA2674ul) = 20;
+	}
 
 	if (FALSE == enable)
 	{
@@ -1299,7 +1305,7 @@ BOOL GameService::WM_CreateDialog(int type, int button, const char* data)
 }
 
 //Clear Character image / action after battle end
-BOOL GameService::WM_EndBattle()
+BOOL GameService::WM_ResetCharObject()
 {
 	if (!isInitialized_.load(std::memory_order_acquire))
 		return FALSE;
@@ -1368,7 +1374,7 @@ BOOL GameService::WM_EndBattle()
 	*/
 
 	//pResetPc();
-	//pResetCharObj();
+	pResetCharObj();
 	//pClearPtActPartyParam();
 
 	return TRUE;
@@ -1618,9 +1624,9 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		int button = HIWORD(wParam);
 		return g_GameService.WM_CreateDialog(type, button, reinterpret_cast<const char*>(lParam));
 	}
-	case kEndBattle:
+	case kResetCharObject:
 	{
-		return g_GameService.WM_EndBattle();
+		return g_GameService.WM_ResetCharObject();
 	}
 	case kECBCrypt://ECB解密
 	{

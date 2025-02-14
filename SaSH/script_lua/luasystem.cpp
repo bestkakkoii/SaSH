@@ -1917,6 +1917,8 @@ long long CLuaSystem::set(sol::object oenumStr,
 			{ "攻擊延時", util::kBattleActionDelayValue },
 			{ "動作重發", util::kBattleResendDelayValue },
 
+			{ "戰後清屏", util::kAutoResetCharObjectCountValue },
+
 			{ "轉發封包", util::kForwardSendEnable },
 #pragma endregion
 
@@ -2064,6 +2066,7 @@ long long CLuaSystem::set(sol::object oenumStr,
 			{ "攻击延时", util::kBattleActionDelayValue },
 			{ "动作重发", util::kBattleResendDelayValue },
 
+			{ "战后清屏", util::kAutoResetCharObjectCountValue },
 
 			{ "战斗回合目标", util::kBattleCharRoundActionTargetValue },
 			{ "战斗间隔目标",  util::kBattleCharCrossActionTargetValue },
@@ -2263,6 +2266,7 @@ long long CLuaSystem::set(sol::object oenumStr,
 	case util::kScriptSpeedValue://腳本速度
 	case util::kBattleActionDelayValue://攻擊延時
 	case util::kBattleResendDelayValue://動作重發
+	case util::kAutoResetCharObjectCountValue://戰後清屏
 
 	case util::kBattleCharRoundActionTargetValue:
 	case util::kBattleCharCrossActionTargetValue:

@@ -117,9 +117,9 @@ namespace mem
 			mov eax, [eax + 0xC]
 			mov eax, [eax + 0x1C]
 			mov eax, [eax]
-				mov eax, [eax]
-					mov eax, [eax + 8]
-						ret
+			mov eax, [eax]
+			mov eax, [eax + 8]
+			ret
 		}
 	}
 #else
@@ -529,6 +529,8 @@ namespace util
 		kBattleActionDelayValue,
 		kBattleResendDelayValue,
 
+		kAutoResetCharObjectCountValue,
+
 
 		kDropPetStrValue,
 		kDropPetDefValue,
@@ -840,6 +842,8 @@ namespace util
 		//afk->battle delay
 		{ kBattleActionDelayValue, "BattleActionDelayValue" },
 		{ kBattleResendDelayValue, "BattleResendDelayValue" },
+
+		{ kAutoResetCharObjectCountValue, "AutoResetCharObjectCountValue" },
 
 		{ kDropPetStrValue, "DropPetStrValue" },
 		{ kDropPetDefValue, "DropPetDefValue" },

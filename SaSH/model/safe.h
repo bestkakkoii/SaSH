@@ -340,39 +340,39 @@ namespace safe
 
 		inline typename QHash<K, V>::iterator begin()
 		{
-			std::shared_lock<std::shared_mutex> lock(mutex_);
+			std::unique_lock<std::shared_mutex> lock(mutex_);
 			return hash_.begin();
 		}
 
 		inline typename QHash<K, V>::const_iterator begin() const
 		{
-			std::shared_lock<std::shared_mutex> lock(mutex_);
+			std::unique_lock<std::shared_mutex> lock(mutex_);
 			return hash_.begin();
 		}
 
 		//const
 		inline typename QHash<K, V>::const_iterator cbegin() const
 		{
-			std::shared_lock<std::shared_mutex> lock(mutex_);
+			std::unique_lock<std::shared_mutex> lock(mutex_);
 			return hash_.constBegin();
 		}
 
 		inline typename QHash<K, V>::iterator end()
 		{
-			std::shared_lock<std::shared_mutex> lock(mutex_);
+			std::unique_lock<std::shared_mutex> lock(mutex_);
 			return hash_.end();
 		}
 
 		//const
 		inline typename QHash<K, V>::const_iterator cend() const
 		{
-			std::shared_lock<std::shared_mutex> lock(mutex_);
+			std::unique_lock<std::shared_mutex> lock(mutex_);
 			return hash_.constEnd();
 		}
 
 		inline typename QHash<K, V>::const_iterator end() const
 		{
-			std::shared_lock<std::shared_mutex> lock(mutex_);
+			std::unique_lock<std::shared_mutex> lock(mutex_);
 			return hash_.end();
 		}
 
@@ -392,7 +392,7 @@ namespace safe
 
 		QHash <K, V> toHash() const
 		{
-			std::shared_lock<std::shared_mutex> lock(mutex_);
+			std::unique_lock<std::shared_mutex> lock(mutex_);
 			return hash_;
 		}
 
@@ -729,4 +729,4 @@ namespace safe
 		mutable std::shared_mutex mutex_;
 	};
 #pragma endregion
-	}
+}

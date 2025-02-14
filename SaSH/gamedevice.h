@@ -405,7 +405,9 @@ private:
 		{ util::kBattleCatchPetSkillValue, 0 },
 
 		{ util::kBattleActionDelayValue, 0 },
-		{ util::kBattleResendDelayValue, 3000},
+		{ util::kBattleResendDelayValue, 3000 },
+
+		{ util::kAutoResetCharObjectCountValue, -1 },
 
 		{ util::kDropPetStrValue, 10 },
 		{ util::kDropPetDefValue, 10 },

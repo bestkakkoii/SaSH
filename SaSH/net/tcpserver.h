@@ -549,6 +549,7 @@ private:
 	QFuture<void> normalMissions_;
 	safe::flag fastBattleEnableCache_ = false;
 	safe::flag autoBattleEnableCache_ = false;
+	safe::integer resetCharObjectCount_ = -1;
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
